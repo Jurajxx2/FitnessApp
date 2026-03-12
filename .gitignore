@@ -1,0 +1,47 @@
+# Secrets — never commit
+local.properties
+*.jks
+*.keystore
+*.p12
+
+# MCP config (contains server URLs, no tokens — safe to commit if desired, excluded by default)
+.mcp.json
+
+# Build outputs
+build/
+**/build/
+out/
+
+# Gradle
+.gradle/
+*.gradle.kts.dsl.cache
+
+# Kotlin tooling
+.kotlin/
+
+# Android Studio / IntelliJ
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries/
+.idea/shelf/
+.idea/aws.xml
+.idea/artifacts/
+.idea/compiler.xml
+.idea/jarRepositories.xml
+.idea/modules.xml
+.idea/*.iml
+.idea/modules/
+*.iml
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# iOS
+iosApp/Pods/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+DerivedData/
+
+# Compose Multiplatform generated
+composeApp/src/commonMain/composeResources/
