@@ -14,51 +14,40 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.coachfoska.app.domain.model.User
 import com.coachfoska.app.navigation.*
-import com.coachfoska.app.presentation.auth.AuthIntent
-import com.coachfoska.app.presentation.auth.AuthViewModel
-import com.coachfoska.app.presentation.exercise.ExerciseViewModel
-import com.coachfoska.app.presentation.home.HomeViewModel
-import com.coachfoska.app.presentation.nutrition.NutritionViewModel
-import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
-import com.coachfoska.app.presentation.profile.ProfileViewModel
-import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.theme.CoachFoskaTheme
-import com.coachfoska.app.ui.auth.EmailOtpScreen
-import com.coachfoska.app.ui.auth.VerifyOtpScreen
-import com.coachfoska.app.ui.auth.WelcomeScreen
+import com.coachfoska.app.ui.auth.EmailOtpRoute
+import com.coachfoska.app.ui.auth.VerifyOtpRoute
+import com.coachfoska.app.ui.auth.WelcomeRoute
 import com.coachfoska.app.ui.components.BottomNavBar
 import com.coachfoska.app.ui.components.BottomNavTab
-import com.coachfoska.app.ui.home.HomeScreen
-import com.coachfoska.app.ui.nutrition.MealCaptureScreen
-import com.coachfoska.app.ui.nutrition.MealDetailScreen
-import com.coachfoska.app.ui.nutrition.MealHistoryScreen
-import com.coachfoska.app.ui.nutrition.MealPlanScreen
-import com.coachfoska.app.ui.onboarding.OnboardingFlow
+import com.coachfoska.app.ui.home.HomeRoute
+import com.coachfoska.app.ui.nutrition.MealCaptureRoute
+import com.coachfoska.app.ui.nutrition.MealDetailRoute
+import com.coachfoska.app.ui.nutrition.MealHistoryRoute
+import com.coachfoska.app.ui.nutrition.MealPlanRoute
+import com.coachfoska.app.ui.onboarding.OnboardingRoute
 import com.coachfoska.app.ui.profile.AboutCoachScreen
-import com.coachfoska.app.ui.profile.ProfileScreen
-import com.coachfoska.app.ui.profile.ProgressScreen
-import com.coachfoska.app.ui.workout.ExerciseDetailScreen
-import com.coachfoska.app.ui.workout.LogWorkoutScreen
-import com.coachfoska.app.ui.workout.WorkoutDetailScreen
-import com.coachfoska.app.ui.workout.WorkoutHistoryScreen
-import com.coachfoska.app.ui.workout.WorkoutListScreen
-import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.parameter.parametersOf
+import com.coachfoska.app.ui.profile.ProfileRoute
+import com.coachfoska.app.ui.profile.ProgressRoute
+import com.coachfoska.app.ui.splash.SplashRoute
+import com.coachfoska.app.ui.workout.ExerciseDetailRoute
+import com.coachfoska.app.ui.workout.LogWorkoutRoute
+import com.coachfoska.app.ui.workout.WorkoutDetailRoute
+import com.coachfoska.app.ui.workout.WorkoutHistoryRoute
+import com.coachfoska.app.ui.workout.WorkoutListRoute
 
 @Composable
 fun App() {
     CoachFoskaTheme {
         val navController = rememberNavController()
-
-        // Track authenticated user across the session
-        var currentUser by remember { mutableStateOf<User?>(null) }
+        var currentUserId by remember { mutableStateOf("") }
 
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
 
         val authRoutes = listOf(
+            Splash::class.qualifiedName,
             Welcome::class.qualifiedName,
             EmailOtp::class.qualifiedName,
             VerifyOtp::class.qualifiedName,
@@ -96,9 +85,7 @@ fun App() {
                                 BottomNavTab.Profile -> Profile
                             }
                             navController.navigate(route) {
-                                popUpTo<Home> {
-                                    saveState = true
-                                }
+                                popUpTo<Home> { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -107,59 +94,65 @@ fun App() {
                 }
             }
         ) { innerPadding ->
-            // Shared AuthViewModel for all auth screens
-            val authViewModel: AuthViewModel = koinViewModel()
-
             NavHost(
                 navController = navController,
-                startDestination = Welcome,
+                startDestination = Splash,
                 modifier = if (showBottomBar) Modifier.padding(innerPadding) else Modifier,
                 enterTransition = { slideInHorizontally { it } },
                 exitTransition = { slideOutHorizontally { -it } },
                 popEnterTransition = { slideInHorizontally { -it } },
                 popExitTransition = { slideOutHorizontally { it } }
             ) {
+                // ── Splash ────────────────────────────────────────────────
+                composable<Splash> {
+                    SplashRoute(
+                        onNavigateToHome = { userId ->
+                            currentUserId = userId
+                            navController.navigate(Home) { popUpTo<Splash> { inclusive = true } }
+                        },
+                        onNavigateToOnboarding = { userId ->
+                            currentUserId = userId
+                            navController.navigate(Onboarding(userId)) { popUpTo<Splash> { inclusive = true } }
+                        },
+                        onNavigateToWelcome = {
+                            navController.navigate(Welcome) { popUpTo<Splash> { inclusive = true } }
+                        }
+                    )
+                }
+
                 // ── Auth flow ─────────────────────────────────────────────
                 composable<Welcome> {
-                    WelcomeScreen(
-                        authViewModel = authViewModel,
+                    WelcomeRoute(
                         onNavigateToEmailOtp = { navController.navigate(EmailOtp) },
-                        onNavigateToHome = {
-                            currentUser = authViewModel.state.value.authenticatedUser
+                        onNavigateToHome = { userId ->
+                            currentUserId = userId
                             navController.navigate(Home) { popUpTo(Welcome) { inclusive = true } }
                         },
-                        onNavigateToOnboarding = {
-                            val user = authViewModel.state.value.authenticatedUser
-                            currentUser = user
-                            navController.navigate(Onboarding(user?.id ?: "")) {
-                                popUpTo(Welcome) { inclusive = true }
-                            }
+                        onNavigateToOnboarding = { userId ->
+                            currentUserId = userId
+                            navController.navigate(Onboarding(userId)) { popUpTo(Welcome) { inclusive = true } }
                         }
                     )
                 }
 
                 composable<EmailOtp> {
-                    EmailOtpScreen(
-                        authViewModel = authViewModel,
+                    EmailOtpRoute(
                         onBackClick = { navController.popBackStack() },
-                        onOtpSent = { navController.navigate(VerifyOtp) }
+                        onOtpSent = { email -> navController.navigate(VerifyOtp(email)) }
                     )
                 }
 
-                composable<VerifyOtp> {
-                    VerifyOtpScreen(
-                        authViewModel = authViewModel,
+                composable<VerifyOtp> { backStackEntry ->
+                    val route = backStackEntry.toRoute<VerifyOtp>()
+                    VerifyOtpRoute(
+                        email = route.email,
                         onBackClick = { navController.popBackStack() },
                         onNavigateToHome = {
-                            currentUser = authViewModel.state.value.authenticatedUser
                             navController.navigate(Home) { popUpTo(Welcome) { inclusive = true } }
                         },
-                        onNavigateToOnboarding = {
-                            val user = authViewModel.state.value.authenticatedUser
-                            currentUser = user
-                            navController.navigate(Onboarding(user?.id ?: "")) {
-                                popUpTo(Welcome) { inclusive = true }
-                            }
+                        onNavigateToOnboarding = { userId ->
+                            currentUserId = userId
+                            navController.navigate(Onboarding(userId)) { popUpTo(Welcome) { inclusive = true } }
                         }
                     )
                 }
@@ -167,9 +160,8 @@ fun App() {
                 // ── Onboarding ────────────────────────────────────────────
                 composable<Onboarding> { backStackEntry ->
                     val route = backStackEntry.toRoute<Onboarding>()
-                    val onboardingViewModel: OnboardingViewModel = koinViewModel { parametersOf(route.userId) }
-                    OnboardingFlow(
-                        viewModel = onboardingViewModel,
+                    OnboardingRoute(
+                        userId = route.userId,
                         onComplete = {
                             navController.navigate(Home) {
                                 popUpTo(Onboarding(route.userId)) { inclusive = true }
@@ -185,9 +177,7 @@ fun App() {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val homeViewModel: HomeViewModel = koinViewModel { parametersOf(userId) }
-                    HomeScreen(homeViewModel = homeViewModel)
+                    HomeRoute(userId = currentUserId)
                 }
 
                 // ── Workout ───────────────────────────────────────────────
@@ -197,10 +187,8 @@ fun App() {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val workoutViewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
-                    WorkoutListScreen(
-                        workoutViewModel = workoutViewModel,
+                    WorkoutListRoute(
+                        userId = currentUserId,
                         onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
                         onLogWorkoutClick = { navController.navigate(LogWorkout) },
                         onWorkoutHistoryClick = { navController.navigate(WorkoutHistory) }
@@ -209,11 +197,9 @@ fun App() {
 
                 composable<WorkoutDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<WorkoutDetail>()
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val workoutViewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
-                    WorkoutDetailScreen(
-                        workoutViewModel = workoutViewModel,
+                    WorkoutDetailRoute(
                         workoutId = route.workoutId,
+                        userId = currentUserId,
                         onBackClick = { navController.popBackStack() },
                         onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) }
                     )
@@ -221,28 +207,22 @@ fun App() {
 
                 composable<ExerciseDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<ExerciseDetail>()
-                    val exerciseViewModel: ExerciseViewModel = koinViewModel()
-                    ExerciseDetailScreen(
-                        exerciseViewModel = exerciseViewModel,
+                    ExerciseDetailRoute(
                         exerciseId = route.exerciseId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
 
                 composable<LogWorkout> {
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val workoutViewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
-                    LogWorkoutScreen(
-                        workoutViewModel = workoutViewModel,
+                    LogWorkoutRoute(
+                        userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
 
                 composable<WorkoutHistory> {
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val workoutViewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
-                    WorkoutHistoryScreen(
-                        workoutViewModel = workoutViewModel,
+                    WorkoutHistoryRoute(
+                        userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
@@ -254,10 +234,8 @@ fun App() {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val nutritionViewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
-                    MealPlanScreen(
-                        nutritionViewModel = nutritionViewModel,
+                    MealPlanRoute(
+                        userId = currentUserId,
                         onMealClick = { mealId -> navController.navigate(MealDetail(mealId)) },
                         onRecordMealClick = { navController.navigate(MealCapture) },
                         onMealHistoryClick = { navController.navigate(MealHistory) }
@@ -266,29 +244,23 @@ fun App() {
 
                 composable<MealDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<MealDetail>()
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val nutritionViewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
-                    MealDetailScreen(
-                        nutritionViewModel = nutritionViewModel,
+                    MealDetailRoute(
                         mealId = route.mealId,
+                        userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
 
                 composable<MealCapture> {
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val nutritionViewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
-                    MealCaptureScreen(
-                        nutritionViewModel = nutritionViewModel,
+                    MealCaptureRoute(
+                        userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
 
                 composable<MealHistory> {
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val nutritionViewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
-                    MealHistoryScreen(
-                        nutritionViewModel = nutritionViewModel,
+                    MealHistoryRoute(
+                        userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
@@ -300,26 +272,20 @@ fun App() {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val profileViewModel: ProfileViewModel = koinViewModel { parametersOf(userId) }
-                    ProfileScreen(
-                        profileViewModel = profileViewModel,
+                    ProfileRoute(
+                        userId = currentUserId,
                         onProgressClick = { navController.navigate(Progress) },
                         onAboutCoachClick = { navController.navigate(AboutCoach) },
                         onLogoutComplete = {
-                            currentUser = null
-                            navController.navigate(Welcome) {
-                                popUpTo(Home) { inclusive = true }
-                            }
+                            currentUserId = ""
+                            navController.navigate(Welcome) { popUpTo(Home) { inclusive = true } }
                         }
                     )
                 }
 
                 composable<Progress> {
-                    val userId = currentUser?.id ?: authViewModel.state.value.authenticatedUser?.id ?: ""
-                    val profileViewModel: ProfileViewModel = koinViewModel { parametersOf(userId) }
-                    ProgressScreen(
-                        profileViewModel = profileViewModel,
+                    ProgressRoute(
+                        userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }

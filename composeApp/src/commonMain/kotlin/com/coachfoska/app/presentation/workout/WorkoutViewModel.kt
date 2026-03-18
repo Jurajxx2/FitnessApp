@@ -6,11 +6,14 @@ import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val TAG = "WorkoutViewModel"
 
 class WorkoutViewModel(
     private val getAssignedWorkoutsUseCase: GetAssignedWorkoutsUseCase,
@@ -28,6 +31,7 @@ class WorkoutViewModel(
     }
 
     fun onIntent(intent: WorkoutIntent) {
+        Napier.d("onIntent: $intent", tag = TAG)
         when (intent) {
             WorkoutIntent.LoadWorkouts -> loadWorkouts()
             is WorkoutIntent.SelectWorkout -> selectWorkout(intent.workoutId)
@@ -43,7 +47,10 @@ class WorkoutViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             getAssignedWorkoutsUseCase(userId)
                 .onSuccess { workouts -> _state.update { it.copy(isLoading = false, workouts = workouts) } }
-                .onFailure { e -> _state.update { it.copy(isLoading = false, error = e.message) } }
+                .onFailure { e ->
+                    Napier.e("loadWorkouts failed", e, tag = TAG)
+                    _state.update { it.copy(isLoading = false, error = e.message) }
+                }
         }
     }
 
@@ -52,7 +59,10 @@ class WorkoutViewModel(
             _state.update { it.copy(isLoading = true) }
             getWorkoutByIdUseCase(workoutId)
                 .onSuccess { workout -> _state.update { it.copy(isLoading = false, selectedWorkout = workout) } }
-                .onFailure { e -> _state.update { it.copy(isLoading = false, error = e.message) } }
+                .onFailure { e ->
+                    Napier.e("selectWorkout($workoutId) failed", e, tag = TAG)
+                    _state.update { it.copy(isLoading = false, error = e.message) }
+                }
         }
     }
 
@@ -61,7 +71,10 @@ class WorkoutViewModel(
             _state.update { it.copy(isHistoryLoading = true) }
             getWorkoutHistoryUseCase(userId)
                 .onSuccess { logs -> _state.update { it.copy(isHistoryLoading = false, workoutHistory = logs) } }
-                .onFailure { e -> _state.update { it.copy(isHistoryLoading = false, error = e.message) } }
+                .onFailure { e ->
+                    Napier.e("loadHistory failed", e, tag = TAG)
+                    _state.update { it.copy(isHistoryLoading = false, error = e.message) }
+                }
         }
     }
 
@@ -72,8 +85,14 @@ class WorkoutViewModel(
                 userId, intent.workoutId, intent.workoutName,
                 intent.durationMinutes, intent.notes, intent.exerciseLogs
             )
-                .onSuccess { _state.update { it.copy(isLogging = false, workoutLoggedSuccess = true) } }
-                .onFailure { e -> _state.update { it.copy(isLogging = false, error = e.message) } }
+                .onSuccess {
+                    Napier.i("Workout logged: ${intent.workoutName}", tag = TAG)
+                    _state.update { it.copy(isLogging = false, workoutLoggedSuccess = true) }
+                }
+                .onFailure { e ->
+                    Napier.e("logWorkout failed", e, tag = TAG)
+                    _state.update { it.copy(isLogging = false, error = e.message) }
+                }
         }
     }
 }

@@ -2,6 +2,8 @@ package com.coachfoska.app.data.remote.datasource
 
 import com.coachfoska.app.data.remote.dto.MealLogDto
 import com.coachfoska.app.data.remote.dto.MealLogFoodDto
+import com.coachfoska.app.data.remote.dto.MealLogFoodInsertDto
+import com.coachfoska.app.data.remote.dto.MealLogInsertDto
 import com.coachfoska.app.data.remote.dto.MealPlanDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -40,20 +42,20 @@ class MealRemoteDataSource(private val supabase: SupabaseClient) {
         mealName: String,
         notes: String?
     ): MealLogDto {
-        val payload = buildMap<String, Any?> {
-            put("user_id", userId)
-            put("meal_name", mealName)
-            put("logged_at", currentInstant().toString())
-            if (notes != null) put("notes", notes)
-        }
+        val payload = MealLogInsertDto(
+            userId = userId,
+            mealName = mealName,
+            loggedAt = currentInstant().toString(),
+            notes = notes
+        )
         return supabase.postgrest["meal_logs"]
-            .insert(payload)
+            .insert(payload) { select() }
             .decodeSingle<MealLogDto>()
     }
 
-    suspend fun insertMealLogFoods(foods: List<Map<String, Any?>>): List<MealLogFoodDto> =
+    suspend fun insertMealLogFoods(foods: List<MealLogFoodInsertDto>): List<MealLogFoodDto> =
         supabase.postgrest["meal_log_foods"]
-            .insert(foods)
+            .insert(foods) { select() }
             .decodeList<MealLogFoodDto>()
 
     suspend fun getMealHistory(userId: String): List<MealLogDto> =

@@ -5,11 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val TAG = "NutritionViewModel"
 
 class NutritionViewModel(
     private val getActiveMealPlanUseCase: GetActiveMealPlanUseCase,
@@ -26,6 +29,7 @@ class NutritionViewModel(
     }
 
     fun onIntent(intent: NutritionIntent) {
+        Napier.d("onIntent: $intent", tag = TAG)
         when (intent) {
             NutritionIntent.LoadMealPlan -> loadMealPlan()
             NutritionIntent.LoadHistory -> loadHistory()
@@ -41,7 +45,10 @@ class NutritionViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             getActiveMealPlanUseCase(userId)
                 .onSuccess { plan -> _state.update { it.copy(isLoading = false, mealPlan = plan) } }
-                .onFailure { e -> _state.update { it.copy(isLoading = false, error = e.message) } }
+                .onFailure { e ->
+                    Napier.e("loadMealPlan failed", e, tag = TAG)
+                    _state.update { it.copy(isLoading = false, error = e.message) }
+                }
         }
     }
 
@@ -50,7 +57,10 @@ class NutritionViewModel(
             _state.update { it.copy(isHistoryLoading = true) }
             getMealHistoryUseCase(userId)
                 .onSuccess { logs -> _state.update { it.copy(isHistoryLoading = false, mealHistory = logs) } }
-                .onFailure { e -> _state.update { it.copy(isHistoryLoading = false, error = e.message) } }
+                .onFailure { e ->
+                    Napier.e("loadHistory failed", e, tag = TAG)
+                    _state.update { it.copy(isHistoryLoading = false, error = e.message) }
+                }
         }
     }
 
@@ -63,8 +73,14 @@ class NutritionViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLogging = true, error = null) }
             logMealUseCase(userId, intent.mealName, intent.foods, intent.notes)
-                .onSuccess { _state.update { it.copy(isLogging = false, mealLoggedSuccess = true) } }
-                .onFailure { e -> _state.update { it.copy(isLogging = false, error = e.message) } }
+                .onSuccess {
+                    Napier.i("Meal logged: ${intent.mealName}", tag = TAG)
+                    _state.update { it.copy(isLogging = false, mealLoggedSuccess = true) }
+                }
+                .onFailure { e ->
+                    Napier.e("logMeal failed", e, tag = TAG)
+                    _state.update { it.copy(isLogging = false, error = e.message) }
+                }
         }
     }
 }

@@ -7,26 +7,23 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.domain.model.UserGoal
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
-import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
+import com.coachfoska.app.presentation.onboarding.OnboardingState
 import com.coachfoska.app.ui.components.CoachTopBar
 
 @Composable
 fun GoalSelectionScreen(
-    onboardingViewModel: OnboardingViewModel,
+    state: OnboardingState,
+    onIntent: (OnboardingIntent) -> Unit,
     onBackClick: () -> Unit,
     onNextClick: () -> Unit
 ) {
-    val state by onboardingViewModel.state.collectAsStateWithLifecycle()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -59,7 +56,7 @@ fun GoalSelectionScreen(
                     GoalCard(
                         goal = goal,
                         isSelected = state.selectedGoal == goal,
-                        onClick = { onboardingViewModel.onIntent(OnboardingIntent.GoalSelected(goal)) }
+                        onClick = { onIntent(OnboardingIntent.GoalSelected(goal)) }
                     )
                 }
             }

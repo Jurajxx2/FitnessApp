@@ -1,6 +1,8 @@
 package com.coachfoska.app.domain.repository
 
+import com.coachfoska.app.domain.model.SessionAuthState
 import com.coachfoska.app.domain.model.User
+import kotlinx.coroutines.flow.Flow
 
 interface AuthRepository {
     /** Returns the current signed-in user, or null if not authenticated. */
@@ -23,4 +25,7 @@ interface AuthRepository {
 
     /** Whether the user has completed onboarding. */
     suspend fun hasCompletedOnboarding(): Boolean
+
+    /** Emits session state as it changes (Loading → Authenticated/NotAuthenticated). */
+    fun observeSessionStatus(): Flow<SessionAuthState>
 }

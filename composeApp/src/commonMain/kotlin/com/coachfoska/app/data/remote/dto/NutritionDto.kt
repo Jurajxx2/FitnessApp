@@ -72,6 +72,25 @@ data class MealFoodDto(
 }
 
 @Serializable
+data class MealLogInsertDto(
+    @SerialName("user_id") val userId: String,
+    @SerialName("meal_name") val mealName: String,
+    @SerialName("logged_at") val loggedAt: String,
+    val notes: String? = null
+)
+
+@Serializable
+data class MealLogFoodInsertDto(
+    @SerialName("meal_log_id") val mealLogId: String,
+    val name: String,
+    @SerialName("amount_grams") val amountGrams: Float = 100f,
+    val calories: Float = 0f,
+    @SerialName("protein_g") val proteinG: Float = 0f,
+    @SerialName("carbs_g") val carbsG: Float = 0f,
+    @SerialName("fat_g") val fatG: Float = 0f
+)
+
+@Serializable
 data class MealLogDto(
     val id: String,
     @SerialName("user_id") val userId: String,

@@ -18,26 +18,35 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.core.util.toDisplayDateTime
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.presentation.workout.WorkoutIntent
+import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+
+@Composable
+fun WorkoutHistoryRoute(
+    userId: String,
+    onBackClick: () -> Unit,
+    viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.onIntent(WorkoutIntent.LoadHistory)
+    }
+
+    WorkoutHistoryScreen(state = state, onBackClick = onBackClick)
+}
 
 @Composable
 fun WorkoutHistoryScreen(
-    workoutViewModel: WorkoutViewModel,
+    state: WorkoutState,
     onBackClick: () -> Unit
 ) {
-    val state by workoutViewModel.state.collectAsStateWithLifecycle()
     var expandedId by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) {
-        workoutViewModel.onIntent(WorkoutIntent.LoadHistory)
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         CoachTopBar(title = "Workout History", onBackClick = onBackClick)
 
         if (state.isHistoryLoading) {
@@ -58,11 +67,7 @@ fun WorkoutHistoryScreen(
                 }
                 if (state.workoutHistory.isEmpty()) {
                     item {
-                        Text(
-                            text = "No workouts logged yet.",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 14.sp
-                        )
+                        Text(text = "No workouts logged yet.", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp)
                     }
                 }
             }
@@ -80,48 +85,19 @@ private fun WorkoutLogCard(log: WorkoutLog, isExpanded: Boolean, onClick: () -> 
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = log.workoutName,
-                color = Color.White,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = log.loggedAt.toDisplayDateTime(),
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 12.sp
-            )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(text = log.workoutName, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Text(text = log.loggedAt.toDisplayDateTime(), color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
         }
         if (log.durationMinutes > 0) {
-            Text(
-                text = "${log.durationMinutes} min",
-                color = Color.White.copy(alpha = 0.5f),
-                fontSize = 13.sp
-            )
+            Text(text = "${log.durationMinutes} min", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
         }
         if (isExpanded) {
             log.exerciseLogs.forEach { exerciseLog ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = exerciseLog.exerciseName,
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 13.sp,
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(text = exerciseLog.exerciseName, color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, modifier = Modifier.weight(1f))
                     exerciseLog.weightKg?.let {
-                        Text(
-                            text = "${it}kg",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 13.sp
-                        )
+                        Text(text = "${it}kg", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
                     }
                 }
             }

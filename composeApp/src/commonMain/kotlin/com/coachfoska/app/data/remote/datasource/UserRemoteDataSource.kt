@@ -2,6 +2,7 @@ package com.coachfoska.app.data.remote.datasource
 
 import com.coachfoska.app.data.remote.dto.UserDto
 import com.coachfoska.app.data.remote.dto.WeightEntryDto
+import com.coachfoska.app.data.remote.dto.WeightEntryInsertDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.datetime.LocalDate
@@ -34,14 +35,14 @@ class UserRemoteDataSource(private val supabase: SupabaseClient) {
         date: LocalDate,
         notes: String?
     ): WeightEntryDto {
-        val payload = buildMap<String, Any?> {
-            put("user_id", userId)
-            put("weight_kg", weightKg)
-            put("recorded_at", date.toString())
-            if (notes != null) put("notes", notes)
-        }
+        val payload = WeightEntryInsertDto(
+            userId = userId,
+            weightKg = weightKg,
+            recordedAt = date.toString(),
+            notes = notes
+        )
         return supabase.postgrest["weight_entries"]
-            .insert(payload)
+            .insert(payload) { select() }
             .decodeSingle<WeightEntryDto>()
     }
 }

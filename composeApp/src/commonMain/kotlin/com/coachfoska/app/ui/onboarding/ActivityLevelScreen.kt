@@ -14,20 +14,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
-import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
+import com.coachfoska.app.presentation.onboarding.OnboardingState
 import com.coachfoska.app.ui.components.CoachTopBar
 
 @Composable
 fun ActivityLevelScreen(
-    onboardingViewModel: OnboardingViewModel,
+    state: OnboardingState,
+    onIntent: (OnboardingIntent) -> Unit,
     onBackClick: () -> Unit,
     onNextClick: () -> Unit
 ) {
-    val state by onboardingViewModel.state.collectAsStateWithLifecycle()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -61,9 +59,7 @@ fun ActivityLevelScreen(
                     ActivityCard(
                         level = level,
                         isSelected = state.selectedActivityLevel == level,
-                        onClick = {
-                            onboardingViewModel.onIntent(OnboardingIntent.ActivityLevelSelected(level))
-                        }
+                        onClick = { onIntent(OnboardingIntent.ActivityLevelSelected(level)) }
                     )
                 }
             }

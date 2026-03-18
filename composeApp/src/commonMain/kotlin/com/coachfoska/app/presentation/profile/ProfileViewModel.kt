@@ -7,11 +7,14 @@ import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
 import com.coachfoska.app.domain.usecase.profile.LogWeightUseCase
 import com.coachfoska.app.domain.usecase.profile.UpdateUserProfileUseCase
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val TAG = "ProfileViewModel"
 
 class ProfileViewModel(
     private val getUserProfileUseCase: GetUserProfileUseCase,
@@ -30,6 +33,7 @@ class ProfileViewModel(
     }
 
     fun onIntent(intent: ProfileIntent) {
+        Napier.d("onIntent: $intent", tag = TAG)
         when (intent) {
             ProfileIntent.LoadProfile -> loadProfile()
             ProfileIntent.LoadWeightHistory -> loadWeightHistory()
@@ -46,7 +50,10 @@ class ProfileViewModel(
             _state.update { it.copy(isLoading = true) }
             getUserProfileUseCase(userId)
                 .onSuccess { user -> _state.update { it.copy(isLoading = false, user = user) } }
-                .onFailure { e -> _state.update { it.copy(isLoading = false, error = e.message) } }
+                .onFailure { e ->
+                    Napier.e("loadProfile failed", e, tag = TAG)
+                    _state.update { it.copy(isLoading = false, error = e.message) }
+                }
         }
     }
 
@@ -55,7 +62,10 @@ class ProfileViewModel(
             _state.update { it.copy(isWeightHistoryLoading = true) }
             getWeightHistoryUseCase(userId)
                 .onSuccess { entries -> _state.update { it.copy(isWeightHistoryLoading = false, weightHistory = entries) } }
-                .onFailure { e -> _state.update { it.copy(isWeightHistoryLoading = false, error = e.message) } }
+                .onFailure { e ->
+                    Napier.e("loadWeightHistory failed", e, tag = TAG)
+                    _state.update { it.copy(isWeightHistoryLoading = false, error = e.message) }
+                }
         }
     }
 
@@ -70,8 +80,14 @@ class ProfileViewModel(
                 goal = intent.goal,
                 activityLevel = intent.activityLevel
             )
-                .onSuccess { user -> _state.update { it.copy(isSavingProfile = false, user = user) } }
-                .onFailure { e -> _state.update { it.copy(isSavingProfile = false, error = e.message) } }
+                .onSuccess { user ->
+                    Napier.i("Profile updated", tag = TAG)
+                    _state.update { it.copy(isSavingProfile = false, user = user) }
+                }
+                .onFailure { e ->
+                    Napier.e("updateProfile failed", e, tag = TAG)
+                    _state.update { it.copy(isSavingProfile = false, error = e.message) }
+                }
         }
     }
 
@@ -79,9 +95,13 @@ class ProfileViewModel(
         viewModelScope.launch {
             logWeightUseCase(userId, intent.weightKg, intent.date, intent.notes)
                 .onSuccess { entry ->
+                    Napier.i("Weight logged: ${intent.weightKg}kg", tag = TAG)
                     _state.update { it.copy(weightHistory = listOf(entry) + it.weightHistory) }
                 }
-                .onFailure { e -> _state.update { it.copy(error = e.message) } }
+                .onFailure { e ->
+                    Napier.e("logWeight failed", e, tag = TAG)
+                    _state.update { it.copy(error = e.message) }
+                }
         }
     }
 
@@ -89,8 +109,14 @@ class ProfileViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isSigningOut = true) }
             signOutUseCase()
-                .onSuccess { _state.update { it.copy(isSigningOut = false, signedOut = true) } }
-                .onFailure { e -> _state.update { it.copy(isSigningOut = false, error = e.message) } }
+                .onSuccess {
+                    Napier.i("Signed out", tag = TAG)
+                    _state.update { it.copy(isSigningOut = false, signedOut = true) }
+                }
+                .onFailure { e ->
+                    Napier.e("signOut failed", e, tag = TAG)
+                    _state.update { it.copy(isSigningOut = false, error = e.message) }
+                }
         }
     }
 }

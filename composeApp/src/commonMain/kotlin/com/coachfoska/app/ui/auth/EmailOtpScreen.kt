@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -20,23 +19,40 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.auth.AuthIntent
+import com.coachfoska.app.presentation.auth.AuthState
 import com.coachfoska.app.presentation.auth.AuthViewModel
+import org.koin.compose.viewmodel.koinViewModel
+
+@Composable
+fun EmailOtpRoute(
+    onBackClick: () -> Unit,
+    onOtpSent: (email: String) -> Unit,
+    viewModel: AuthViewModel = koinViewModel()
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(state.otpSent) {
+        if (state.otpSent) {
+            viewModel.onIntent(AuthIntent.NavigatedToVerifyOtp)
+            onOtpSent(state.email)
+        }
+    }
+
+    EmailOtpScreen(
+        state = state,
+        onIntent = viewModel::onIntent,
+        onBackClick = onBackClick
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmailOtpScreen(
-    authViewModel: AuthViewModel,
-    onBackClick: () -> Unit,
-    onOtpSent: () -> Unit
+    state: AuthState,
+    onIntent: (AuthIntent) -> Unit,
+    onBackClick: () -> Unit
 ) {
-    val state by authViewModel.state.collectAsStateWithLifecycle()
     val keyboardController = LocalSoftwareKeyboardController.current
-
-    LaunchedEffect(state.otpSent) {
-        if (state.otpSent) {
-            onOtpSent()
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -73,7 +89,7 @@ fun EmailOtpScreen(
 
         OutlinedTextField(
             value = state.email,
-            onValueChange = { authViewModel.onIntent(AuthIntent.EmailChanged(it)) },
+            onValueChange = { onIntent(AuthIntent.EmailChanged(it)) },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Email address", color = Color.White.copy(alpha = 0.6f)) },
             singleLine = true,
@@ -84,7 +100,7 @@ fun EmailOtpScreen(
             keyboardActions = KeyboardActions(
                 onDone = {
                     keyboardController?.hide()
-                    authViewModel.onIntent(AuthIntent.SendOtp)
+                    onIntent(AuthIntent.SendOtp)
                 }
             ),
             colors = OutlinedTextFieldDefaults.colors(
@@ -99,11 +115,7 @@ fun EmailOtpScreen(
 
         state.error?.let { error ->
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = error,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 13.sp
-            )
+            Text(text = error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -111,7 +123,7 @@ fun EmailOtpScreen(
         Button(
             onClick = {
                 keyboardController?.hide()
-                authViewModel.onIntent(AuthIntent.SendOtp)
+                onIntent(AuthIntent.SendOtp)
             },
             modifier = Modifier
                 .fillMaxWidth()

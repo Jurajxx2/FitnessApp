@@ -81,6 +81,26 @@ data class WorkoutLogDto(
 }
 
 @Serializable
+data class WorkoutLogInsertDto(
+    @SerialName("user_id") val userId: String,
+    @SerialName("workout_name") val workoutName: String,
+    @SerialName("duration_minutes") val durationMinutes: Int,
+    @SerialName("logged_at") val loggedAt: String,
+    @SerialName("workout_id") val workoutId: String? = null,
+    val notes: String? = null
+)
+
+@Serializable
+data class ExerciseLogInsertDto(
+    @SerialName("workout_log_id") val workoutLogId: String,
+    @SerialName("exercise_name") val exerciseName: String,
+    @SerialName("sets_completed") val setsCompleted: Int,
+    @SerialName("reps_completed") val repsCompleted: String? = null,
+    @SerialName("weight_kg") val weightKg: Float? = null,
+    val notes: String? = null
+)
+
+@Serializable
 data class ExerciseLogDto(
     val id: String,
     @SerialName("workout_log_id") val workoutLogId: String,

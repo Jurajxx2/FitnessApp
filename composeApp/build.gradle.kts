@@ -66,6 +66,9 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
 
+            // Logging
+            implementation(libs.napier)
+
             // Lifecycle / ViewModel (KMP)
             implementation(libs.lifecycle.viewmodel)
             implementation(libs.lifecycle.viewmodel.compose)

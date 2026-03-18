@@ -17,66 +17,61 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.presentation.workout.WorkoutIntent
+import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
-fun LogWorkoutScreen(
-    workoutViewModel: WorkoutViewModel,
-    onBackClick: () -> Unit
+fun LogWorkoutRoute(
+    userId: String,
+    onBackClick: () -> Unit,
+    viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
 ) {
-    val state by workoutViewModel.state.collectAsStateWithLifecycle()
-
-    var workoutName by remember { mutableStateOf("") }
-    var durationMinutes by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var exercises by remember {
-        mutableStateOf(listOf(ExerciseLog("", "", "", 0, null, null, null)))
-    }
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(state.workoutLoggedSuccess) {
         if (state.workoutLoggedSuccess) {
-            workoutViewModel.onIntent(WorkoutIntent.WorkoutLogged)
+            viewModel.onIntent(WorkoutIntent.WorkoutLogged)
             onBackClick()
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
+    LogWorkoutScreen(state = state, onIntent = viewModel::onIntent, onBackClick = onBackClick)
+}
+
+@Composable
+fun LogWorkoutScreen(
+    state: WorkoutState,
+    onIntent: (WorkoutIntent) -> Unit,
+    onBackClick: () -> Unit
+) {
+    var workoutName by remember { mutableStateOf("") }
+    var durationMinutes by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var exercises by remember { mutableStateOf(listOf(ExerciseLog("", "", "", 0, null, null, null))) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         CoachTopBar(title = "Log Workout", onBackClick = onBackClick)
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             LogTextField(value = workoutName, onValueChange = { workoutName = it }, label = "Workout name")
-            LogTextField(
-                value = durationMinutes,
-                onValueChange = { durationMinutes = it },
-                label = "Duration (minutes)",
-                keyboardType = KeyboardType.Number
-            )
+            LogTextField(value = durationMinutes, onValueChange = { durationMinutes = it }, label = "Duration (minutes)", keyboardType = KeyboardType.Number)
 
             Text("EXERCISES", color = Color(0xFFA90707), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
 
             exercises.forEachIndexed { i, exercise ->
                 ExerciseLogRow(
                     exercise = exercise,
-                    onUpdate = { updated ->
-                        exercises = exercises.toMutableList().also { it[i] = updated }
-                    }
+                    onUpdate = { updated -> exercises = exercises.toMutableList().also { it[i] = updated } }
                 )
             }
 
-            TextButton(onClick = {
-                exercises = exercises + ExerciseLog("", "", "", 0, null, null, null)
-            }) {
+            TextButton(onClick = { exercises = exercises + ExerciseLog("", "", "", 0, null, null, null) }) {
                 Text("+ ADD EXERCISE", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
             }
 
@@ -86,7 +81,7 @@ fun LogWorkoutScreen(
 
             Button(
                 onClick = {
-                    workoutViewModel.onIntent(
+                    onIntent(
                         WorkoutIntent.LogWorkout(
                             workoutId = null,
                             workoutName = workoutName,
@@ -114,17 +109,10 @@ fun LogWorkoutScreen(
 @Composable
 private fun ExerciseLogRow(exercise: ExerciseLog, onUpdate: (ExerciseLog) -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White.copy(alpha = 0.04f), RoundedCornerShape(8.dp))
-            .padding(12.dp),
+        modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.04f), RoundedCornerShape(8.dp)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        LogTextField(
-            value = exercise.exerciseName,
-            onValueChange = { onUpdate(exercise.copy(exerciseName = it)) },
-            label = "Exercise name"
-        )
+        LogTextField(value = exercise.exerciseName, onValueChange = { onUpdate(exercise.copy(exerciseName = it)) }, label = "Exercise name")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             LogTextField(
                 value = exercise.setsCompleted.takeIf { it > 0 }?.toString() ?: "",

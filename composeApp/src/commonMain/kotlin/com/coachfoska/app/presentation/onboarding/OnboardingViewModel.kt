@@ -5,11 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.UserGoal
 import com.coachfoska.app.domain.usecase.profile.CompleteOnboardingUseCase
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val TAG = "OnboardingViewModel"
 
 class OnboardingViewModel(
     private val completeOnboardingUseCase: CompleteOnboardingUseCase,
@@ -20,6 +23,7 @@ class OnboardingViewModel(
     val state: StateFlow<OnboardingState> = _state.asStateFlow()
 
     fun onIntent(intent: OnboardingIntent) {
+        Napier.d("onIntent: $intent", tag = TAG)
         when (intent) {
             is OnboardingIntent.GoalSelected -> _state.update { it.copy(selectedGoal = intent.goal) }
             is OnboardingIntent.HeightChanged -> _state.update { it.copy(heightInput = intent.height) }
@@ -49,8 +53,14 @@ class OnboardingViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             completeOnboardingUseCase(userId, goal, height, weight, age, activityLevel)
-                .onSuccess { _state.update { it.copy(isLoading = false, onboardingComplete = true) } }
-                .onFailure { e -> _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to save profile") } }
+                .onSuccess {
+                    Napier.i("Onboarding complete", tag = TAG)
+                    _state.update { it.copy(isLoading = false, onboardingComplete = true) }
+                }
+                .onFailure { e ->
+                    Napier.e("completeOnboarding failed", e, tag = TAG)
+                    _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to save profile") }
+                }
         }
     }
 }

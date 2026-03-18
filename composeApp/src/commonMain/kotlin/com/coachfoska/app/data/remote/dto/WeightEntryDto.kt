@@ -6,6 +6,14 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class WeightEntryInsertDto(
+    @SerialName("user_id") val userId: String,
+    @SerialName("weight_kg") val weightKg: Float,
+    @SerialName("recorded_at") val recordedAt: String,
+    val notes: String? = null
+)
+
+@Serializable
 data class WeightEntryDto(
     val id: String,
     @SerialName("user_id") val userId: String,

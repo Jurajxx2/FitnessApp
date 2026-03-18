@@ -18,20 +18,33 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.core.util.toDisplayDateTime
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
+import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+
+@Composable
+fun MealHistoryRoute(
+    userId: String,
+    onBackClick: () -> Unit,
+    viewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.onIntent(NutritionIntent.LoadHistory)
+    }
+
+    MealHistoryScreen(state = state, onBackClick = onBackClick)
+}
 
 @Composable
 fun MealHistoryScreen(
-    nutritionViewModel: NutritionViewModel,
+    state: NutritionState,
     onBackClick: () -> Unit
 ) {
-    val state by nutritionViewModel.state.collectAsStateWithLifecycle()
     var expandedId by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        nutritionViewModel.onIntent(NutritionIntent.LoadHistory)
-    }
 
     Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         CoachTopBar(title = "Meal History", onBackClick = onBackClick)
@@ -53,9 +66,7 @@ fun MealHistoryScreen(
                     )
                 }
                 if (state.mealHistory.isEmpty()) {
-                    item {
-                        Text("No meals logged yet.", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp)
-                    }
+                    item { Text("No meals logged yet.", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp) }
                 }
             }
         }

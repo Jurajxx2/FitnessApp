@@ -12,24 +12,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
-import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
+import com.coachfoska.app.presentation.onboarding.OnboardingState
 
 @Composable
 fun OnboardingCompleteScreen(
-    onboardingViewModel: OnboardingViewModel,
-    onStartClick: () -> Unit
+    state: OnboardingState,
+    onIntent: (OnboardingIntent) -> Unit
 ) {
-    val state by onboardingViewModel.state.collectAsStateWithLifecycle()
-
-    LaunchedEffect(state.onboardingComplete) {
-        if (state.onboardingComplete) {
-            onboardingViewModel.onIntent(OnboardingIntent.NavigatedToHome)
-            onStartClick()
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -65,22 +55,14 @@ fun OnboardingCompleteScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            state.selectedGoal?.let {
-                SummaryRow(label = "Goal", value = it.displayName)
-            }
-            if (state.heightInput.isNotBlank()) {
-                SummaryRow(label = "Height", value = "${state.heightInput} cm")
-            }
-            if (state.weightInput.isNotBlank()) {
-                SummaryRow(label = "Weight", value = "${state.weightInput} kg")
-            }
-            state.selectedActivityLevel?.let {
-                SummaryRow(label = "Activity", value = it.displayName)
-            }
+            state.selectedGoal?.let { SummaryRow(label = "Goal", value = it.displayName) }
+            if (state.heightInput.isNotBlank()) SummaryRow(label = "Height", value = "${state.heightInput} cm")
+            if (state.weightInput.isNotBlank()) SummaryRow(label = "Weight", value = "${state.weightInput} kg")
+            state.selectedActivityLevel?.let { SummaryRow(label = "Activity", value = it.displayName) }
         }
 
         Button(
-            onClick = { onboardingViewModel.onIntent(OnboardingIntent.CompleteOnboarding) },
+            onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),

@@ -18,36 +18,42 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.domain.model.Meal
+import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+
+@Composable
+fun MealPlanRoute(
+    userId: String,
+    onMealClick: (String) -> Unit,
+    onRecordMealClick: () -> Unit,
+    onMealHistoryClick: () -> Unit,
+    viewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    MealPlanScreen(
+        state = state,
+        onMealClick = onMealClick,
+        onRecordMealClick = onRecordMealClick,
+        onMealHistoryClick = onMealHistoryClick
+    )
+}
 
 @Composable
 fun MealPlanScreen(
-    nutritionViewModel: NutritionViewModel,
+    state: NutritionState,
     onMealClick: (String) -> Unit,
     onRecordMealClick: () -> Unit,
     onMealHistoryClick: () -> Unit
 ) {
-    val state by nutritionViewModel.state.collectAsStateWithLifecycle()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 20.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "NUTRITION",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 2.sp
-            )
+            Text(text = "NUTRITION", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp)
             IconButton(onClick = onMealHistoryClick) {
                 Icon(Icons.Default.History, contentDescription = "History", tint = Color.White)
             }
@@ -65,11 +71,7 @@ fun MealPlanScreen(
             ) {
                 state.mealPlan?.let { plan ->
                     item {
-                        Text(
-                            text = plan.name,
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 13.sp
-                        )
+                        Text(text = plan.name, color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
                     }
                     items(plan.meals.sortedBy { it.sortOrder }) { meal ->
                         MealCard(meal = meal, onClick = { onMealClick(meal.id) })
@@ -86,10 +88,7 @@ fun MealPlanScreen(
 
             Button(
                 onClick = onRecordMealClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-                    .height(52.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp).height(52.dp),
                 shape = RoundedCornerShape(4.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA90707))
             ) {
@@ -109,19 +108,10 @@ private fun MealCard(meal: Meal, onClick: () -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(text = meal.name, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            meal.timeOfDay?.let {
-                Text(text = it, color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
-            }
+            meal.timeOfDay?.let { Text(text = it, color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp) }
         }
-        Text(
-            text = "${meal.totalCalories.toInt()} kcal · ${meal.totalProtein.toInt()}g protein",
-            color = Color.White.copy(alpha = 0.5f),
-            fontSize = 13.sp
-        )
+        Text(text = "${meal.totalCalories.toInt()} kcal · ${meal.totalProtein.toInt()}g protein", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
     }
 }

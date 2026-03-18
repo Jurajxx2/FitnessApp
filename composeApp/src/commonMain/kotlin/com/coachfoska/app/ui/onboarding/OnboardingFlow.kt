@@ -3,23 +3,20 @@ package com.coachfoska.app.ui.onboarding
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
+import com.coachfoska.app.presentation.onboarding.OnboardingState
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
-enum class OnboardingStep {
-    GOAL, BODY_STATS, ACTIVITY_LEVEL, COMPLETE
-}
+enum class OnboardingStep { GOAL, BODY_STATS, ACTIVITY_LEVEL, COMPLETE }
 
-/**
- * Single composable that hosts the entire onboarding flow internally.
- * Uses a single OnboardingViewModel so state is shared across all steps.
- */
 @Composable
-fun OnboardingFlow(
-    viewModel: OnboardingViewModel,
-    onComplete: () -> Unit
+fun OnboardingRoute(
+    userId: String,
+    onComplete: () -> Unit,
+    viewModel: OnboardingViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var step by remember { mutableStateOf(OnboardingStep.GOAL) }
 
     LaunchedEffect(state.onboardingComplete) {
         if (state.onboardingComplete) {
@@ -28,25 +25,38 @@ fun OnboardingFlow(
         }
     }
 
+    OnboardingFlow(state = state, onIntent = viewModel::onIntent)
+}
+
+@Composable
+fun OnboardingFlow(
+    state: OnboardingState,
+    onIntent: (OnboardingIntent) -> Unit
+) {
+    var step by remember { mutableStateOf(OnboardingStep.GOAL) }
+
     when (step) {
         OnboardingStep.GOAL -> GoalSelectionScreen(
-            onboardingViewModel = viewModel,
-            onBackClick = { /* First step, no back */ },
+            state = state,
+            onIntent = onIntent,
+            onBackClick = {},
             onNextClick = { step = OnboardingStep.BODY_STATS }
         )
         OnboardingStep.BODY_STATS -> BodyStatsScreen(
-            onboardingViewModel = viewModel,
+            state = state,
+            onIntent = onIntent,
             onBackClick = { step = OnboardingStep.GOAL },
             onNextClick = { step = OnboardingStep.ACTIVITY_LEVEL }
         )
         OnboardingStep.ACTIVITY_LEVEL -> ActivityLevelScreen(
-            onboardingViewModel = viewModel,
+            state = state,
+            onIntent = onIntent,
             onBackClick = { step = OnboardingStep.BODY_STATS },
             onNextClick = { step = OnboardingStep.COMPLETE }
         )
         OnboardingStep.COMPLETE -> OnboardingCompleteScreen(
-            onboardingViewModel = viewModel,
-            onStartClick = { /* handled via LaunchedEffect above */ }
+            state = state,
+            onIntent = onIntent
         )
     }
 }

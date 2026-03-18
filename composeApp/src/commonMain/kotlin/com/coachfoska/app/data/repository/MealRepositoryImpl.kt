@@ -1,6 +1,7 @@
 package com.coachfoska.app.data.repository
 
 import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
+import com.coachfoska.app.data.remote.dto.MealLogFoodInsertDto
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealLogFood
@@ -24,15 +25,15 @@ class MealRepositoryImpl(
     ): Result<MealLog> = runCatching {
         val logDto = mealDataSource.insertMealLog(userId, mealName, notes)
         val foodPayloads = foods.map { food ->
-            buildMap<String, Any?> {
-                put("meal_log_id", logDto.id)
-                put("name", food.name)
-                put("amount_grams", food.amountGrams)
-                put("calories", food.calories)
-                put("protein_g", food.proteinG)
-                put("carbs_g", food.carbsG)
-                put("fat_g", food.fatG)
-            }
+            MealLogFoodInsertDto(
+                mealLogId = logDto.id,
+                name = food.name,
+                amountGrams = food.amountGrams,
+                calories = food.calories,
+                proteinG = food.proteinG,
+                carbsG = food.carbsG,
+                fatG = food.fatG
+            )
         }
         val insertedFoods = if (foodPayloads.isNotEmpty()) {
             mealDataSource.insertMealLogFoods(foodPayloads)

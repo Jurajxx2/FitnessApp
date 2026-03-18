@@ -7,6 +7,7 @@ import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,8 @@ import kotlinx.coroutines.launch
 import com.coachfoska.app.core.util.currentInstant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+
+private const val TAG = "HomeViewModel"
 
 class HomeViewModel(
     private val getUserProfileUseCase: GetUserProfileUseCase,
@@ -32,6 +35,7 @@ class HomeViewModel(
     }
 
     fun onIntent(intent: HomeIntent) {
+        Napier.d("onIntent: $intent", tag = TAG)
         when (intent) {
             HomeIntent.LoadData, HomeIntent.Refresh -> loadData()
         }
@@ -50,10 +54,18 @@ class HomeViewModel(
             val workoutsDeferred = async { getAssignedWorkoutsUseCase(userId) }
             val nutritionDeferred = async { getDailyNutritionSummaryUseCase(userId, today) }
 
-            val profile = profileDeferred.await().getOrNull()
-            val workouts = workoutsDeferred.await().getOrNull() ?: emptyList()
+            val profileResult = profileDeferred.await()
+            val workoutsResult = workoutsDeferred.await()
+            val nutritionResult = nutritionDeferred.await()
+
+            profileResult.onFailure { e -> Napier.e("loadProfile failed", e, tag = TAG) }
+            workoutsResult.onFailure { e -> Napier.e("loadWorkouts failed", e, tag = TAG) }
+            nutritionResult.onFailure { e -> Napier.e("loadNutrition failed", e, tag = TAG) }
+
+            val profile = profileResult.getOrNull()
+            val workouts = workoutsResult.getOrNull() ?: emptyList()
             val todayWorkout = workouts.firstOrNull { it.dayOfWeek?.index == todayDayOfWeek }
-            val nutrition = nutritionDeferred.await().getOrNull()
+            val nutrition = nutritionResult.getOrNull()
 
             _state.update {
                 it.copy(

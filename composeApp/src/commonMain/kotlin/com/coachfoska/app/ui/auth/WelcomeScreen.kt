@@ -15,36 +15,50 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.auth.AuthIntent
+import com.coachfoska.app.presentation.auth.AuthState
 import com.coachfoska.app.presentation.auth.AuthViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun WelcomeScreen(
-    authViewModel: AuthViewModel,
+fun WelcomeRoute(
     onNavigateToEmailOtp: () -> Unit,
-    onNavigateToHome: () -> Unit,
-    onNavigateToOnboarding: () -> Unit
+    onNavigateToHome: (userId: String) -> Unit,
+    onNavigateToOnboarding: (userId: String) -> Unit,
+    viewModel: AuthViewModel = koinViewModel()
 ) {
-    val state by authViewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(state.navigateToHome) {
         if (state.navigateToHome) {
-            authViewModel.onIntent(AuthIntent.NavigatedToHome)
-            onNavigateToHome()
+            viewModel.onIntent(AuthIntent.NavigatedToHome)
+            onNavigateToHome(state.authenticatedUser?.id ?: "")
         }
     }
     LaunchedEffect(state.navigateToOnboarding) {
         if (state.navigateToOnboarding) {
-            authViewModel.onIntent(AuthIntent.NavigatedToOnboarding)
-            onNavigateToOnboarding()
+            viewModel.onIntent(AuthIntent.NavigatedToOnboarding)
+            onNavigateToOnboarding(state.authenticatedUser?.id ?: "")
         }
     }
 
+    WelcomeScreen(
+        state = state,
+        onIntent = viewModel::onIntent,
+        onNavigateToEmailOtp = onNavigateToEmailOtp
+    )
+}
+
+@Composable
+fun WelcomeScreen(
+    state: AuthState,
+    onIntent: (AuthIntent) -> Unit,
+    onNavigateToEmailOtp: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Gradient overlay background
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -66,7 +80,6 @@ fun WelcomeScreen(
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo / Brand
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(top = 64.dp)
@@ -87,7 +100,6 @@ fun WelcomeScreen(
                 )
             }
 
-            // Bottom section
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -102,16 +114,13 @@ fun WelcomeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Continue with Email
                 Button(
                     onClick = onNavigateToEmailOtp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
                     shape = RoundedCornerShape(4.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFA90707)
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA90707)),
                     enabled = !state.isLoading
                 ) {
                     Text(
@@ -122,16 +131,13 @@ fun WelcomeScreen(
                     )
                 }
 
-                // Continue with Google (Android)
                 OutlinedButton(
-                    onClick = { authViewModel.onIntent(AuthIntent.SignInWithGoogle) },
+                    onClick = { onIntent(AuthIntent.SignInWithGoogle) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
                     shape = RoundedCornerShape(4.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White
-                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
                     enabled = !state.isLoading
                 ) {
@@ -151,7 +157,6 @@ fun WelcomeScreen(
                     }
                 }
 
-                // Error message
                 state.error?.let { error ->
                     Text(
                         text = error,

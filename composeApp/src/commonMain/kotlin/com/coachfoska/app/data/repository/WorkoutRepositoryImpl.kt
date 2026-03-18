@@ -1,6 +1,7 @@
 package com.coachfoska.app.data.repository
 
 import com.coachfoska.app.data.remote.datasource.WorkoutRemoteDataSource
+import com.coachfoska.app.data.remote.dto.ExerciseLogInsertDto
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutLog
@@ -30,14 +31,14 @@ class WorkoutRepositoryImpl(
             userId, workoutId, workoutName, durationMinutes, notes
         )
         val exercisePayloads = exerciseLogs.map { log ->
-            buildMap<String, Any?> {
-                put("workout_log_id", logDto.id)
-                put("exercise_name", log.exerciseName)
-                put("sets_completed", log.setsCompleted)
-                if (log.repsCompleted != null) put("reps_completed", log.repsCompleted)
-                if (log.weightKg != null) put("weight_kg", log.weightKg)
-                if (log.notes != null) put("notes", log.notes)
-            }
+            ExerciseLogInsertDto(
+                workoutLogId = logDto.id,
+                exerciseName = log.exerciseName,
+                setsCompleted = log.setsCompleted,
+                repsCompleted = log.repsCompleted,
+                weightKg = log.weightKg,
+                notes = log.notes
+            )
         }
         val insertedLogs = if (exercisePayloads.isNotEmpty()) {
             workoutDataSource.insertExerciseLogs(exercisePayloads)

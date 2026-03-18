@@ -16,26 +16,34 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
+import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+
+@Composable
+fun MealDetailRoute(
+    mealId: String,
+    userId: String,
+    onBackClick: () -> Unit,
+    viewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(mealId) {
+        viewModel.onIntent(NutritionIntent.SelectMeal(mealId))
+    }
+
+    MealDetailScreen(state = state, onBackClick = onBackClick)
+}
 
 @Composable
 fun MealDetailScreen(
-    nutritionViewModel: NutritionViewModel,
-    mealId: String,
+    state: NutritionState,
     onBackClick: () -> Unit
 ) {
-    val state by nutritionViewModel.state.collectAsStateWithLifecycle()
-
-    LaunchedEffect(mealId) {
-        nutritionViewModel.onIntent(NutritionIntent.SelectMeal(mealId))
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         CoachTopBar(title = state.selectedMeal?.name ?: "Meal", onBackClick = onBackClick)
 
         state.selectedMeal?.let { meal ->
@@ -43,17 +51,9 @@ fun MealDetailScreen(
                 contentPadding = PaddingValues(24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                item { MacroRow(meal) }
                 item {
-                    MacroRow(meal)
-                }
-                item {
-                    Text(
-                        text = "FOODS",
-                        color = Color(0xFFA90707),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.5.sp
-                    )
+                    Text(text = "FOODS", color = Color(0xFFA90707), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
                 }
                 items(meal.foods) { food ->
                     Row(
@@ -63,17 +63,9 @@ fun MealDetailScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(text = food.name, color = Color.White, fontSize = 14.sp)
-                            Text(
-                                text = "${food.amountGrams.toInt()}g",
-                                color = Color.White.copy(alpha = 0.4f),
-                                fontSize = 12.sp
-                            )
+                            Text(text = "${food.amountGrams.toInt()}g", color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
                         }
-                        Text(
-                            text = "${food.calories.toInt()} kcal",
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 13.sp
-                        )
+                        Text(text = "${food.calories.toInt()} kcal", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
                     }
                 }
             }
@@ -84,10 +76,7 @@ fun MealDetailScreen(
 @Composable
 private fun MacroRow(meal: Meal) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-            .padding(16.dp),
+        modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp)).padding(16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         MacroItem("${meal.totalCalories.toInt()}", "kcal")

@@ -17,6 +17,7 @@ import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.auth.GetCurrentUserUseCase
+import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.domain.usecase.auth.SendOtpUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithAppleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithGoogleUseCase
@@ -39,6 +40,7 @@ import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
 import com.coachfoska.app.presentation.auth.AuthViewModel
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
+import com.coachfoska.app.presentation.splash.SplashViewModel
 import com.coachfoska.app.presentation.home.HomeViewModel
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
@@ -69,7 +71,7 @@ val networkModule = module {
 }
 
 val dataSourceModule = module {
-    single { AuthRemoteDataSource(get()) }
+    single { AuthRemoteDataSource(get(), get()) }
     single { UserRemoteDataSource(get()) }
     single { WorkoutRemoteDataSource(get()) }
     single { ExerciseApiDataSource(get()) }
@@ -86,6 +88,7 @@ val repositoryModule = module {
 
 val useCaseModule = module {
     // Auth
+    factory { ObserveSessionUseCase(get()) }
     factory { SendOtpUseCase(get()) }
     factory { VerifyOtpUseCase(get()) }
     factory { SignInWithGoogleUseCase(get(), get()) }
@@ -118,6 +121,7 @@ val useCaseModule = module {
 }
 
 val viewModelModule = module {
+    viewModelOf(::SplashViewModel)
     viewModelOf(::AuthViewModel)
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }

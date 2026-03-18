@@ -14,19 +14,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
-import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
+import com.coachfoska.app.presentation.onboarding.OnboardingState
 import com.coachfoska.app.ui.components.CoachTopBar
 
 @Composable
 fun BodyStatsScreen(
-    onboardingViewModel: OnboardingViewModel,
+    state: OnboardingState,
+    onIntent: (OnboardingIntent) -> Unit,
     onBackClick: () -> Unit,
     onNextClick: () -> Unit
 ) {
-    val state by onboardingViewModel.state.collectAsStateWithLifecycle()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -58,17 +56,17 @@ fun BodyStatsScreen(
 
                 StatTextField(
                     value = state.heightInput,
-                    onValueChange = { onboardingViewModel.onIntent(OnboardingIntent.HeightChanged(it)) },
+                    onValueChange = { onIntent(OnboardingIntent.HeightChanged(it)) },
                     label = "Height (cm)"
                 )
                 StatTextField(
                     value = state.weightInput,
-                    onValueChange = { onboardingViewModel.onIntent(OnboardingIntent.WeightChanged(it)) },
+                    onValueChange = { onIntent(OnboardingIntent.WeightChanged(it)) },
                     label = "Weight (kg)"
                 )
                 StatTextField(
                     value = state.ageInput,
-                    onValueChange = { onboardingViewModel.onIntent(OnboardingIntent.AgeChanged(it)) },
+                    onValueChange = { onIntent(OnboardingIntent.AgeChanged(it)) },
                     label = "Age"
                 )
 

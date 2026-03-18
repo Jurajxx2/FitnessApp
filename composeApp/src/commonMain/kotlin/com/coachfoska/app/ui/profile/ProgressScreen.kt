@@ -20,25 +20,33 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.domain.model.WeightEntry
 import com.coachfoska.app.presentation.profile.ProfileIntent
+import com.coachfoska.app.presentation.profile.ProfileState
 import com.coachfoska.app.presentation.profile.ProfileViewModel
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+
+@Composable
+fun ProgressRoute(
+    userId: String,
+    onBackClick: () -> Unit,
+    viewModel: ProfileViewModel = koinViewModel { parametersOf(userId) }
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.onIntent(ProfileIntent.LoadWeightHistory)
+    }
+
+    ProgressScreen(state = state, onBackClick = onBackClick)
+}
 
 @Composable
 fun ProgressScreen(
-    profileViewModel: ProfileViewModel,
+    state: ProfileState,
     onBackClick: () -> Unit
 ) {
-    val state by profileViewModel.state.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        profileViewModel.onIntent(ProfileIntent.LoadWeightHistory)
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         CoachTopBar(title = "My Progress", onBackClick = onBackClick)
 
         if (state.isWeightHistoryLoading) {
@@ -47,37 +55,21 @@ fun ProgressScreen(
             }
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp),
+                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Weight Chart
                 if (state.weightHistory.isNotEmpty()) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp)).padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "WEIGHT PROGRESS",
-                            color = Color(0xFFA90707),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 1.5.sp
-                        )
+                        Text("WEIGHT PROGRESS", color = Color(0xFFA90707), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
                         WeightChart(entries = state.weightHistory.take(12).reversed())
                         val first = state.weightHistory.lastOrNull()?.weightKg
                         val last = state.weightHistory.firstOrNull()?.weightKg
                         if (first != null && last != null) {
                             val diff = last - first
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(text = "Start: ${first}kg", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
                                 Text(text = "Current: ${last}kg", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                                 Text(
@@ -91,13 +83,9 @@ fun ProgressScreen(
                     }
                 }
 
-                // Body Stats
                 state.user?.let { user ->
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp)).padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text("BODY STATS", color = Color(0xFFA90707), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
@@ -115,25 +103,19 @@ fun ProgressScreen(
 @Composable
 private fun WeightChart(entries: List<WeightEntry>) {
     val primaryRed = Color(0xFFA90707)
-    Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
-    ) {
+    Canvas(modifier = Modifier.fillMaxWidth().height(120.dp)) {
         if (entries.size < 2) return@Canvas
         val weights = entries.map { it.weightKg }
         val minWeight = weights.min()
         val maxWeight = weights.max()
         val range = (maxWeight - minWeight).coerceAtLeast(1f)
         val stepX = size.width / (entries.size - 1).toFloat()
-
         val path = Path()
         entries.forEachIndexed { i, entry ->
             val x = i * stepX
             val y = size.height - ((entry.weightKg - minWeight) / range * size.height * 0.8f) - size.height * 0.1f
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
-
         drawPath(path, primaryRed, style = Stroke(width = 2.dp.toPx()))
         entries.forEachIndexed { i, entry ->
             val x = i * stepX

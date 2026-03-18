@@ -21,31 +21,51 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.auth.AuthIntent
+import com.coachfoska.app.presentation.auth.AuthState
 import com.coachfoska.app.presentation.auth.AuthViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VerifyOtpScreen(
-    authViewModel: AuthViewModel,
+fun VerifyOtpRoute(
+    email: String,
     onBackClick: () -> Unit,
     onNavigateToHome: () -> Unit,
-    onNavigateToOnboarding: () -> Unit
+    onNavigateToOnboarding: (userId: String) -> Unit,
+    viewModel: AuthViewModel = koinViewModel()
 ) {
-    val state by authViewModel.state.collectAsStateWithLifecycle()
-    val keyboardController = LocalSoftwareKeyboardController.current
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
+    LaunchedEffect(email) {
+        viewModel.onIntent(AuthIntent.EmailChanged(email))
+    }
     LaunchedEffect(state.navigateToHome) {
         if (state.navigateToHome) {
-            authViewModel.onIntent(AuthIntent.NavigatedToHome)
+            viewModel.onIntent(AuthIntent.NavigatedToHome)
             onNavigateToHome()
         }
     }
     LaunchedEffect(state.navigateToOnboarding) {
         if (state.navigateToOnboarding) {
-            authViewModel.onIntent(AuthIntent.NavigatedToOnboarding)
-            onNavigateToOnboarding()
+            viewModel.onIntent(AuthIntent.NavigatedToOnboarding)
+            onNavigateToOnboarding(state.authenticatedUser?.id ?: "")
         }
     }
+
+    VerifyOtpScreen(
+        state = state,
+        onIntent = viewModel::onIntent,
+        onBackClick = onBackClick
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VerifyOtpScreen(
+    state: AuthState,
+    onIntent: (AuthIntent) -> Unit,
+    onBackClick: () -> Unit
+) {
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Column(
         modifier = Modifier
@@ -84,10 +104,10 @@ fun VerifyOtpScreen(
             value = state.otp,
             onValueChange = { input ->
                 if (input.length <= 6 && input.all { it.isDigit() }) {
-                    authViewModel.onIntent(AuthIntent.OtpChanged(input))
+                    onIntent(AuthIntent.OtpChanged(input))
                     if (input.length == 6) {
                         keyboardController?.hide()
-                        authViewModel.onIntent(AuthIntent.VerifyOtp)
+                        onIntent(AuthIntent.VerifyOtp)
                     }
                 }
             },
@@ -101,7 +121,7 @@ fun VerifyOtpScreen(
             keyboardActions = KeyboardActions(
                 onDone = {
                     keyboardController?.hide()
-                    authViewModel.onIntent(AuthIntent.VerifyOtp)
+                    onIntent(AuthIntent.VerifyOtp)
                 }
             ),
             textStyle = LocalTextStyle.current.copy(
@@ -120,11 +140,7 @@ fun VerifyOtpScreen(
 
         state.error?.let { error ->
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = error,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 13.sp
-            )
+            Text(text = error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -132,7 +148,7 @@ fun VerifyOtpScreen(
         Button(
             onClick = {
                 keyboardController?.hide()
-                authViewModel.onIntent(AuthIntent.VerifyOtp)
+                onIntent(AuthIntent.VerifyOtp)
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -160,17 +176,11 @@ fun VerifyOtpScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(
-            onClick = {
-                authViewModel.onIntent(AuthIntent.SendOtp)
-            },
+            onClick = { onIntent(AuthIntent.SendOtp) },
             modifier = Modifier.align(Alignment.CenterHorizontally),
             enabled = !state.isLoading
         ) {
-            Text(
-                text = "Resend code",
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 14.sp
-            )
+            Text(text = "Resend code", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
         }
     }
 }

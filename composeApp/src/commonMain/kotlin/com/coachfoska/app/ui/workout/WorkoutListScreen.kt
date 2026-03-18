@@ -18,27 +18,38 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.domain.model.Workout
+import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+
+@Composable
+fun WorkoutListRoute(
+    userId: String,
+    onWorkoutClick: (String) -> Unit,
+    onLogWorkoutClick: () -> Unit,
+    onWorkoutHistoryClick: () -> Unit,
+    viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    WorkoutListScreen(
+        state = state,
+        onWorkoutClick = onWorkoutClick,
+        onLogWorkoutClick = onLogWorkoutClick,
+        onWorkoutHistoryClick = onWorkoutHistoryClick
+    )
+}
 
 @Composable
 fun WorkoutListScreen(
-    workoutViewModel: WorkoutViewModel,
+    state: WorkoutState,
     onWorkoutClick: (String) -> Unit,
     onLogWorkoutClick: () -> Unit,
     onWorkoutHistoryClick: () -> Unit
 ) {
-    val state by workoutViewModel.state.collectAsStateWithLifecycle()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        // Header
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 20.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -79,13 +90,9 @@ fun WorkoutListScreen(
                 }
             }
 
-            // Log Workout button
             Button(
                 onClick = onLogWorkoutClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-                    .height(52.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp).height(52.dp),
                 shape = RoundedCornerShape(4.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA90707))
             ) {
@@ -94,12 +101,7 @@ fun WorkoutListScreen(
         }
 
         state.error?.let {
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(24.dp)
-            )
+            Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp, modifier = Modifier.padding(24.dp))
         }
     }
 }
@@ -115,27 +117,13 @@ private fun WorkoutCard(workout: Workout, onClick: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         workout.dayOfWeek?.let {
-            Text(
-                text = it.displayName.uppercase(),
-                color = Color(0xFFA90707),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.5.sp
-            )
+            Text(text = it.displayName.uppercase(), color = Color(0xFFA90707), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
         }
         Text(text = workout.name, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "${workout.exercises.size} exercises",
-                color = Color.White.copy(alpha = 0.5f),
-                fontSize = 13.sp
-            )
+            Text(text = "${workout.exercises.size} exercises", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
             if (workout.durationMinutes > 0) {
-                Text(
-                    text = "${workout.durationMinutes} min",
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 13.sp
-                )
+                Text(text = "${workout.durationMinutes} min", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
             }
         }
     }

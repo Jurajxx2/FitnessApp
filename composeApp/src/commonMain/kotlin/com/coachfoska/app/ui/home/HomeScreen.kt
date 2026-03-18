@@ -14,15 +14,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.DailyNutritionSummary
+import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.presentation.home.HomeIntent
+import com.coachfoska.app.presentation.home.HomeState
 import com.coachfoska.app.presentation.home.HomeViewModel
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
-fun HomeScreen(homeViewModel: HomeViewModel) {
-    val state by homeViewModel.state.collectAsStateWithLifecycle()
+fun HomeRoute(
+    userId: String,
+    viewModel: HomeViewModel = koinViewModel { parametersOf(userId) }
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    HomeScreen(state = state, onIntent = viewModel::onIntent)
+}
 
+@Composable
+fun HomeScreen(
+    state: HomeState,
+    onIntent: (HomeIntent) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -31,13 +44,8 @@ fun HomeScreen(homeViewModel: HomeViewModel) {
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Greeting
         Column {
-            Text(
-                text = "Good morning,",
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 14.sp
-            )
+            Text(text = "Good morning,", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
             Text(
                 text = state.user?.fullName?.split(" ")?.firstOrNull() ?: "Athlete",
                 color = Color.White,
@@ -51,11 +59,8 @@ fun HomeScreen(homeViewModel: HomeViewModel) {
                 CircularProgressIndicator(color = Color(0xFFA90707))
             }
         } else {
-            // Today's Workout Card
             state.todayWorkout?.let { workout ->
-                HomeCard(title = "TODAY'S WORKOUT") {
-                    TodayWorkoutContent(workout)
-                }
+                HomeCard(title = "TODAY'S WORKOUT") { TodayWorkoutContent(workout) }
             } ?: HomeCard(title = "TODAY'S WORKOUT") {
                 Text(
                     text = "Rest day — recovery is part of the plan.",
@@ -64,20 +69,14 @@ fun HomeScreen(homeViewModel: HomeViewModel) {
                 )
             }
 
-            // Today's Nutrition Card
             HomeCard(title = "TODAY'S NUTRITION") {
-                state.nutritionSummary?.let { summary ->
-                    NutritionSummaryContent(summary)
-                } ?: Text(
-                    text = "No meals logged today yet.",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 14.sp
-                )
+                state.nutritionSummary?.let { NutritionSummaryContent(it) }
+                    ?: Text(text = "No meals logged today yet.", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
             }
         }
 
-        state.error?.let { error ->
-            Text(text = error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+        state.error?.let {
+            Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
         }
     }
 }
@@ -91,25 +90,14 @@ private fun HomeCard(title: String, content: @Composable ColumnScope.() -> Unit)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = title,
-            color = Color(0xFFA90707),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.5.sp
-        )
+        Text(text = title, color = Color(0xFFA90707), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
         content()
     }
 }
 
 @Composable
 private fun TodayWorkoutContent(workout: Workout) {
-    Text(
-        text = workout.name,
-        color = Color.White,
-        fontSize = 18.sp,
-        fontWeight = FontWeight.SemiBold
-    )
+    Text(text = workout.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         StatChip("${workout.exercises.size} exercises")
         StatChip("${workout.durationMinutes} min")
@@ -121,10 +109,7 @@ private fun TodayWorkoutContent(workout: Workout) {
 
 @Composable
 private fun NutritionSummaryContent(summary: DailyNutritionSummary) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         MacroStat(value = "${summary.calories.toInt()}", unit = "kcal")
         MacroStat(value = "${summary.proteinG.toInt()}g", unit = "protein")
         MacroStat(value = "${summary.carbsG.toInt()}g", unit = "carbs")

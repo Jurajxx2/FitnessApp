@@ -10,4 +10,5 @@ sealed interface AuthIntent {
     data object DismissError : AuthIntent
     data object NavigatedToHome : AuthIntent
     data object NavigatedToOnboarding : AuthIntent
+    data object NavigatedToVerifyOtp : AuthIntent
 }

@@ -2,10 +2,13 @@ package com.coachfoska.app.navigation
 
 import kotlinx.serialization.Serializable
 
+// Splash — app entry point, resolves session before showing any screen
+@Serializable object Splash
+
 // Auth flow
 @Serializable object Welcome
 @Serializable object EmailOtp
-@Serializable object VerifyOtp
+@Serializable data class VerifyOtp(val email: String)
 
 // Onboarding — handled as a single destination with internal step navigation
 @Serializable data class Onboarding(val userId: String)

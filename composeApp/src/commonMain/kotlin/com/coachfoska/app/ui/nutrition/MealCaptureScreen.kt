@@ -17,36 +17,47 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
+import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
-fun MealCaptureScreen(
-    nutritionViewModel: NutritionViewModel,
-    onBackClick: () -> Unit
+fun MealCaptureRoute(
+    userId: String,
+    onBackClick: () -> Unit,
+    viewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
 ) {
-    val state by nutritionViewModel.state.collectAsStateWithLifecycle()
-
-    var mealName by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    data class FoodEntry(val name: String, val calories: String, val protein: String, val carbs: String, val fat: String)
-    var foods by remember { mutableStateOf(listOf(FoodEntry("", "", "", "", ""))) }
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(state.mealLoggedSuccess) {
         if (state.mealLoggedSuccess) {
-            nutritionViewModel.onIntent(NutritionIntent.MealLogged)
+            viewModel.onIntent(NutritionIntent.MealLogged)
             onBackClick()
         }
     }
+
+    MealCaptureScreen(state = state, onIntent = viewModel::onIntent, onBackClick = onBackClick)
+}
+
+@Composable
+fun MealCaptureScreen(
+    state: NutritionState,
+    onIntent: (NutritionIntent) -> Unit,
+    onBackClick: () -> Unit
+) {
+    data class FoodEntry(val name: String, val calories: String, val protein: String, val carbs: String, val fat: String)
+
+    var mealName by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var foods by remember { mutableStateOf(listOf(FoodEntry("", "", "", "", ""))) }
 
     Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         CoachTopBar(title = "Record Meal", onBackClick = onBackClick)
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             NutritionTextField(value = mealName, onValueChange = { mealName = it }, label = "Meal name")
@@ -55,10 +66,7 @@ fun MealCaptureScreen(
 
             foods.forEachIndexed { i, food ->
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White.copy(alpha = 0.04f), RoundedCornerShape(8.dp))
-                        .padding(12.dp),
+                    modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.04f), RoundedCornerShape(8.dp)).padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     NutritionTextField(value = food.name, onValueChange = { foods = foods.toMutableList().also { l -> l[i] = food.copy(name = it) } }, label = "Food name")
@@ -73,9 +81,7 @@ fun MealCaptureScreen(
                 }
             }
 
-            TextButton(onClick = {
-                foods = foods + FoodEntry("", "", "", "", "")
-            }) {
+            TextButton(onClick = { foods = foods + FoodEntry("", "", "", "", "") }) {
                 Text("+ ADD FOOD", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
             }
 
@@ -96,13 +102,7 @@ fun MealCaptureScreen(
                             fatG = it.fat.toFloatOrNull() ?: 0f
                         )
                     }
-                    nutritionViewModel.onIntent(
-                        NutritionIntent.LogMeal(
-                            mealName = mealName,
-                            foods = mealLogFoods,
-                            notes = notes.ifBlank { null }
-                        )
-                    )
+                    onIntent(NutritionIntent.LogMeal(mealName = mealName, foods = mealLogFoods, notes = notes.ifBlank { null }))
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(4.dp),
