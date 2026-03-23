@@ -7,6 +7,7 @@ data class WorkoutState(
     val isLoading: Boolean = false,
     val workouts: List<Workout> = emptyList(),
     val selectedWorkout: Workout? = null,
+    val selectedWorkoutLog: WorkoutLog? = null,
     val workoutHistory: List<WorkoutLog> = emptyList(),
     val isHistoryLoading: Boolean = false,
     val isLogging: Boolean = false,

@@ -6,8 +6,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -23,7 +28,17 @@ import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import org.koin.core.parameter.parametersOf
+
+data class FoodEntry(
+    val name: String,
+    val calories: String,
+    val protein: String,
+    val carbs: String,
+    val fat: String
+)
 
 @Composable
 fun MealCaptureRoute(
@@ -43,109 +58,75 @@ fun MealCaptureRoute(
     MealCaptureScreen(state = state, onIntent = viewModel::onIntent, onBackClick = onBackClick)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MealCaptureScreen(
     state: NutritionState,
     onIntent: (NutritionIntent) -> Unit,
     onBackClick: () -> Unit
 ) {
-    data class FoodEntry(
-        val name: String,
-        val calories: String,
-        val protein: String,
-        val carbs: String,
-        val fat: String
-    )
-
     var mealName by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var foods by remember { mutableStateOf(listOf(FoodEntry("", "", "", "", ""))) }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = "Record Meal", onBackClick = onBackClick)
-
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("RECORD MEAL", style = MaterialTheme.typography.labelLarge, letterSpacing = 1.sp) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
             CoachTextField(
                 value = mealName,
                 onValueChange = { mealName = it },
-                label = "Meal name"
+                label = "Meal Name (e.g. Breakfast)"
             )
 
-            CoachSectionHeader(text = "FOODS")
+            CoachSectionHeader(text = "FOOD ITEMS")
 
-            foods.forEachIndexed { i, food ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CoachTextField(
-                        value = food.name,
-                        onValueChange = {
-                            foods = foods.toMutableList().also { l -> l[i] = food.copy(name = it) }
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                foods.forEachIndexed { i, food ->
+                    FoodEntryRow(
+                        index = i + 1,
+                        food = food,
+                        onUpdate = { updated ->
+                            foods = foods.toMutableList().also { it[i] = updated }
                         },
-                        label = "Food name"
+                        onRemove = if (foods.size > 1) {
+                            { foods = foods.toMutableList().also { it.removeAt(i) } }
+                        } else null
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CoachTextField(
-                            value = food.calories,
-                            onValueChange = {
-                                foods = foods.toMutableList().also { l -> l[i] = food.copy(calories = it) }
-                            },
-                            label = "kcal",
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                        )
-                        CoachTextField(
-                            value = food.protein,
-                            onValueChange = {
-                                foods = foods.toMutableList().also { l -> l[i] = food.copy(protein = it) }
-                            },
-                            label = "protein (g)",
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CoachTextField(
-                            value = food.carbs,
-                            onValueChange = {
-                                foods = foods.toMutableList().also { l -> l[i] = food.copy(carbs = it) }
-                            },
-                            label = "carbs (g)",
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                        )
-                        CoachTextField(
-                            value = food.fat,
-                            onValueChange = {
-                                foods = foods.toMutableList().also { l -> l[i] = food.copy(fat = it) }
-                            },
-                            label = "fat (g)",
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                        )
-                    }
                 }
-            }
-
-            TextButton(onClick = { foods = foods + FoodEntry("", "", "", "", "") }) {
-                Text(
-                    "+ ADD FOOD",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    fontSize = 13.sp
-                )
+                
+                OutlinedButton(
+                    onClick = { foods = foods + FoodEntry("", "", "", "", "") },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("ADD FOOD", style = MaterialTheme.typography.labelLarge)
+                }
             }
 
             CoachTextField(
@@ -156,7 +137,7 @@ fun MealCaptureScreen(
             )
 
             state.error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
 
             CoachButton(
@@ -181,9 +162,73 @@ fun MealCaptureScreen(
                         )
                     )
                 },
-                enabled = mealName.isNotBlank(),
+                enabled = mealName.isNotBlank() && foods.any { it.name.isNotBlank() },
                 isLoading = state.isLogging
             )
+            
+            Spacer(modifier = Modifier.height(48.dp))
+        }
+    }
+}
+
+@Composable
+private fun FoodEntryRow(
+    index: Int,
+    food: FoodEntry,
+    onUpdate: (FoodEntry) -> Unit,
+    onRemove: (() -> Unit)?
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "FOOD #$index",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp
+                )
+                if (onRemove != null) {
+                    IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Remove",
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            CoachTextField(
+                value = food.name,
+                onValueChange = { onUpdate(food.copy(name = it)) },
+                label = "Food Name"
+            )
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CoachTextField(
+                    value = food.calories,
+                    onValueChange = { onUpdate(food.copy(calories = it)) },
+                    label = "kcal",
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                )
+                CoachTextField(
+                    value = food.protein,
+                    onValueChange = { onUpdate(food.copy(protein = it)) },
+                    label = "protein (g)",
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                )
+            }
         }
     }
 }

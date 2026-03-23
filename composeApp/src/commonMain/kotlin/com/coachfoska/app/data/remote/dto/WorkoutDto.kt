@@ -41,6 +41,7 @@ data class WorkoutExerciseDto(
     @SerialName("rest_seconds") val restSeconds: Int = 60,
     val tips: String? = null,
     @SerialName("wger_exercise_id") val wgerExerciseId: Int? = null,
+    @SerialName("video_url") val videoUrl: String? = null,
     @SerialName("sort_order") val sortOrder: Int = 0
 ) {
     fun toDomain(): WorkoutExercise = WorkoutExercise(
@@ -53,6 +54,7 @@ data class WorkoutExerciseDto(
         restSeconds = restSeconds,
         tips = tips,
         wgerExerciseId = wgerExerciseId,
+        videoUrl = videoUrl,
         sortOrder = sortOrder
     )
 }
@@ -97,7 +99,8 @@ data class ExerciseLogInsertDto(
     @SerialName("sets_completed") val setsCompleted: Int,
     @SerialName("reps_completed") val repsCompleted: String? = null,
     @SerialName("weight_kg") val weightKg: Float? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    @SerialName("video_url") val videoUrl: String? = null
 )
 
 @Serializable
@@ -108,7 +111,8 @@ data class ExerciseLogDto(
     @SerialName("sets_completed") val setsCompleted: Int = 0,
     @SerialName("reps_completed") val repsCompleted: String? = null,
     @SerialName("weight_kg") val weightKg: Float? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    @SerialName("video_url") val videoUrl: String? = null
 ) {
     fun toDomain(): ExerciseLog = ExerciseLog(
         id = id,
@@ -117,6 +121,7 @@ data class ExerciseLogDto(
         setsCompleted = setsCompleted,
         repsCompleted = repsCompleted,
         weightKg = weightKg,
-        notes = notes
+        notes = notes,
+        videoUrl = videoUrl
     )
 }

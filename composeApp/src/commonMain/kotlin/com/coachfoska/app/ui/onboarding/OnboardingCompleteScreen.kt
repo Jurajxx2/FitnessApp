@@ -18,51 +18,67 @@ fun OnboardingCompleteScreen(
     state: OnboardingState,
     onIntent: (OnboardingIntent) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Spacer(modifier = Modifier.height(80.dp))
-
         Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 32.dp, vertical = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = "You're all set!",
-                color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.displayLarge,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "Your personalized program is ready.\nLet's get to work.",
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center,
-                lineHeight = 24.sp
-            )
+            Spacer(modifier = Modifier.height(64.dp))
 
-            state.error?.let {
-                Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "YOU'RE ALL SET!",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Your personalized performance\nprogram is ready for action.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 24.sp
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    state.selectedGoal?.let { SummaryRow(label = "GOAL", value = it.displayName.uppercase()) }
+                    if (state.heightInput.isNotBlank()) SummaryRow(label = "HEIGHT", value = "${state.heightInput} CM")
+                    if (state.weightInput.isNotBlank()) SummaryRow(label = "WEIGHT", value = "${state.weightInput} KG")
+                    state.selectedActivityLevel?.let { SummaryRow(label = "ACTIVITY", value = it.displayName.uppercase()) }
+                }
+
+                state.error?.let {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            state.selectedGoal?.let { SummaryRow(label = "Goal", value = it.displayName) }
-            if (state.heightInput.isNotBlank()) SummaryRow(label = "Height", value = "${state.heightInput} cm")
-            if (state.weightInput.isNotBlank()) SummaryRow(label = "Weight", value = "${state.weightInput} kg")
-            state.selectedActivityLevel?.let { SummaryRow(label = "Activity", value = it.displayName) }
+            CoachButton(
+                text = "START TRAINING",
+                onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
+                isLoading = state.isLoading,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            )
         }
-
-        CoachButton(
-            text = "LET'S START",
-            onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
-            isLoading = state.isLoading
-        )
     }
 }
 
@@ -70,18 +86,20 @@ fun OnboardingCompleteScreen(
 private fun SummaryRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            fontSize = 14.sp
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            letterSpacing = 1.sp
         )
         Text(
             text = value,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 14.sp,
-            style = MaterialTheme.typography.titleSmall
+            letterSpacing = 0.5.sp
         )
     }
 }

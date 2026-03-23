@@ -41,6 +41,7 @@ fun MealPlanRoute(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MealPlanScreen(
     state: NutritionState,
@@ -48,104 +49,120 @@ fun MealPlanScreen(
     onRecordMealClick: () -> Unit,
     onMealHistoryClick: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "NUTRITION",
-                color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.headlineMedium,
-                letterSpacing = 2.sp
-            )
-            IconButton(onClick = onMealHistoryClick) {
-                Icon(
-                    Icons.Default.History,
-                    contentDescription = "History",
-                    tint = MaterialTheme.colorScheme.onBackground
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("NUTRITION", style = MaterialTheme.typography.labelLarge, letterSpacing = 1.sp) },
+                actions = {
+                    IconButton(onClick = onMealHistoryClick) {
+                        Icon(Icons.Default.History, contentDescription = "History")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
-            }
+            )
         }
-
+    ) { padding ->
         if (state.isLoading) {
             CoachLoadingBox()
         } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
             ) {
-                state.mealPlan?.let { plan ->
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     item {
                         Text(
-                            text = plan.name,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                            fontSize = 13.sp
+                            text = "DAILY MEAL PLAN",
+                            style = MaterialTheme.typography.displayMedium,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
-                    items(plan.meals.sortedBy { it.sortOrder }) { meal ->
-                        MealCard(meal = meal, onClick = { onMealClick(meal.id) })
-                    }
-                } ?: item {
-                    Text(
-                        text = "No meal plan assigned yet.\nYour coach will set one up for you.",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        fontSize = 14.sp,
-                        lineHeight = 22.sp
-                    )
-                }
-            }
 
-            CoachButton(
-                text = "RECORD MEAL",
-                onClick = onRecordMealClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-            )
+                    state.mealPlan?.let { plan ->
+                        items(plan.meals.sortedBy { it.sortOrder }) { meal ->
+                            MealCard(meal = meal, onClick = { onMealClick(meal.id) })
+                        }
+                    } ?: item {
+                        Text(
+                            text = "No meal plan assigned yet.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+
+                CoachButton(
+                    text = "RECORD MEAL",
+                    onClick = onRecordMealClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 24.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun MealCard(meal: Meal, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                RoundedCornerShape(12.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = meal.name,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            meal.timeOfDay?.let {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                    fontSize = 13.sp
+                    text = meal.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
+                meal.timeOfDay?.let {
+                    Text(
+                        text = it.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                MacroChip(value = "${meal.totalCalories.toInt()} KCAL")
+                Box(modifier = Modifier.size(3.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)))
+                MacroChip(value = "${meal.totalProtein.toInt()}G PROTEIN")
             }
         }
-        Text(
-            text = "${meal.totalCalories.toInt()} kcal · ${meal.totalProtein.toInt()}g protein",
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            fontSize = 13.sp
-        )
     }
+}
+
+@Composable
+private fun MacroChip(value: String) {
+    Text(
+        text = value,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+    )
 }

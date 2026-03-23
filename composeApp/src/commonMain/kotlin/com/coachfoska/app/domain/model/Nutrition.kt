@@ -43,6 +43,7 @@ data class MealLog(
     val mealName: String,
     val notes: String?,
     val foods: List<MealLogFood>,
+    val imageUrl: String? = null,
     val loggedAt: Instant
 ) {
     val totalCalories: Float get() = foods.sumOf { it.calories.toDouble() }.toFloat()

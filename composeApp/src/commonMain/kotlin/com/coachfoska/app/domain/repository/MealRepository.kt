@@ -15,7 +15,8 @@ interface MealRepository {
         userId: String,
         mealName: String,
         foods: List<MealLogFood>,
-        notes: String?
+        notes: String?,
+        imageBytes: ByteArray? = null
     ): Result<MealLog>
 
     /** Returns user's meal log history. */

@@ -55,148 +55,164 @@ fun ProfileScreen(
     onProgressClick: () -> Unit,
     onAboutCoachClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                text = state.user?.fullName ?: "Loading...",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-            Text(
-                text = state.user?.email ?: "",
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                fontSize = 14.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        state.user?.let { user ->
-            Row(
+            // Profile Header
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                user.goal?.let {
-                    ProfileStatCard(
-                        label = "Goal",
-                        value = it.displayName,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                user.heightCm?.let {
-                    ProfileStatCard(
-                        label = "Height",
-                        value = "${it.toInt()} cm",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                user.weightKg?.let {
-                    ProfileStatCard(
-                        label = "Weight",
-                        value = "${it} kg",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-
-        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
-        ProfileMenuItem(label = "My Progress", onClick = onProgressClick)
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-            modifier = Modifier.padding(horizontal = 24.dp)
-        )
-        ProfileMenuItem(label = "About Coach Foška", onClick = onAboutCoachClick)
-        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (state.isSigningOut) {
-            CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(52.dp))
-        } else {
-            TextButton(
-                onClick = { onIntent(ProfileIntent.SignOut) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+                    .padding(horizontal = 24.dp, vertical = 40.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "LOG OUT",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.sp
+                    text = "PROFILE",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    letterSpacing = 2.sp
+                )
+                Text(
+                    text = (state.user?.fullName ?: "ATHLETE").uppercase(),
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = state.user?.email?.lowercase() ?: "",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
             }
-        }
 
-        state.error?.let {
-            Text(
-                it,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(24.dp)
-            )
+            // Quick Stats
+            state.user?.let { user ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ProfileStatCard(
+                        label = "GOAL",
+                        value = user.goal?.displayName?.uppercase() ?: "---",
+                        modifier = Modifier.weight(1.5f)
+                    )
+                    ProfileStatCard(
+                        label = "WEIGHT",
+                        value = "${user.weightKg ?: "--"} KG",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Menu Items
+            Column(modifier = Modifier.fillMaxWidth()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                ProfileMenuItem(label = "MY PROGRESS", onClick = onProgressClick)
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+                ProfileMenuItem(label = "ABOUT COACH FOŠKA", onClick = onAboutCoachClick)
+                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+            }
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Logout
+            if (state.isSigningOut) {
+                CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(52.dp))
+            } else {
+                TextButton(
+                    onClick = { onIntent(ProfileIntent.SignOut) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "LOG OUT",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.tertiary, // Accent red for logout
+                        letterSpacing = 1.sp
+                    )
+                }
+            }
+
+            state.error?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(24.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
 
 @Composable
 private fun ProfileStatCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                RoundedCornerShape(8.dp)
-            )
-            .padding(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
     ) {
-        Text(
-            text = label,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            fontSize = 11.sp
-        )
-        Text(
-            text = value,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                letterSpacing = 1.sp
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
 @Composable
 private fun ProfileMenuItem(label: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.background,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            text = label,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 15.sp
-        )
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-        )
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                letterSpacing = 1.sp
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+            )
+        }
     }
 }

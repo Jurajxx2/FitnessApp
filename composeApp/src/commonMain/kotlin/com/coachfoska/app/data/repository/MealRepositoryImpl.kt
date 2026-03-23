@@ -21,9 +21,13 @@ class MealRepositoryImpl(
         userId: String,
         mealName: String,
         foods: List<MealLogFood>,
-        notes: String?
+        notes: String?,
+        imageBytes: ByteArray?
     ): Result<MealLog> = runCatching {
-        val logDto = mealDataSource.insertMealLog(userId, mealName, notes)
+        // Prepare data layer for image upload (to be implemented)
+        val imageUrl: String? = null 
+
+        val logDto = mealDataSource.insertMealLog(userId, mealName, notes, imageUrl)
         val foodPayloads = foods.map { food ->
             MealLogFoodInsertDto(
                 mealLogId = logDto.id,

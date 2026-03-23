@@ -25,7 +25,8 @@ data class WgerExerciseInfoDto(
     @SerialName("muscles_secondary") val musclesSecondary: List<WgerMuscleDto> = emptyList(),
     val equipment: List<WgerEquipmentDto> = emptyList(),
     val translations: List<WgerTranslationDto> = emptyList(),
-    val images: List<WgerImageDto> = emptyList()
+    val images: List<WgerImageDto> = emptyList(),
+    val videos: List<WgerVideoDto> = emptyList()
 ) {
     fun toDomain(): WgerExercise {
         val englishTranslation = translations.firstOrNull { it.language == 2 }
@@ -38,7 +39,8 @@ data class WgerExerciseInfoDto(
             muscles = muscles.map { it.toDomain(isFront = true) },
             musclesSecondary = musclesSecondary.map { it.toDomain(isFront = false) },
             equipment = equipment.map { it.toDomain() },
-            imageUrl = images.firstOrNull()?.image
+            imageUrl = images.firstOrNull()?.image,
+            videoUrl = videos.firstOrNull()?.video
         )
     }
 }
@@ -80,6 +82,13 @@ data class WgerTranslationDto(
 data class WgerImageDto(
     val id: Int,
     val image: String,
+    @SerialName("is_main") val isMain: Boolean = false
+)
+
+@Serializable
+data class WgerVideoDto(
+    val id: Int,
+    val video: String,
     @SerialName("is_main") val isMain: Boolean = false
 )
 

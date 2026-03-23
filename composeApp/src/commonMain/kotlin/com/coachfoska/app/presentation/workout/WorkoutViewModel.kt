@@ -39,7 +39,24 @@ class WorkoutViewModel(
             is WorkoutIntent.LogWorkout -> logWorkout(intent)
             WorkoutIntent.DismissError -> _state.update { it.copy(error = null) }
             WorkoutIntent.WorkoutLogged -> _state.update { it.copy(workoutLoggedSuccess = false) }
+            is WorkoutIntent.SelectWorkoutLog -> selectWorkoutLog(intent.logId)
+            is WorkoutIntent.AttachVideoToLog -> attachVideo(intent.exerciseLogId, intent.videoBytes)
         }
+    }
+
+    private fun selectWorkoutLog(logId: String) {
+        val log = _state.value.workoutHistory.find { it.id == logId }
+        _state.update { it.copy(selectedWorkoutLog = log) }
+        
+        // If not found in current history, we could fetch it from API if needed
+        if (log == null) {
+            loadHistory() // Refresh history and then find
+        }
+    }
+
+    private fun attachVideo(exerciseLogId: String, videoBytes: ByteArray) {
+        // Placeholder for future implementation
+        Napier.d("Attaching video to $exerciseLogId (${videoBytes.size} bytes)", tag = TAG)
     }
 
     private fun loadWorkouts() {

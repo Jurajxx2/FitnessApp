@@ -15,4 +15,6 @@ sealed interface WorkoutIntent {
     ) : WorkoutIntent
     data object DismissError : WorkoutIntent
     data object WorkoutLogged : WorkoutIntent
+    data class SelectWorkoutLog(val logId: String) : WorkoutIntent
+    data class AttachVideoToLog(val exerciseLogId: String, val videoBytes: ByteArray) : WorkoutIntent
 }

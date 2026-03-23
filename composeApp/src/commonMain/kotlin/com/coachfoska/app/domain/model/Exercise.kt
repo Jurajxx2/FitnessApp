@@ -12,7 +12,8 @@ data class WgerExercise(
     val muscles: List<Muscle>,
     val musclesSecondary: List<Muscle>,
     val equipment: List<Equipment>,
-    val imageUrl: String?
+    val imageUrl: String?,
+    val videoUrl: String?
 )
 
 data class ExerciseCategory(

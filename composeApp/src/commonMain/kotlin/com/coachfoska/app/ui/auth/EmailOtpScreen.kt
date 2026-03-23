@@ -44,6 +44,7 @@ fun EmailOtpRoute(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmailOtpScreen(
     state: AuthState,
@@ -52,70 +53,84 @@ fun EmailOtpScreen(
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp)
-    ) {
-        IconButton(onClick = onBackClick) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onBackground
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {},
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
         }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 32.dp, vertical = 24.dp)
+        ) {
+            Text(
+                text = "ENTER EMAIL",
+                style = MaterialTheme.typography.displayMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = "Enter your email",
-            color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.displayMedium
-        )
+            Text(
+                text = "We'll send you a one-time code to sign in to your account.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-        Text(
-            text = "We'll send you a one-time code to sign in.",
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            style = MaterialTheme.typography.bodyLarge
-        )
+            CoachTextField(
+                value = state.email,
+                onValueChange = { onIntent(AuthIntent.EmailChanged(it)) },
+                label = "Email address",
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        onIntent(AuthIntent.SendOtp)
+                    }
+                ),
+                enabled = !state.isLoading
+            )
 
-        Spacer(modifier = Modifier.height(40.dp))
+            state.error?.let { error ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
 
-        CoachTextField(
-            value = state.email,
-            onValueChange = { onIntent(AuthIntent.EmailChanged(it)) },
-            label = "Email address",
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = {
+            Spacer(modifier = Modifier.height(32.dp))
+
+            CoachButton(
+                text = "CONTINUE",
+                onClick = {
                     keyboardController?.hide()
                     onIntent(AuthIntent.SendOtp)
-                }
-            ),
-            enabled = !state.isLoading
-        )
-
-        state.error?.let { error ->
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                },
+                enabled = state.email.isNotBlank(),
+                isLoading = state.isLoading
+            )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        CoachButton(
-            text = "SEND CODE",
-            onClick = {
-                keyboardController?.hide()
-                onIntent(AuthIntent.SendOtp)
-            },
-            enabled = state.email.isNotBlank(),
-            isLoading = state.isLoading
-        )
     }
 }

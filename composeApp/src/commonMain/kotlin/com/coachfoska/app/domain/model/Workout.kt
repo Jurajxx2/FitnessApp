@@ -22,6 +22,7 @@ data class WorkoutExercise(
     val restSeconds: Int,
     val tips: String?,
     val wgerExerciseId: Int? = null,
+    val videoUrl: String? = null,
     val sortOrder: Int = 0
 )
 
@@ -43,7 +44,8 @@ data class ExerciseLog(
     val setsCompleted: Int,
     val repsCompleted: String?,
     val weightKg: Float?,
-    val notes: String?
+    val notes: String?,
+    val videoUrl: String? = null
 )
 
 enum class DayOfWeek(val index: Int, val displayName: String) {

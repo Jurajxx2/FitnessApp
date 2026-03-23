@@ -11,6 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -57,6 +59,7 @@ fun VerifyOtpRoute(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerifyOtpScreen(
     state: AuthState,
@@ -65,96 +68,114 @@ fun VerifyOtpScreen(
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp)
-    ) {
-        IconButton(onClick = onBackClick) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onBackground
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {},
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
         }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 32.dp, vertical = 24.dp)
+        ) {
+            Text(
+                text = "VERIFY CODE",
+                style = MaterialTheme.typography.displayMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = "Check your email",
-            color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.displayMedium
-        )
+            Text(
+                text = "Enter the 6-digit code sent to\n${state.email}",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-        Text(
-            text = "We sent a 6-digit code to\n${state.email}",
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            style = MaterialTheme.typography.bodyLarge
-        )
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        CoachTextField(
-            value = state.otp,
-            onValueChange = { input ->
-                if (input.length <= 6 && input.all { it.isDigit() }) {
-                    onIntent(AuthIntent.OtpChanged(input))
-                    if (input.length == 6) {
+            CoachTextField(
+                value = state.otp,
+                onValueChange = { input ->
+                    // Sanitize input: keep only digits and limit to 6 characters
+                    val sanitized = input.filter { it.isDigit() }.take(6)
+                    onIntent(AuthIntent.OtpChanged(sanitized))
+                    
+                    if (sanitized.length == 6) {
                         keyboardController?.hide()
                         onIntent(AuthIntent.VerifyOtp)
                     }
-                }
-            },
-            label = "6-digit code",
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.NumberPassword,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = {
+                },
+                label = "Verification code",
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        onIntent(AuthIntent.VerifyOtp)
+                    }
+                ),
+                textStyle = TextStyle(
+                    textAlign = TextAlign.Center,
+                    letterSpacing = 12.sp,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                enabled = !state.isLoading
+            )
+
+            state.error?.let { error ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            CoachButton(
+                text = "VERIFY",
+                onClick = {
                     keyboardController?.hide()
                     onIntent(AuthIntent.VerifyOtp)
-                }
-            ),
-            textStyle = LocalTextStyle.current.copy(
-                textAlign = TextAlign.Center,
-                letterSpacing = 8.sp
-            ),
-            enabled = !state.isLoading
-        )
-
-        state.error?.let { error ->
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        CoachButton(
-            text = "VERIFY CODE",
-            onClick = {
-                keyboardController?.hide()
-                onIntent(AuthIntent.VerifyOtp)
-            },
-            enabled = state.otp.length == 6,
-            isLoading = state.isLoading
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextButton(
-            onClick = { onIntent(AuthIntent.SendOtp) },
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            enabled = !state.isLoading
-        ) {
-            Text(
-                text = "Resend code",
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                fontSize = 14.sp
+                },
+                enabled = state.otp.length == 6,
+                isLoading = state.isLoading
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextButton(
+                onClick = { onIntent(AuthIntent.SendOtp) },
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                enabled = !state.isLoading
+            ) {
+                Text(
+                    text = "RESEND CODE",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp
+                )
+            }
         }
     }
 }

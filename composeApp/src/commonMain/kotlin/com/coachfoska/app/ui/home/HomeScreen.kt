@@ -37,131 +37,159 @@ fun HomeScreen(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Column {
-            Text(
-                text = "Good morning,",
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                fontSize = 14.sp
-            )
-            Text(
-                text = state.user?.fullName?.split(" ")?.firstOrNull() ?: "Athlete",
-                color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.displayMedium
-            )
-        }
-
-        if (state.isLoading) {
-            CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(120.dp))
-        } else {
-            state.todayWorkout?.let { workout ->
-                HomeCard(title = "TODAY'S WORKOUT") { TodayWorkoutContent(workout) }
-            } ?: HomeCard(title = "TODAY'S WORKOUT") {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp)
+        ) {
+            // Header
+            Column {
                 Text(
-                    text = "Rest day — recovery is part of the plan.",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    fontSize = 14.sp
+                    text = "WELCOME BACK,",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = (state.user?.fullName?.split(" ")?.firstOrNull() ?: "ATHLETE").uppercase(),
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    letterSpacing = (-0.5).sp
                 )
             }
 
-            HomeCard(title = "TODAY'S NUTRITION") {
-                state.nutritionSummary?.let { NutritionSummaryContent(it) }
-                    ?: Text(
-                        text = "No meals logged today yet.",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        fontSize = 14.sp
+            if (state.isLoading) {
+                CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
+            } else {
+                // Today's Focus
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = "TODAY'S FOCUS",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        letterSpacing = 1.5.sp
                     )
+                    
+                    state.todayWorkout?.let { workout ->
+                        WorkoutHomeCard(workout)
+                    } ?: Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                    ) {
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            Text(
+                                text = "RECOVERY DAY",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Focus on mobility and nutrition today.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+                }
+
+                // Nutrition Summary
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = "DAILY NUTRITION",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        letterSpacing = 1.5.sp
+                    )
+                    
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                            state.nutritionSummary?.let { nutrition ->
+                                MacroRow(nutrition)
+                            } ?: Text(
+                                text = "Start logging your meals to track progress.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            state.error?.let {
+                Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun WorkoutHomeCard(workout: Workout) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.onBackground,
+        contentColor = MaterialTheme.colorScheme.background
+    ) {
+        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = workout.name.uppercase(),
+                style = MaterialTheme.typography.displaySmall.copy(fontSize = 24.sp),
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.5).sp
+            )
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${workout.exercises.size} EXERCISES",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f)
+                )
+                Box(modifier = Modifier.size(3.dp).background(MaterialTheme.colorScheme.background.copy(alpha = 0.4f), RoundedCornerShape(50)))
+                Text(
+                    text = "${workout.durationMinutes} MIN",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f)
+                )
             }
         }
-
-        state.error?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-        }
     }
 }
 
 @Composable
-private fun HomeCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                RoundedCornerShape(12.dp)
-            )
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        CoachSectionHeader(text = title)
-        content()
+private fun MacroRow(summary: DailyNutritionSummary) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        MacroItem(label = "KCAL", value = "${summary.calories.toInt()}")
+        MacroItem(label = "PRO", value = "${summary.proteinG.toInt()}g")
+        MacroItem(label = "CHO", value = "${summary.carbsG.toInt()}g")
+        MacroItem(label = "FAT", value = "${summary.fatG.toInt()}g")
     }
 }
 
 @Composable
-private fun TodayWorkoutContent(workout: Workout) {
-    Text(
-        text = workout.name,
-        color = MaterialTheme.colorScheme.onBackground,
-        style = MaterialTheme.typography.headlineSmall
-    )
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        StatChip("${workout.exercises.size} exercises")
-        StatChip("${workout.durationMinutes} min")
-    }
-    workout.dayOfWeek?.let {
-        Text(
-            text = it.displayName,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            fontSize = 13.sp
-        )
-    }
-}
-
-@Composable
-private fun NutritionSummaryContent(summary: DailyNutritionSummary) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-        MacroStat(value = "${summary.calories.toInt()}", unit = "kcal")
-        MacroStat(value = "${summary.proteinG.toInt()}g", unit = "protein")
-        MacroStat(value = "${summary.carbsG.toInt()}g", unit = "carbs")
-        MacroStat(value = "${summary.fatG.toInt()}g", unit = "fat")
-    }
-}
-
-@Composable
-private fun StatChip(label: String) {
-    Text(
-        text = label,
-        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-        fontSize = 13.sp,
-        modifier = Modifier
-            .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-                RoundedCornerShape(4.dp)
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    )
-}
-
-@Composable
-private fun MacroStat(value: String, unit: String) {
+private fun MacroItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            text = unit,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            fontSize = 12.sp
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            letterSpacing = 1.sp
         )
     }
 }

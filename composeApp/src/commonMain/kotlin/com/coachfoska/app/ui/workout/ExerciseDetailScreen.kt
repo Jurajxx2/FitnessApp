@@ -5,10 +5,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,14 +38,29 @@ fun ExerciseDetailRoute(
     ExerciseDetailScreen(state = state, onBackClick = onBackClick)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseDetailScreen(
     state: ExerciseState,
     onBackClick: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = state.selectedExercise?.name ?: "Exercise", onBackClick = onBackClick)
-
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("EXERCISE DETAIL", style = MaterialTheme.typography.labelLarge, letterSpacing = 1.sp) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        }
+    ) { padding ->
         if (state.isLoadingDetail) {
             CoachLoadingBox()
         } else {
@@ -50,54 +68,74 @@ fun ExerciseDetailScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(padding)
                         .verticalScroll(rememberScrollState())
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(32.dp)
                 ) {
-                    exercise.category?.let {
-                        CoachSectionHeader(text = it.name.uppercase())
-                    }
-                    if (exercise.muscles.isNotEmpty()) {
-                        InfoSection(title = "PRIMARY MUSCLES") {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        exercise.category?.let {
                             Text(
-                                text = exercise.muscles.joinToString(", ") { it.name },
-                                color = MaterialTheme.colorScheme.onBackground,
-                                fontSize = 14.sp
+                                text = it.name.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                                letterSpacing = 1.sp
                             )
                         }
+                        Text(
+                            text = exercise.name,
+                            style = MaterialTheme.typography.displayMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
                     }
-                    if (exercise.musclesSecondary.isNotEmpty()) {
-                        InfoSection(title = "SECONDARY MUSCLES") {
-                            Text(
-                                text = exercise.musclesSecondary.joinToString(", ") { it.name },
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                                fontSize = 14.sp
-                            )
+
+                    if (exercise.muscles.isNotEmpty() || exercise.musclesSecondary.isNotEmpty()) {
+                        InfoSection(title = "MUSCLES") {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                if (exercise.muscles.isNotEmpty()) {
+                                    Text(
+                                        text = "Primary: " + exercise.muscles.joinToString(", ") { it.name },
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                }
+                                if (exercise.musclesSecondary.isNotEmpty()) {
+                                    Text(
+                                        text = "Secondary: " + exercise.musclesSecondary.joinToString(", ") { it.name },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
                         }
                     }
+
                     if (exercise.equipment.isNotEmpty()) {
                         InfoSection(title = "EQUIPMENT") {
                             Text(
                                 text = exercise.equipment.joinToString(", ") { it.name },
-                                color = MaterialTheme.colorScheme.onBackground,
-                                fontSize = 14.sp
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                         }
                     }
+
                     if (exercise.description.isNotBlank()) {
-                        InfoSection(title = "DESCRIPTION") {
+                        InfoSection(title = "INSTRUCTIONS") {
                             Text(
                                 text = exercise.description,
+                                style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                                fontSize = 14.sp,
-                                lineHeight = 22.sp
+                                lineHeight = 24.sp
                             )
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             } ?: state.error?.let {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = it, color = MaterialTheme.colorScheme.error)
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -107,16 +145,23 @@ fun ExerciseDetailScreen(
 @Composable
 private fun InfoSection(title: String, content: @Composable () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                RoundedCornerShape(8.dp)
-            )
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        CoachSectionHeader(text = title)
-        content()
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            letterSpacing = 1.5.sp
+        )
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(modifier = Modifier.padding(20.dp)) {
+                content()
+            }
+        }
     }
 }

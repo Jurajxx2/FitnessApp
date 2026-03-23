@@ -3,9 +3,13 @@ package com.coachfoska.app.ui.profile
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,97 +34,140 @@ private val certifications = listOf(
 private const val instagram = "@coachfoska"
 private const val website = "coachfoska.com"
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutCoachScreen(onBackClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        CoachTopBar(title = "About Coach", onBackClick = onBackClick)
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
-        ) {
-            Text(
-                text = coachName,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = coachTitle,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                fontSize = 13.sp,
-                lineHeight = 20.sp
-            )
-
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
-                modifier = Modifier.padding(vertical = 24.dp)
-            )
-
-            Text(
-                text = coachBio,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                fontSize = 14.sp,
-                lineHeight = 22.sp
-            )
-
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
-                modifier = Modifier.padding(vertical = 24.dp)
-            )
-
-            CoachSectionHeader(text = "CERTIFICATIONS")
-            Spacer(modifier = Modifier.height(12.dp))
-            certifications.forEach { cert ->
-                Text(
-                    text = "· $cert",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(vertical = 4.dp)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("ABOUT COACH", style = MaterialTheme.typography.labelLarge, letterSpacing = 1.sp) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
-            }
-
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
-                modifier = Modifier.padding(vertical = 24.dp)
             )
+        }
+    ) { padding ->
+        Surface(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(32.dp)
+            ) {
+                // Coach Intro
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = coachName.uppercase(),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp
+                    )
+                    Text(
+                        text = coachTitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        lineHeight = 20.sp
+                    )
+                }
 
-            CoachSectionHeader(text = "CONNECT")
-            Spacer(modifier = Modifier.height(12.dp))
-            ContactRow("Instagram", instagram)
-            ContactRow("Web", website)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = coachBio,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                        lineHeight = 26.sp,
+                        modifier = Modifier.padding(24.dp)
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(32.dp))
+                // Certifications
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = "CERTIFICATIONS",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        letterSpacing = 1.5.sp
+                    )
+                    certifications.forEach { cert ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = cert,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Connect
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = "CONNECT",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        letterSpacing = 1.5.sp
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(4.dp)) {
+                            ConnectRow("INSTAGRAM", instagram)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+                            ConnectRow("WEBSITE", website)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+            }
         }
     }
 }
 
 @Composable
-private fun ContactRow(label: String, value: String) {
+private fun ConnectRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            fontSize = 14.sp
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            letterSpacing = 1.sp
         )
         Text(
             text = value,
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold
         )
     }
 }

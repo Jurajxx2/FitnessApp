@@ -37,7 +37,8 @@ class WorkoutRepositoryImpl(
                 setsCompleted = log.setsCompleted,
                 repsCompleted = log.repsCompleted,
                 weightKg = log.weightKg,
-                notes = log.notes
+                notes = log.notes,
+                videoUrl = log.videoUrl
             )
         }
         val insertedLogs = if (exercisePayloads.isNotEmpty()) {

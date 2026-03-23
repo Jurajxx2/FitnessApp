@@ -9,17 +9,21 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTopBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActivityLevelScreen(
     state: OnboardingState,
@@ -27,49 +31,59 @@ fun ActivityLevelScreen(
     onBackClick: () -> Unit,
     onNextClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        CoachTopBar(title = "Activity Level", onBackClick = onBackClick)
-
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("STEP 3 OF 3", style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(horizontal = 32.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "How active are you?",
-                    color = MaterialTheme.colorScheme.onBackground,
-                    style = MaterialTheme.typography.headlineSmall
+                    text = "HOW ACTIVE\nARE YOU?",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Be honest — this sets your calorie baseline.",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    style = MaterialTheme.typography.bodyLarge
+                    text = "Be honest — this sets your calorie baseline and recovery needs.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-                ActivityLevel.entries.forEach { level ->
-                    ActivityCard(
-                        level = level,
-                        isSelected = state.selectedActivityLevel == level,
-                        onClick = { onIntent(OnboardingIntent.ActivityLevelSelected(level)) }
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ActivityLevel.entries.forEach { level ->
+                        ActivityCard(
+                            level = level,
+                            isSelected = state.selectedActivityLevel == level,
+                            onClick = { onIntent(OnboardingIntent.ActivityLevelSelected(level)) }
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             CoachButton(
-                text = "CONTINUE",
+                text = "FINISH SETUP",
                 onClick = onNextClick,
-                enabled = state.selectedActivityLevel != null
+                enabled = state.selectedActivityLevel != null,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
             )
         }
     }
@@ -77,45 +91,29 @@ fun ActivityLevelScreen(
 
 @Composable
 private fun ActivityCard(level: ActivityLevel, isSelected: Boolean, onClick: () -> Unit) {
-    val borderColor by animateColorAsState(
-        targetValue = if (isSelected)
-            MaterialTheme.colorScheme.primary
-        else
-            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-        animationSpec = tween(200),
-        label = "border_color"
-    )
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected)
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-        else
-            MaterialTheme.colorScheme.background,
-        animationSpec = tween(200),
-        label = "background_color"
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                width = if (isSelected) 2.dp else 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .background(color = backgroundColor, shape = RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(16.dp)
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.surface,
+        contentColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
+        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
     ) {
-        Text(
-            text = level.displayName,
-            color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-        )
-        Text(
-            text = level.description,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = level.displayName.uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                letterSpacing = 1.sp
+            )
+            Text(
+                text = level.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isSelected) MaterialTheme.colorScheme.background.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            )
+        }
     }
 }

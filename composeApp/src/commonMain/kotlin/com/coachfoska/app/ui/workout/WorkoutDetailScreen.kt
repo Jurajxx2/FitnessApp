@@ -5,6 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,31 +46,72 @@ fun WorkoutDetailRoute(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutDetailScreen(
     state: WorkoutState,
     onBackClick: () -> Unit,
     onExerciseClick: (Int) -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = state.selectedWorkout?.name ?: "Workout", onBackClick = onBackClick)
-
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = state.selectedWorkout?.name?.uppercase() ?: "WORKOUT",
+                        style = MaterialTheme.typography.labelLarge,
+                        letterSpacing = 1.sp
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        }
+    ) { padding ->
         if (state.isLoading) {
             CoachLoadingBox()
         } else {
             state.selectedWorkout?.let { workout ->
-                LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
+                    item {
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            Text(
+                                text = workout.name,
+                                style = MaterialTheme.typography.displayMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            if (workout.notes != null) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = workout.notes,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
+
                     itemsIndexed(workout.exercises.sortedBy { it.sortOrder }) { index, exercise ->
                         ExerciseRow(
                             index = index + 1,
                             exercise = exercise,
                             onClick = { exercise.wgerExerciseId?.let { onExerciseClick(it) } }
                         )
-                        if (index < workout.exercises.size - 1) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
-                            )
-                        }
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 24.dp),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
+                        )
                     }
                 }
             }
@@ -77,40 +121,57 @@ fun WorkoutDetailScreen(
 
 @Composable
 private fun ExerciseRow(index: Int, exercise: WorkoutExercise, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.background,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "$index",
-            color = MaterialTheme.colorScheme.primary,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(24.dp)
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = exercise.name,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            exercise.muscleGroup?.let {
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                    fontSize = 12.sp
+                    text = "$index",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exercise.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                exercise.muscleGroup?.let {
+                    Text(
+                        text = it.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+            
+            Surface(
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                shape = RoundedCornerShape(4.dp)
+            ) {
+                Text(
+                    text = "${exercise.sets} × ${exercise.reps}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
         }
-        Text(
-            text = "${exercise.sets} × ${exercise.reps}",
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-            fontSize = 14.sp
-        )
     }
 }

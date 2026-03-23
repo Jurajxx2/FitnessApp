@@ -76,7 +76,8 @@ data class MealLogInsertDto(
     @SerialName("user_id") val userId: String,
     @SerialName("meal_name") val mealName: String,
     @SerialName("logged_at") val loggedAt: String,
-    val notes: String? = null
+    val notes: String? = null,
+    @SerialName("image_url") val imageUrl: String? = null
 )
 
 @Serializable
@@ -96,6 +97,7 @@ data class MealLogDto(
     @SerialName("user_id") val userId: String,
     @SerialName("meal_name") val mealName: String,
     val notes: String? = null,
+    @SerialName("image_url") val imageUrl: String? = null,
     @SerialName("logged_at") val loggedAt: String,
     @SerialName("meal_log_foods") val foods: List<MealLogFoodDto> = emptyList()
 ) {
@@ -105,6 +107,7 @@ data class MealLogDto(
         mealName = mealName,
         notes = notes,
         foods = foods.map { it.toDomain() },
+        imageUrl = imageUrl,
         loggedAt = Instant.parse(loggedAt)
     )
 }

@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,6 +48,7 @@ fun WorkoutListRoute(
     onWorkoutClick: (String) -> Unit,
     onLogWorkoutClick: () -> Unit,
     onCategoryClick: (categoryId: Int, categoryName: String) -> Unit,
+    onHistoryItemClick: (String) -> Unit,
     workoutViewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) },
     exerciseViewModel: ExerciseViewModel = koinViewModel()
 ) {
@@ -59,6 +61,7 @@ fun WorkoutListRoute(
         onWorkoutClick = onWorkoutClick,
         onLogWorkoutClick = onLogWorkoutClick,
         onCategoryClick = onCategoryClick,
+        onHistoryItemClick = onHistoryItemClick,
         onLoadHistory = { workoutViewModel.onIntent(WorkoutIntent.LoadHistory) },
         onLoadCategories = { exerciseViewModel.onIntent(ExerciseIntent.LoadCategories) }
     )
@@ -71,31 +74,34 @@ fun WorkoutListScreen(
     onWorkoutClick: (String) -> Unit,
     onLogWorkoutClick: () -> Unit,
     onCategoryClick: (categoryId: Int, categoryName: String) -> Unit,
+    onHistoryItemClick: (String) -> Unit,
     onLoadHistory: () -> Unit,
     onLoadCategories: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("WORKOUTS", "HISTORY", "EXERCISES")
+    val tabs = listOf("PLAN", "HISTORY", "LIBRARY")
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Text(
             text = "WORKOUTS",
+            style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.headlineMedium,
-            letterSpacing = 2.sp,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp)
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp)
         )
 
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onBackground,
             indicator = { tabPositions ->
                 TabRowDefaults.SecondaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
                     height = 2.dp,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
+            },
+            divider = {
+                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
             }
         ) {
             tabs.forEachIndexed { index, title ->
@@ -105,13 +111,11 @@ fun WorkoutListScreen(
                     text = {
                         Text(
                             text = title,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 1.sp,
+                            style = MaterialTheme.typography.labelLarge,
                             color = if (selectedTab == index)
-                                MaterialTheme.colorScheme.primary
+                                MaterialTheme.colorScheme.onBackground
                             else
-                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                         )
                     }
                 )
@@ -121,11 +125,10 @@ fun WorkoutListScreen(
         AnimatedContent(
             targetState = selectedTab,
             transitionSpec = {
-                val direction = if (targetState > initialState) 1 else -1
-                (slideInHorizontally(tween(250)) { it * direction } + fadeIn(tween(200))) togetherWith
-                    (slideOutHorizontally(tween(200)) { -it * direction } + fadeOut(tween(150)))
+                fadeIn(tween(200)) togetherWith fadeOut(tween(150))
             },
-            label = "tab_content"
+            label = "tab_content",
+            modifier = Modifier.weight(1f)
         ) { tab ->
             when (tab) {
                 0 -> WorkoutsTab(
@@ -133,7 +136,11 @@ fun WorkoutListScreen(
                     onWorkoutClick = onWorkoutClick,
                     onLogWorkoutClick = onLogWorkoutClick
                 )
-                1 -> HistoryTab(state = workoutState, onLoad = onLoadHistory)
+                1 -> HistoryTab(
+                    state = workoutState,
+                    onLoad = onLoadHistory,
+                    onItemClick = onHistoryItemClick
+                )
                 2 -> ExercisesTab(
                     state = exerciseState,
                     onLoad = onLoadCategories,
@@ -143,8 +150,6 @@ fun WorkoutListScreen(
         }
     }
 }
-
-// ── Tab 1: Workouts ───────────────────────────────────────────────────────────
 
 @Composable
 private fun WorkoutsTab(
@@ -160,8 +165,8 @@ private fun WorkoutsTab(
     Column(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(state.workouts) { workout ->
                 WorkoutCard(workout = workout, onClick = { onWorkoutClick(workout.id) })
@@ -169,77 +174,82 @@ private fun WorkoutsTab(
             if (state.workouts.isEmpty()) {
                 item {
                     Text(
-                        text = "No workouts assigned yet.\nCheck back after your coach sets up your plan.",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        fontSize = 14.sp,
-                        lineHeight = 22.sp
+                        text = "No workouts assigned yet.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                     )
                 }
             }
         }
 
         CoachButton(
-            text = "LOG WORKOUT",
+            text = "LOG SESSION",
             onClick = onLogWorkoutClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-        )
-    }
-
-    state.error?.let {
-        Text(
-            text = it,
-            color = MaterialTheme.colorScheme.error,
-            fontSize = 13.sp,
-            modifier = Modifier.padding(24.dp)
+                .padding(horizontal = 24.dp, vertical = 24.dp)
         )
     }
 }
 
 @Composable
 private fun WorkoutCard(workout: Workout, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                RoundedCornerShape(12.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
     ) {
-        workout.dayOfWeek?.let {
-            CoachSectionHeader(text = it.displayName.uppercase())
-        }
-        Text(
-            text = workout.name,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "${workout.exercises.size} exercises",
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                fontSize = 13.sp
-            )
-            if (workout.durationMinutes > 0) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            workout.dayOfWeek?.let {
                 Text(
-                    text = "${workout.durationMinutes} min",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                    fontSize = 13.sp
+                    text = it.displayName.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp
                 )
+            }
+            
+            Text(
+                text = workout.name,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StatItem(label = "${workout.exercises.size} Exercises")
+                if (workout.durationMinutes > 0) {
+                    Box(modifier = Modifier.size(3.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)))
+                    StatItem(label = "${workout.durationMinutes} Min")
+                }
             }
         }
     }
 }
 
-// ── Tab 2: History ────────────────────────────────────────────────────────────
+@Composable
+private fun StatItem(label: String) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+    )
+}
 
 @Composable
-private fun HistoryTab(state: WorkoutState, onLoad: () -> Unit) {
+private fun HistoryTab(
+    state: WorkoutState,
+    onLoad: () -> Unit,
+    onItemClick: (String) -> Unit
+) {
     LaunchedEffect(Unit) { onLoad() }
 
     if (state.isHistoryLoading) {
@@ -248,18 +258,18 @@ private fun HistoryTab(state: WorkoutState, onLoad: () -> Unit) {
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(state.workoutHistory) { log ->
-            HistoryLogCard(log = log)
+            HistoryLogCard(log = log, onClick = { onItemClick(log.id) })
         }
         if (state.workoutHistory.isEmpty()) {
             item {
                 Text(
-                    text = "No workouts logged yet.",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                    fontSize = 14.sp
+                    text = "No sessions logged yet.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                 )
             }
         }
@@ -267,64 +277,34 @@ private fun HistoryTab(state: WorkoutState, onLoad: () -> Unit) {
 }
 
 @Composable
-private fun HistoryLogCard(log: WorkoutLog) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                RoundedCornerShape(12.dp)
-            )
-            .clickable { expanded = !expanded }
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+private fun HistoryLogCard(log: WorkoutLog, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = log.workoutName,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = log.loggedAt.toDisplayDateTime(),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                fontSize = 12.sp
-            )
-        }
-        if (log.durationMinutes > 0) {
-            Text(
-                text = "${log.durationMinutes} min",
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                fontSize = 13.sp
-            )
-        }
-        if (expanded) {
-            log.exerciseLogs.forEach { exerciseLog ->
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(
-                        text = exerciseLog.exerciseName,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        fontSize = 13.sp,
-                        modifier = Modifier.weight(1f)
-                    )
-                    exerciseLog.weightKg?.let {
-                        Text(
-                            text = "${it}kg",
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                            fontSize = 13.sp
-                        )
-                    }
-                }
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = log.workoutName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = log.loggedAt.toDisplayDateTime(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                )
             }
+            Text(
+                text = "${log.exerciseLogs.size} exercises recorded",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            )
         }
     }
 }
-
-// ── Tab 3: Exercise categories ────────────────────────────────────────────────
 
 @Composable
 private fun ExercisesTab(
@@ -334,50 +314,35 @@ private fun ExercisesTab(
 ) {
     LaunchedEffect(Unit) { onLoad() }
 
-    when {
-        state.isCategoriesLoading -> CoachLoadingBox()
-        state.error != null -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = state.error, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
-            }
-        }
-        else -> {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(state.categories) { category ->
-                    CategoryCard(
-                        category = category,
-                        onClick = { onCategoryClick(category.id, category.name) }
-                    )
+    if (state.isCategoriesLoading) {
+        CoachLoadingBox()
+    } else {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(state.categories) { category ->
+                Surface(
+                    onClick = { onCategoryClick(category.id, category.name) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.background,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().aspectRatio(1.2f).padding(16.dp),
+                        contentAlignment = Alignment.BottomStart
+                    ) {
+                        Text(
+                            text = category.name.uppercase(),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            letterSpacing = 1.sp
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun CategoryCard(category: ExerciseCategory, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1.4f)
-            .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.07f),
-                RoundedCornerShape(12.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        contentAlignment = Alignment.BottomStart
-    ) {
-        Text(
-            text = category.name,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold
-        )
     }
 }

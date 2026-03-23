@@ -37,6 +37,7 @@ import com.coachfoska.app.ui.workout.ExerciseDetailRoute
 import com.coachfoska.app.ui.workout.LogWorkoutRoute
 import com.coachfoska.app.ui.workout.WorkoutDetailRoute
 import com.coachfoska.app.ui.workout.WorkoutHistoryRoute
+import com.coachfoska.app.ui.workout.WorkoutHistoryDetailRoute
 import com.coachfoska.app.ui.workout.WorkoutListRoute
 
 @Composable
@@ -208,7 +209,8 @@ fun App() {
                         onLogWorkoutClick = { navController.navigate(LogWorkout) },
                         onCategoryClick = { categoryId, categoryName ->
                             navController.navigate(ExercisesByCategory(categoryId, categoryName))
-                        }
+                        },
+                        onHistoryItemClick = { logId -> navController.navigate(WorkoutHistoryDetail(logId)) }
                     )
                 }
 
@@ -249,6 +251,16 @@ fun App() {
 
                 composable<WorkoutHistory> {
                     WorkoutHistoryRoute(
+                        userId = currentUserId,
+                        onBackClick = { navController.popBackStack() },
+                        onLogClick = { logId -> navController.navigate(WorkoutHistoryDetail(logId)) }
+                    )
+                }
+
+                composable<WorkoutHistoryDetail> { backStackEntry ->
+                    val route = backStackEntry.toRoute<WorkoutHistoryDetail>()
+                    WorkoutHistoryDetailRoute(
+                        logId = route.logId,
                         userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )

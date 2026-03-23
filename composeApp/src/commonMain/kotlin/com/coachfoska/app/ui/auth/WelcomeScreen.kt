@@ -54,113 +54,102 @@ fun WelcomeScreen(
     onIntent: (AuthIntent) -> Unit,
     onNavigateToEmailOtp: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.3f),
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
-                            MaterialTheme.colorScheme.background
-                        )
-                    )
-                )
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 48.dp),
+                .padding(horizontal = 32.dp, vertical = 64.dp),
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 64.dp)
+                modifier = Modifier.padding(top = 48.dp)
             ) {
                 Text(
                     text = "COACH",
+                    style = MaterialTheme.typography.displayLarge,
                     color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 40.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 8.sp
+                    letterSpacing = 4.sp
                 )
                 Text(
                     text = "FOŠKA",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 40.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 8.sp
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    letterSpacing = 4.sp
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(2.dp)
+                        .background(MaterialTheme.colorScheme.onBackground)
                 )
             }
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Train smart. Eat right.\nStay consistent.",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                    fontSize = 16.sp,
+                    text = "High performance fitness.\nMinimalist approach.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center,
                     lineHeight = 24.sp
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 CoachButton(
                     text = "CONTINUE WITH EMAIL",
                     onClick = onNavigateToEmailOtp,
-                    enabled = !state.isLoading
+                    enabled = !state.isLoading,
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
                 )
 
-                OutlinedButton(
+                Button(
                     onClick = { onIntent(AuthIntent.SignInWithGoogle) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onBackground
+                        .height(56.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                    ),
+                    elevation = null,
                     enabled = !state.isLoading
                 ) {
                     if (state.isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onBackground,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             strokeWidth = 2.dp
                         )
                     } else {
                         Text(
                             text = "CONTINUE WITH GOOGLE",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.labelLarge,
                             letterSpacing = 1.sp
                         )
                     }
                 }
 
                 state.error?.let { error ->
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = error,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
-                        fontSize = 14.sp,
                         textAlign = TextAlign.Center
                     )
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }

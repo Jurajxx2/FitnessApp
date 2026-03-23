@@ -12,8 +12,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,6 +36,7 @@ import org.koin.core.parameter.parametersOf
 fun WorkoutHistoryRoute(
     userId: String,
     onBackClick: () -> Unit,
+    onLogClick: (String) -> Unit,
     viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -41,39 +45,50 @@ fun WorkoutHistoryRoute(
         viewModel.onIntent(WorkoutIntent.LoadHistory)
     }
 
-    WorkoutHistoryScreen(state = state, onBackClick = onBackClick)
+    WorkoutHistoryScreen(state = state, onBackClick = onBackClick, onLogClick = onLogClick)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutHistoryScreen(
     state: WorkoutState,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onLogClick: (String) -> Unit
 ) {
-    var expandedId by remember { mutableStateOf<String?>(null) }
-
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = "Workout History", onBackClick = onBackClick)
-
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("WORKOUT HISTORY", style = MaterialTheme.typography.labelLarge, letterSpacing = 1.sp) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        }
+    ) { padding ->
         if (state.isHistoryLoading) {
             CoachLoadingBox()
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentPadding = PaddingValues(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(state.workoutHistory) { log ->
-                    WorkoutLogCard(
-                        log = log,
-                        isExpanded = expandedId == log.id,
-                        onClick = { expandedId = if (expandedId == log.id) null else log.id }
-                    )
+                    WorkoutHistoryDetailCard(log = log, onClick = { onLogClick(log.id) })
                 }
                 if (state.workoutHistory.isEmpty()) {
                     item {
                         Text(
                             text = "No workouts logged yet.",
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                            fontSize = 14.sp
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                         )
                     }
                 }
@@ -83,65 +98,48 @@ fun WorkoutHistoryScreen(
 }
 
 @Composable
-private fun WorkoutLogCard(log: WorkoutLog, isExpanded: Boolean, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                RoundedCornerShape(12.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+private fun WorkoutHistoryDetailCard(log: WorkoutLog, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = log.workoutName,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = log.loggedAt.toDisplayDateTime(),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                fontSize = 12.sp
-            )
-        }
-        if (log.durationMinutes > 0) {
-            Text(
-                text = "${log.durationMinutes} min",
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                fontSize = 13.sp
-            )
-        }
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = expandVertically(tween(200)) + fadeIn(tween(200)),
-            exit = shrinkVertically(tween(150)) + fadeOut(tween(150))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                log.exerciseLogs.forEach { exerciseLog ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = exerciseLog.exerciseName,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            fontSize = 13.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                        exerciseLog.weightKg?.let {
-                            Text(
-                                text = "${it}kg",
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                                fontSize = 13.sp
-                            )
-                        }
-                    }
-                }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = log.workoutName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = log.loggedAt.toDisplayDateTime(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                )
+            }
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${log.durationMinutes} MIN",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+                Box(modifier = Modifier.size(3.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)))
+                Text(
+                    text = "${log.exerciseLogs.size} EXERCISES",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
             }
         }
     }

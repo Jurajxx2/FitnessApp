@@ -40,13 +40,15 @@ class MealRemoteDataSource(private val supabase: SupabaseClient) {
     suspend fun insertMealLog(
         userId: String,
         mealName: String,
-        notes: String?
+        notes: String?,
+        imageUrl: String? = null
     ): MealLogDto {
         val payload = MealLogInsertDto(
             userId = userId,
             mealName = mealName,
             loggedAt = currentInstant().toString(),
-            notes = notes
+            notes = notes,
+            imageUrl = imageUrl
         )
         return supabase.postgrest["meal_logs"]
             .insert(payload) { select() }

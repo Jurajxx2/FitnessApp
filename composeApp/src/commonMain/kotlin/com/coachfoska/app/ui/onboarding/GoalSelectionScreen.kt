@@ -7,17 +7,21 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.coachfoska.app.domain.model.UserGoal
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTopBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalSelectionScreen(
     state: OnboardingState,
@@ -25,46 +29,58 @@ fun GoalSelectionScreen(
     onBackClick: () -> Unit,
     onNextClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        CoachTopBar(title = "Your Goal", onBackClick = onBackClick)
-
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("STEP 1 OF 3", style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)) },
+                navigationIcon = {
+                    if (false) { // No back on first step
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(padding)
+                .padding(horizontal = 32.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "What is your primary goal?",
-                    color = MaterialTheme.colorScheme.onBackground,
-                    style = MaterialTheme.typography.headlineSmall
+                    text = "WHAT IS YOUR\nPRIMARY GOAL?",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "This helps us personalize your program.",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-                UserGoal.entries.forEach { goal ->
-                    GoalCard(
-                        goal = goal,
-                        isSelected = state.selectedGoal == goal,
-                        onClick = { onIntent(OnboardingIntent.GoalSelected(goal)) }
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    UserGoal.entries.forEach { goal ->
+                        GoalCard(
+                            goal = goal,
+                            isSelected = state.selectedGoal == goal,
+                            onClick = { onIntent(OnboardingIntent.GoalSelected(goal)) }
+                        )
+                    }
                 }
             }
 
             CoachButton(
                 text = "CONTINUE",
                 onClick = onNextClick,
-                enabled = state.selectedGoal != null
+                enabled = state.selectedGoal != null,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
             )
         }
     }
@@ -72,40 +88,23 @@ fun GoalSelectionScreen(
 
 @Composable
 private fun GoalCard(goal: UserGoal, isSelected: Boolean, onClick: () -> Unit) {
-    val borderColor by animateColorAsState(
-        targetValue = if (isSelected)
-            MaterialTheme.colorScheme.primary
-        else
-            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-        animationSpec = tween(200),
-        label = "border_color"
-    )
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected)
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-        else
-            MaterialTheme.colorScheme.background,
-        animationSpec = tween(200),
-        label = "background_color"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                width = if (isSelected) 2.dp else 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .background(color = backgroundColor, shape = RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(16.dp)
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.surface,
+        contentColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
+        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
     ) {
-        Text(
-            text = goal.displayName,
-            color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Text(
+                text = goal.displayName.uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                letterSpacing = 1.sp
+            )
+        }
     }
 }
