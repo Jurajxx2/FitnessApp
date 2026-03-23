@@ -5,5 +5,7 @@ sealed interface ExerciseIntent {
     data object Search : ExerciseIntent
     data class SelectExercise(val exerciseId: Int) : ExerciseIntent
     data object ClearSelection : ExerciseIntent
+    data object LoadCategories : ExerciseIntent
+    data class LoadExercisesByCategory(val categoryId: Int) : ExerciseIntent
     data object DismissError : ExerciseIntent
 }

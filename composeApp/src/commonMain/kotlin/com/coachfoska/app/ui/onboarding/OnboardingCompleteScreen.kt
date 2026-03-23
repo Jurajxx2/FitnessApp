@@ -2,18 +2,16 @@ package com.coachfoska.app.ui.onboarding
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
+import com.coachfoska.app.ui.components.CoachButton
 
 @Composable
 fun OnboardingCompleteScreen(
@@ -23,7 +21,7 @@ fun OnboardingCompleteScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
@@ -36,14 +34,13 @@ fun OnboardingCompleteScreen(
         ) {
             Text(
                 text = "You're all set!",
-                color = Color.White,
-                fontSize = 36.sp,
-                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.displayLarge,
                 textAlign = TextAlign.Center
             )
             Text(
                 text = "Your personalized program is ready.\nLet's get to work.",
-                color = Color.White.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center,
                 lineHeight = 24.sp
@@ -61,25 +58,11 @@ fun OnboardingCompleteScreen(
             state.selectedActivityLevel?.let { SummaryRow(label = "Activity", value = it.displayName) }
         }
 
-        Button(
+        CoachButton(
+            text = "LET'S START",
             onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(4.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA90707)),
-            enabled = !state.isLoading
-        ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("LET'S START", fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
-            }
-        }
+            isLoading = state.isLoading
+        )
     }
 }
 
@@ -89,7 +72,16 @@ private fun SummaryRow(label: String, value: String) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp)
-        Text(text = value, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = label,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            fontSize = 14.sp
+        )
+        Text(
+            text = value,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 14.sp,
+            style = MaterialTheme.typography.titleSmall
+        )
     }
 }

@@ -3,6 +3,8 @@ package com.coachfoska.app.presentation.exercise
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.usecase.exercise.GetExerciseByIdUseCase
+import com.coachfoska.app.domain.usecase.exercise.GetExerciseCategoriesUseCase
+import com.coachfoska.app.domain.usecase.exercise.GetExercisesByCategoryUseCase
 import com.coachfoska.app.domain.usecase.exercise.SearchExercisesUseCase
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +17,9 @@ private const val TAG = "ExerciseViewModel"
 
 class ExerciseViewModel(
     private val searchExercisesUseCase: SearchExercisesUseCase,
-    private val getExerciseByIdUseCase: GetExerciseByIdUseCase
+    private val getExerciseByIdUseCase: GetExerciseByIdUseCase,
+    private val getExerciseCategoriesUseCase: GetExerciseCategoriesUseCase,
+    private val getExercisesByCategoryUseCase: GetExercisesByCategoryUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ExerciseState())
@@ -28,6 +32,8 @@ class ExerciseViewModel(
             ExerciseIntent.Search -> search()
             is ExerciseIntent.SelectExercise -> loadExerciseDetail(intent.exerciseId)
             ExerciseIntent.ClearSelection -> _state.update { it.copy(selectedExercise = null) }
+            ExerciseIntent.LoadCategories -> loadCategories()
+            is ExerciseIntent.LoadExercisesByCategory -> loadExercisesByCategory(intent.categoryId)
             ExerciseIntent.DismissError -> _state.update { it.copy(error = null) }
         }
     }
@@ -40,6 +46,31 @@ class ExerciseViewModel(
                 .onFailure { e ->
                     Napier.e("search failed", e, tag = TAG)
                     _state.update { it.copy(isSearching = false, error = e.message) }
+                }
+        }
+    }
+
+    private fun loadCategories() {
+        if (_state.value.categories.isNotEmpty()) return
+        viewModelScope.launch {
+            _state.update { it.copy(isCategoriesLoading = true, error = null) }
+            getExerciseCategoriesUseCase()
+                .onSuccess { cats -> _state.update { it.copy(isCategoriesLoading = false, categories = cats) } }
+                .onFailure { e ->
+                    Napier.e("loadCategories failed", e, tag = TAG)
+                    _state.update { it.copy(isCategoriesLoading = false, error = e.message) }
+                }
+        }
+    }
+
+    private fun loadExercisesByCategory(categoryId: Int) {
+        viewModelScope.launch {
+            _state.update { it.copy(isCategoryExercisesLoading = true, categoryExercises = emptyList(), error = null) }
+            getExercisesByCategoryUseCase(categoryId)
+                .onSuccess { exercises -> _state.update { it.copy(isCategoryExercisesLoading = false, categoryExercises = exercises) } }
+                .onFailure { e ->
+                    Napier.e("loadExercisesByCategory($categoryId) failed", e, tag = TAG)
+                    _state.update { it.copy(isCategoryExercisesLoading = false, error = e.message) }
                 }
         }
     }

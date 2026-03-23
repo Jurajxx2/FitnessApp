@@ -24,6 +24,8 @@ import com.coachfoska.app.domain.usecase.auth.SignInWithGoogleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignOutUseCase
 import com.coachfoska.app.domain.usecase.auth.VerifyOtpUseCase
 import com.coachfoska.app.domain.usecase.exercise.GetExerciseByIdUseCase
+import com.coachfoska.app.domain.usecase.exercise.GetExerciseCategoriesUseCase
+import com.coachfoska.app.domain.usecase.exercise.GetExercisesByCategoryUseCase
 import com.coachfoska.app.domain.usecase.exercise.SearchExercisesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
@@ -118,6 +120,8 @@ val useCaseModule = module {
     // Exercise
     factory { SearchExercisesUseCase(get()) }
     factory { GetExerciseByIdUseCase(get()) }
+    factory { GetExerciseCategoriesUseCase(get()) }
+    factory { GetExercisesByCategoryUseCase(get()) }
 }
 
 val viewModelModule = module {

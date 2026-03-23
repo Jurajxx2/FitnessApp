@@ -7,10 +7,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTopBar
 
 private val coachName = "Andrea Krišková"
@@ -35,7 +35,7 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         CoachTopBar(title = "About Coach", onBackClick = onBackClick)
 
@@ -48,50 +48,52 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
         ) {
             Text(
                 text = coachName,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.ExtraBold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = coachTitle,
-                color = Color.White.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                 fontSize = 13.sp,
                 lineHeight = 20.sp
             )
 
-            Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 24.dp))
-
-            Text(text = coachBio, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, lineHeight = 22.sp)
-
-            Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 24.dp))
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
+                modifier = Modifier.padding(vertical = 24.dp)
+            )
 
             Text(
-                text = "CERTIFICATIONS",
-                color = Color(0xFFA90707),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.5.sp
+                text = coachBio,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                fontSize = 14.sp,
+                lineHeight = 22.sp
             )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
+                modifier = Modifier.padding(vertical = 24.dp)
+            )
+
+            CoachSectionHeader(text = "CERTIFICATIONS")
             Spacer(modifier = Modifier.height(12.dp))
             certifications.forEach { cert ->
                 Text(
                     text = "· $cert",
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     fontSize = 14.sp,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
 
-            Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 24.dp))
-
-            Text(
-                text = "CONNECT",
-                color = Color(0xFFA90707),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.5.sp
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
+                modifier = Modifier.padding(vertical = 24.dp)
             )
+
+            CoachSectionHeader(text = "CONNECT")
             Spacer(modifier = Modifier.height(12.dp))
             ContactRow("Instagram", instagram)
             ContactRow("Web", website)
@@ -109,7 +111,16 @@ private fun ContactRow(label: String, value: String) {
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp)
-        Text(text = value, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = label,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            fontSize = 14.sp
+        )
+        Text(
+            text = value,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }

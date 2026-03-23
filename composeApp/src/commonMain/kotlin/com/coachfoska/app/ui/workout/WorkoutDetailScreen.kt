@@ -9,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -18,6 +17,7 @@ import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
+import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -49,13 +49,11 @@ fun WorkoutDetailScreen(
     onBackClick: () -> Unit,
     onExerciseClick: (Int) -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CoachTopBar(title = state.selectedWorkout?.name ?: "Workout", onBackClick = onBackClick)
 
         if (state.isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFFA90707))
-            }
+            CoachLoadingBox()
         } else {
             state.selectedWorkout?.let { workout ->
                 LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
@@ -66,7 +64,9 @@ fun WorkoutDetailScreen(
                             onClick = { exercise.wgerExerciseId?.let { onExerciseClick(it) } }
                         )
                         if (index < workout.exercises.size - 1) {
-                            Divider(color = Color.White.copy(alpha = 0.08f))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
+                            )
                         }
                     }
                 }
@@ -78,15 +78,39 @@ fun WorkoutDetailScreen(
 @Composable
 private fun ExerciseRow(index: Int, exercise: WorkoutExercise, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 24.dp, vertical = 14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(text = "$index", color = Color(0xFFA90707), fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
+        Text(
+            text = "$index",
+            color = MaterialTheme.colorScheme.primary,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(24.dp)
+        )
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = exercise.name, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            exercise.muscleGroup?.let { Text(text = it, color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp) }
+            Text(
+                text = exercise.name,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            exercise.muscleGroup?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    fontSize = 12.sp
+                )
+            }
         }
-        Text(text = "${exercise.sets} × ${exercise.reps}", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+        Text(
+            text = "${exercise.sets} × ${exercise.reps}",
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            fontSize = 14.sp
+        )
     }
 }

@@ -9,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -19,6 +18,8 @@ import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.presentation.home.HomeIntent
 import com.coachfoska.app.presentation.home.HomeState
 import com.coachfoska.app.presentation.home.HomeViewModel
+import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.CoachSectionHeader
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -39,39 +40,44 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Column {
-            Text(text = "Good morning,", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
+            Text(
+                text = "Good morning,",
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                fontSize = 14.sp
+            )
             Text(
                 text = state.user?.fullName?.split(" ")?.firstOrNull() ?: "Athlete",
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.displayMedium
             )
         }
 
         if (state.isLoading) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFFA90707))
-            }
+            CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(120.dp))
         } else {
             state.todayWorkout?.let { workout ->
                 HomeCard(title = "TODAY'S WORKOUT") { TodayWorkoutContent(workout) }
             } ?: HomeCard(title = "TODAY'S WORKOUT") {
                 Text(
                     text = "Rest day — recovery is part of the plan.",
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     fontSize = 14.sp
                 )
             }
 
             HomeCard(title = "TODAY'S NUTRITION") {
                 state.nutritionSummary?.let { NutritionSummaryContent(it) }
-                    ?: Text(text = "No meals logged today yet.", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
+                    ?: Text(
+                        text = "No meals logged today yet.",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        fontSize = 14.sp
+                    )
             }
         }
 
@@ -86,24 +92,35 @@ private fun HomeCard(title: String, content: @Composable ColumnScope.() -> Unit)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+            .background(
+                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                RoundedCornerShape(12.dp)
+            )
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(text = title, color = Color(0xFFA90707), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
+        CoachSectionHeader(text = title)
         content()
     }
 }
 
 @Composable
 private fun TodayWorkoutContent(workout: Workout) {
-    Text(text = workout.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+    Text(
+        text = workout.name,
+        color = MaterialTheme.colorScheme.onBackground,
+        style = MaterialTheme.typography.headlineSmall
+    )
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         StatChip("${workout.exercises.size} exercises")
         StatChip("${workout.durationMinutes} min")
     }
     workout.dayOfWeek?.let {
-        Text(text = it.displayName, color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+        Text(
+            text = it.displayName,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            fontSize = 13.sp
+        )
     }
 }
 
@@ -121,10 +138,13 @@ private fun NutritionSummaryContent(summary: DailyNutritionSummary) {
 private fun StatChip(label: String) {
     Text(
         text = label,
-        color = Color.White.copy(alpha = 0.6f),
+        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
         fontSize = 13.sp,
         modifier = Modifier
-            .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(4.dp))
+            .background(
+                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                RoundedCornerShape(4.dp)
+            )
             .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }
@@ -132,7 +152,16 @@ private fun StatChip(label: String) {
 @Composable
 private fun MacroStat(value: String, unit: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Text(text = unit, color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+        Text(
+            text = value,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = unit,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            fontSize = 12.sp
+        )
     }
 }

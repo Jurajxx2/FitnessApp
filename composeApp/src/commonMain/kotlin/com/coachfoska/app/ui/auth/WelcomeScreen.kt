@@ -8,7 +8,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -17,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.auth.AuthIntent
 import com.coachfoska.app.presentation.auth.AuthState
 import com.coachfoska.app.presentation.auth.AuthViewModel
+import com.coachfoska.app.ui.components.CoachButton
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -57,7 +57,7 @@ fun WelcomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Box(
             modifier = Modifier
@@ -65,9 +65,9 @@ fun WelcomeScreen(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0.3f),
-                            Color.Black.copy(alpha = 0.7f),
-                            Color.Black
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.3f),
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
+                            MaterialTheme.colorScheme.background
                         )
                     )
                 )
@@ -86,14 +86,14 @@ fun WelcomeScreen(
             ) {
                 Text(
                     text = "COACH",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 40.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 8.sp
                 )
                 Text(
                     text = "FOŠKA",
-                    color = Color(0xFFA90707),
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 40.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 8.sp
@@ -106,7 +106,7 @@ fun WelcomeScreen(
             ) {
                 Text(
                     text = "Train smart. Eat right.\nStay consistent.",
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center,
                     lineHeight = 24.sp
@@ -114,22 +114,11 @@ fun WelcomeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
+                CoachButton(
+                    text = "CONTINUE WITH EMAIL",
                     onClick = onNavigateToEmailOtp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA90707)),
                     enabled = !state.isLoading
-                ) {
-                    Text(
-                        text = "CONTINUE WITH EMAIL",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
-                    )
-                }
+                )
 
                 OutlinedButton(
                     onClick = { onIntent(AuthIntent.SignInWithGoogle) },
@@ -137,14 +126,19 @@ fun WelcomeScreen(
                         .fillMaxWidth()
                         .height(52.dp),
                     shape = RoundedCornerShape(4.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onBackground
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                    ),
                     enabled = !state.isLoading
                 ) {
                     if (state.isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             strokeWidth = 2.dp
                         )
                     } else {

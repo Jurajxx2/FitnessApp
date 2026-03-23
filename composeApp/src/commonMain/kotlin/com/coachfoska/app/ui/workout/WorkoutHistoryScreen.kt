@@ -1,5 +1,11 @@
 package com.coachfoska.app.ui.workout
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,9 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,6 +24,7 @@ import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
+import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -46,13 +51,11 @@ fun WorkoutHistoryScreen(
 ) {
     var expandedId by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CoachTopBar(title = "Workout History", onBackClick = onBackClick)
 
         if (state.isHistoryLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFFA90707))
-            }
+            CoachLoadingBox()
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
@@ -67,7 +70,11 @@ fun WorkoutHistoryScreen(
                 }
                 if (state.workoutHistory.isEmpty()) {
                     item {
-                        Text(text = "No workouts logged yet.", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp)
+                        Text(
+                            text = "No workouts logged yet.",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                            fontSize = 14.sp
+                        )
                     }
                 }
             }
@@ -80,24 +87,59 @@ private fun WorkoutLogCard(log: WorkoutLog, isExpanded: Boolean, onClick: () -> 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+            .background(
+                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                RoundedCornerShape(12.dp)
+            )
             .clickable(onClick = onClick)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = log.workoutName, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            Text(text = log.loggedAt.toDisplayDateTime(), color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
+            Text(
+                text = log.workoutName,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = log.loggedAt.toDisplayDateTime(),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                fontSize = 12.sp
+            )
         }
         if (log.durationMinutes > 0) {
-            Text(text = "${log.durationMinutes} min", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+            Text(
+                text = "${log.durationMinutes} min",
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                fontSize = 13.sp
+            )
         }
-        if (isExpanded) {
-            log.exerciseLogs.forEach { exerciseLog ->
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = exerciseLog.exerciseName, color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, modifier = Modifier.weight(1f))
-                    exerciseLog.weightKg?.let {
-                        Text(text = "${it}kg", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically(tween(200)) + fadeIn(tween(200)),
+            exit = shrinkVertically(tween(150)) + fadeOut(tween(150))
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                log.exerciseLogs.forEach { exerciseLog ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = exerciseLog.exerciseName,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            fontSize = 13.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        exerciseLog.weightKg?.let {
+                            Text(
+                                text = "${it}kg",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
             }

@@ -1,8 +1,8 @@
 package com.coachfoska.app.data.remote.datasource
 
+import com.coachfoska.app.data.remote.dto.WgerCategoryDto
 import com.coachfoska.app.data.remote.dto.WgerExerciseInfoDto
 import com.coachfoska.app.data.remote.dto.WgerListResponse
-import com.coachfoska.app.data.remote.dto.WgerExerciseSearchDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -32,17 +32,21 @@ class ExerciseApiDataSource(private val httpClient: HttpClient) {
             parameter("format", "json")
         }.body()
 
+    suspend fun getCategories(): List<WgerCategoryDto> {
+        val response = httpClient.get("$WGER_BASE_URL/exercisecategory/") {
+            parameter("format", "json")
+        }
+        return response.body<WgerListResponse<WgerCategoryDto>>().results
+    }
+
     suspend fun getExercisesByCategory(categoryId: Int): List<WgerExerciseInfoDto> {
-        val response = httpClient.get("$WGER_BASE_URL/exercise/") {
+        val response = httpClient.get("$WGER_BASE_URL/exerciseinfo/") {
             parameter("format", "json")
             parameter("language", ENGLISH_LANGUAGE_ID)
             parameter("category", categoryId)
             parameter("limit", 50)
         }
-        val list = response.body<WgerListResponse<WgerExerciseSearchDto>>()
-        return list.results.mapNotNull { item ->
-            runCatching { getExerciseById(item.id) }.getOrNull()
-        }
+        return response.body<WgerListResponse<WgerExerciseInfoDto>>().results
     }
 }
 

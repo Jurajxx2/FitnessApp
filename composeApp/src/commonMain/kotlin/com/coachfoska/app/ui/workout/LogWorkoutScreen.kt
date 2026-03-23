@@ -9,7 +9,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -19,6 +18,9 @@ import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
+import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.app.ui.components.CoachSectionHeader
+import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -52,34 +54,62 @@ fun LogWorkoutScreen(
     var notes by remember { mutableStateOf("") }
     var exercises by remember { mutableStateOf(listOf(ExerciseLog("", "", "", 0, null, null, null))) }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CoachTopBar(title = "Log Workout", onBackClick = onBackClick)
 
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            LogTextField(value = workoutName, onValueChange = { workoutName = it }, label = "Workout name")
-            LogTextField(value = durationMinutes, onValueChange = { durationMinutes = it }, label = "Duration (minutes)", keyboardType = KeyboardType.Number)
+            CoachTextField(
+                value = workoutName,
+                onValueChange = { workoutName = it },
+                label = "Workout name"
+            )
+            CoachTextField(
+                value = durationMinutes,
+                onValueChange = { durationMinutes = it },
+                label = "Duration (minutes)",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
 
-            Text("EXERCISES", color = Color(0xFFA90707), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
+            CoachSectionHeader(text = "EXERCISES")
 
             exercises.forEachIndexed { i, exercise ->
                 ExerciseLogRow(
                     exercise = exercise,
-                    onUpdate = { updated -> exercises = exercises.toMutableList().also { it[i] = updated } }
+                    onUpdate = { updated ->
+                        exercises = exercises.toMutableList().also { it[i] = updated }
+                    }
                 )
             }
 
-            TextButton(onClick = { exercises = exercises + ExerciseLog("", "", "", 0, null, null, null) }) {
-                Text("+ ADD EXERCISE", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
+            TextButton(
+                onClick = { exercises = exercises + ExerciseLog("", "", "", 0, null, null, null) }
+            ) {
+                Text(
+                    "+ ADD EXERCISE",
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    fontSize = 13.sp
+                )
             }
 
-            LogTextField(value = notes, onValueChange = { notes = it }, label = "Notes (optional)", singleLine = false)
+            CoachTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = "Notes (optional)",
+                singleLine = false
+            )
 
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
+            state.error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+            }
 
-            Button(
+            CoachButton(
+                text = "SAVE WORKOUT",
                 onClick = {
                     onIntent(
                         WorkoutIntent.LogWorkout(
@@ -91,17 +121,9 @@ fun LogWorkoutScreen(
                         )
                     )
                 },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(4.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA90707)),
-                enabled = workoutName.isNotBlank() && !state.isLogging
-            ) {
-                if (state.isLogging) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                } else {
-                    Text("SAVE WORKOUT", fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
-                }
-            }
+                enabled = workoutName.isNotBlank(),
+                isLoading = state.isLogging
+            )
         }
     }
 }
@@ -109,51 +131,35 @@ fun LogWorkoutScreen(
 @Composable
 private fun ExerciseLogRow(exercise: ExerciseLog, onUpdate: (ExerciseLog) -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.04f), RoundedCornerShape(8.dp)).padding(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f),
+                RoundedCornerShape(8.dp)
+            )
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        LogTextField(value = exercise.exerciseName, onValueChange = { onUpdate(exercise.copy(exerciseName = it)) }, label = "Exercise name")
+        CoachTextField(
+            value = exercise.exerciseName,
+            onValueChange = { onUpdate(exercise.copy(exerciseName = it)) },
+            label = "Exercise name"
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            LogTextField(
+            CoachTextField(
                 value = exercise.setsCompleted.takeIf { it > 0 }?.toString() ?: "",
                 onValueChange = { onUpdate(exercise.copy(setsCompleted = it.toIntOrNull() ?: 0)) },
                 label = "Sets",
                 modifier = Modifier.weight(1f),
-                keyboardType = KeyboardType.Number
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
-            LogTextField(
+            CoachTextField(
                 value = exercise.weightKg?.toString() ?: "",
                 onValueChange = { onUpdate(exercise.copy(weightKg = it.toFloatOrNull())) },
                 label = "Weight (kg)",
                 modifier = Modifier.weight(1f),
-                keyboardType = KeyboardType.Decimal
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
             )
         }
     }
-}
-
-@Composable
-private fun LogTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier.fillMaxWidth(),
-    singleLine: Boolean = true,
-    keyboardType: KeyboardType = KeyboardType.Text
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier,
-        label = { Text(label, color = Color.White.copy(alpha = 0.6f)) },
-        singleLine = singleLine,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.White,
-            focusedBorderColor = Color(0xFFA90707),
-            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-            cursorColor = Color(0xFFA90707)
-        )
-    )
 }

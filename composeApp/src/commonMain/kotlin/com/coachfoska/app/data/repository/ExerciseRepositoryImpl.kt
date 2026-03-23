@@ -1,6 +1,7 @@
 package com.coachfoska.app.data.repository
 
 import com.coachfoska.app.data.remote.datasource.ExerciseApiDataSource
+import com.coachfoska.app.domain.model.ExerciseCategory
 import com.coachfoska.app.domain.model.WgerExercise
 import com.coachfoska.app.domain.repository.ExerciseRepository
 
@@ -14,6 +15,10 @@ class ExerciseRepositoryImpl(
 
     override suspend fun getExerciseById(id: Int): Result<WgerExercise> = runCatching {
         exerciseApiDataSource.getExerciseById(id).toDomain()
+    }
+
+    override suspend fun getCategories(): Result<List<ExerciseCategory>> = runCatching {
+        exerciseApiDataSource.getCategories().map { it.toDomain() }
     }
 
     override suspend fun getExercisesByCategory(categoryId: Int): Result<List<WgerExercise>> = runCatching {

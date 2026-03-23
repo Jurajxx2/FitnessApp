@@ -22,6 +22,8 @@ import com.coachfoska.app.domain.model.WeightEntry
 import com.coachfoska.app.presentation.profile.ProfileIntent
 import com.coachfoska.app.presentation.profile.ProfileState
 import com.coachfoska.app.presentation.profile.ProfileViewModel
+import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -46,35 +48,58 @@ fun ProgressScreen(
     state: ProfileState,
     onBackClick: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CoachTopBar(title = "My Progress", onBackClick = onBackClick)
 
         if (state.isWeightHistoryLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFFA90707))
-            }
+            CoachLoadingBox()
         } else {
             Column(
-                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 if (state.weightHistory.isNotEmpty()) {
+                    val primaryColor = MaterialTheme.colorScheme.primary
                     Column(
-                        modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp)).padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("WEIGHT PROGRESS", color = Color(0xFFA90707), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
-                        WeightChart(entries = state.weightHistory.take(12).reversed())
+                        CoachSectionHeader(text = "WEIGHT PROGRESS")
+                        WeightChart(
+                            entries = state.weightHistory.take(12).reversed(),
+                            primaryColor = primaryColor
+                        )
                         val first = state.weightHistory.lastOrNull()?.weightKg
                         val last = state.weightHistory.firstOrNull()?.weightKg
                         if (first != null && last != null) {
                             val diff = last - first
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(text = "Start: ${first}kg", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
-                                Text(text = "Current: ${last}kg", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Start: ${first}kg",
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                    fontSize = 13.sp
+                                )
+                                Text(
+                                    text = "Current: ${last}kg",
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                                 Text(
                                     text = "${if (diff < 0) "" else "+"}${(kotlin.math.round(diff * 10) / 10.0)}kg",
-                                    color = if (diff < 0) Color(0xFF4CAF50) else Color(0xFFA90707),
+                                    color = if (diff < 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -85,10 +110,16 @@ fun ProgressScreen(
 
                 state.user?.let { user ->
                     Column(
-                        modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp)).padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("BODY STATS", color = Color(0xFFA90707), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
+                        CoachSectionHeader(text = "BODY STATS")
                         user.heightCm?.let { StatRow("Height", "${it.toInt()} cm") }
                         user.weightKg?.let { StatRow("Current Weight", "${it} kg") }
                         user.goal?.let { StatRow("Goal", it.displayName) }
@@ -101,8 +132,7 @@ fun ProgressScreen(
 }
 
 @Composable
-private fun WeightChart(entries: List<WeightEntry>) {
-    val primaryRed = Color(0xFFA90707)
+private fun WeightChart(entries: List<WeightEntry>, primaryColor: Color) {
     Canvas(modifier = Modifier.fillMaxWidth().height(120.dp)) {
         if (entries.size < 2) return@Canvas
         val weights = entries.map { it.weightKg }
@@ -116,11 +146,11 @@ private fun WeightChart(entries: List<WeightEntry>) {
             val y = size.height - ((entry.weightKg - minWeight) / range * size.height * 0.8f) - size.height * 0.1f
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
-        drawPath(path, primaryRed, style = Stroke(width = 2.dp.toPx()))
+        drawPath(path, primaryColor, style = Stroke(width = 2.dp.toPx()))
         entries.forEachIndexed { i, entry ->
             val x = i * stepX
             val y = size.height - ((entry.weightKg - minWeight) / range * size.height * 0.8f) - size.height * 0.1f
-            drawCircle(primaryRed, radius = 4.dp.toPx(), center = Offset(x, y))
+            drawCircle(primaryColor, radius = 4.dp.toPx(), center = Offset(x, y))
         }
     }
 }
@@ -128,7 +158,16 @@ private fun WeightChart(entries: List<WeightEntry>) {
 @Composable
 private fun StatRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(text = label, color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp)
-        Text(text = value, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = label,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            fontSize = 14.sp
+        )
+        Text(
+            text = value,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }

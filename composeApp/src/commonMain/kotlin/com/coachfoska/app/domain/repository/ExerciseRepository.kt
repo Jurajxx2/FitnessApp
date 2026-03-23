@@ -1,5 +1,6 @@
 package com.coachfoska.app.domain.repository
 
+import com.coachfoska.app.domain.model.ExerciseCategory
 import com.coachfoska.app.domain.model.WgerExercise
 
 interface ExerciseRepository {
@@ -8,6 +9,9 @@ interface ExerciseRepository {
 
     /** Get detailed exercise info by WGER exercise ID. */
     suspend fun getExerciseById(id: Int): Result<WgerExercise>
+
+    /** Get all exercise categories from WGER. */
+    suspend fun getCategories(): Result<List<ExerciseCategory>>
 
     /** Get exercises by muscle group category ID. */
     suspend fun getExercisesByCategory(categoryId: Int): Result<List<WgerExercise>>

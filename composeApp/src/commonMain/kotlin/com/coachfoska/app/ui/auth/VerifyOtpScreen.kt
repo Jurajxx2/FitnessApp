@@ -2,7 +2,6 @@ package com.coachfoska.app.ui.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -11,9 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -23,13 +20,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.auth.AuthIntent
 import com.coachfoska.app.presentation.auth.AuthState
 import com.coachfoska.app.presentation.auth.AuthViewModel
+import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.app.ui.components.CoachTextField
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun VerifyOtpRoute(
     email: String,
     onBackClick: () -> Unit,
-    onNavigateToHome: () -> Unit,
+    onNavigateToHome: (userId: String) -> Unit,
     onNavigateToOnboarding: (userId: String) -> Unit,
     viewModel: AuthViewModel = koinViewModel()
 ) {
@@ -41,7 +40,7 @@ fun VerifyOtpRoute(
     LaunchedEffect(state.navigateToHome) {
         if (state.navigateToHome) {
             viewModel.onIntent(AuthIntent.NavigatedToHome)
-            onNavigateToHome()
+            onNavigateToHome(state.authenticatedUser?.id ?: "")
         }
     }
     LaunchedEffect(state.navigateToOnboarding) {
@@ -58,7 +57,6 @@ fun VerifyOtpRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerifyOtpScreen(
     state: AuthState,
@@ -70,14 +68,14 @@ fun VerifyOtpScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp)
     ) {
         IconButton(onClick = onBackClick) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onBackground
             )
         }
 
@@ -85,22 +83,21 @@ fun VerifyOtpScreen(
 
         Text(
             text = "Check your email",
-            color = Color.White,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.ExtraBold
+            color = MaterialTheme.colorScheme.onBackground,
+            style = MaterialTheme.typography.displayMedium
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = "We sent a 6-digit code to\n${state.email}",
-            color = Color.White.copy(alpha = 0.6f),
-            fontSize = 15.sp
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            style = MaterialTheme.typography.bodyLarge
         )
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        OutlinedTextField(
+        CoachTextField(
             value = state.otp,
             onValueChange = { input ->
                 if (input.length <= 6 && input.all { it.isDigit() }) {
@@ -111,9 +108,7 @@ fun VerifyOtpScreen(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("6-digit code", color = Color.White.copy(alpha = 0.6f)) },
-            singleLine = true,
+            label = "6-digit code",
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.NumberPassword,
                 imeAction = ImeAction.Done
@@ -128,13 +123,6 @@ fun VerifyOtpScreen(
                 textAlign = TextAlign.Center,
                 letterSpacing = 8.sp
             ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedBorderColor = Color(0xFFA90707),
-                unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                cursorColor = Color(0xFFA90707)
-            ),
             enabled = !state.isLoading
         )
 
@@ -145,33 +133,15 @@ fun VerifyOtpScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
+        CoachButton(
+            text = "VERIFY CODE",
             onClick = {
                 keyboardController?.hide()
                 onIntent(AuthIntent.VerifyOtp)
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(4.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA90707)),
-            enabled = state.otp.length == 6 && !state.isLoading
-        ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text(
-                    text = "VERIFY CODE",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.sp
-                )
-            }
-        }
+            enabled = state.otp.length == 6,
+            isLoading = state.isLoading
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -180,7 +150,11 @@ fun VerifyOtpScreen(
             modifier = Modifier.align(Alignment.CenterHorizontally),
             enabled = !state.isLoading
         ) {
-            Text(text = "Resend code", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
+            Text(
+                text = "Resend code",
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                fontSize = 14.sp
+            )
         }
     }
 }

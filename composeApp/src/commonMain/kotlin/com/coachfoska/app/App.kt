@@ -1,5 +1,6 @@
 package com.coachfoska.app
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,6 +32,7 @@ import com.coachfoska.app.ui.profile.AboutCoachScreen
 import com.coachfoska.app.ui.profile.ProfileRoute
 import com.coachfoska.app.ui.profile.ProgressRoute
 import com.coachfoska.app.ui.splash.SplashRoute
+import com.coachfoska.app.ui.workout.ExerciseByCategoryRoute
 import com.coachfoska.app.ui.workout.ExerciseDetailRoute
 import com.coachfoska.app.ui.workout.LogWorkoutRoute
 import com.coachfoska.app.ui.workout.WorkoutDetailRoute
@@ -98,10 +100,22 @@ fun App() {
                 navController = navController,
                 startDestination = Splash,
                 modifier = if (showBottomBar) Modifier.padding(innerPadding) else Modifier,
-                enterTransition = { slideInHorizontally { it } },
-                exitTransition = { slideOutHorizontally { -it } },
-                popEnterTransition = { slideInHorizontally { -it } },
-                popExitTransition = { slideOutHorizontally { it } }
+                enterTransition = {
+                    slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it } +
+                        fadeIn(tween(200))
+                },
+                exitTransition = {
+                    slideOutHorizontally(tween(250, easing = FastOutSlowInEasing)) { -it / 4 } +
+                        fadeOut(tween(150))
+                },
+                popEnterTransition = {
+                    slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it / 4 } +
+                        fadeIn(tween(200))
+                },
+                popExitTransition = {
+                    slideOutHorizontally(tween(250, easing = FastOutSlowInEasing)) { it } +
+                        fadeOut(tween(150))
+                }
             ) {
                 // ── Splash ────────────────────────────────────────────────
                 composable<Splash> {
@@ -147,7 +161,8 @@ fun App() {
                     VerifyOtpRoute(
                         email = route.email,
                         onBackClick = { navController.popBackStack() },
-                        onNavigateToHome = {
+                        onNavigateToHome = { userId ->
+                            currentUserId = userId
                             navController.navigate(Home) { popUpTo(Welcome) { inclusive = true } }
                         },
                         onNavigateToOnboarding = { userId ->
@@ -191,7 +206,9 @@ fun App() {
                         userId = currentUserId,
                         onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
                         onLogWorkoutClick = { navController.navigate(LogWorkout) },
-                        onWorkoutHistoryClick = { navController.navigate(WorkoutHistory) }
+                        onCategoryClick = { categoryId, categoryName ->
+                            navController.navigate(ExercisesByCategory(categoryId, categoryName))
+                        }
                     )
                 }
 
@@ -209,6 +226,16 @@ fun App() {
                     val route = backStackEntry.toRoute<ExerciseDetail>()
                     ExerciseDetailRoute(
                         exerciseId = route.exerciseId,
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable<ExercisesByCategory> { backStackEntry ->
+                    val route = backStackEntry.toRoute<ExercisesByCategory>()
+                    ExerciseByCategoryRoute(
+                        categoryId = route.categoryId,
+                        categoryName = route.categoryName,
+                        onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
                         onBackClick = { navController.popBackStack() }
                     )
                 }
