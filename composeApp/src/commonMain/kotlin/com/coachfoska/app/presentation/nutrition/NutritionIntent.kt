@@ -9,7 +9,8 @@ sealed interface NutritionIntent {
     data class LogMeal(
         val mealName: String,
         val foods: List<MealLogFood>,
-        val notes: String?
+        val notes: String?,
+        val photoUri: String? = null
     ) : NutritionIntent
     data object DismissError : NutritionIntent
     data object MealLogged : NutritionIntent

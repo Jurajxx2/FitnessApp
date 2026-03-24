@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,7 +13,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coachfoska.app.ui.components.CoachSectionHeader
-import com.coachfoska.app.ui.components.CoachTopBar
 
 private val coachName = "Andrea Krišková"
 private val coachTitle = "Certified Bodybuilding Coach · Fitness Trainer · Nutrition & Mental Coach"
@@ -34,31 +31,13 @@ private val certifications = listOf(
 private const val instagram = "@coachfoska"
 private const val website = "coachfoska.com"
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutCoachScreen(onBackClick: () -> Unit) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("ABOUT COACH", style = MaterialTheme.typography.labelLarge, letterSpacing = 1.sp) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
-            )
-        }
-    ) { padding ->
-        Surface(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            Column(
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
@@ -144,7 +123,6 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(40.dp))
             }
-        }
     }
 }
 

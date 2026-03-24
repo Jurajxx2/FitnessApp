@@ -7,9 +7,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -40,6 +43,7 @@ import com.coachfoska.app.ui.workout.WorkoutHistoryRoute
 import com.coachfoska.app.ui.workout.WorkoutHistoryDetailRoute
 import com.coachfoska.app.ui.workout.WorkoutListRoute
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
     CoachFoskaTheme {
@@ -56,8 +60,40 @@ fun App() {
             VerifyOtp::class.qualifiedName,
             Onboarding::class.qualifiedName
         )
+        val bottomTabRoutes = listOf(
+            Home::class.qualifiedName,
+            WorkoutList::class.qualifiedName,
+            MealPlan::class.qualifiedName,
+            Profile::class.qualifiedName
+        )
         val showBottomBar = currentRoute != null &&
             authRoutes.none { currentRoute.contains(it ?: "") }
+
+        val showTopBar = currentRoute != null &&
+            authRoutes.none { currentRoute.contains(it ?: "") } &&
+            bottomTabRoutes.none { currentRoute.contains(it ?: "") }
+
+        val topBarTitle by remember(currentRoute) {
+            derivedStateOf {
+                when {
+                    currentRoute?.contains("ExercisesByCategory") == true ->
+                        runCatching {
+                            navBackStackEntry?.toRoute<ExercisesByCategory>()?.categoryName?.uppercase()
+                        }.getOrNull() ?: "EXERCISES"
+                    currentRoute?.contains("WorkoutHistoryDetail") == true -> "SESSION DETAIL"
+                    currentRoute?.contains("WorkoutHistory") == true -> "WORKOUT HISTORY"
+                    currentRoute?.contains("WorkoutDetail") == true -> "WORKOUT"
+                    currentRoute?.contains("ExerciseDetail") == true -> "EXERCISE"
+                    currentRoute?.contains("LogWorkout") == true -> "LOG SESSION"
+                    currentRoute?.contains("MealCapture") == true -> "RECORD MEAL"
+                    currentRoute?.contains("MealHistory") == true -> "MEAL HISTORY"
+                    currentRoute?.contains("MealDetail") == true -> "MEAL DETAIL"
+                    currentRoute?.contains("Progress") == true -> "MY PROGRESS"
+                    currentRoute?.contains("AboutCoach") == true -> "ABOUT COACH"
+                    else -> ""
+                }
+            }
+        }
 
         val selectedTab by remember(currentRoute) {
             derivedStateOf {
@@ -76,6 +112,29 @@ fun App() {
         }
 
         Scaffold(
+            topBar = {
+                if (showTopBar) {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = topBarTitle,
+                                style = MaterialTheme.typography.labelLarge,
+                                letterSpacing = 1.sp
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                            titleContentColor = MaterialTheme.colorScheme.onBackground
+                        )
+                    )
+                }
+            },
             bottomBar = {
                 if (showBottomBar) {
                     BottomNavBar(
@@ -100,7 +159,7 @@ fun App() {
             NavHost(
                 navController = navController,
                 startDestination = Splash,
-                modifier = if (showBottomBar) Modifier.padding(innerPadding) else Modifier,
+                modifier = Modifier.padding(innerPadding),
                 enterTransition = {
                     slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it } +
                         fadeIn(tween(200))

@@ -41,7 +41,6 @@ fun MealPlanRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MealPlanScreen(
     state: NutritionState,
@@ -49,65 +48,65 @@ fun MealPlanScreen(
     onRecordMealClick: () -> Unit,
     onMealHistoryClick: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("NUTRITION", style = MaterialTheme.typography.labelLarge, letterSpacing = 1.sp) },
-                actions = {
-                    IconButton(onClick = onMealHistoryClick) {
-                        Icon(Icons.Default.History, contentDescription = "History")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
-            )
-        }
-    ) { padding ->
-        if (state.isLoading) {
-            CoachLoadingBox()
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
+    if (state.isLoading) {
+        CoachLoadingBox()
+    } else {
+        Column(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = "DAILY MEAL PLAN",
+                            text = "NUTRITION",
                             style = MaterialTheme.typography.displayMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
-                    }
-
-                    state.mealPlan?.let { plan ->
-                        items(plan.meals.sortedBy { it.sortOrder }) { meal ->
-                            MealCard(meal = meal, onClick = { onMealClick(meal.id) })
+                        IconButton(onClick = onMealHistoryClick) {
+                            Icon(
+                                Icons.Default.History,
+                                contentDescription = "History",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
                         }
-                    } ?: item {
-                        Text(
-                            text = "No meal plan assigned yet.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                        )
                     }
                 }
 
-                CoachButton(
-                    text = "RECORD MEAL",
-                    onClick = onRecordMealClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 24.dp)
-                )
+                item {
+                    Text(
+                        text = "DAILY MEAL PLAN",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        letterSpacing = 1.5.sp
+                    )
+                }
+
+                state.mealPlan?.let { plan ->
+                    items(plan.meals.sortedBy { it.sortOrder }) { meal ->
+                        MealCard(meal = meal, onClick = { onMealClick(meal.id) })
+                    }
+                } ?: item {
+                    Text(
+                        text = "No meal plan assigned yet.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                    )
+                }
             }
+
+            CoachButton(
+                text = "RECORD MEAL",
+                onClick = onRecordMealClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 24.dp)
+            )
         }
     }
 }
@@ -145,7 +144,7 @@ private fun MealCard(meal: Meal, onClick: () -> Unit) {
                     )
                 }
             }
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
