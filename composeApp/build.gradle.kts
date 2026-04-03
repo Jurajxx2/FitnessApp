@@ -92,6 +92,15 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
+
+        val androidUnitTest by getting {
+            dependencies {
+                implementation(libs.mockk)
+                implementation(libs.turbine)
+                implementation(libs.kotlinx.coroutines.test)
+                implementation(kotlin("test"))
+            }
+        }
     }
 }
 

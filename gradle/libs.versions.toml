@@ -13,6 +13,8 @@ koin = "4.1.1"
 buildkonfig = "0.17.1"
 napier = "2.7.1"
 lifecycle = "2.9.0"
+mockk = "1.13.12"
+turbine = "1.2.0"
 credentials = "1.3.0"
 googleid = "1.1.1"
 
@@ -69,6 +71,11 @@ google-identity = { module = "com.google.android.libraries.identity.googleid:goo
 
 # Logging
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
+
+# Testing
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
