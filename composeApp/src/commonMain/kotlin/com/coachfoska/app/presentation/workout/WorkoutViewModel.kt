@@ -47,15 +47,9 @@ class WorkoutViewModel(
     private fun selectWorkoutLog(logId: String) {
         val log = _state.value.workoutHistory.find { it.id == logId }
         _state.update { it.copy(selectedWorkoutLog = log) }
-        
-        // If not found in current history, we could fetch it from API if needed
-        if (log == null) {
-            loadHistory() // Refresh history and then find
-        }
     }
 
     private fun attachVideo(exerciseLogId: String, videoBytes: ByteArray) {
-        // Placeholder for future implementation
         Napier.d("Attaching video to $exerciseLogId (${videoBytes.size} bytes)", tag = TAG)
     }
 
@@ -63,7 +57,9 @@ class WorkoutViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             getAssignedWorkoutsUseCase(userId)
-                .onSuccess { workouts -> _state.update { it.copy(isLoading = false, workouts = workouts) } }
+                .onSuccess { workouts ->
+                    _state.update { it.copy(isLoading = false, workouts = workouts) }
+                }
                 .onFailure { e ->
                     Napier.e("loadWorkouts failed", e, tag = TAG)
                     _state.update { it.copy(isLoading = false, error = e.message) }
@@ -85,7 +81,7 @@ class WorkoutViewModel(
 
     private fun loadHistory() {
         viewModelScope.launch {
-            _state.update { it.copy(isHistoryLoading = true) }
+            _state.update { it.copy(isHistoryLoading = true, error = null) }
             getWorkoutHistoryUseCase(userId)
                 .onSuccess { logs -> _state.update { it.copy(isHistoryLoading = false, workoutHistory = logs) } }
                 .onFailure { e ->
