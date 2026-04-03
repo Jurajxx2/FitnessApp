@@ -33,6 +33,7 @@ class NutritionViewModel(
         when (intent) {
             NutritionIntent.LoadMealPlan -> loadMealPlan()
             NutritionIntent.LoadHistory -> loadHistory()
+            NutritionIntent.LoadRecipes -> _state.update { it.copy(isRecipesLoading = false) }
             is NutritionIntent.SelectMeal -> selectMeal(intent.mealId)
             is NutritionIntent.LogMeal -> logMeal(intent)
             NutritionIntent.DismissError -> _state.update { it.copy(error = null) }
@@ -44,7 +45,9 @@ class NutritionViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             getActiveMealPlanUseCase(userId)
-                .onSuccess { plan -> _state.update { it.copy(isLoading = false, mealPlan = plan) } }
+                .onSuccess { plan ->
+                    _state.update { it.copy(isLoading = false, mealPlan = plan) }
+                }
                 .onFailure { e ->
                     Napier.e("loadMealPlan failed", e, tag = TAG)
                     _state.update { it.copy(isLoading = false, error = e.message) }
@@ -54,7 +57,7 @@ class NutritionViewModel(
 
     private fun loadHistory() {
         viewModelScope.launch {
-            _state.update { it.copy(isHistoryLoading = true) }
+            _state.update { it.copy(isHistoryLoading = true, error = null) }
             getMealHistoryUseCase(userId)
                 .onSuccess { logs -> _state.update { it.copy(isHistoryLoading = false, mealHistory = logs) } }
                 .onFailure { e ->
