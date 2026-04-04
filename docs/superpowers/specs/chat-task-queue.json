@@ -1,0 +1,408 @@
+{
+  "project": "coach-foska-chat",
+  "total_tasks": 18,
+  "estimated_complexity": "moderate",
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Create chat domain models",
+      "phase": "foundation",
+      "description": "Create the core domain model file for the chat feature: message types, sender types, chat types, and conversation summary.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/domain/model/Chat.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "ChatType enum exists with Human and Ai values",
+        "SenderType enum exists with User, Coach, Ai values",
+        "MessageContent is a sealed class with Text(text: String) and Image(url: String, thumbnailUrl: String?) subclasses",
+        "ChatMessage data class exists with: id, userId, chatType, senderType, content, createdAt (Instant), readAt (Instant?)",
+        "ChatConversationSummary data class exists with: chatType, lastMessage (ChatMessage?), unreadCount (Int)",
+        "File compiles without errors"
+      ],
+      "implementation_notes": "Follow the pattern of existing domain models (e.g. Nutrition.kt, Workout.kt). Use kotlinx.datetime.Instant for timestamps. No framework imports in domain layer.",
+      "complexity": "low"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Create ChatMessageDto and mapper",
+      "phase": "foundation",
+      "description": "Create the Supabase DTO for chat messages and a mapper to/from the domain model.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/data/remote/dto/ChatMessageDto.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-001"],
+      "acceptance_criteria": [
+        "ChatMessageDto is @Serializable with fields: id, user_id, chat_type, sender_type, content_type, text_content (nullable), image_url (nullable), created_at, read_at (nullable)",
+        "Extension function ChatMessageDto.toDomain(): ChatMessage exists in the same file",
+        "Mapper correctly maps chat_type string ('human'/'ai') to ChatType enum",
+        "Mapper correctly maps sender_type string to SenderType enum",
+        "Mapper reconstructs MessageContent from content_type + text_content/image_url fields",
+        "File compiles without errors"
+      ],
+      "implementation_notes": "Follow existing DTO patterns (e.g. WorkoutDto.kt, NutritionDto.kt). Use @SerialName for snake_case fields. Parse Instant from ISO string using Instant.parse().",
+      "complexity": "low"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Add Supabase schema migration and BuildKonfig fields",
+      "phase": "foundation",
+      "description": "Create the chat_messages Supabase SQL schema and add AI-related BuildKonfig fields to the build config.",
+      "files_to_create": [
+        "supabase/migrations/chat_messages.sql"
+      ],
+      "files_to_modify": [
+        "composeApp/build.gradle.kts"
+      ],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "SQL file creates chat_messages table with columns: id (UUID PK), user_id (UUID FK auth.users), chat_type (TEXT CHECK human/ai), sender_type (TEXT CHECK user/coach/ai), content_type (TEXT CHECK text/image), text_content (TEXT nullable), image_url (TEXT nullable), created_at (TIMESTAMPTZ DEFAULT NOW()), read_at (TIMESTAMPTZ nullable)",
+        "SQL includes index on (user_id, chat_type, created_at DESC)",
+        "SQL enables RLS with policy: users see only their own messages",
+        "build.gradle.kts buildkonfig block adds: AI_COACH_ENABLED (Boolean, default false), ANTHROPIC_API_KEY (String, default empty), AI_COACH_SYSTEM_PROMPT (String, default fitness coach prompt)",
+        "local.properties keys documented in a comment in build.gradle.kts"
+      ],
+      "implementation_notes": "Check existing buildkonfig block for STRING type import — add Boolean type import from buildkonfig. Default AI_COACH_ENABLED to false so it is off unless explicitly enabled. Use a sensible default system prompt string directly in defaultConfigs.",
+      "complexity": "low"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Create ChatRepository interface and ChatAiProvider interface",
+      "phase": "data",
+      "description": "Define the contracts for the chat repository and the AI provider abstraction.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/domain/repository/ChatRepository.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/data/ai/ChatAiProvider.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-001"],
+      "acceptance_criteria": [
+        "ChatRepository interface has: observeMessages(userId, chatType): Flow<List<ChatMessage>>, sendMessage(userId, chatType, content): Result<ChatMessage>, markMessagesRead(userId, chatType): Result<Unit>, getConversationSummaries(userId): Result<List<ChatConversationSummary>>",
+        "ChatAiProvider interface has: streamResponse(systemPrompt, history, userMessage): Flow<String>",
+        "Both interfaces are in the correct packages (domain/repository and data/ai respectively)",
+        "No framework or Supabase imports in ChatRepository interface",
+        "Files compile without errors"
+      ],
+      "implementation_notes": "ChatAiProvider lives in data/ai (not domain) as it is an infrastructure concern, not business logic. ChatRepository follows the same pattern as WorkoutRepository and MealRepository interfaces.",
+      "complexity": "low"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Implement ChatRemoteDataSource",
+      "phase": "data",
+      "description": "Implement the Supabase data source for chat: fetch message history via Postgrest and subscribe to new messages via Realtime.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/data/remote/datasource/ChatRemoteDataSource.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-002", "TASK-004"],
+      "acceptance_criteria": [
+        "fetchMessages(userId, chatType, limit, offset) queries chat_messages table filtered by user_id and chat_type, ordered by created_at DESC, returns List<ChatMessageDto>",
+        "sendMessage(dto) inserts a new row into chat_messages, returns the inserted ChatMessageDto",
+        "observeNewMessages(userId, chatType) subscribes to Supabase Realtime on chat_messages table filtered by user_id + chat_type and emits ChatMessageDto via Flow",
+        "markRead(userId, chatType) updates read_at = NOW() for all null read_at rows matching user_id + chat_type",
+        "Constructor takes SupabaseClient (injected)"
+      ],
+      "implementation_notes": "Follow WorkoutRemoteDataSource and MealRemoteDataSource patterns for Postgrest queries. For Realtime, follow the Supabase KMP Realtime docs pattern — use supabase.realtime.createChannel() and filter by eq('user_id', userId). Realtime subscription should be started lazily and cancelled when the Flow collector cancels.",
+      "complexity": "medium"
+    },
+    {
+      "id": "TASK-006",
+      "title": "Implement Claude AI provider and Gemini stub",
+      "phase": "data",
+      "description": "Implement ClaudeAiProvider using Ktor to call the Anthropic REST API with SSE streaming, and a GeminiAiProvider stub.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/data/ai/ClaudeAiProvider.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/data/ai/GeminiAiProvider.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-004"],
+      "acceptance_criteria": [
+        "ClaudeAiProvider implements ChatAiProvider",
+        "ClaudeAiProvider sends POST to https://api.anthropic.com/v1/messages with model claude-sonnet-4-6, stream=true, Authorization header with api key, anthropic-version header",
+        "Request body maps history List<ChatMessage> to Anthropic messages format (role: user/assistant, content: string)",
+        "Response is parsed as SSE stream; text delta chunks are emitted via Flow<String>",
+        "GeminiAiProvider implements ChatAiProvider and throws NotImplementedError('Gemini provider not yet implemented')",
+        "Both classes take HttpClient and apiKey as constructor parameters",
+        "Files compile without errors"
+      ],
+      "implementation_notes": "Use Ktor's HttpStatement and execute { response -> response.bodyAsChannel() } to stream the SSE response. Parse lines that start with 'data: ' and extract the text delta from the JSON payload. Map SenderType.User to role 'user' and SenderType.Ai to role 'assistant' when building history.",
+      "complexity": "medium"
+    },
+    {
+      "id": "TASK-007",
+      "title": "Implement ChatRepositoryImpl",
+      "phase": "data",
+      "description": "Implement the ChatRepository interface, combining ChatRemoteDataSource for human chat and ChatAiProvider for AI responses.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/data/repository/ChatRepositoryImpl.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-005", "TASK-006"],
+      "acceptance_criteria": [
+        "ChatRepositoryImpl implements ChatRepository",
+        "observeMessages() merges initial Postgrest fetch with Realtime new-message events into a single Flow<List<ChatMessage>>, sorted by createdAt ASC",
+        "sendMessage() for ChatType.Human inserts via ChatRemoteDataSource and maps result to domain",
+        "sendMessage() for ChatType.Ai inserts the user message first, then returns Result.success with the pending message (AI response is handled separately by SendAiChatMessageUseCase)",
+        "getConversationSummaries() fetches the latest message per chat_type and counts unread messages",
+        "All Results wrap exceptions correctly using runCatching",
+        "Constructor takes ChatRemoteDataSource and ChatAiProvider"
+      ],
+      "implementation_notes": "Follow the pattern of MealRepositoryImpl and WorkoutRepositoryImpl. For observeMessages(), use a MutableStateFlow<List<ChatMessage>> seeded by the initial fetch, then merge with realtime events using Flow operators. Mark existing messages as read via markMessagesRead when observing starts.",
+      "complexity": "medium"
+    },
+    {
+      "id": "TASK-008",
+      "title": "Implement chat use cases",
+      "phase": "domain",
+      "description": "Create the four use cases that encapsulate chat business logic.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/domain/usecase/chat/ObserveChatMessagesUseCase.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/domain/usecase/chat/SendHumanChatMessageUseCase.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/domain/usecase/chat/SendAiChatMessageUseCase.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/domain/usecase/chat/MarkMessagesReadUseCase.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-004", "TASK-007"],
+      "acceptance_criteria": [
+        "ObserveChatMessagesUseCase(repo).invoke(userId, chatType): Flow<List<ChatMessage>> delegates to ChatRepository.observeMessages()",
+        "SendHumanChatMessageUseCase(repo).invoke(userId, content): Result<ChatMessage> delegates to ChatRepository.sendMessage() with ChatType.Human",
+        "SendAiChatMessageUseCase(repo, provider).invoke(userId, history, userMessage): Flow<String> calls ChatAiProvider.streamResponse() with system prompt from ChatConfig",
+        "MarkMessagesReadUseCase(repo).invoke(userId, chatType): Result<Unit> delegates to ChatRepository.markMessagesRead()",
+        "All use cases follow the existing operator-fun invoke pattern from other use cases in the project",
+        "Files compile without errors"
+      ],
+      "implementation_notes": "Read GetAssignedWorkoutsUseCase.kt and LogMealUseCase.kt for the invoke-pattern. SendAiChatMessageUseCase also inserts the user's message into the repo before streaming the AI response, so history is persisted. Fetch ChatConfig.aiSystemPrompt inside the use case.",
+      "complexity": "low"
+    },
+    {
+      "id": "TASK-009",
+      "title": "Register chat components in DI module",
+      "phase": "domain",
+      "description": "Add the chatModule Koin module and wire up all chat dependencies.",
+      "files_to_create": [],
+      "files_to_modify": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/core/di/AppModule.kt"
+      ],
+      "depends_on": ["TASK-006", "TASK-007", "TASK-008"],
+      "acceptance_criteria": [
+        "chatModule is defined as a Koin module containing: ChatRemoteDataSource (single), ClaudeAiProvider as ChatAiProvider (single), ChatRepositoryImpl as ChatRepository (single), all 4 use cases (factory), ChatViewModel (viewModel with userId and chatType params)",
+        "chatModule is added to the appModules list",
+        "ClaudeAiProvider receives HttpClient (get()) and BuildKonfig.ANTHROPIC_API_KEY",
+        "Project compiles without errors after adding the module"
+      ],
+      "implementation_notes": "Follow the existing module structure in AppModule.kt — add chatModule as a new val and append it to appModules. Use single<ChatRepository> { ChatRepositoryImpl(get(), get()) } and single<ChatAiProvider> { ClaudeAiProvider(get(), BuildKonfig.ANTHROPIC_API_KEY) }.",
+      "complexity": "low"
+    },
+    {
+      "id": "TASK-010",
+      "title": "Create ChatState and ChatIntent",
+      "phase": "presentation",
+      "description": "Define the UI state and intent sealed interface for the chat screen.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/presentation/chat/ChatState.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/presentation/chat/ChatIntent.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-001"],
+      "acceptance_criteria": [
+        "ChatState is a data class with: messages (List<ChatMessage>, default empty), isLoading (Boolean), isSending (Boolean), isAiStreaming (Boolean), streamingText (String, default empty), error (String?, default null), hasMorePages (Boolean)",
+        "ChatIntent is a sealed interface with: LoadMessages, LoadMoreMessages, SendTextMessage(text: String), SendImageMessage(imageBytes: ByteArray), MarkAllRead",
+        "Both files follow the exact same pattern as HomeState/HomeIntent and WorkoutState/WorkoutIntent",
+        "Files compile without errors"
+      ],
+      "implementation_notes": "Read HomeState.kt and HomeIntent.kt for the exact pattern to follow. ChatIntent uses sealed interface (not sealed class) to match existing patterns.",
+      "complexity": "low"
+    },
+    {
+      "id": "TASK-011",
+      "title": "Implement ChatViewModel",
+      "phase": "presentation",
+      "description": "Implement the ViewModel for the chat screen, handling message loading, sending, AI streaming, and read state.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/presentation/chat/ChatViewModel.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-008", "TASK-009", "TASK-010"],
+      "acceptance_criteria": [
+        "ChatViewModel takes: ObserveChatMessagesUseCase, SendHumanChatMessageUseCase, SendAiChatMessageUseCase, MarkMessagesReadUseCase, userId: String, chatType: ChatType",
+        "init block dispatches LoadMessages intent",
+        "LoadMessages starts collecting ObserveChatMessagesUseCase flow, updates state.messages, calls MarkAllRead on first load",
+        "SendTextMessage for Human chat calls SendHumanChatMessageUseCase, sets isSending=true, clears error on success",
+        "SendTextMessage for Ai chat calls SendAiChatMessageUseCase, sets isAiStreaming=true, accumulates chunks in streamingText, appends final message to messages list when stream ends",
+        "Error cases set state.error with exception message",
+        "Follows the onIntent(intent) dispatch pattern from HomeViewModel"
+      ],
+      "implementation_notes": "Read HomeViewModel.kt for the exact ViewModel pattern. For AI streaming: collect Flow<String> chunks in a coroutine, update streamingText on each chunk, and when complete add the full message to the messages list and clear streamingText. Use viewModelScope.launch for all coroutines.",
+      "complexity": "medium"
+    },
+    {
+      "id": "TASK-012",
+      "title": "Build chat UI components",
+      "phase": "presentation",
+      "description": "Create the reusable Compose components for the chat screen: message bubbles, input bar, and image preview.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/chat/components/ChatBubble.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/chat/components/ChatInputBar.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/chat/components/ImageMessagePreview.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-001"],
+      "acceptance_criteria": [
+        "ChatBubble(message: ChatMessage, isOwn: Boolean) renders a message bubble aligned right for own messages, left for others, using MaterialTheme colors",
+        "ChatBubble shows text content for MessageContent.Text and a Coil AsyncImage for MessageContent.Image",
+        "ChatBubble shows timestamp in a small label below the bubble",
+        "ChatInputBar(text, onTextChange, onSend, onImageAttach, isSending) renders a TextField with send button and image attach icon button",
+        "ChatInputBar disables send button when text is blank or isSending=true",
+        "ImageMessagePreview(imageBytes, onRemove) renders a thumbnail of a selected image with a remove button",
+        "All components use existing CoachFoskaTheme colors and typography"
+      ],
+      "implementation_notes": "Use Coil AsyncImage (already a dependency) for image display. For bubble alignment use Row with Arrangement.End/Start. Check CoachComponents.kt for existing component style reference. The image attach button will trigger the MediaCapture flow (already exists) — just wire the onClick for now.",
+      "complexity": "medium"
+    },
+    {
+      "id": "TASK-013",
+      "title": "Build ChatScreen composable",
+      "phase": "presentation",
+      "description": "Build the main chat screen that renders the message thread and input bar, shared by both human coach and AI coach modes.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/chat/ChatScreen.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-011", "TASK-012"],
+      "acceptance_criteria": [
+        "ChatRoute(userId, chatType, onBackClick) composable exists as the nav entry point",
+        "Collects ChatViewModel state via collectAsStateWithLifecycle()",
+        "Shows a LazyColumn of ChatBubble items, newest at bottom (reverseLayout or scroll to bottom on new message)",
+        "Shows streaming AI response as a partial bubble at the bottom when isAiStreaming=true and streamingText is not empty",
+        "Shows LinearProgressIndicator when isLoading=true",
+        "Shows error Snackbar when state.error is not null",
+        "ChatInputBar is shown at the bottom; SendTextMessage intent dispatched on send",
+        "Screen title in TopBar: 'COACH' for Human, 'AI COACH' for Ai"
+      ],
+      "implementation_notes": "Follow the structure of MealPlanScreen.kt and WorkoutListScreen.kt for the Route/Screen composable split pattern. Use rememberLazyListState() and LaunchedEffect to auto-scroll to bottom when messages.size changes. AI streaming bubble can reuse ChatBubble with a placeholder ChatMessage.",
+      "complexity": "medium"
+    },
+    {
+      "id": "TASK-014",
+      "title": "Build ChatHubScreen",
+      "phase": "presentation",
+      "description": "Build the hub screen that shows human coach and AI coach conversation entry points.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/chat/ChatHubScreen.kt"
+      ],
+      "files_to_modify": [],
+      "depends_on": ["TASK-013"],
+      "acceptance_criteria": [
+        "ChatHubRoute(userId, onHumanCoachClick, onAiCoachClick) composable exists",
+        "Always shows a conversation row for Human Coach with name, last message preview, and unread count badge",
+        "Shows AI Coach row only when ChatConfig.aiCoachEnabled is true",
+        "Each row shows avatar placeholder, coach name, last message snippet (max 1 line), and timestamp",
+        "Tapping a row calls the corresponding onXxxClick callback",
+        "Loading state shows placeholder shimmer or CircularProgressIndicator"
+      ],
+      "implementation_notes": "ChatHubScreen needs its own lightweight ViewModel or can read conversation summaries from the existing ChatViewModel. Prefer a separate lightweight HubViewModel that calls GetConversationSummariesUseCase (add it to ChatRepository). Keep this screen simple — it is a list of 1-2 items. Check ChatConfig.aiCoachEnabled using BuildKonfig.AI_COACH_ENABLED directly.",
+      "complexity": "low"
+    },
+    {
+      "id": "TASK-015",
+      "title": "Wire up navigation and bottom nav",
+      "phase": "presentation",
+      "description": "Add Chat to the bottom navigation, define the chat routes in the nav graph, and update App.kt.",
+      "files_to_create": [],
+      "files_to_modify": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/navigation/Routes.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/components/BottomNavBar.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/App.kt"
+      ],
+      "depends_on": ["TASK-014"],
+      "acceptance_criteria": [
+        "Routes.kt adds: @Serializable object Chat, @Serializable object HumanCoachChat, @Serializable object AiCoachChat",
+        "BottomNavBar adds Chat tab between Workout and Nutrition (order: Home, Workout, Chat, Nutrition, Profile)",
+        "BottomNavBar Chat tab icon uses Icons.Default.Chat (or AutoMirrored Chat icon)",
+        "BottomNavBar accepts optional unreadCount: Int and renders BadgedBox on Chat tab when unreadCount > 0",
+        "App.kt adds Chat to bottomTabRoutes and authRoutes exclusion",
+        "App.kt adds composable<Chat> routing to ChatHubRoute",
+        "App.kt adds composable<HumanCoachChat> and composable<AiCoachChat> routing to ChatRoute with appropriate chatType",
+        "App.kt selectedTab logic includes Chat detection",
+        "App.kt topBarTitle includes 'CHAT' for HumanCoachChat and AiCoachChat destinations",
+        "Project compiles and nav works end-to-end"
+      ],
+      "implementation_notes": "Read App.kt carefully before modifying — the bottomTabRoutes list, selectedTab derivedStateOf, and topBarTitle derivedStateOf all need Chat entries. For the BadgedBox, the unreadCount will come from a future integration point; wire it up as 0 for now. Use Icons.AutoMirrored.Filled.Chat if available, otherwise Icons.Default.MailOutline as fallback.",
+      "complexity": "medium"
+    },
+    {
+      "id": "TASK-016",
+      "title": "Add coach message preview card to Home screen",
+      "phase": "presentation",
+      "description": "Update HomeState and HomeViewModel to load the last coach message, and add a CoachMessagePreviewCard to the Home screen.",
+      "files_to_create": [],
+      "files_to_modify": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/presentation/home/HomeState.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/presentation/home/HomeViewModel.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/home/HomeScreen.kt"
+      ],
+      "depends_on": ["TASK-007", "TASK-015"],
+      "acceptance_criteria": [
+        "HomeState gains field: lastCoachMessage: ChatMessage? = null",
+        "HomeViewModel loads lastCoachMessage concurrently with existing profile/workout/nutrition data using async/await",
+        "HomeViewModel uses ObserveChatMessagesUseCase to get first message from Human coach thread",
+        "HomeScreen shows CoachMessagePreviewCard at the top of the content when lastCoachMessage != null",
+        "CoachMessagePreviewCard shows coach avatar placeholder, message preview text (max 2 lines), and a 'Reply' button",
+        "Tapping the card or Reply navigates to HumanCoachChat (pass onChatClick lambda from App.kt)",
+        "Card is hidden (not shown at all) when lastCoachMessage is null"
+      ],
+      "implementation_notes": "Read HomeViewModel.kt and HomeState.kt carefully before modifying. Use the same async pattern as existing loadData() — add a chatDeferred alongside profileDeferred, workoutsDeferred, nutritionDeferred. The CoachMessagePreviewCard is a local composable inside HomeScreen.kt, not a separate file. Add onChatClick: () -> Unit parameter to HomeRoute and HomeScreen.",
+      "complexity": "medium"
+    },
+    {
+      "id": "TASK-017",
+      "title": "Add image upload support for chat messages",
+      "phase": "polish",
+      "description": "Implement image upload to Supabase Storage before sending image messages in chat.",
+      "files_to_create": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/data/remote/datasource/ChatStorageDataSource.kt"
+      ],
+      "files_to_modify": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/data/repository/ChatRepositoryImpl.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/core/di/AppModule.kt"
+      ],
+      "depends_on": ["TASK-016"],
+      "acceptance_criteria": [
+        "ChatStorageDataSource.uploadImage(userId, imageBytes): Result<String> uploads to Supabase Storage bucket 'chat-images' and returns the public URL",
+        "Filename is generated as '{userId}/{uuid}.jpg'",
+        "ChatRepositoryImpl.sendMessage() for MessageContent.Image uploads the image first via ChatStorageDataSource then stores the returned URL in the message",
+        "ChatViewModel handles SendImageMessage intent: sets isSending=true, dispatches sendMessage with the image bytes, clears selected image on success",
+        "ChatStorageDataSource is registered in chatModule as a single",
+        "Supabase Storage bucket 'chat-images' creation SQL is added to chat_messages.sql"
+      ],
+      "implementation_notes": "Check if supabase.storage is already a dependency in build.gradle.kts; if not, add libs.supabase.storage. Use supabase.storage.from('chat-images').upload(path, bytes). The existing MediaCapture infrastructure (MediaCapture.kt) provides the imageBytes from camera/gallery — in ChatInputBar, the onImageAttach callback should eventually connect to it.",
+      "complexity": "medium"
+    },
+    {
+      "id": "TASK-018",
+      "title": "Polish: error handling, offline states, AI streaming UX",
+      "phase": "polish",
+      "description": "Add robust error handling, offline detection, and smooth AI streaming text animation.",
+      "files_to_create": [],
+      "files_to_modify": [
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/chat/ChatScreen.kt",
+        "composeApp/src/commonMain/kotlin/com/coachfoska/app/presentation/chat/ChatViewModel.kt"
+      ],
+      "depends_on": ["TASK-017"],
+      "acceptance_criteria": [
+        "Network error on message send shows a retry button on the failed message bubble",
+        "AI streaming timeout (>30s with no chunk) cancels the stream and shows an error state",
+        "Empty state is shown when messages list is empty (different copy for Human vs AI chat)",
+        "Snackbar for errors is dismissible and auto-hides after 4 seconds",
+        "AI streaming text renders with a blinking cursor indicator while isAiStreaming=true",
+        "ChatViewModel clears streamingText and resets isAiStreaming=false on stream completion or error",
+        "Pagination (LoadMoreMessages) triggers when user scrolls to the top of the LazyColumn"
+      ],
+      "implementation_notes": "For the retry button, add a retryMessageId: String? field to ChatState. For streaming cursor, use a simple animated alpha on a '|' character using animateFloatAsState with InfiniteRepeatableSpec. For scroll-to-load-more, use LazyListState.firstVisibleItemIndex == 0 detection in LaunchedEffect.",
+      "complexity": "medium"
+    }
+  ]
+}

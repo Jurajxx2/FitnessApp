@@ -36,6 +36,21 @@ import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
 import com.coachfoska.app.domain.usecase.profile.LogWeightUseCase
 import com.coachfoska.app.domain.usecase.profile.UpdateUserProfileUseCase
+import com.coachfoska.app.BuildKonfig
+import com.coachfoska.app.data.ai.ChatAiProvider
+import com.coachfoska.app.data.ai.ClaudeAiProvider
+import com.coachfoska.app.data.remote.datasource.ChatRemoteDataSource
+import com.coachfoska.app.data.remote.datasource.ChatStorageDataSource
+import com.coachfoska.app.data.repository.ChatRepositoryImpl
+import com.coachfoska.app.domain.model.ChatType
+import com.coachfoska.app.domain.repository.ChatRepository
+import com.coachfoska.app.domain.usecase.chat.MarkMessagesReadUseCase
+import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
+import com.coachfoska.app.domain.usecase.chat.SendAiChatMessageUseCase
+import com.coachfoska.app.domain.usecase.chat.SendHumanChatMessageUseCase
+import com.coachfoska.app.domain.usecase.chat.UploadChatImageUseCase
+import com.coachfoska.app.presentation.chat.ChatHubViewModel
+import com.coachfoska.app.presentation.chat.ChatViewModel
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
@@ -127,7 +142,7 @@ val useCaseModule = module {
 val viewModelModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::AuthViewModel)
-    viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), userId) }
+    viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), userId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), userId) }
@@ -135,10 +150,31 @@ val viewModelModule = module {
     viewModelOf(::ExerciseViewModel)
 }
 
+val chatModule = module {
+    // AI provider — swap ClaudeAiProvider for GeminiAiProvider here to change backends
+    single<ChatAiProvider> { ClaudeAiProvider(get(), BuildKonfig.ANTHROPIC_API_KEY) }
+
+    single { ChatRemoteDataSource(get()) }
+    single { ChatStorageDataSource(get()) }
+    single<ChatRepository> { ChatRepositoryImpl(get(), get(), get()) }
+
+    factory { ObserveChatMessagesUseCase(get()) }
+    factory { SendHumanChatMessageUseCase(get()) }
+    factory { SendAiChatMessageUseCase(get(), get()) }
+    factory { MarkMessagesReadUseCase(get()) }
+    factory { UploadChatImageUseCase(get()) }
+
+    viewModel { (userId: String, chatType: ChatType) ->
+        ChatViewModel(get(), get(), get(), get(), get(), userId, chatType)
+    }
+    viewModel { (userId: String) -> ChatHubViewModel(get(), userId) }
+}
+
 val appModules = listOf(
     networkModule,
     dataSourceModule,
     repositoryModule,
     useCaseModule,
-    viewModelModule
+    viewModelModule,
+    chatModule
 )

@@ -1,3 +1,4 @@
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.BOOLEAN
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -60,6 +61,7 @@ kotlin {
             implementation(libs.supabase.auth)
             implementation(libs.supabase.postgrest)
             implementation(libs.supabase.realtime)
+            implementation(libs.supabase.storage)
 
             // Koin (explicit versions)
             implementation(libs.koin.core)
@@ -141,6 +143,22 @@ buildkonfig {
         buildConfigField(
             STRING, "GOOGLE_WEB_CLIENT_ID",
             localProperties.getProperty("google.web.client.id") ?: ""
+        )
+
+        // Chat / AI Coach
+        // local.properties keys: anthropic.api.key, ai.coach.enabled, ai.coach.system.prompt
+        buildConfigField(
+            STRING, "ANTHROPIC_API_KEY",
+            localProperties.getProperty("anthropic.api.key") ?: ""
+        )
+        buildConfigField(
+            BOOLEAN, "AI_COACH_ENABLED",
+            localProperties.getProperty("ai.coach.enabled") ?: "false"
+        )
+        buildConfigField(
+            STRING, "AI_COACH_SYSTEM_PROMPT",
+            localProperties.getProperty("ai.coach.system.prompt")
+                ?: "You are a professional fitness and nutrition coach. Provide helpful, evidence-based advice on workouts, nutrition, and healthy habits. Be encouraging, concise, and personalized."
         )
     }
 }

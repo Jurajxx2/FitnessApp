@@ -31,6 +31,11 @@ import kotlinx.serialization.Serializable
 @Serializable object MealCapture
 @Serializable object MealHistory
 
+// Chat
+@Serializable object Chat
+@Serializable object HumanCoachChat
+@Serializable object AiCoachChat
+
 // Profile
 @Serializable object Profile
 @Serializable object Progress

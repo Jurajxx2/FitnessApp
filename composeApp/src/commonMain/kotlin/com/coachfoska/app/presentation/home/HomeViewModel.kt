@@ -3,7 +3,9 @@ package com.coachfoska.app.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.core.util.todayDate
+import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.DayOfWeek
+import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
@@ -24,6 +26,7 @@ class HomeViewModel(
     private val getUserProfileUseCase: GetUserProfileUseCase,
     private val getAssignedWorkoutsUseCase: GetAssignedWorkoutsUseCase,
     private val getDailyNutritionSummaryUseCase: GetDailyNutritionSummaryUseCase,
+    private val observeChatMessagesUseCase: ObserveChatMessagesUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -53,10 +56,22 @@ class HomeViewModel(
             val profileDeferred = async { getUserProfileUseCase(userId) }
             val workoutsDeferred = async { getAssignedWorkoutsUseCase(userId) }
             val nutritionDeferred = async { getDailyNutritionSummaryUseCase(userId, today) }
+            val chatDeferred = async {
+                runCatching {
+                    var lastMessage: com.coachfoska.app.domain.model.ChatMessage? = null
+                    observeChatMessagesUseCase(userId, ChatType.Human).collect { messages ->
+                        lastMessage = messages.lastOrNull()
+                        // Take only the first emission for the home preview
+                        return@collect
+                    }
+                    lastMessage
+                }.getOrNull()
+            }
 
             val profileResult = profileDeferred.await()
             val workoutsResult = workoutsDeferred.await()
             val nutritionResult = nutritionDeferred.await()
+            val lastCoachMessage = chatDeferred.await()
 
             profileResult.onFailure { e -> Napier.e("loadProfile failed", e, tag = TAG) }
             workoutsResult.onFailure { e -> Napier.e("loadWorkouts failed", e, tag = TAG) }
@@ -75,6 +90,7 @@ class HomeViewModel(
                     user = profileResult.getOrNull(),
                     todayWorkout = todayWorkout,
                     nutritionSummary = nutritionResult.getOrNull(),
+                    lastCoachMessage = lastCoachMessage,
                     error = error
                 )
             }

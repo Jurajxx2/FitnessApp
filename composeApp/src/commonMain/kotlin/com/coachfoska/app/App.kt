@@ -18,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.navigation.*
 import com.coachfoska.app.theme.CoachFoskaTheme
 import com.coachfoska.app.ui.auth.EmailOtpRoute
@@ -31,6 +32,8 @@ import com.coachfoska.app.ui.nutrition.MealDetailRoute
 import com.coachfoska.app.ui.nutrition.MealHistoryRoute
 import com.coachfoska.app.ui.nutrition.MealPlanRoute
 import com.coachfoska.app.ui.onboarding.OnboardingRoute
+import com.coachfoska.app.ui.chat.ChatHubRoute
+import com.coachfoska.app.ui.chat.ChatRoute
 import com.coachfoska.app.ui.profile.AboutCoachScreen
 import com.coachfoska.app.ui.profile.ProfileRoute
 import com.coachfoska.app.ui.profile.ProgressRoute
@@ -63,6 +66,7 @@ fun App() {
         val bottomTabRoutes = listOf(
             Home::class.qualifiedName,
             WorkoutList::class.qualifiedName,
+            Chat::class.qualifiedName,
             MealPlan::class.qualifiedName,
             Profile::class.qualifiedName
         )
@@ -85,6 +89,8 @@ fun App() {
                     currentRoute?.contains("WorkoutDetail") == true -> "WORKOUT"
                     currentRoute?.contains("ExerciseDetail") == true -> "EXERCISE"
                     currentRoute?.contains("LogWorkout") == true -> "LOG SESSION"
+                    currentRoute?.contains("HumanCoachChat") == true -> "COACH"
+                    currentRoute?.contains("AiCoachChat") == true -> "AI COACH"
                     currentRoute?.contains("MealCapture") == true -> "RECORD MEAL"
                     currentRoute?.contains("MealHistory") == true -> "MEAL HISTORY"
                     currentRoute?.contains("MealDetail") == true -> "MEAL DETAIL"
@@ -101,6 +107,8 @@ fun App() {
                     currentRoute?.contains("Home") == true -> BottomNavTab.Home
                     currentRoute?.contains("Workout", ignoreCase = true) == true ||
                         currentRoute?.contains("Exercise", ignoreCase = true) == true -> BottomNavTab.Workout
+                    currentRoute?.contains("Chat", ignoreCase = true) == true ||
+                        currentRoute?.contains("CoachChat") == true -> BottomNavTab.Chat
                     currentRoute?.contains("Meal", ignoreCase = true) == true ||
                         currentRoute?.contains("Nutrition", ignoreCase = true) == true -> BottomNavTab.Nutrition
                     currentRoute?.contains("Profile", ignoreCase = true) == true ||
@@ -143,6 +151,7 @@ fun App() {
                             val route: Any = when (tab) {
                                 BottomNavTab.Home -> Home
                                 BottomNavTab.Workout -> WorkoutList
+                                BottomNavTab.Chat -> Chat
                                 BottomNavTab.Nutrition -> MealPlan
                                 BottomNavTab.Profile -> Profile
                             }
@@ -252,7 +261,10 @@ fun App() {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    HomeRoute(userId = currentUserId)
+                    HomeRoute(
+                        userId = currentUserId,
+                        onChatClick = { navController.navigate(HumanCoachChat) }
+                    )
                 }
 
                 // ── Workout ───────────────────────────────────────────────
@@ -336,7 +348,7 @@ fun App() {
                         userId = currentUserId,
                         onMealClick = { mealId -> navController.navigate(MealDetail(mealId)) },
                         onRecordMealClick = { navController.navigate(MealCapture) },
-                        onMealHistoryClick = { navController.navigate(MealHistory) }
+                        onRecipeClick = { recipeId -> navController.navigate(MealDetail(recipeId)) } // Using MealDetail for recipes for now
                     )
                 }
 
@@ -360,6 +372,34 @@ fun App() {
                     MealHistoryRoute(
                         userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                // ── Chat ─────────────────────────────────────────────────
+                composable<Chat>(
+                    enterTransition = { fadeIn(tween(150)) },
+                    exitTransition = { fadeOut(tween(150)) },
+                    popEnterTransition = { fadeIn(tween(150)) },
+                    popExitTransition = { fadeOut(tween(150)) }
+                ) {
+                    ChatHubRoute(
+                        userId = currentUserId,
+                        onHumanCoachClick = { navController.navigate(HumanCoachChat) },
+                        onAiCoachClick = { navController.navigate(AiCoachChat) }
+                    )
+                }
+
+                composable<HumanCoachChat> {
+                    ChatRoute(
+                        userId = currentUserId,
+                        chatType = ChatType.Human
+                    )
+                }
+
+                composable<AiCoachChat> {
+                    ChatRoute(
+                        userId = currentUserId,
+                        chatType = ChatType.Ai
                     )
                 }
 

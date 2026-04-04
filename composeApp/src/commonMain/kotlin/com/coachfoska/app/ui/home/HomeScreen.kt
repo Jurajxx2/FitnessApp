@@ -13,7 +13,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.clickable
+import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.DailyNutritionSummary
+import com.coachfoska.app.domain.model.MessageContent
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.presentation.home.HomeIntent
 import com.coachfoska.app.presentation.home.HomeState
@@ -26,16 +29,18 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun HomeRoute(
     userId: String,
+    onChatClick: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HomeScreen(state = state, onIntent = viewModel::onIntent)
+    HomeScreen(state = state, onIntent = viewModel::onIntent, onChatClick = onChatClick)
 }
 
 @Composable
 fun HomeScreen(
     state: HomeState,
-    onIntent: (HomeIntent) -> Unit
+    onIntent: (HomeIntent) -> Unit,
+    onChatClick: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -48,6 +53,11 @@ fun HomeScreen(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
+            // Coach message preview card
+            state.lastCoachMessage?.let { msg ->
+                CoachMessagePreviewCard(message = msg, onClick = onChatClick)
+            }
+
             // Header
             Column {
                 Text(
@@ -174,6 +184,47 @@ private fun MacroRow(summary: DailyNutritionSummary) {
         MacroItem(label = "PRO", value = "${summary.proteinG.toInt()}g")
         MacroItem(label = "CHO", value = "${summary.carbsG.toInt()}g")
         MacroItem(label = "FAT", value = "${summary.fatG.toInt()}g")
+    }
+}
+
+@Composable
+private fun CoachMessagePreviewCard(message: ChatMessage, onClick: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "COACH",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = when (val c = message.content) {
+                        is MessageContent.Text -> c.text
+                        is MessageContent.Image -> "Sent an image"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+            Text(
+                text = "Reply",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 
