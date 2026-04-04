@@ -174,15 +174,22 @@ textarea { resize: vertical; min-height: 80px; }
   <div class="login-card">
     <div class="logo">Coach <span>Foška</span></div>
     <div class="sub">Admin Dashboard</div>
-    <div class="field"><label>Email</label><input type="email" id="l-email" placeholder="coach@example.com" /></div>
-    <div class="field"><label>Password</label><input type="password" id="l-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" /></div>
-    <button class="btn btn-primary" style="width:100%" id="l-btn" onclick="doLogin()">Sign in</button>
-    <div id="l-err" class="error-msg"></div>
-    <div class="login-hint">
-      No account yet? Create one in<br>
-      <code>Supabase → Authentication → Users → Add user</code><br>
-      then sign in here.
+
+    <!-- Step 1: email -->
+    <div id="l-step1">
+      <div class="field"><label>Email</label><input type="email" id="l-email" placeholder="coach@example.com" onkeydown="if(event.key==='Enter')sendOtp()" /></div>
+      <button class="btn btn-primary" style="width:100%" id="l-btn1" onclick="sendOtp()">Send code</button>
     </div>
+
+    <!-- Step 2: OTP code -->
+    <div id="l-step2" style="display:none">
+      <div class="login-hint" style="margin-bottom:16px">Code sent to <strong id="l-sent-email"></strong></div>
+      <div class="field"><label>6-digit code</label><input type="text" id="l-otp" placeholder="123456" maxlength="6" inputmode="numeric" onkeydown="if(event.key==='Enter')verifyOtp()" /></div>
+      <button class="btn btn-primary" style="width:100%" id="l-btn2" onclick="verifyOtp()">Verify</button>
+      <div style="margin-top:10px;text-align:center"><span style="color:var(--muted);font-size:12px;cursor:pointer" onclick="resetLogin()">← Use a different email</span></div>
+    </div>
+
+    <div id="l-err" class="error-msg"></div>
   </div>
 </div>
 

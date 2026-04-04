@@ -32,20 +32,51 @@ const tmpId = () => `tmp_${++tmpCounter}`;
 //  AUTH
 // ================================================================
 
-async function doLogin() {
+async function sendOtp() {
   const email = q('#l-email').value.trim();
-  const pass  = q('#l-password').value;
-  const btn   = q('#l-btn');
   const err   = q('#l-err');
+  const btn   = q('#l-btn1');
   err.textContent = '';
+  if (!email) { err.textContent = 'Enter your email.'; return; }
   btn.disabled = true;
-  btn.textContent = 'Signing in…';
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.textContent = 'Sending…';
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
   if (error) {
     err.textContent = error.message;
     btn.disabled = false;
-    btn.textContent = 'Sign in';
+    btn.textContent = 'Send code';
+  } else {
+    q('#l-sent-email').textContent = email;
+    q('#l-step1').style.display = 'none';
+    q('#l-step2').style.display = 'block';
+    setTimeout(() => q('#l-otp')?.focus(), 50);
   }
+}
+
+async function verifyOtp() {
+  const email = q('#l-email').value.trim();
+  const token = q('#l-otp').value.trim();
+  const err   = q('#l-err');
+  const btn   = q('#l-btn2');
+  err.textContent = '';
+  if (!token) { err.textContent = 'Enter the code.'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Verifying…';
+  const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+  if (error) {
+    err.textContent = error.message;
+    btn.disabled = false;
+    btn.textContent = 'Verify';
+  }
+}
+
+function resetLogin() {
+  q('#l-step2').style.display = 'none';
+  q('#l-step1').style.display = 'block';
+  q('#l-btn1').disabled = false;
+  q('#l-btn1').textContent = 'Send code';
+  q('#l-otp').value = '';
+  q('#l-err').textContent = '';
 }
 
 async function doLogout() {
