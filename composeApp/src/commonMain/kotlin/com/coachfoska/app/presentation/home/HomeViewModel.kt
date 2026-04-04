@@ -62,17 +62,20 @@ class HomeViewModel(
             workoutsResult.onFailure { e -> Napier.e("loadWorkouts failed", e, tag = TAG) }
             nutritionResult.onFailure { e -> Napier.e("loadNutrition failed", e, tag = TAG) }
 
-            val profile = profileResult.getOrNull()
+            val error = profileResult.exceptionOrNull()?.message
+                ?: workoutsResult.exceptionOrNull()?.message
+                ?: nutritionResult.exceptionOrNull()?.message
+
             val workouts = workoutsResult.getOrNull() ?: emptyList()
             val todayWorkout = workouts.firstOrNull { it.dayOfWeek?.index == todayDayOfWeek }
-            val nutrition = nutritionResult.getOrNull()
 
             _state.update {
                 it.copy(
                     isLoading = false,
-                    user = profile,
+                    user = profileResult.getOrNull(),
                     todayWorkout = todayWorkout,
-                    nutritionSummary = nutrition
+                    nutritionSummary = nutritionResult.getOrNull(),
+                    error = error
                 )
             }
         }
