@@ -348,7 +348,7 @@ async function saveQuote() {
   const { error } = id
     ? await sb.from('daily_quotes').update(payload).eq('id', id)
     : await sb.from('daily_quotes').insert(payload);
-  if (error) { q('#mq-msg').innerHTML = `<span class="error-msg">${error.message}</span>`; return; }
+  if (error) { console.error('saveQuote error:', error); q('#mq-msg').innerHTML = `<span class="error-msg">${error.message} (code: ${error.code})</span>`; return; }
   closeModal('modal-quote');
   loadQuotes();
 }
