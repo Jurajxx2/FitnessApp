@@ -10,7 +10,14 @@
 const SUPABASE_URL = "https://nsrhhvwytusltnikqplk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zcmhodnd5dHVzbHRuaWtxcGxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMTU3ODIsImV4cCI6MjA4Nzg5MTc4Mn0.HOmwk1ry3kCN00QePqj9ELyPsjzWFF6fzTYg5a_UEw8";
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    storageKey: 'coach-foska-admin',
+    detectSessionInUrl: false,
+    persistSession: true,
+    lock: async (_name, _timeout, fn) => fn(),
+  }
+});
 
 // ── Global state ────────────────────────────────────────────────
 const S = {
@@ -345,6 +352,10 @@ async function saveQuote() {
     updated_at:     new Date().toISOString(),
   };
   if (!payload.text) { q('#mq-msg').innerHTML = '<span class="error-msg">Quote text is required.</span>'; return; }
+
+  const { data: { session } } = await sb.auth.getSession();
+  console.log('saveQuote session uid:', session?.user?.id ?? 'NO SESSION');
+
   const { error } = id
     ? await sb.from('daily_quotes').update(payload).eq('id', id)
     : await sb.from('daily_quotes').insert(payload);
