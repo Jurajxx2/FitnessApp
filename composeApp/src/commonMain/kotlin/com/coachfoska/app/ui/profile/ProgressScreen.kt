@@ -22,8 +22,11 @@ import com.coachfoska.app.domain.model.WeightEntry
 import com.coachfoska.app.presentation.profile.ProfileIntent
 import com.coachfoska.app.presentation.profile.ProfileState
 import com.coachfoska.app.presentation.profile.ProfileViewModel
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachSectionHeader
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -61,7 +64,7 @@ fun ProgressScreen(
                 if (state.weightHistory.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
-                            text = "WEIGHT EVOLUTION",
+                            text = stringResource(Res.string.weight_evolution),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                             letterSpacing = 1.5.sp
@@ -89,17 +92,17 @@ fun ProgressScreen(
                                         verticalAlignment = Alignment.Bottom
                                     ) {
                                         Column {
-                                            Text("START", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
-                                            Text("${first}kg", style = MaterialTheme.typography.titleMedium)
+                                            Text(stringResource(Res.string.progress_start), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
+                                            Text(stringResource(Res.string.weight_kg_format, first), style = MaterialTheme.typography.titleMedium)
                                         }
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text("CURRENT", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
-                                            Text("${last}kg", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(Res.string.progress_current), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
+                                            Text(stringResource(Res.string.weight_kg_format, last), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                                         }
                                         Column(horizontalAlignment = Alignment.End) {
-                                            Text("CHANGE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
+                                            Text(stringResource(Res.string.progress_change), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
                                             Text(
-                                                text = "${if (diff < 0) "" else "+"}${(kotlin.math.round(diff * 10) / 10.0)}kg",
+                                                text = "${if (diff < 0) "" else "+"}${stringResource(Res.string.weight_kg_format, kotlin.math.round(diff * 10) / 10.0)}",
                                                 style = MaterialTheme.typography.titleMedium,
                                                 color = if (diff <= 0) Color(0xFF81C784) else Color(0xFFE57373)
                                             )
@@ -115,7 +118,7 @@ fun ProgressScreen(
                 state.user?.let { user ->
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
-                            text = "BODY COMPOSITION",
+                            text = stringResource(Res.string.body_composition),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                             letterSpacing = 1.5.sp
@@ -128,13 +131,13 @@ fun ProgressScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                user.heightCm?.let { ProgressStatRow("HEIGHT", "${it.toInt()} CM") }
+                                user.heightCm?.let { ProgressStatRow(stringResource(Res.string.stat_height), stringResource(Res.string.height_cm_format, it.toInt())) }
                                 HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
-                                user.weightKg?.let { ProgressStatRow("LAST WEIGHT", "${it} KG") }
+                                user.weightKg?.let { ProgressStatRow(stringResource(Res.string.stat_last_weight), stringResource(Res.string.weight_kg_upper_format, it.toString())) }
                                 HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
-                                user.goal?.let { ProgressStatRow("TARGET GOAL", it.displayName.uppercase()) }
+                                user.goal?.let { ProgressStatRow(stringResource(Res.string.stat_target_goal), it.displayName.uppercase()) }
                                 HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
-                                user.activityLevel?.let { ProgressStatRow("ACTIVITY", it.displayName.uppercase()) }
+                                user.activityLevel?.let { ProgressStatRow(stringResource(Res.string.stat_activity), it.displayName.uppercase()) }
                             }
                         }
                     }

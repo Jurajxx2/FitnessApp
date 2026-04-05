@@ -12,7 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.ui.components.CoachSectionHeader
+import org.jetbrains.compose.resources.stringResource
 
 private val coachName = "Andrea Krišková"
 private val coachTitle = "Certified Bodybuilding Coach · Fitness Trainer · Nutrition & Mental Coach"
@@ -78,7 +81,7 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
                 // Certifications
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
-                        text = "CERTIFICATIONS",
+                        text = stringResource(Res.string.certifications_section),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                         letterSpacing = 1.5.sp
@@ -103,7 +106,7 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
                 // Connect
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
-                        text = "CONNECT",
+                        text = stringResource(Res.string.connect_section),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                         letterSpacing = 1.5.sp
@@ -114,9 +117,9 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(4.dp)) {
-                            ConnectRow("INSTAGRAM", instagram)
+                            ConnectRow(stringResource(Res.string.instagram_label), instagram)
                             HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
-                            ConnectRow("WEBSITE", website)
+                            ConnectRow(stringResource(Res.string.website_label), website)
                         }
                     }
                 }

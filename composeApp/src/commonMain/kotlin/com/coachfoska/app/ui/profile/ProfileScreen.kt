@@ -19,7 +19,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.profile.ProfileIntent
 import com.coachfoska.app.presentation.profile.ProfileState
 import com.coachfoska.app.presentation.profile.ProfileViewModel
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -72,13 +75,13 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "PROFILE",
+                    text = stringResource(Res.string.profile_label),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                     letterSpacing = 2.sp
                 )
                 Text(
-                    text = (state.user?.fullName ?: "ATHLETE").uppercase(),
+                    text = (state.user?.fullName ?: stringResource(Res.string.default_athlete_name)).uppercase(),
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -98,13 +101,13 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ProfileStatCard(
-                        label = "GOAL",
+                        label = stringResource(Res.string.stat_goal),
                         value = user.goal?.displayName?.uppercase() ?: "---",
                         modifier = Modifier.weight(1.5f)
                     )
                     ProfileStatCard(
-                        label = "WEIGHT",
-                        value = "${user.weightKg ?: "--"} KG",
+                        label = stringResource(Res.string.stat_weight),
+                        value = stringResource(Res.string.weight_kg_upper_format, user.weightKg?.toString() ?: "--"),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -115,12 +118,12 @@ fun ProfileScreen(
             // Menu Items
             Column(modifier = Modifier.fillMaxWidth()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
-                ProfileMenuItem(label = "MY PROGRESS", onClick = onProgressClick)
+                ProfileMenuItem(label = stringResource(Res.string.my_progress), onClick = onProgressClick)
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
-                ProfileMenuItem(label = "ABOUT COACH FOŠKA", onClick = onAboutCoachClick)
+                ProfileMenuItem(label = stringResource(Res.string.about_foska), onClick = onAboutCoachClick)
                 HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
             }
 
@@ -139,7 +142,7 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "LOG OUT",
+                        text = stringResource(Res.string.log_out),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.tertiary, // Accent red for logout
                         letterSpacing = 1.sp
