@@ -21,6 +21,9 @@ import androidx.navigation.toRoute
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.navigation.*
 import com.coachfoska.app.theme.CoachFoskaTheme
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.ui.auth.EmailOtpRoute
 import com.coachfoska.app.ui.auth.VerifyOtpRoute
 import com.coachfoska.app.ui.auth.WelcomeRoute
@@ -77,7 +80,9 @@ fun App() {
             authRoutes.none { currentRoute.contains(it ?: "") } &&
             bottomTabRoutes.none { currentRoute.contains(it ?: "") }
 
-        val topBarTitle by remember(currentRoute) {
+        val aboutFoskaTitle = stringResource(Res.string.about_foska)
+
+        val topBarTitle by remember(currentRoute, aboutFoskaTitle) {
             derivedStateOf {
                 when {
                     currentRoute?.contains("ExercisesByCategory") == true ->
@@ -95,7 +100,7 @@ fun App() {
                     currentRoute?.contains("MealHistory") == true -> "MEAL HISTORY"
                     currentRoute?.contains("MealDetail") == true -> "MEAL DETAIL"
                     currentRoute?.contains("Progress") == true -> "MY PROGRESS"
-                    currentRoute?.contains("AboutCoach") == true -> "ABOUT COACH"
+                    currentRoute?.contains("AboutCoach") == true -> aboutFoskaTitle
                     else -> ""
                 }
             }

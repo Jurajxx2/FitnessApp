@@ -93,16 +93,16 @@ fun ProgressScreen(
                                     ) {
                                         Column {
                                             Text(stringResource(Res.string.progress_start), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
-                                            Text(stringResource(Res.string.weight_kg_format, first), style = MaterialTheme.typography.titleMedium)
+                                            Text(stringResource(Res.string.weight_kg_format, "%.1f".format(first)), style = MaterialTheme.typography.titleMedium)
                                         }
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                             Text(stringResource(Res.string.progress_current), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
-                                            Text(stringResource(Res.string.weight_kg_format, last), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(Res.string.weight_kg_format, "%.1f".format(last)), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                                         }
                                         Column(horizontalAlignment = Alignment.End) {
                                             Text(stringResource(Res.string.progress_change), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
                                             Text(
-                                                text = "${if (diff < 0) "" else "+"}${stringResource(Res.string.weight_kg_format, kotlin.math.round(diff * 10) / 10.0)}",
+                                                text = "${if (diff < 0) "" else "+"}${stringResource(Res.string.weight_kg_format, "%.1f".format(diff))}",
                                                 style = MaterialTheme.typography.titleMedium,
                                                 color = if (diff <= 0) Color(0xFF81C784) else Color(0xFFE57373)
                                             )
