@@ -19,11 +19,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.presentation.auth.AuthIntent
 import com.coachfoska.app.presentation.auth.AuthState
 import com.coachfoska.app.presentation.auth.AuthViewModel
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTextField
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -76,7 +79,7 @@ fun VerifyOtpScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(Res.string.back_cd)
                         )
                     }
                 },
@@ -94,7 +97,7 @@ fun VerifyOtpScreen(
                 .padding(horizontal = 32.dp, vertical = 24.dp)
         ) {
             Text(
-                text = "VERIFY CODE",
+                text = stringResource(Res.string.verify_code_title),
                 style = MaterialTheme.typography.displayMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -102,7 +105,7 @@ fun VerifyOtpScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Enter the 6-digit code sent to\n${state.email}",
+                text = stringResource(Res.string.verify_otp_desc, state.email),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )
@@ -115,13 +118,13 @@ fun VerifyOtpScreen(
                     // Sanitize input: keep only digits and limit to 6 characters
                     val sanitized = input.filter { it.isDigit() }.take(6)
                     onIntent(AuthIntent.OtpChanged(sanitized))
-                    
+
                     if (sanitized.length == 6) {
                         keyboardController?.hide()
                         onIntent(AuthIntent.VerifyOtp)
                     }
                 },
-                label = "Verification code",
+                label = stringResource(Res.string.verification_code_label),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
                     imeAction = ImeAction.Done
@@ -153,7 +156,7 @@ fun VerifyOtpScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             CoachButton(
-                text = "VERIFY",
+                text = stringResource(Res.string.verify_button),
                 onClick = {
                     keyboardController?.hide()
                     onIntent(AuthIntent.VerifyOtp)
@@ -170,7 +173,7 @@ fun VerifyOtpScreen(
                 enabled = !state.isLoading
             ) {
                 Text(
-                    text = "RESEND CODE",
+                    text = stringResource(Res.string.resend_code),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                     letterSpacing = 1.sp

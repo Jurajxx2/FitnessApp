@@ -15,11 +15,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.presentation.auth.AuthIntent
 import com.coachfoska.app.presentation.auth.AuthState
 import com.coachfoska.app.presentation.auth.AuthViewModel
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTextField
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -61,7 +64,7 @@ fun EmailOtpScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(Res.string.back_cd)
                         )
                     }
                 },
@@ -79,7 +82,7 @@ fun EmailOtpScreen(
                 .padding(horizontal = 32.dp, vertical = 24.dp)
         ) {
             Text(
-                text = "ENTER EMAIL",
+                text = stringResource(Res.string.enter_email_title),
                 style = MaterialTheme.typography.displayMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -87,7 +90,7 @@ fun EmailOtpScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "We'll send you a one-time code to sign in to your account.",
+                text = stringResource(Res.string.enter_email_desc),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )
@@ -97,7 +100,7 @@ fun EmailOtpScreen(
             CoachTextField(
                 value = state.email,
                 onValueChange = { onIntent(AuthIntent.EmailChanged(it)) },
-                label = "Email address",
+                label = stringResource(Res.string.email_address_label),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Done
@@ -123,7 +126,7 @@ fun EmailOtpScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             CoachButton(
-                text = "CONTINUE",
+                text = stringResource(Res.string.continue_button),
                 onClick = {
                     keyboardController?.hide()
                     onIntent(AuthIntent.SendOtp)
