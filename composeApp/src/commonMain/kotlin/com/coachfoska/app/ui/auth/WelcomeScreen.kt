@@ -13,6 +13,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.presentation.auth.AuthIntent
 import com.coachfoska.app.presentation.auth.AuthState
 import com.coachfoska.app.presentation.auth.AuthViewModel
@@ -70,13 +73,7 @@ fun WelcomeScreen(
                 modifier = Modifier.padding(top = 48.dp)
             ) {
                 Text(
-                    text = "COACH",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    letterSpacing = 4.sp
-                )
-                Text(
-                    text = "FOŠKA",
+                    text = stringResource(Res.string.welcome_title),
                     style = MaterialTheme.typography.displayLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     letterSpacing = 4.sp
@@ -97,7 +94,7 @@ fun WelcomeScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "High performance fitness.\nMinimalist approach.",
+                    text = stringResource(Res.string.welcome_tagline),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center,
@@ -107,7 +104,7 @@ fun WelcomeScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 CoachButton(
-                    text = "CONTINUE WITH EMAIL",
+                    text = stringResource(Res.string.continue_with_email),
                     onClick = onNavigateToEmailOtp,
                     enabled = !state.isLoading,
                     modifier = Modifier.fillMaxWidth().height(56.dp)
@@ -134,7 +131,7 @@ fun WelcomeScreen(
                         )
                     } else {
                         Text(
-                            text = "CONTINUE WITH GOOGLE",
+                            text = stringResource(Res.string.continue_with_google),
                             style = MaterialTheme.typography.labelLarge,
                             letterSpacing = 1.sp
                         )
