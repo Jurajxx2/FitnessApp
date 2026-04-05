@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Foska</string>
+
+    <!-- Auth — WelcomeScreen -->
+    <string name="welcome_title">FOSKA</string>
+    <string name="welcome_tagline">High performance fitness.\nMinimalist approach.</string>
+    <string name="continue_with_email">CONTINUE WITH EMAIL</string>
+    <string name="continue_with_google">CONTINUE WITH GOOGLE</string>
+
+    <!-- Auth — EmailOtpScreen -->
+    <string name="enter_email_title">ENTER EMAIL</string>
+    <string name="enter_email_desc">We\'ll send you a one-time code to sign in to your account.</string>
+    <string name="email_address_label">Email address</string>
+    <string name="back_cd">Back</string>
+
+    <!-- Auth — VerifyOtpScreen -->
+    <string name="verify_code_title">VERIFY CODE</string>
+    <string name="verify_otp_desc">Enter the 6-digit code sent to\n%s</string>
+    <string name="verification_code_label">Verification code</string>
+    <string name="verify_button">VERIFY</string>
+    <string name="resend_code">RESEND CODE</string>
+
+    <!-- Shared buttons -->
+    <string name="continue_button">CONTINUE</string>
+
+    <!-- Onboarding — GoalSelectionScreen -->
+    <string name="onboarding_step_1_of_3">STEP 1 OF 3</string>
+    <string name="goal_screen_title">WHAT IS YOUR\nPRIMARY GOAL?</string>
+    <string name="goal_screen_desc">This helps us personalize your program.</string>
+
+    <!-- Onboarding — BodyStatsScreen -->
+    <string name="onboarding_step_2_of_3">STEP 2 OF 3</string>
+    <string name="body_stats_title">TELL US ABOUT\nYOURSELF</string>
+    <string name="body_stats_desc">This allows us to calculate your baseline nutrition and training volume accurately.</string>
+    <string name="height_label">Height (cm)</string>
+    <string name="current_weight_label">Current Weight (kg)</string>
+    <string name="age_label">Age</string>
+
+    <!-- Onboarding — ActivityLevelScreen -->
+    <string name="onboarding_step_3_of_3">STEP 3 OF 3</string>
+    <string name="activity_title">HOW ACTIVE\nARE YOU?</string>
+    <string name="activity_desc">Be honest — this sets your calorie baseline and recovery needs.</string>
+    <string name="finish_setup">FINISH SETUP</string>
+
+    <!-- Onboarding — OnboardingCompleteScreen -->
+    <string name="youre_all_set">YOU\'RE ALL SET!</string>
+    <string name="onboarding_complete_desc">Your personalized performance\nprogram is ready for action.</string>
+    <string name="summary_goal">GOAL</string>
+    <string name="summary_height">HEIGHT</string>
+    <string name="summary_weight">WEIGHT</string>
+    <string name="summary_activity">ACTIVITY</string>
+    <string name="start_training">START TRAINING</string>
+
+    <!-- Home -->
+    <string name="welcome_back">WELCOME BACK,</string>
+    <string name="default_athlete_name">ATHLETE</string>
+    <string name="todays_focus">TODAY\'S FOCUS</string>
+    <string name="recovery_day">RECOVERY DAY</string>
+    <string name="recovery_day_desc">Focus on mobility and nutrition today.</string>
+    <string name="daily_nutrition">DAILY NUTRITION</string>
+    <string name="exercises_count">%d EXERCISES</string>
+    <string name="duration_min">%d MIN</string>
+    <string name="start_logging_meals">Start logging your meals to track progress.</string>
+    <string name="macro_kcal">KCAL</string>
+    <string name="macro_protein">PRO</string>
+    <string name="macro_carbs">CHO</string>
+    <string name="macro_fat">FAT</string>
+    <string name="coach_label">COACH</string>
+    <string name="reply_button">Reply</string>
+    <string name="sent_an_image">Sent an image</string>
+
+    <!-- Bottom Nav -->
+    <string name="nav_home">Home</string>
+    <string name="nav_workout">Workout</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_nutrition">Nutrition</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Profile -->
+    <string name="profile_label">PROFILE</string>
+    <string name="stat_goal">GOAL</string>
+    <string name="stat_weight">WEIGHT</string>
+    <string name="my_progress">MY PROGRESS</string>
+    <string name="about_foska">ABOUT FOSKA</string>
+    <string name="log_out">LOG OUT</string>
+
+    <!-- Progress -->
+    <string name="weight_evolution">WEIGHT EVOLUTION</string>
+    <string name="progress_start">START</string>
+    <string name="progress_current">CURRENT</string>
+    <string name="progress_change">CHANGE</string>
+    <string name="body_composition">BODY COMPOSITION</string>
+    <string name="stat_height">HEIGHT</string>
+    <string name="stat_last_weight">LAST WEIGHT</string>
+    <string name="stat_target_goal">TARGET GOAL</string>
+    <string name="stat_activity">ACTIVITY</string>
+    <string name="weight_kg_format">%skg</string>
+    <string name="height_cm_format">%d CM</string>
+    <string name="weight_kg_upper_format">%s KG</string>
+
+    <!-- About Coach -->
+    <string name="certifications_section">CERTIFICATIONS</string>
+    <string name="connect_section">CONNECT</string>
+    <string name="instagram_label">INSTAGRAM</string>
+    <string name="website_label">WEBSITE</string>
+
+    <!-- Workout -->
+    <string name="workout_name_label">Workout Name (e.g. Upper Body A)</string>
+    <string name="duration_minutes_label">Duration (minutes)</string>
+    <string name="exercises_section">EXERCISES</string>
+    <string name="add_exercise">ADD EXERCISE</string>
+    <string name="notes_optional">Notes (optional)</string>
+    <string name="save_session">SAVE SESSION</string>
+    <string name="exercise_label">EXERCISE #%d</string>
+    <string name="add_video_cd">Add Video</string>
+    <string name="remove_cd">Remove</string>
+    <string name="exercise_name_label">Exercise Name</string>
+    <string name="sets_label">Sets</string>
+    <string name="weight_kg_label">Weight (kg)</string>
+
+    <!-- Nutrition -->
+    <string name="meal_name_label">Meal Name (e.g. Breakfast)</string>
+    <string name="photo_attached">PHOTO ATTACHED</string>
+    <string name="add_meal_photo">ADD MEAL PHOTO</string>
+    <string name="food_items_section">FOOD ITEMS</string>
+    <string name="add_food">ADD FOOD</string>
+    <string name="save_meal">SAVE MEAL</string>
+    <string name="food_label">FOOD #%d</string>
+    <string name="food_name_label">Food Name</string>
+    <string name="kcal_label">kcal</string>
+    <string name="protein_label">protein (g)</string>
+
+    <!-- Chat -->
+    <string name="attach_image_cd">Attach image</string>
+    <string name="message_placeholder">Message...</string>
+    <string name="send_cd">Send</string>
+</resources>
