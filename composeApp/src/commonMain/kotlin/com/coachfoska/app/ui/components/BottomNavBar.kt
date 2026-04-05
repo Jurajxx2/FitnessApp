@@ -17,13 +17,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
-enum class BottomNavTab(val label: String, val icon: ImageVector) {
-    Home("Home", Icons.Default.Home),
-    Workout("Workout", Icons.Default.FitnessCenter),
-    Chat("Chat", Icons.AutoMirrored.Filled.Chat),
-    Nutrition("Nutrition", Icons.Default.Restaurant),
-    Profile("Profile", Icons.Default.Person)
+enum class BottomNavTab(val labelRes: StringResource, val icon: ImageVector) {
+    Home(Res.string.nav_home, Icons.Default.Home),
+    Workout(Res.string.nav_workout, Icons.Default.FitnessCenter),
+    Chat(Res.string.nav_chat, Icons.AutoMirrored.Filled.Chat),
+    Nutrition(Res.string.nav_nutrition, Icons.Default.Restaurant),
+    Profile(Res.string.nav_profile, Icons.Default.Person)
 }
 
 @Composable
@@ -37,6 +41,7 @@ fun BottomNavBar(
         tonalElevation = 0.dp
     ) {
         BottomNavTab.entries.forEach { tab ->
+            val label = stringResource(tab.labelRes)
             NavigationBarItem(
                 selected = selectedTab == tab,
                 onClick = { onTabSelected(tab) },
@@ -45,14 +50,14 @@ fun BottomNavBar(
                         BadgedBox(
                             badge = { Badge { Text(chatUnreadCount.coerceAtMost(99).toString()) } }
                         ) {
-                            Icon(tab.icon, contentDescription = tab.label)
+                            Icon(tab.icon, contentDescription = label)
                         }
                     } else {
-                        Icon(tab.icon, contentDescription = tab.label)
+                        Icon(tab.icon, contentDescription = label)
                     }
                 },
                 label = {
-                    Text(tab.label, style = MaterialTheme.typography.labelSmall)
+                    Text(label, style = MaterialTheme.typography.labelSmall)
                 },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
