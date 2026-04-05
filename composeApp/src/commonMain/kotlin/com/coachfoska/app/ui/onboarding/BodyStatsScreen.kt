@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.CoachTopBar
@@ -30,10 +33,10 @@ fun BodyStatsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("STEP 2 OF 3", style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)) },
+                title = { Text(stringResource(Res.string.onboarding_step_2_of_3), style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back_cd))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -50,12 +53,12 @@ fun BodyStatsScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    text = "TELL US ABOUT\nYOURSELF",
+                    text = stringResource(Res.string.body_stats_title),
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "This allows us to calculate your baseline nutrition and training volume accurately.",
+                    text = stringResource(Res.string.body_stats_desc),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
@@ -66,19 +69,19 @@ fun BodyStatsScreen(
                     CoachTextField(
                         value = state.heightInput,
                         onValueChange = { onIntent(OnboardingIntent.HeightChanged(it)) },
-                        label = "Height (cm)",
+                        label = stringResource(Res.string.height_label),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
                     CoachTextField(
                         value = state.weightInput,
                         onValueChange = { onIntent(OnboardingIntent.WeightChanged(it)) },
-                        label = "Current Weight (kg)",
+                        label = stringResource(Res.string.current_weight_label),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
                     CoachTextField(
                         value = state.ageInput,
                         onValueChange = { onIntent(OnboardingIntent.AgeChanged(it)) },
-                        label = "Age",
+                        label = stringResource(Res.string.age_label),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
                 }
@@ -92,7 +95,7 @@ fun BodyStatsScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             CoachButton(
-                text = "CONTINUE",
+                text = stringResource(Res.string.continue_button),
                 onClick = onNextClick,
                 enabled = state.heightInput.isNotBlank() &&
                     state.weightInput.isNotBlank() &&

@@ -11,6 +11,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.ui.components.CoachButton
 
 @Composable
@@ -36,13 +39,13 @@ fun OnboardingCompleteScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "YOU'RE ALL SET!",
+                    text = stringResource(Res.string.youre_all_set),
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Your personalized performance\nprogram is ready for action.",
+                    text = stringResource(Res.string.onboarding_complete_desc),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     textAlign = TextAlign.Center,
@@ -55,10 +58,10 @@ fun OnboardingCompleteScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    state.selectedGoal?.let { SummaryRow(label = "GOAL", value = it.displayName.uppercase()) }
-                    if (state.heightInput.isNotBlank()) SummaryRow(label = "HEIGHT", value = "${state.heightInput} CM")
-                    if (state.weightInput.isNotBlank()) SummaryRow(label = "WEIGHT", value = "${state.weightInput} KG")
-                    state.selectedActivityLevel?.let { SummaryRow(label = "ACTIVITY", value = it.displayName.uppercase()) }
+                    state.selectedGoal?.let { SummaryRow(label = stringResource(Res.string.summary_goal), value = it.displayName.uppercase()) }
+                    if (state.heightInput.isNotBlank()) SummaryRow(label = stringResource(Res.string.summary_height), value = stringResource(Res.string.height_cm_format, state.heightInput.toIntOrNull() ?: 0))
+                    if (state.weightInput.isNotBlank()) SummaryRow(label = stringResource(Res.string.summary_weight), value = stringResource(Res.string.weight_kg_upper_format, state.weightInput))
+                    state.selectedActivityLevel?.let { SummaryRow(label = stringResource(Res.string.summary_activity), value = it.displayName.uppercase()) }
                 }
 
                 state.error?.let {
@@ -73,7 +76,7 @@ fun OnboardingCompleteScreen(
             }
 
             CoachButton(
-                text = "START TRAINING",
+                text = stringResource(Res.string.start_training),
                 onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
                 isLoading = state.isLoading,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)

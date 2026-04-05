@@ -18,6 +18,9 @@ import androidx.compose.ui.unit.sp
 import com.coachfoska.app.domain.model.UserGoal
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTopBar
 
@@ -32,11 +35,11 @@ fun GoalSelectionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("STEP 1 OF 3", style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)) },
+                title = { Text(stringResource(Res.string.onboarding_step_1_of_3), style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)) },
                 navigationIcon = {
                     if (false) { // No back on first step
                         IconButton(onClick = onBackClick) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back_cd))
                         }
                     }
                 },
@@ -53,12 +56,12 @@ fun GoalSelectionScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "WHAT IS YOUR\nPRIMARY GOAL?",
+                    text = stringResource(Res.string.goal_screen_title),
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "This helps us personalize your program.",
+                    text = stringResource(Res.string.goal_screen_desc),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
@@ -77,7 +80,7 @@ fun GoalSelectionScreen(
             }
 
             CoachButton(
-                text = "CONTINUE",
+                text = stringResource(Res.string.continue_button),
                 onClick = onNextClick,
                 enabled = state.selectedGoal != null,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)

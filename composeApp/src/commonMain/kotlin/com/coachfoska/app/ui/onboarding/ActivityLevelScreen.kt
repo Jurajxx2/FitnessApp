@@ -20,6 +20,9 @@ import androidx.compose.ui.unit.sp
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTopBar
 
@@ -34,10 +37,10 @@ fun ActivityLevelScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("STEP 3 OF 3", style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)) },
+                title = { Text(stringResource(Res.string.onboarding_step_3_of_3), style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back_cd))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -54,12 +57,12 @@ fun ActivityLevelScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "HOW ACTIVE\nARE YOU?",
+                    text = stringResource(Res.string.activity_title),
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Be honest — this sets your calorie baseline and recovery needs.",
+                    text = stringResource(Res.string.activity_desc),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
@@ -80,7 +83,7 @@ fun ActivityLevelScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             CoachButton(
-                text = "FINISH SETUP",
+                text = stringResource(Res.string.finish_setup),
                 onClick = onNextClick,
                 enabled = state.selectedActivityLevel != null,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
