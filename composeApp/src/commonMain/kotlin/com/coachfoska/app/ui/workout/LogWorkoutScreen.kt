@@ -27,6 +27,9 @@ import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -84,17 +87,17 @@ fun LogWorkoutScreen(
             CoachTextField(
                 value = workoutName,
                 onValueChange = { workoutName = it },
-                label = "Workout Name (e.g. Upper Body A)"
+                label = stringResource(Res.string.workout_name_label)
             )
             CoachTextField(
                 value = durationMinutes,
                 onValueChange = { durationMinutes = it },
-                label = "Duration (minutes)",
+                label = stringResource(Res.string.duration_minutes_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
         }
 
-        CoachSectionHeader(text = "EXERCISES")
+        CoachSectionHeader(text = stringResource(Res.string.exercises_section))
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             exercises.forEachIndexed { i, exercise ->
@@ -121,13 +124,13 @@ fun LogWorkoutScreen(
         ) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("ADD EXERCISE", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(Res.string.add_exercise), style = MaterialTheme.typography.labelLarge)
         }
 
         CoachTextField(
             value = notes,
             onValueChange = { notes = it },
-            label = "Notes (optional)",
+            label = stringResource(Res.string.notes_optional),
             singleLine = false
         )
 
@@ -138,7 +141,7 @@ fun LogWorkoutScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         CoachButton(
-            text = "SAVE SESSION",
+            text = stringResource(Res.string.save_session),
             onClick = {
                 onIntent(
                     WorkoutIntent.LogWorkout(
@@ -181,7 +184,7 @@ private fun ExerciseLogRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "EXERCISE #$index",
+                    text = stringResource(Res.string.exercise_label, index),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                     letterSpacing = 1.sp
@@ -202,7 +205,7 @@ private fun ExerciseLogRow(
                     ) {
                         Icon(
                             imageVector = if (exercise.videoUrl != null) Icons.Default.Check else Icons.Default.Videocam,
-                            contentDescription = "Add Video",
+                            contentDescription = stringResource(Res.string.add_video_cd),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -211,7 +214,7 @@ private fun ExerciseLogRow(
                         IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Remove",
+                                contentDescription = stringResource(Res.string.remove_cd),
                                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
                                 modifier = Modifier.size(16.dp)
                             )
@@ -223,21 +226,21 @@ private fun ExerciseLogRow(
             CoachTextField(
                 value = exercise.exerciseName,
                 onValueChange = { onUpdate(exercise.copy(exerciseName = it)) },
-                label = "Exercise Name"
+                label = stringResource(Res.string.exercise_name_label)
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CoachTextField(
                     value = exercise.setsCompleted.takeIf { it > 0 }?.toString() ?: "",
                     onValueChange = { onUpdate(exercise.copy(setsCompleted = it.toIntOrNull() ?: 0)) },
-                    label = "Sets",
+                    label = stringResource(Res.string.sets_label),
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 CoachTextField(
                     value = exercise.weightKg?.toString() ?: "",
                     onValueChange = { onUpdate(exercise.copy(weightKg = it.toFloatOrNull())) },
-                    label = "Weight (kg)",
+                    label = stringResource(Res.string.weight_kg_label),
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )

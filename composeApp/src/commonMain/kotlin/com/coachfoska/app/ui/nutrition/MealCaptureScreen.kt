@@ -28,6 +28,9 @@ import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -88,7 +91,7 @@ fun MealCaptureScreen(
         CoachTextField(
             value = mealName,
             onValueChange = { mealName = it },
-            label = "Meal Name (e.g. Breakfast)"
+            label = stringResource(Res.string.meal_name_label)
         )
 
         Row(
@@ -119,13 +122,13 @@ fun MealCaptureScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (mediaUri != null) "PHOTO ATTACHED" else "ADD MEAL PHOTO",
+                    text = if (mediaUri != null) stringResource(Res.string.photo_attached) else stringResource(Res.string.add_meal_photo),
                     style = MaterialTheme.typography.labelLarge
                 )
             }
         }
 
-        CoachSectionHeader(text = "FOOD ITEMS")
+        CoachSectionHeader(text = stringResource(Res.string.food_items_section))
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             foods.forEachIndexed { i, food ->
@@ -150,14 +153,14 @@ fun MealCaptureScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("ADD FOOD", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(Res.string.add_food), style = MaterialTheme.typography.labelLarge)
             }
         }
 
         CoachTextField(
             value = notes,
             onValueChange = { notes = it },
-            label = "Notes (optional)",
+            label = stringResource(Res.string.notes_optional),
             singleLine = false
         )
 
@@ -166,7 +169,7 @@ fun MealCaptureScreen(
         }
 
         CoachButton(
-            text = "SAVE MEAL",
+            text = stringResource(Res.string.save_meal),
             onClick = {
                 val mealLogFoods = foods.filter { it.name.isNotBlank() }.map {
                     MealLogFood(
@@ -215,7 +218,7 @@ private fun FoodEntryRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "FOOD #$index",
+                    text = stringResource(Res.string.food_label, index),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                     letterSpacing = 1.sp
@@ -224,7 +227,7 @@ private fun FoodEntryRow(
                     IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
                         Icon(
                             Icons.Default.Close,
-                            contentDescription = "Remove",
+                            contentDescription = stringResource(Res.string.remove_cd),
                             tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
                             modifier = Modifier.size(16.dp)
                         )
@@ -235,21 +238,21 @@ private fun FoodEntryRow(
             CoachTextField(
                 value = food.name,
                 onValueChange = { onUpdate(food.copy(name = it)) },
-                label = "Food Name"
+                label = stringResource(Res.string.food_name_label)
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CoachTextField(
                     value = food.calories,
                     onValueChange = { onUpdate(food.copy(calories = it)) },
-                    label = "kcal",
+                    label = stringResource(Res.string.kcal_label),
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
                 CoachTextField(
                     value = food.protein,
                     onValueChange = { onUpdate(food.copy(protein = it)) },
-                    label = "protein (g)",
+                    label = stringResource(Res.string.protein_label),
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )

@@ -24,6 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ChatInputBar(
@@ -45,7 +48,7 @@ fun ChatInputBar(
         IconButton(onClick = onImageAttach, enabled = !isSending) {
             Icon(
                 imageVector = Icons.Default.AttachFile,
-                contentDescription = "Attach image",
+                contentDescription = stringResource(Res.string.attach_image_cd),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )
         }
@@ -54,7 +57,7 @@ fun ChatInputBar(
             value = text,
             onValueChange = onTextChange,
             modifier = Modifier.weight(1f),
-            placeholder = { Text("Message...", style = MaterialTheme.typography.bodyMedium) },
+            placeholder = { Text(stringResource(Res.string.message_placeholder), style = MaterialTheme.typography.bodyMedium) },
             singleLine = false,
             maxLines = 4,
             shape = RoundedCornerShape(20.dp),
@@ -81,7 +84,7 @@ fun ChatInputBar(
             } else {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send",
+                    contentDescription = stringResource(Res.string.send_cd),
                     tint = if (text.isNotBlank()) MaterialTheme.colorScheme.primary
                            else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
                 )
