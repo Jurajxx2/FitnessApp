@@ -13,9 +13,13 @@ import org.koin.core.logger.Level
 class CoachFoskaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        Napier.base(DebugAntilog())
+        if (BuildKonfig.DEBUG) {
+            Napier.base(DebugAntilog())
+        }
         startKoin {
-            androidLogger(Level.DEBUG)
+            if (BuildKonfig.DEBUG) {
+                androidLogger(Level.DEBUG)
+            }
             androidContext(this@CoachFoskaApplication)
             modules(appModules + androidModule)
         }

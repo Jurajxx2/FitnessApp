@@ -6,6 +6,7 @@ import com.coachfoska.app.di.iosModule
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import org.koin.core.context.startKoin
+import com.coachfoska.app.BuildKonfig
 
 /**
  * Call initKoin() from Swift before creating the ComposeUIViewController.
@@ -24,7 +25,9 @@ import org.koin.core.context.startKoin
  *   }
  */
 fun initKoin() {
-    Napier.base(DebugAntilog())
+    if (BuildKonfig.DEBUG) {
+        Napier.base(DebugAntilog())
+    }
     startKoin {
         modules(appModules + iosModule)
     }
