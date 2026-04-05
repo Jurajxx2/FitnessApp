@@ -14,6 +14,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.MessageContent
@@ -61,13 +64,13 @@ fun HomeScreen(
             // Header
             Column {
                 Text(
-                    text = "WELCOME BACK,",
+                    text = stringResource(Res.string.welcome_back),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = (state.user?.fullName?.split(" ")?.firstOrNull() ?: "ATHLETE").uppercase(),
+                    text = (state.user?.fullName?.split(" ")?.firstOrNull() ?: stringResource(Res.string.default_athlete_name)).uppercase(),
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     letterSpacing = (-0.5).sp
@@ -80,7 +83,7 @@ fun HomeScreen(
                 // Today's Focus
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
-                        text = "TODAY'S FOCUS",
+                        text = stringResource(Res.string.todays_focus),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onBackground,
                         letterSpacing = 1.5.sp
@@ -95,13 +98,13 @@ fun HomeScreen(
                     ) {
                         Column(modifier = Modifier.padding(24.dp)) {
                             Text(
-                                text = "RECOVERY DAY",
+                                text = stringResource(Res.string.recovery_day),
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Focus on mobility and nutrition today.",
+                                text = stringResource(Res.string.recovery_day_desc),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                             )
@@ -112,7 +115,7 @@ fun HomeScreen(
                 // Nutrition Summary
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
-                        text = "DAILY NUTRITION",
+                        text = stringResource(Res.string.daily_nutrition),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onBackground,
                         letterSpacing = 1.5.sp
@@ -127,7 +130,7 @@ fun HomeScreen(
                             state.nutritionSummary?.let { nutrition ->
                                 MacroRow(nutrition)
                             } ?: Text(
-                                text = "Start logging your meals to track progress.",
+                                text = stringResource(Res.string.start_logging_meals),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                             )
@@ -162,13 +165,13 @@ private fun WorkoutHomeCard(workout: Workout) {
             
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${workout.exercises.size} EXERCISES",
+                    text = stringResource(Res.string.exercises_count, workout.exercises.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f)
                 )
                 Box(modifier = Modifier.size(3.dp).background(MaterialTheme.colorScheme.background.copy(alpha = 0.4f), RoundedCornerShape(50)))
                 Text(
-                    text = "${workout.durationMinutes} MIN",
+                    text = stringResource(Res.string.duration_min, workout.durationMinutes),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f)
                 )
@@ -180,10 +183,10 @@ private fun WorkoutHomeCard(workout: Workout) {
 @Composable
 private fun MacroRow(summary: DailyNutritionSummary) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        MacroItem(label = "KCAL", value = "${summary.calories.toInt()}")
-        MacroItem(label = "PRO", value = "${summary.proteinG.toInt()}g")
-        MacroItem(label = "CHO", value = "${summary.carbsG.toInt()}g")
-        MacroItem(label = "FAT", value = "${summary.fatG.toInt()}g")
+        MacroItem(label = stringResource(Res.string.macro_kcal), value = "${summary.calories.toInt()}")
+        MacroItem(label = stringResource(Res.string.macro_protein), value = "${summary.proteinG.toInt()}g")
+        MacroItem(label = stringResource(Res.string.macro_carbs), value = "${summary.carbsG.toInt()}g")
+        MacroItem(label = stringResource(Res.string.macro_fat), value = "${summary.fatG.toInt()}g")
     }
 }
 
@@ -203,7 +206,7 @@ private fun CoachMessagePreviewCard(message: ChatMessage, onClick: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "COACH",
+                    text = stringResource(Res.string.coach_label),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     letterSpacing = 1.sp
@@ -211,7 +214,7 @@ private fun CoachMessagePreviewCard(message: ChatMessage, onClick: () -> Unit) {
                 Text(
                     text = when (val c = message.content) {
                         is MessageContent.Text -> c.text
-                        is MessageContent.Image -> "Sent an image"
+                        is MessageContent.Image -> stringResource(Res.string.sent_an_image)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -220,7 +223,7 @@ private fun CoachMessagePreviewCard(message: ChatMessage, onClick: () -> Unit) {
                 )
             }
             Text(
-                text = "Reply",
+                text = stringResource(Res.string.reply_button),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
