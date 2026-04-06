@@ -45,3 +45,4 @@ DerivedData/
 
 # Compose Multiplatform generated
 composeApp/src/commonMain/composeResources/
+.worktrees/
