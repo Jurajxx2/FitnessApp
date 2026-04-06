@@ -48,6 +48,13 @@ function useRecentActivity() {
   return useQuery<ActivityItem[]>({
     queryKey: ['recent-activity'],
     queryFn: async () => {
+      type LogRow = {
+        id: string
+        workout_name: string
+        logged_at: string
+        profiles: { full_name: string | null; email: string } | null
+      }
+
       const [logs, newUsers] = await Promise.all([
         supabase
           .from('workout_logs')
@@ -61,10 +68,10 @@ function useRecentActivity() {
           .limit(10),
       ])
 
-      const logItems: ActivityItem[] = (logs.data ?? []).map(l => ({
+      const logItems: ActivityItem[] = ((logs.data ?? []) as unknown as LogRow[]).map(l => ({
         kind: 'workout',
         id: `log-${l.id}`,
-        userName: (l.profiles as any)?.full_name ?? (l.profiles as any)?.email ?? 'Unknown',
+        userName: l.profiles?.full_name ?? l.profiles?.email ?? 'Unknown',
         workoutName: l.workout_name,
         timestamp: l.logged_at,
       }))

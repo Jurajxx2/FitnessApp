@@ -69,10 +69,13 @@ function RecipesTab() {
         ...macros,
       }
       if (editing) {
-        await supabase.from('recipes').update(payload).eq('id', editing.id)
-        await supabase.from('recipe_ingredients').delete().eq('recipe_id', editing.id)
+        const { error: rUpdateErr } = await supabase.from('recipes').update(payload).eq('id', editing.id)
+        if (rUpdateErr) throw rUpdateErr
+        const { error: rDeleteErr } = await supabase.from('recipe_ingredients').delete().eq('recipe_id', editing.id)
+        if (rDeleteErr) throw rDeleteErr
         if (ingredients.length) {
-          await supabase.from('recipe_ingredients').insert(ingredients.map((ing, i) => ({ ...ing, recipe_id: editing.id, sort_order: i })))
+          const { error: rInsertErr } = await supabase.from('recipe_ingredients').insert(ingredients.map((ing, i) => ({ ...ing, recipe_id: editing.id, sort_order: i })))
+          if (rInsertErr) throw rInsertErr
         }
       } else {
         const { data: r, error } = await supabase.from('recipes').insert(payload).select().single()
@@ -265,7 +268,8 @@ function MealPlansTab() {
       }
       let planId: string
       if (editing) {
-        await supabase.from('meal_plans').update(payload).eq('id', editing.id)
+        const { error: mpUpdateErr } = await supabase.from('meal_plans').update(payload).eq('id', editing.id)
+        if (mpUpdateErr) throw mpUpdateErr
         planId = editing.id
         const { data: existingMeals } = await supabase.from('meals').select('id').eq('meal_plan_id', planId)
         if (existingMeals) {

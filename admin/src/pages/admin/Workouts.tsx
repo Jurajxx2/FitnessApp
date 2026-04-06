@@ -25,20 +25,6 @@ function useWorkouts() {
   })
 }
 
-function useWorkoutExercises(workoutId: string | null) {
-  return useQuery<WorkoutExercise[]>({
-    queryKey: ['workout-exercises', workoutId],
-    enabled: !!workoutId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('workout_exercises')
-        .select('*')
-        .eq('workout_id', workoutId!)
-        .order('sort_order')
-      return data ?? []
-    },
-  })
-}
 
 type ExerciseDraft = Omit<WorkoutExercise, 'id' | 'workout_id' | 'created_at' | 'wger_exercise_id'>
 
@@ -61,8 +47,6 @@ export default function Workouts() {
   const [form, setForm] = useState<WorkoutFormState>({ name: '', day_of_week: null, notes: '', is_active: true })
   const [exercises, setExercises] = useState<ExerciseDraft[]>([blankExercise()])
 
-  const { data: existingExercises } = useWorkoutExercises(editing?.id ?? null)
-
   function openCreate() {
     setEditing(null)
     setForm({ name: '', day_of_week: null, notes: '', is_active: true })
@@ -70,10 +54,15 @@ export default function Workouts() {
     setEditorOpen(true)
   }
 
-  function openEdit(w: Workout) {
+  async function openEdit(w: Workout) {
     setEditing(w)
     setForm({ name: w.name, day_of_week: w.day_of_week, notes: w.notes ?? '', is_active: w.is_active })
-    setExercises(existingExercises?.map(e => ({
+    const { data } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', w.id)
+      .order('sort_order')
+    setExercises(data?.map(e => ({
       name: e.name, muscle_group: e.muscle_group ?? '', sets: e.sets, reps: e.reps,
       rest_seconds: e.rest_seconds, tips: e.tips ?? '', sort_order: e.sort_order,
     })) ?? [blankExercise()])
@@ -83,12 +72,15 @@ export default function Workouts() {
   const saveWorkout = useMutation({
     mutationFn: async () => {
       if (editing) {
-        await supabase.from('workouts').update({ ...form }).eq('id', editing.id)
-        await supabase.from('workout_exercises').delete().eq('workout_id', editing.id)
+        const { error: updateErr } = await supabase.from('workouts').update({ ...form }).eq('id', editing.id)
+        if (updateErr) throw updateErr
+        const { error: deleteErr } = await supabase.from('workout_exercises').delete().eq('workout_id', editing.id)
+        if (deleteErr) throw deleteErr
         if (exercises.length) {
-          await supabase.from('workout_exercises').insert(
+          const { error: insertErr } = await supabase.from('workout_exercises').insert(
             exercises.map((e, i) => ({ ...e, workout_id: editing.id, sort_order: i }))
           )
+          if (insertErr) throw insertErr
         }
       } else {
         const { data: w, error } = await supabase
