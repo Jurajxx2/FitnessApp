@@ -79,6 +79,7 @@ export default function Verify() {
                 value={d}
                 onChange={e => handleDigitChange(i, e.target.value)}
                 onKeyDown={e => handleKeyDown(i, e)}
+                autoFocus={i === 0}
                 className="w-11 h-12 text-center text-lg font-bold bg-[var(--input-bg)] border border-[var(--border)] rounded-md text-[var(--text)] outline-none focus:border-[var(--text-muted)]"
               />
             ))}
