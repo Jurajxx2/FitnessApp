@@ -40,8 +40,12 @@ function useActiveQuote() {
   })
 }
 
+type ActivityItem =
+  | { kind: 'workout'; id: string; userName: string; workoutName: string; timestamp: string }
+  | { kind: 'newUser'; id: string; name: string; timestamp: string }
+
 function useRecentActivity() {
-  return useQuery({
+  return useQuery<ActivityItem[]>({
     queryKey: ['recent-activity'],
     queryFn: async () => {
       const [logs, newUsers] = await Promise.all([
@@ -49,14 +53,32 @@ function useRecentActivity() {
           .from('workout_logs')
           .select('id, workout_name, logged_at, profiles(full_name, email)')
           .order('logged_at', { ascending: false })
-          .limit(5),
+          .limit(10),
         supabase
           .from('profiles')
           .select('id, full_name, email, created_at')
           .order('created_at', { ascending: false })
-          .limit(5),
+          .limit(10),
       ])
-      return { logs: logs.data ?? [], newUsers: newUsers.data ?? [] }
+
+      const logItems: ActivityItem[] = (logs.data ?? []).map(l => ({
+        kind: 'workout',
+        id: `log-${l.id}`,
+        userName: (l.profiles as any)?.full_name ?? (l.profiles as any)?.email ?? 'Unknown',
+        workoutName: l.workout_name,
+        timestamp: l.logged_at,
+      }))
+
+      const userItems: ActivityItem[] = (newUsers.data ?? []).map(u => ({
+        kind: 'newUser',
+        id: `user-${u.id}`,
+        name: u.full_name ?? u.email,
+        timestamp: u.created_at,
+      }))
+
+      return [...logItems, ...userItems]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 10)
     },
   })
 }
@@ -117,20 +139,15 @@ export default function Dashboard() {
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-5">
           <p className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest mb-3">Recent Activity</p>
           {activity.isLoading && <p className="text-xs text-[var(--text-disabled)]">Loading…</p>}
-          {activity.data?.logs.map(log => (
-            <div key={log.id} className="flex items-center gap-2 py-2 border-b border-[var(--border-subtle)] last:border-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+          {activity.data?.map(item => (
+            <div key={item.id} className="flex items-center gap-2 py-2 border-b border-[var(--border-subtle)] last:border-0">
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.kind === 'workout' ? 'bg-green-500' : 'bg-[var(--border)]'}`} />
               <span className="text-xs text-[var(--text-muted)] flex-1">
-                {(log.profiles as any)?.full_name ?? (log.profiles as any)?.email} logged {log.workout_name}
+                {item.kind === 'workout'
+                  ? `${item.userName} logged ${item.workoutName}`
+                  : `New user: ${item.name}`}
               </span>
-              <span className="text-[10px] text-[var(--text-disabled)]">{timeAgo(log.logged_at)}</span>
-            </div>
-          ))}
-          {activity.data?.newUsers.slice(0, 3).map(u => (
-            <div key={u.id} className="flex items-center gap-2 py-2 border-b border-[var(--border-subtle)] last:border-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--border)] flex-shrink-0" />
-              <span className="text-xs text-[var(--text-muted)] flex-1">New user: {u.full_name ?? u.email}</span>
-              <span className="text-[10px] text-[var(--text-disabled)]">{timeAgo(u.created_at)}</span>
+              <span className="text-[10px] text-[var(--text-disabled)]">{timeAgo(item.timestamp)}</span>
             </div>
           ))}
         </div>
