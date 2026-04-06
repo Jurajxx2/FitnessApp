@@ -221,6 +221,39 @@ function MealPlansTab() {
     setEditorOpen(true)
   }
 
+  async function openEditPlan(p: MealPlan) {
+    setEditing(p)
+    setForm({ name: p.name, description: p.description ?? '', valid_from: p.valid_from ?? '', valid_to: p.valid_to ?? '', is_active: p.is_active })
+
+    // Fetch existing meal slots
+    const { data: existingMeals } = await supabase
+      .from('meals')
+      .select('id, name, time_of_day, sort_order')
+      .eq('meal_plan_id', p.id)
+      .order('sort_order')
+
+    if (existingMeals && existingMeals.length > 0) {
+      const mealDrafts: MealDraft[] = await Promise.all(
+        existingMeals.map(async meal => {
+          const { data: mprData } = await supabase
+            .from('meal_plan_recipes')
+            .select('recipe_id, meal_type')
+            .eq('meal_id', meal.id)
+          return {
+            name: meal.name,
+            time_of_day: meal.time_of_day ?? '',
+            recipes: (mprData ?? []).map(r => ({ recipe_id: r.recipe_id, meal_type: r.meal_type ?? 'breakfast' })),
+          }
+        })
+      )
+      setMeals(mealDrafts)
+    } else {
+      setMeals([{ name: 'Breakfast', time_of_day: '08:00', recipes: [] }])
+    }
+
+    setEditorOpen(true)
+  }
+
   const savePlan = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -289,7 +322,7 @@ function MealPlansTab() {
                 <Td>{p.is_active ? <span className="text-green-400 text-xs">Active</span> : <span className="text-[var(--text-disabled)] text-xs">Inactive</span>}</Td>
                 <Td>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditing(p); setForm({ name: p.name, description: p.description ?? '', valid_from: p.valid_from ?? '', valid_to: p.valid_to ?? '', is_active: p.is_active }); setEditorOpen(true) }} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">Edit</button>
+                    <button onClick={() => openEditPlan(p)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">Edit</button>
                     <button onClick={() => { if (confirm('Delete this meal plan?')) deletePlan.mutate(p.id) }} className="text-xs text-red-400 bg-transparent border-0 cursor-pointer">Delete</button>
                   </div>
                 </Td>
