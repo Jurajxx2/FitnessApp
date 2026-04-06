@@ -1,7 +1,7 @@
 // admin/src/pages/admin/UserDetail.tsx
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { SlideOver, Button, Input, Badge } from '../../components/ui'
 import type { Profile, Workout, MealPlan, WeightEntry } from '../../types/database'
@@ -78,6 +78,12 @@ export default function UserDetail() {
 
   const [adminNotes, setAdminNotes] = useState('')
 
+  useEffect(() => {
+    if (user?.admin_notes) {
+      setAdminNotes(user.admin_notes)
+    }
+  }, [user?.admin_notes])
+
   const updateProfile = useMutation({
     mutationFn: async (patch: Partial<Profile>) => {
       const { error } = await supabase.from('profiles').update(patch).eq('id', id!)
@@ -91,7 +97,10 @@ export default function UserDetail() {
       const { error } = await supabase.from('workouts').update({ user_id: id }).eq('id', workoutId)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+      qc.invalidateQueries({ queryKey: ['user', id] })
+    },
   })
 
   const assignMealPlan = useMutation({
@@ -99,7 +108,10 @@ export default function UserDetail() {
       const { error } = await supabase.from('meal_plans').update({ user_id: id }).eq('id', planId)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+      qc.invalidateQueries({ queryKey: ['user', id] })
+    },
   })
 
   function Field({ label, value }: { label: string; value: string | number | null }) {
@@ -125,7 +137,6 @@ export default function UserDetail() {
         {/* Status */}
         <div className="flex items-center gap-2">
           <Badge status={deriveStatus(user)} />
-          {user.onboarding_complete && <span className="text-xs text-green-400">Onboarding complete</span>}
         </div>
 
         {/* Profile info */}
@@ -138,6 +149,7 @@ export default function UserDetail() {
           <Field label="Goal"       value={user.goal ? GOAL_LABELS[user.goal] : null} />
           <Field label="Activity"   value={user.activity_level ? ACTIVITY_LABELS[user.activity_level] : null} />
           <Field label="Joined"     value={new Date(user.created_at).toLocaleDateString()} />
+          <Field label="Onboarding" value={user.onboarding_complete ? 'Complete' : 'Incomplete'} />
         </div>
 
         {/* Assign workout plan */}
