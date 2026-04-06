@@ -1,7 +1,7 @@
-# Coach Foška — Project Context
+# Coach Foska — Project Context
 
 ## Overview
-Coach Foška is a Kotlin Multiplatform (KMP) fitness and nutrition application for Android and iOS, built with Compose Multiplatform. It uses Supabase for backend services (Auth, Database, Realtime).
+Coach Foska is a Kotlin Multiplatform (KMP) fitness and nutrition application for Android and iOS, built with Compose Multiplatform. It uses Supabase for backend services (Auth, Database, Realtime).
 
 ## Technology Stack
 - **KMP/Compose Multiplatform**: Kotlin 2.3.10, Compose Multiplatform 1.10.2

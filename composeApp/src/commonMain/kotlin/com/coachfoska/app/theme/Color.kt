@@ -2,7 +2,7 @@ package com.coachfoska.app.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Coach Foška brand palette — black/white/red minimalism
+// Coach Foska brand palette — black/white/red minimalism
 
 // Primary — Deep Red (from coachfoska.com)
 val BrandRed = Color(0xFFA90707)

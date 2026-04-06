@@ -1,5 +1,5 @@
 -- ============================================================
--- Coach Foška — Admin Schema Migration
+-- Coach Foska — Admin Schema Migration
 -- Run in Supabase SQL Editor AFTER schema.sql
 --
 -- After running:

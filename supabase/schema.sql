@@ -1,5 +1,5 @@
 -- ============================================================
--- Coach Foška — Supabase Schema
+-- Coach Foska — Supabase Schema
 -- Run this in the Supabase SQL Editor after creating the project
 -- ============================================================
 
