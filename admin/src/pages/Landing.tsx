@@ -37,7 +37,7 @@ export default function Landing() {
       </nav>
 
       {/* HERO */}
-      <section className="flex flex-col items-center justify-center text-center px-6 py-28 relative overflow-hidden">
+      <section id="about" className="flex flex-col items-center justify-center text-center px-6 py-28 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255,255,255,0.04), transparent)' }} />
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-xs text-zinc-400 mb-8">
           <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
@@ -124,7 +124,7 @@ export default function Landing() {
           <a href="#" className="text-xs text-zinc-600 hover:text-zinc-400">Terms</a>
           <a href="#" className="text-xs text-zinc-600 hover:text-zinc-400">Contact</a>
         </div>
-        <span className="text-xs text-zinc-800">© 2025 Coach Foska</span>
+        <span className="text-xs text-zinc-800">© 2026 Coach Foska</span>
       </footer>
     </div>
   )
