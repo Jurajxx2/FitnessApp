@@ -11,10 +11,10 @@ import Verify from './pages/Verify'
 import Callback from './pages/Callback'
 import NotAdmin from './pages/NotAdmin'
 import Dashboard from './pages/admin/Dashboard'
+import Users from './pages/admin/Users'
+import UserDetail from './pages/admin/UserDetail'
 
-// Placeholders — replaced in Tasks 10-14
-function Users()      { return <div className="p-6 text-[var(--text)]">Users — coming in Task 11</div> }
-function UserDetail() { return <div className="p-6 text-[var(--text)]">User Detail — coming in Task 11</div> }
+// Placeholders — replaced in Tasks 12-14
 function Workouts()   { return <div className="p-6 text-[var(--text)]">Workouts — coming in Task 12</div> }
 function Nutrition()  { return <div className="p-6 text-[var(--text)]">Nutrition — coming in Task 13</div> }
 function Quotes()     { return <div className="p-6 text-[var(--text)]">Quotes — coming in Task 14</div> }
