@@ -5,13 +5,13 @@ import { queryClient } from './lib/queryClient'
 import { AdminRouteGuard } from './components/RouteGuard'
 import { AdminLayout } from './components/AdminLayout'
 
+import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Verify from './pages/Verify'
 import Callback from './pages/Callback'
 import NotAdmin from './pages/NotAdmin'
 
-// Placeholders — replaced in Tasks 9-14
-function LandingPlaceholder() { return <div className="p-6 text-white bg-[#0a0a0a] min-h-screen">Landing — coming in Task 9</div> }
+// Placeholders — replaced in Tasks 10-14
 function Dashboard()  { return <div className="p-6 text-[var(--text)]">Dashboard — coming in Task 10</div> }
 function Users()      { return <div className="p-6 text-[var(--text)]">Users — coming in Task 11</div> }
 function UserDetail() { return <div className="p-6 text-[var(--text)]">User Detail — coming in Task 11</div> }
@@ -25,7 +25,7 @@ export default function App() {
       <ThemeProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<LandingPlaceholder />} />
+            <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Login />} />
             <Route path="/auth/verify" element={<Verify />} />
             <Route path="/auth/callback" element={<Callback />} />
