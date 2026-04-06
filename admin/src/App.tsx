@@ -13,9 +13,9 @@ import NotAdmin from './pages/NotAdmin'
 import Dashboard from './pages/admin/Dashboard'
 import Users from './pages/admin/Users'
 import UserDetail from './pages/admin/UserDetail'
+import Workouts from './pages/admin/Workouts'
 
-// Placeholders — replaced in Tasks 12-14
-function Workouts()   { return <div className="p-6 text-[var(--text)]">Workouts — coming in Task 12</div> }
+// Placeholders — replaced in Tasks 13-14
 function Nutrition()  { return <div className="p-6 text-[var(--text)]">Nutrition — coming in Task 13</div> }
 function Quotes()     { return <div className="p-6 text-[var(--text)]">Quotes — coming in Task 14</div> }
 
