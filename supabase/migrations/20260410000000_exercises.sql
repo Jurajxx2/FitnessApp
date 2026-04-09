@@ -33,15 +33,15 @@ create table exercises (
 );
 
 create table exercise_muscles (
-  exercise_id uuid references exercises(id) on delete cascade,
-  muscle_id   int  references muscles(id),
+  exercise_id uuid not null references exercises(id) on delete cascade,
+  muscle_id   int  not null references muscles(id),
   is_primary  bool not null default true,
-  primary key (exercise_id, muscle_id, is_primary)
+  primary key (exercise_id, muscle_id)
 );
 
 create table exercise_equipment (
-  exercise_id  uuid references exercises(id) on delete cascade,
-  equipment_id int  references equipment(id),
+  exercise_id  uuid not null references exercises(id) on delete cascade,
+  equipment_id int  not null references equipment(id),
   primary key (exercise_id, equipment_id)
 );
 
@@ -63,3 +63,9 @@ create policy "authenticated read equipment"           on equipment           fo
 create policy "authenticated read exercises"           on exercises           for select to authenticated using (is_active = true);
 create policy "authenticated read exercise_muscles"    on exercise_muscles    for select to authenticated using (true);
 create policy "authenticated read exercise_equipment"  on exercise_equipment  for select to authenticated using (true);
+
+-- Indexes for common queries
+create index idx_exercises_category_id on exercises(category_id);
+create index idx_exercises_is_active on exercises(is_active);
+create index idx_exercise_muscles_muscle_id on exercise_muscles(muscle_id);
+create index idx_exercise_equipment_equipment_id on exercise_equipment(equipment_id);
