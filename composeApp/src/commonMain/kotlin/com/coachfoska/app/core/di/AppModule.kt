@@ -2,7 +2,7 @@ package com.coachfoska.app.core.di
 
 import com.coachfoska.app.core.network.SupabaseClientProvider
 import com.coachfoska.app.data.remote.datasource.AuthRemoteDataSource
-import com.coachfoska.app.data.remote.datasource.ExerciseApiDataSource
+import com.coachfoska.app.data.remote.datasource.ExerciseSupabaseDataSource
 import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.UserRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.WorkoutRemoteDataSource
@@ -91,7 +91,7 @@ val dataSourceModule = module {
     single { AuthRemoteDataSource(get(), get()) }
     single { UserRemoteDataSource(get()) }
     single { WorkoutRemoteDataSource(get()) }
-    single { ExerciseApiDataSource(get()) }
+    single { ExerciseSupabaseDataSource(get()) }
     single { MealRemoteDataSource(get()) }
 }
 

@@ -22,7 +22,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ExerciseDetailRoute(
-    exerciseId: Int,
+    exerciseId: String,
     onBackClick: () -> Unit,
     viewModel: ExerciseViewModel = koinViewModel()
 ) {

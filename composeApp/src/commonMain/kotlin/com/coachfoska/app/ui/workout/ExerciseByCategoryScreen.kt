@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.coachfoska.app.domain.model.WgerExercise
+import com.coachfoska.app.domain.model.Exercise
 import com.coachfoska.app.presentation.exercise.ExerciseIntent
 import com.coachfoska.app.presentation.exercise.ExerciseState
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
@@ -25,7 +25,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ExerciseByCategoryRoute(
     categoryId: Int,
     categoryName: String,
-    onExerciseClick: (Int) -> Unit,
+    onExerciseClick: (String) -> Unit,
     onBackClick: () -> Unit,
     viewModel: ExerciseViewModel = koinViewModel()
 ) {
@@ -47,7 +47,7 @@ fun ExerciseByCategoryRoute(
 fun ExerciseByCategoryScreen(
     categoryName: String,
     state: ExerciseState,
-    onExerciseClick: (Int) -> Unit,
+    onExerciseClick: (String) -> Unit,
     onBackClick: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -89,7 +89,7 @@ fun ExerciseByCategoryScreen(
 }
 
 @Composable
-private fun ExerciseListItem(exercise: WgerExercise, onClick: () -> Unit) {
+private fun ExerciseListItem(exercise: Exercise, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -5,6 +5,7 @@ import com.coachfoska.app.data.remote.dto.ExerciseDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 
 private const val EXERCISE_COLUMNS = "*, exercise_categories(id, name), exercise_muscles(is_primary, muscles(id, name, is_front)), exercise_equipment(equipment(id, name))"
 
@@ -13,7 +14,7 @@ class ExerciseSupabaseDataSource(private val supabase: SupabaseClient) {
     suspend fun getCategories(): List<ExerciseCategoryDto> =
         supabase.postgrest["exercise_categories"]
             .select {
-                order("name")
+                order("name", Order.ASCENDING)
             }
             .decodeList()
 
@@ -24,7 +25,7 @@ class ExerciseSupabaseDataSource(private val supabase: SupabaseClient) {
                     eq("category_id", categoryId)
                     eq("is_active", true)
                 }
-                order("name_en")
+                order("name_en", Order.ASCENDING)
             }
             .decodeList()
 
