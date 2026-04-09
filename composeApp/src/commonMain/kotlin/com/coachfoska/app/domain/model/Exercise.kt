@@ -1,11 +1,7 @@
 package com.coachfoska.app.domain.model
 
-/**
- * Exercise from WGER public exercise API.
- * Used for browsing and searching exercises library.
- */
-data class WgerExercise(
-    val id: Int,
+data class Exercise(
+    val id: String,
     val name: String,
     val description: String,
     val category: ExerciseCategory?,
@@ -13,7 +9,8 @@ data class WgerExercise(
     val musclesSecondary: List<Muscle>,
     val equipment: List<Equipment>,
     val imageUrl: String?,
-    val videoUrl: String?
+    val videoUrl: String?,
+    val difficulty: String?
 )
 
 data class ExerciseCategory(
