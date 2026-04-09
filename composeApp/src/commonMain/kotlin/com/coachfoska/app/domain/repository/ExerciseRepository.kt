@@ -1,18 +1,11 @@
 package com.coachfoska.app.domain.repository
 
+import com.coachfoska.app.domain.model.Exercise
 import com.coachfoska.app.domain.model.ExerciseCategory
-import com.coachfoska.app.domain.model.WgerExercise
 
 interface ExerciseRepository {
-    /** Search exercises by name from WGER API. */
-    suspend fun searchExercises(query: String): Result<List<WgerExercise>>
-
-    /** Get detailed exercise info by WGER exercise ID. */
-    suspend fun getExerciseById(id: Int): Result<WgerExercise>
-
-    /** Get all exercise categories from WGER. */
+    suspend fun searchExercises(query: String): Result<List<Exercise>>
+    suspend fun getExerciseById(id: String): Result<Exercise>
     suspend fun getCategories(): Result<List<ExerciseCategory>>
-
-    /** Get exercises by muscle group category ID. */
-    suspend fun getExercisesByCategory(categoryId: Int): Result<List<WgerExercise>>
+    suspend fun getExercisesByCategory(categoryId: Int): Result<List<Exercise>>
 }
