@@ -5,12 +5,17 @@ import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
+import com.coachfoska.app.domain.model.ChatType
+import com.coachfoska.app.domain.repository.ChatRepository
 import com.coachfoska.app.domain.usecase.auth.aUser
+import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -32,15 +37,20 @@ class HomeViewModelTest {
     private val userRepo: UserRepository = mockk()
     private val workoutRepo: WorkoutRepository = mockk()
     private val mealRepo: MealRepository = mockk()
+    private val chatRepo: ChatRepository = mockk()
 
     private fun viewModel() = HomeViewModel(
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         getAssignedWorkoutsUseCase = GetAssignedWorkoutsUseCase(workoutRepo),
         getDailyNutritionSummaryUseCase = GetDailyNutritionSummaryUseCase(mealRepo),
+        observeChatMessagesUseCase = ObserveChatMessagesUseCase(chatRepo),
         userId = "user-1"
     )
 
-    @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)
+    @BeforeTest fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        every { chatRepo.observeMessages(any(), any()) } returns emptyFlow()
+    }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     @Test
