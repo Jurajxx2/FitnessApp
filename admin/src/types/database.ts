@@ -146,3 +146,43 @@ export interface WeightEntry {
   notes: string | null
   created_at: string
 }
+
+export type Difficulty = 'beginner' | 'intermediate' | 'advanced'
+
+export interface ExerciseCategory {
+  id: number
+  name: string
+}
+
+export interface Muscle {
+  id: number
+  name: string
+  is_front: boolean
+}
+
+export interface Equipment {
+  id: number
+  name: string
+}
+
+export interface Exercise {
+  id: string
+  name_en: string
+  description_en: string
+  name_cs: string | null
+  description_cs: string | null
+  category_id: number | null
+  image_url: string | null
+  video_url: string | null
+  difficulty: Difficulty | null
+  is_active: boolean
+  wger_id: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ExerciseMuscle {
+  exercise_id: string
+  muscle_id: number
+  is_primary: boolean
+}

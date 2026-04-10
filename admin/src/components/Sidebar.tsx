@@ -8,7 +8,8 @@ const NAV_ITEMS = [
   { to: '/admin/users',     label: 'Users',     icon: '👥', end: false },
   { to: '/admin/workouts',  label: 'Workouts',  icon: '🏋️', end: false },
   { to: '/admin/nutrition', label: 'Nutrition', icon: '🥗', end: false },
-  { to: '/admin/quotes',    label: 'Quotes',    icon: '💬', end: false },
+  { to: '/admin/quotes',     label: 'Quotes',    icon: '💬', end: false },
+  { to: '/admin/exercises',  label: 'Exercises', icon: '💪', end: false },
 ]
 
 export function Sidebar() {
