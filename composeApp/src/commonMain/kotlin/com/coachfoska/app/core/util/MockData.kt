@@ -73,9 +73,9 @@ object MockData {
             dayOfWeek = DayOfWeek.MONDAY,
             durationMinutes = 60,
             exercises = listOf(
-                WorkoutExercise("we1", "w1", "Bench Press", "Chest", 4, "8-10", 90, "Focus on form", null, null, 0),
-                WorkoutExercise("we2", "w1", "Overhead Press", "Shoulders", 3, "10-12", 60, "Keep core tight", null, null, 1),
-                WorkoutExercise("we3", "w1", "Tricep Pushdowns", "Triceps", 3, "12-15", 45, "Full extension", null, null, 2)
+                WorkoutExercise("we1", "w1", "Bench Press", "Chest", 4, "8-10", 90, "Focus on form", null, 0),
+                WorkoutExercise("we2", "w1", "Overhead Press", "Shoulders", 3, "10-12", 60, "Keep core tight", null, 1),
+                WorkoutExercise("we3", "w1", "Tricep Pushdowns", "Triceps", 3, "12-15", 45, "Full extension", null, 2)
             ),
             notes = "Focus on explosive concentric phase."
         ),
@@ -85,9 +85,9 @@ object MockData {
             dayOfWeek = DayOfWeek.WEDNESDAY,
             durationMinutes = 65,
             exercises = listOf(
-                WorkoutExercise("we4", "w2", "Deadlifts", "Back", 3, "5", 180, "Neutral spine", null, null, 0),
-                WorkoutExercise("we5", "w2", "Pull Ups", "Back", 3, "Max", 90, "Controlled descent", null, null, 1),
-                WorkoutExercise("we6", "w2", "Bicep Curls", "Biceps", 3, "12", 60, "No swinging", null, null, 2)
+                WorkoutExercise("we4", "w2", "Deadlifts", "Back", 3, "5", 180, "Neutral spine", null, 0),
+                WorkoutExercise("we5", "w2", "Pull Ups", "Back", 3, "Max", 90, "Controlled descent", null, 1),
+                WorkoutExercise("we6", "w2", "Bicep Curls", "Biceps", 3, "12", 60, "No swinging", null, 2)
             ),
             notes = "Maintain grip strength."
         )
