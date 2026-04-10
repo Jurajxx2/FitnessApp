@@ -7,17 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables')
 }
 
-// Use sessionStorage so tokens are cleared when the browser tab is closed.
-// Tokens are never written to localStorage.
-const sessionStorageAdapter = {
-  getItem: (key: string) => sessionStorage.getItem(key),
-  setItem: (key: string, value: string) => sessionStorage.setItem(key, value),
-  removeItem: (key: string) => sessionStorage.removeItem(key),
-}
-
+// Persist session in localStorage so the admin stays logged in across tabs and
+// browser restarts. This is safe because:
+//   - CSP headers block XSS (the main localStorage attack vector)
+//   - Supabase access tokens expire in 1 h; refresh tokens rotate on every use
+//   - Supabase detects refresh token reuse and revokes the session automatically
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: sessionStorageAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
