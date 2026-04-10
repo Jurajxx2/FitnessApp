@@ -6,6 +6,7 @@ import com.coachfoska.app.domain.model.MealPlan
 import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -35,6 +36,7 @@ class NutritionViewModelTest {
         getActiveMealPlanUseCase = GetActiveMealPlanUseCase(repo),
         logMealUseCase = LogMealUseCase(repo),
         getMealHistoryUseCase = GetMealHistoryUseCase(repo),
+        getRecipesUseCase = GetRecipesUseCase(repo),
         userId = "user-1"
     )
 
