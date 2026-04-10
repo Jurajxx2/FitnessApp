@@ -5,8 +5,8 @@ import com.coachfoska.app.data.remote.dto.MealLogFoodDto
 import com.coachfoska.app.data.remote.dto.MealLogFoodInsertDto
 import com.coachfoska.app.data.remote.dto.MealLogInsertDto
 import com.coachfoska.app.data.remote.dto.MealPlanDto
-import com.coachfoska.app.data.remote.dto.RecipeDto
 import com.coachfoska.app.data.remote.dto.RecipeDetailDto
+import com.coachfoska.app.data.remote.dto.RecipeDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
