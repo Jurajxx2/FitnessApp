@@ -37,18 +37,32 @@ data class MealFood(
     val fatG: Float
 )
 
+data class RecipeIngredient(
+    val name: String,
+    val quantity: Float?,
+    val unit: String?,
+    val calories: Float,
+    val proteinG: Float,
+    val carbsG: Float,
+    val fatG: Float
+)
+
 data class Recipe(
     val id: String,
     val name: String,
     val description: String,
-    val ingredients: List<String>,
-    val instructions: List<String>,
     val calories: Float,
     val protein: Float,
     val carbs: Float,
     val fat: Float,
     val imageUrl: String? = null,
-    val prepTimeMinutes: Int? = null
+    val prepTimeMinutes: Int? = null,
+    val cookTimeMinutes: Int? = null,
+    val servings: Int = 1,
+    val difficulty: String? = null,
+    val tags: List<String> = emptyList(),
+    val steps: List<String> = emptyList(),
+    val ingredients: List<RecipeIngredient> = emptyList()
 )
 
 data class MealLog(
