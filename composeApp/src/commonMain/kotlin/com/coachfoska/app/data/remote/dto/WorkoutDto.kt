@@ -42,7 +42,8 @@ data class WorkoutExerciseDto(
     val tips: String? = null,
     @SerialName("wger_exercise_id") val wgerExerciseId: Int? = null,
     @SerialName("video_url") val videoUrl: String? = null,
-    @SerialName("sort_order") val sortOrder: Int = 0
+    @SerialName("sort_order") val sortOrder: Int = 0,
+    @SerialName("exercise_id") val exerciseId: String? = null
 ) {
     fun toDomain(): WorkoutExercise = WorkoutExercise(
         id = id,
@@ -55,7 +56,8 @@ data class WorkoutExerciseDto(
         tips = tips,
         wgerExerciseId = wgerExerciseId,
         videoUrl = videoUrl,
-        sortOrder = sortOrder
+        sortOrder = sortOrder,
+        exerciseId = exerciseId
     )
 }
 

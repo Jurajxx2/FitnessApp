@@ -79,7 +79,7 @@ fun WorkoutDetailScreen(
                         ExerciseRow(
                             index = index + 1,
                             exercise = exercise,
-                            onClick = { exercise.wgerExerciseId?.let { onExerciseClick(it.toString()) } }
+                            onClick = { exercise.exerciseId?.let { onExerciseClick(it) } }
                         )
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 24.dp),
