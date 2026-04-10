@@ -4,6 +4,9 @@ import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
 import com.coachfoska.app.data.remote.dto.MealLogDto
 import com.coachfoska.app.data.remote.dto.MealLogFoodDto
 import com.coachfoska.app.data.remote.dto.MealPlanDto
+import com.coachfoska.app.data.remote.dto.RecipeDetailDto
+import com.coachfoska.app.data.remote.dto.RecipeDto
+import com.coachfoska.app.data.remote.dto.RecipeIngredientDto
 import com.coachfoska.app.domain.model.MealLogFood
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -145,7 +148,7 @@ private fun aMealLogFood() = MealLogFood(
     amountGrams = 150f, calories = 300f, proteinG = 25f, carbsG = 30f, fatG = 10f
 )
 
-private fun aRecipeDto() = com.coachfoska.app.data.remote.dto.RecipeDto(
+private fun aRecipeDto() = RecipeDto(
     id = "recipe-1",
     name = "Overnight Oats",
     calories = 386f,
@@ -154,7 +157,7 @@ private fun aRecipeDto() = com.coachfoska.app.data.remote.dto.RecipeDto(
     fatG = 9f
 )
 
-private fun aRecipeIngredientDto(sortOrder: Int = 0) = com.coachfoska.app.data.remote.dto.RecipeIngredientDto(
+private fun aRecipeIngredientDto(sortOrder: Int = 0) = RecipeIngredientDto(
     id = "ing-1",
     recipeId = "recipe-1",
     name = "Oats",
@@ -168,8 +171,8 @@ private fun aRecipeIngredientDto(sortOrder: Int = 0) = com.coachfoska.app.data.r
 )
 
 private fun aRecipeDetailDto(
-    ingredients: List<com.coachfoska.app.data.remote.dto.RecipeIngredientDto> = emptyList()
-) = com.coachfoska.app.data.remote.dto.RecipeDetailDto(
+    ingredients: List<RecipeIngredientDto> = emptyList()
+) = RecipeDetailDto(
     id = "recipe-1",
     name = "Overnight Oats",
     calories = 386f,
