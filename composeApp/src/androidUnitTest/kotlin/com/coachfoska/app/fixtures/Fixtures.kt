@@ -3,6 +3,7 @@ package com.coachfoska.app.fixtures
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.Recipe
+import com.coachfoska.app.domain.model.RecipeIngredient
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.DayOfWeek
@@ -109,7 +110,8 @@ fun aNutritionSummary() = DailyNutritionSummary(
 
 fun aRecipe(
     id: String = "r-1",
-    name: String = "Overnight Oats"
+    name: String = "Overnight Oats",
+    ingredients: List<RecipeIngredient> = emptyList()
 ) = Recipe(
     id = id,
     name = name,
@@ -117,7 +119,8 @@ fun aRecipe(
     calories = 386f,
     protein = 16f,
     carbs = 65f,
-    fat = 9f
+    fat = 9f,
+    ingredients = ingredients
 )
 
 fun aChatMessage(id: String = "msg-1") = ChatMessage(
