@@ -30,6 +30,7 @@ import com.coachfoska.app.domain.usecase.exercise.SearchExercisesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import com.coachfoska.app.domain.usecase.profile.CompleteOnboardingUseCase
@@ -63,6 +64,7 @@ import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.app.presentation.splash.SplashViewModel
 import com.coachfoska.app.presentation.home.HomeViewModel
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
+import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
 import com.coachfoska.app.presentation.profile.ProfileViewModel
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
@@ -133,6 +135,7 @@ val useCaseModule = module {
     factory { GetMealHistoryUseCase(get()) }
     factory { GetDailyNutritionSummaryUseCase(get()) }
     factory { GetRecipesUseCase(get()) }
+    factory { GetRecipeByIdUseCase(get()) }
 
     // Profile
     factory { GetUserProfileUseCase(get()) }
@@ -154,6 +157,7 @@ val viewModelModule = module {
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), userId) }
+    viewModel { (recipeId: String) -> RecipeDetailViewModel(get(), recipeId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
     viewModelOf(::ExerciseViewModel)
