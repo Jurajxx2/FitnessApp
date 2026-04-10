@@ -1,6 +1,7 @@
 // admin/src/types/database.ts
 
 export type Goal = 'weight_loss' | 'muscle_gain' | 'mental_strength'
+export type RecipeDifficulty = 'easy' | 'medium' | 'hard'
 export type ActivityLevel = 'sedentary' | 'lightly_active' | 'moderately_active' | 'active' | 'very_active'
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
@@ -99,7 +100,11 @@ export interface Recipe {
   name: string
   description: string | null
   prep_time_min: number | null
+  cook_time_min: number | null
   servings: number
+  difficulty: RecipeDifficulty | null
+  tags: string[]
+  steps: string[]
   calories: number
   protein_g: number
   carbs_g: number

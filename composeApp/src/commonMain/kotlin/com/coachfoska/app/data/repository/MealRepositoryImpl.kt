@@ -6,12 +6,17 @@ import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.domain.model.MealPlan
+import com.coachfoska.app.domain.model.Recipe
 import com.coachfoska.app.domain.repository.MealRepository
 import kotlinx.datetime.LocalDate
 
 class MealRepositoryImpl(
     private val mealDataSource: MealRemoteDataSource
 ) : MealRepository {
+
+    override suspend fun getRecipes(): Result<List<Recipe>> = runCatching {
+        mealDataSource.getRecipes().map { it.toDomain() }
+    }
 
     override suspend fun getActiveMealPlan(userId: String): Result<MealPlan?> = runCatching {
         mealDataSource.getActiveMealPlan(userId)?.toDomain()

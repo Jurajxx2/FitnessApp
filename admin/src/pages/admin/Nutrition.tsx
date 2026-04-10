@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { uploadRecipePhoto } from '../../lib/storage'
 import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
-import type { Recipe, RecipeIngredient, MealPlan } from '../../types/database'
+import type { Recipe, RecipeIngredient, MealPlan, RecipeDifficulty } from '../../types/database'
 import RecipeImportModal from './RecipeImportModal'
 import RecipePhotoUploadModal from './RecipePhotoUploadModal'
 import MealPlanImportModal from './MealPlanImportModal'
@@ -44,7 +44,9 @@ function RecipesTab() {
   const { data: recipes = [], isLoading } = useRecipes()
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Recipe | null>(null)
-  const [form, setForm] = useState({ name: '', description: '', prep_time_min: '', servings: '1', external_id: '', photo_file_name: '' })
+  const [form, setForm] = useState({ name: '', description: '', prep_time_min: '', cook_time_min: '', servings: '1', external_id: '', photo_file_name: '', difficulty: '' as RecipeDifficulty | '' })
+  const [steps, setSteps] = useState<string[]>([''])
+  const [tags, setTags] = useState<string>('')
   const [ingredients, setIngredients] = useState<IngredientDraft[]>([blankIngredient(0)])
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -54,8 +56,10 @@ function RecipesTab() {
 
   function openCreate() {
     setEditing(null)
-    setForm({ name: '', description: '', prep_time_min: '', servings: '1', external_id: '', photo_file_name: '' })
+    setForm({ name: '', description: '', prep_time_min: '', cook_time_min: '', servings: '1', external_id: '', photo_file_name: '', difficulty: '' })
     setIngredients([blankIngredient(0)])
+    setSteps([''])
+    setTags('')
     setPhotoFile(null)
     setPhotoPreview(null)
     setEditorOpen(true)
@@ -63,7 +67,9 @@ function RecipesTab() {
 
   async function openEdit(r: Recipe) {
     setEditing(r)
-    setForm({ name: r.name, description: r.description ?? '', prep_time_min: String(r.prep_time_min ?? ''), servings: String(r.servings), external_id: r.external_id ?? '', photo_file_name: r.photo_file_name ?? '' })
+    setForm({ name: r.name, description: r.description ?? '', prep_time_min: String(r.prep_time_min ?? ''), cook_time_min: String(r.cook_time_min ?? ''), servings: String(r.servings), external_id: r.external_id ?? '', photo_file_name: r.photo_file_name ?? '', difficulty: r.difficulty ?? '' })
+    setSteps(r.steps?.length ? r.steps : [''])
+    setTags(r.tags?.join(', ') ?? '')
     const { data } = await supabase.from('recipe_ingredients').select('*').eq('recipe_id', r.id).order('sort_order')
     setIngredients(data?.map(i => ({ name: i.name, quantity: i.quantity, unit: i.unit ?? '', calories: i.calories, protein_g: i.protein_g, carbs_g: i.carbs_g, fat_g: i.fat_g, sort_order: i.sort_order })) ?? [blankIngredient(0)])
     setPhotoFile(null)
@@ -94,9 +100,13 @@ function RecipesTab() {
         name: form.name,
         description: form.description || null,
         prep_time_min: form.prep_time_min ? Number(form.prep_time_min) : null,
+        cook_time_min: form.cook_time_min ? Number(form.cook_time_min) : null,
         servings: Number(form.servings),
         external_id: form.external_id || null,
         photo_file_name: form.photo_file_name || null,
+        difficulty: form.difficulty || null,
+        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+        steps: steps.filter(s => s.trim()),
         ...macros,
         ...(photoUrl !== undefined ? { photo_url: photoUrl } : {}),
       }
@@ -147,7 +157,7 @@ function RecipesTab() {
         <Table>
           <thead>
             <tr>
-              <Th>{''}</Th><Th>Name</Th><Th>ID</Th><Th>Calories</Th><Th>Protein</Th><Th>Carbs</Th><Th>Fat</Th><Th>Prep</Th><Th>{''}</Th>
+              <Th>{''}</Th><Th>Name</Th><Th>ID</Th><Th>Difficulty</Th><Th>Tags</Th><Th>Calories</Th><Th>Protein</Th><Th>Carbs</Th><Th>Fat</Th><Th>Prep</Th><Th>{''}</Th>
             </tr>
           </thead>
           <tbody>
@@ -161,6 +171,8 @@ function RecipesTab() {
                 </Td>
                 <Td className="text-[var(--text)] font-semibold">{r.name}</Td>
                 <Td className="text-[var(--text-muted)] text-xs font-mono">{r.external_id ?? '—'}</Td>
+                <Td className="text-xs">{r.difficulty ?? '—'}</Td>
+                <Td className="text-xs text-[var(--text-muted)]">{r.tags?.length ? r.tags.join(', ') : '—'}</Td>
                 <Td>{Math.round(r.calories)} kcal</Td>
                 <Td>{r.protein_g.toFixed(1)}g</Td>
                 <Td>{r.carbs_g.toFixed(1)}g</Td>
@@ -198,9 +210,46 @@ function RecipesTab() {
           <Input label="Recipe name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Overnight Oats" required />
           <Input label="External ID" value={form.external_id} onChange={e => setForm(f => ({ ...f, external_id: e.target.value }))} placeholder="e.g. overnight-oats (stable import key)" />
           <Input label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional" />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Input label="Prep time (min)" type="number" value={form.prep_time_min} onChange={e => setForm(f => ({ ...f, prep_time_min: e.target.value }))} />
+            <Input label="Cook time (min)" type="number" value={form.cook_time_min} onChange={e => setForm(f => ({ ...f, cook_time_min: e.target.value }))} />
             <Input label="Servings" type="number" value={form.servings} onChange={e => setForm(f => ({ ...f, servings: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs text-[var(--text-muted)] mb-1">Difficulty</p>
+              <select
+                value={form.difficulty}
+                onChange={e => setForm(f => ({ ...f, difficulty: e.target.value as RecipeDifficulty | '' }))}
+                className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] outline-none"
+              >
+                <option value="">— none —</option>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+            <Input label="Tags (comma separated)" value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. high-protein, gluten-free" />
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Preparation Steps</p>
+            {steps.map((step, i) => (
+              <div key={i} className="flex gap-2 mb-2 items-start">
+                <span className="text-xs text-[var(--text-disabled)] pt-2 w-5 shrink-0">{i + 1}.</span>
+                <textarea
+                  value={step}
+                  onChange={e => setSteps(ss => ss.map((s, idx) => idx === i ? e.target.value : s))}
+                  placeholder={`Step ${i + 1}`}
+                  rows={2}
+                  className="flex-1 bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] outline-none resize-none"
+                />
+                <button onClick={() => setSteps(ss => ss.filter((_, idx) => idx !== i))} className="text-xs text-red-400 bg-transparent border-0 cursor-pointer pt-2">✕</button>
+              </div>
+            ))}
+            <button onClick={() => setSteps(ss => [...ss, ''])} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">
+              + Add step
+            </button>
           </div>
 
           <div>

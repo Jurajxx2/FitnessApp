@@ -5,6 +5,7 @@ import com.coachfoska.app.data.remote.dto.MealLogFoodDto
 import com.coachfoska.app.data.remote.dto.MealLogFoodInsertDto
 import com.coachfoska.app.data.remote.dto.MealLogInsertDto
 import com.coachfoska.app.data.remote.dto.MealPlanDto
+import com.coachfoska.app.data.remote.dto.RecipeDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
@@ -67,6 +68,11 @@ class MealRemoteDataSource(private val supabase: SupabaseClient) {
                 order("logged_at", Order.DESCENDING)
             }
             .decodeList<MealLogDto>()
+
+    suspend fun getRecipes(): List<RecipeDto> =
+        supabase.postgrest["recipes"]
+            .select()
+            .decodeList<RecipeDto>()
 
     suspend fun getMealLogsByDate(userId: String, date: LocalDate): List<MealLogDto> =
         supabase.postgrest["meal_logs"]

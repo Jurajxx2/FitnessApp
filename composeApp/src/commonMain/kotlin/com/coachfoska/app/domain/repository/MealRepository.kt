@@ -4,11 +4,15 @@ import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.domain.model.MealPlan
+import com.coachfoska.app.domain.model.Recipe
 import kotlinx.datetime.LocalDate
 
 interface MealRepository {
     /** Returns the active coach-assigned meal plan for the user. */
     suspend fun getActiveMealPlan(userId: String): Result<MealPlan?>
+
+    /** Returns all recipes. */
+    suspend fun getRecipes(): Result<List<Recipe>>
 
     /** Log a meal (user tracking). */
     suspend fun logMeal(

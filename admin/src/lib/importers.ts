@@ -1,5 +1,7 @@
 // admin/src/lib/importers.ts
-import type { MealType } from '../types/database'
+import type { MealType, RecipeDifficulty } from '../types/database'
+
+const VALID_RECIPE_DIFFICULTIES: RecipeDifficulty[] = ['easy', 'medium', 'hard']
 
 // ─── Shared ──────────────────────────────────────────────────────────────────
 
@@ -26,7 +28,11 @@ export interface RecipeImportRow {
   name: string
   description: string | null
   prep_time_min: number | null
+  cook_time_min: number | null
   servings: number
+  difficulty: RecipeDifficulty | null
+  tags: string[]
+  steps: string[]
   photo_file_name: string | null
   ingredients: RecipeIngredientImport[]
 }
@@ -86,12 +92,28 @@ export function parseRecipeImport(json: unknown): RecipeImportResult {
       fat_g: ing.fat_g as number,
     }))
 
+    if (r.difficulty != null && !VALID_RECIPE_DIFFICULTIES.includes(r.difficulty as RecipeDifficulty)) {
+      errors.push({ row: i, field: 'difficulty', message: `difficulty must be one of: ${VALID_RECIPE_DIFFICULTIES.join(', ')}` })
+    }
+    if (r.steps != null && !Array.isArray(r.steps)) {
+      errors.push({ row: i, field: 'steps', message: 'steps must be an array of strings' })
+    }
+    if (r.tags != null && !Array.isArray(r.tags)) {
+      errors.push({ row: i, field: 'tags', message: 'tags must be an array of strings' })
+    }
+
+    if (errors.some(e => e.row === i)) continue
+
     rows.push({
       external_id: r.external_id as string,
       name: r.name as string,
       description: typeof r.description === 'string' ? r.description : null,
       prep_time_min: typeof r.prep_time_min === 'number' ? r.prep_time_min : null,
+      cook_time_min: typeof r.cook_time_min === 'number' ? r.cook_time_min : null,
       servings: typeof r.servings === 'number' ? r.servings : 1,
+      difficulty: VALID_RECIPE_DIFFICULTIES.includes(r.difficulty as RecipeDifficulty) ? (r.difficulty as RecipeDifficulty) : null,
+      tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
+      steps: Array.isArray(r.steps) ? (r.steps as string[]) : [],
       photo_file_name: typeof r.photo_file_name === 'string' ? r.photo_file_name : null,
       ingredients,
     })

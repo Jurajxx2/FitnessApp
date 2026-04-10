@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,7 @@ class NutritionViewModel(
     private val getActiveMealPlanUseCase: GetActiveMealPlanUseCase,
     private val logMealUseCase: LogMealUseCase,
     private val getMealHistoryUseCase: GetMealHistoryUseCase,
+    private val getRecipesUseCase: GetRecipesUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -33,7 +35,7 @@ class NutritionViewModel(
         when (intent) {
             NutritionIntent.LoadMealPlan -> loadMealPlan()
             NutritionIntent.LoadHistory -> loadHistory()
-            NutritionIntent.LoadRecipes -> _state.update { it.copy(isRecipesLoading = false) }
+            NutritionIntent.LoadRecipes -> loadRecipes()
             is NutritionIntent.SelectMeal -> selectMeal(intent.mealId)
             is NutritionIntent.LogMeal -> logMeal(intent)
             NutritionIntent.DismissError -> _state.update { it.copy(error = null) }
@@ -51,6 +53,18 @@ class NutritionViewModel(
                 .onFailure { e ->
                     Napier.e("loadMealPlan failed", e, tag = TAG)
                     _state.update { it.copy(isLoading = false, error = e.message) }
+                }
+        }
+    }
+
+    private fun loadRecipes() {
+        viewModelScope.launch {
+            _state.update { it.copy(isRecipesLoading = true, error = null) }
+            getRecipesUseCase()
+                .onSuccess { recipes -> _state.update { it.copy(isRecipesLoading = false, recipes = recipes) } }
+                .onFailure { e ->
+                    Napier.e("loadRecipes failed", e, tag = TAG)
+                    _state.update { it.copy(isRecipesLoading = false, error = e.message) }
                 }
         }
     }

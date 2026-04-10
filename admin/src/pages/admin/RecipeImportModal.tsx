@@ -102,7 +102,11 @@ export default function RecipeImportModal({ open, onClose }: Props) {
             name: row.name,
             description: row.description,
             prep_time_min: row.prep_time_min,
+            cook_time_min: row.cook_time_min,
             servings: row.servings,
+            difficulty: row.difficulty,
+            tags: row.tags,
+            steps: row.steps,
             photo_file_name: row.photo_file_name,
             ...macros,
           })
@@ -194,7 +198,7 @@ export default function RecipeImportModal({ open, onClose }: Props) {
             <Table>
               <thead>
                 <tr>
-                  <Th>External ID</Th><Th>Name</Th><Th>Ingredients</Th><Th>Calories</Th><Th>Photo</Th>
+                  <Th>External ID</Th><Th>Name</Th><Th>Difficulty</Th><Th>Steps</Th><Th>Tags</Th><Th>Ingredients</Th><Th>Calories</Th>
                 </tr>
               </thead>
               <tbody>
@@ -204,9 +208,11 @@ export default function RecipeImportModal({ open, onClose }: Props) {
                     <tr key={i}>
                       <Td className="font-mono text-xs">{r.external_id}</Td>
                       <Td className="font-semibold text-[var(--text)]">{r.name}</Td>
+                      <Td>{r.difficulty ?? '—'}</Td>
+                      <Td>{r.steps.length}</Td>
+                      <Td className="text-xs">{r.tags.length > 0 ? r.tags.join(', ') : '—'}</Td>
                       <Td>{r.ingredients.length}</Td>
                       <Td>{Math.round(macros.calories)} kcal</Td>
-                      <Td>{r.photo_file_name ?? '—'}</Td>
                     </tr>
                   )
                 })}
