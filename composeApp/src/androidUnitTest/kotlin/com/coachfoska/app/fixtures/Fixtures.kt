@@ -2,6 +2,7 @@ package com.coachfoska.app.fixtures
 
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.ChatMessage
+import com.coachfoska.app.domain.model.Recipe
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.DayOfWeek
@@ -104,6 +105,19 @@ fun aNutritionSummary() = DailyNutritionSummary(
     proteinG = 150f,
     carbsG = 200f,
     fatG = 80f
+)
+
+fun aRecipe(
+    id: String = "r-1",
+    name: String = "Overnight Oats"
+) = Recipe(
+    id = id,
+    name = name,
+    description = "Easy breakfast",
+    calories = 386f,
+    protein = 16f,
+    carbs = 65f,
+    fat = 9f
 )
 
 fun aChatMessage(id: String = "msg-1") = ChatMessage(

@@ -1,8 +1,9 @@
 package com.coachfoska.app.domain.usecase.nutrition
 
-import com.coachfoska.app.domain.model.Recipe
 import com.coachfoska.app.domain.repository.MealRepository
+import com.coachfoska.app.fixtures.aRecipe
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -12,23 +13,24 @@ import kotlin.test.assertTrue
 
 class GetRecipeByIdUseCaseTest {
 
-    private val repo: MealRepository = mockk()
-    private val useCase = GetRecipeByIdUseCase(repo)
+    private val mealRepository: MealRepository = mockk()
+    private val useCase = GetRecipeByIdUseCase(mealRepository)
 
     @Test
     fun `returns recipe when found`() = runTest {
         val recipe = aRecipe()
-        coEvery { repo.getRecipeById("r-1") } returns Result.success(recipe)
+        coEvery { mealRepository.getRecipeById("r-1") } returns Result.success(recipe)
 
         val result = useCase("r-1")
 
         assertTrue(result.isSuccess)
         assertEquals(recipe, result.getOrThrow())
+        coVerify { mealRepository.getRecipeById("r-1") }
     }
 
     @Test
     fun `returns null when not found`() = runTest {
-        coEvery { repo.getRecipeById("missing") } returns Result.success(null)
+        coEvery { mealRepository.getRecipeById("missing") } returns Result.success(null)
 
         val result = useCase("missing")
 
@@ -38,7 +40,7 @@ class GetRecipeByIdUseCaseTest {
 
     @Test
     fun `propagates failure`() = runTest {
-        coEvery { repo.getRecipeById(any()) } returns Result.failure(RuntimeException("Network error"))
+        coEvery { mealRepository.getRecipeById(any()) } returns Result.failure(RuntimeException("Network error"))
 
         val result = useCase("r-1")
 
@@ -46,8 +48,3 @@ class GetRecipeByIdUseCaseTest {
         assertEquals("Network error", result.exceptionOrNull()?.message)
     }
 }
-
-private fun aRecipe() = Recipe(
-    id = "r-1", name = "Overnight Oats", description = "Easy breakfast",
-    calories = 386f, protein = 16f, carbs = 65f, fat = 9f
-)
