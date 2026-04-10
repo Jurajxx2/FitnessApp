@@ -6,6 +6,7 @@ import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.domain.model.MealPlan
 import com.coachfoska.app.domain.model.Recipe
+import com.coachfoska.app.domain.model.RecipeIngredient
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -114,6 +115,31 @@ data class MealLogDto(
 }
 
 @Serializable
+data class RecipeIngredientDto(
+    val id: String,
+    @SerialName("recipe_id") val recipeId: String,
+    val name: String,
+    val quantity: Float? = null,
+    val unit: String? = null,
+    val calories: Float = 0f,
+    @SerialName("protein_g") val proteinG: Float = 0f,
+    @SerialName("carbs_g") val carbsG: Float = 0f,
+    @SerialName("fat_g") val fatG: Float = 0f,
+    @SerialName("sort_order") val sortOrder: Int = 0
+) {
+    fun toDomain(): RecipeIngredient = RecipeIngredient(
+        name = name,
+        quantity = quantity,
+        unit = unit,
+        calories = calories,
+        proteinG = proteinG,
+        carbsG = carbsG,
+        fatG = fatG
+    )
+}
+
+/** Lightweight DTO used for the recipe list — no ingredients. */
+@Serializable
 data class RecipeDto(
     val id: String,
     val name: String,
@@ -123,20 +149,67 @@ data class RecipeDto(
     @SerialName("carbs_g") val carbsG: Float = 0f,
     @SerialName("fat_g") val fatG: Float = 0f,
     @SerialName("photo_url") val photoUrl: String? = null,
-    @SerialName("prep_time_min") val prepTimeMin: Int? = null
+    @SerialName("prep_time_min") val prepTimeMin: Int? = null,
+    @SerialName("cook_time_min") val cookTimeMin: Int? = null,
+    val servings: Int = 1,
+    val difficulty: String? = null,
+    val tags: List<String> = emptyList(),
+    val steps: List<String> = emptyList()
 ) {
     fun toDomain(): Recipe = Recipe(
         id = id,
         name = name,
         description = description ?: "",
-        ingredients = emptyList(),
-        instructions = emptyList(),
         calories = calories,
         protein = proteinG,
         carbs = carbsG,
         fat = fatG,
         imageUrl = photoUrl,
-        prepTimeMinutes = prepTimeMin
+        prepTimeMinutes = prepTimeMin,
+        cookTimeMinutes = cookTimeMin,
+        servings = servings,
+        difficulty = difficulty,
+        tags = tags,
+        steps = steps,
+        ingredients = emptyList()
+    )
+}
+
+/** Full DTO used for recipe detail — includes nested recipe_ingredients. */
+@Serializable
+data class RecipeDetailDto(
+    val id: String,
+    val name: String,
+    val description: String? = null,
+    val calories: Float = 0f,
+    @SerialName("protein_g") val proteinG: Float = 0f,
+    @SerialName("carbs_g") val carbsG: Float = 0f,
+    @SerialName("fat_g") val fatG: Float = 0f,
+    @SerialName("photo_url") val photoUrl: String? = null,
+    @SerialName("prep_time_min") val prepTimeMin: Int? = null,
+    @SerialName("cook_time_min") val cookTimeMin: Int? = null,
+    val servings: Int = 1,
+    val difficulty: String? = null,
+    val tags: List<String> = emptyList(),
+    val steps: List<String> = emptyList(),
+    @SerialName("recipe_ingredients") val ingredients: List<RecipeIngredientDto> = emptyList()
+) {
+    fun toDomain(): Recipe = Recipe(
+        id = id,
+        name = name,
+        description = description ?: "",
+        calories = calories,
+        protein = proteinG,
+        carbs = carbsG,
+        fat = fatG,
+        imageUrl = photoUrl,
+        prepTimeMinutes = prepTimeMin,
+        cookTimeMinutes = cookTimeMin,
+        servings = servings,
+        difficulty = difficulty,
+        tags = tags,
+        steps = steps,
+        ingredients = ingredients.sortedBy { it.sortOrder }.map { it.toDomain() }
     )
 }
 
