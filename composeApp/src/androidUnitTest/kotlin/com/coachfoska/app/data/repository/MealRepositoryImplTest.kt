@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -80,6 +81,48 @@ class MealRepositoryImplTest {
         assertEquals(100f, summary.carbsG)
         assertEquals(40f, summary.fatG)
     }
+
+    @Test
+    fun `getRecipes maps list of DTOs to domain`() = runTest {
+        val dto = aRecipeDto()
+        coEvery { dataSource.getRecipes() } returns listOf(dto)
+
+        val result = repository.getRecipes()
+
+        assertTrue(result.isSuccess)
+        val recipes = result.getOrThrow()
+        assertEquals(1, recipes.size)
+        assertEquals("recipe-1", recipes[0].id)
+        assertEquals("Overnight Oats", recipes[0].name)
+        assertTrue(recipes[0].ingredients.isEmpty())
+    }
+
+    @Test
+    fun `getRecipeById returns null when not found`() = runTest {
+        coEvery { dataSource.getRecipeById("missing") } returns null
+
+        val result = repository.getRecipeById("missing")
+
+        assertTrue(result.isSuccess)
+        assertNull(result.getOrThrow())
+    }
+
+    @Test
+    fun `getRecipeById maps detail DTO including ingredients`() = runTest {
+        val ingredient = aRecipeIngredientDto()
+        val dto = aRecipeDetailDto(ingredients = listOf(ingredient))
+        coEvery { dataSource.getRecipeById("recipe-1") } returns dto
+
+        val result = repository.getRecipeById("recipe-1")
+
+        assertTrue(result.isSuccess)
+        val recipe = result.getOrThrow()
+        assertNotNull(recipe)
+        assertEquals("recipe-1", recipe.id)
+        assertEquals(1, recipe.ingredients.size)
+        assertEquals("Oats", recipe.ingredients[0].name)
+        assertEquals(80f, recipe.ingredients[0].quantity)
+    }
 }
 
 private fun aMealLogDto(foods: List<MealLogFoodDto> = emptyList()) = MealLogDto(
@@ -100,4 +143,38 @@ private fun aMealLogFoodDto(
 private fun aMealLogFood() = MealLogFood(
     id = "food-1", mealLogId = "log-1", name = "Chicken",
     amountGrams = 150f, calories = 300f, proteinG = 25f, carbsG = 30f, fatG = 10f
+)
+
+private fun aRecipeDto() = com.coachfoska.app.data.remote.dto.RecipeDto(
+    id = "recipe-1",
+    name = "Overnight Oats",
+    calories = 386f,
+    proteinG = 16f,
+    carbsG = 65f,
+    fatG = 9f
+)
+
+private fun aRecipeIngredientDto(sortOrder: Int = 0) = com.coachfoska.app.data.remote.dto.RecipeIngredientDto(
+    id = "ing-1",
+    recipeId = "recipe-1",
+    name = "Oats",
+    quantity = 80f,
+    unit = "g",
+    calories = 300f,
+    proteinG = 10f,
+    carbsG = 55f,
+    fatG = 6f,
+    sortOrder = sortOrder
+)
+
+private fun aRecipeDetailDto(
+    ingredients: List<com.coachfoska.app.data.remote.dto.RecipeIngredientDto> = emptyList()
+) = com.coachfoska.app.data.remote.dto.RecipeDetailDto(
+    id = "recipe-1",
+    name = "Overnight Oats",
+    calories = 386f,
+    proteinG = 16f,
+    carbsG = 65f,
+    fatG = 9f,
+    ingredients = ingredients
 )

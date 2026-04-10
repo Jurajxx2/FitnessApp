@@ -14,6 +14,9 @@ interface MealRepository {
     /** Returns all recipes. */
     suspend fun getRecipes(): Result<List<Recipe>>
 
+    /** Returns a single recipe with its ingredients, or null if not found. */
+    suspend fun getRecipeById(id: String): Result<Recipe?>
+
     /** Log a meal (user tracking). */
     suspend fun logMeal(
         userId: String,

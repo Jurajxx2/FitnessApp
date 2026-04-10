@@ -1,6 +1,7 @@
 package com.coachfoska.app.presentation.profile
 
 import com.coachfoska.app.domain.model.WeightEntry
+import com.coachfoska.app.core.theme.ThemeRepository
 import com.coachfoska.app.domain.repository.AuthRepository
 import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.usecase.auth.SignOutUseCase
@@ -33,6 +34,7 @@ class ProfileViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val userRepo: UserRepository = mockk()
     private val authRepo: AuthRepository = mockk()
+    private val themeRepository: ThemeRepository = mockk(relaxed = true)
 
     private fun viewModel() = ProfileViewModel(
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
@@ -40,6 +42,7 @@ class ProfileViewModelTest {
         getWeightHistoryUseCase = GetWeightHistoryUseCase(userRepo),
         logWeightUseCase = LogWeightUseCase(userRepo),
         signOutUseCase = SignOutUseCase(authRepo),
+        themeRepository = themeRepository,
         userId = "user-1"
     )
 

@@ -18,6 +18,10 @@ class MealRepositoryImpl(
         mealDataSource.getRecipes().map { it.toDomain() }
     }
 
+    override suspend fun getRecipeById(id: String): Result<Recipe?> = runCatching {
+        mealDataSource.getRecipeById(id)?.toDomain()
+    }
+
     override suspend fun getActiveMealPlan(userId: String): Result<MealPlan?> = runCatching {
         mealDataSource.getActiveMealPlan(userId)?.toDomain()
     }
