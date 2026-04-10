@@ -66,7 +66,7 @@ class RecipeDetailViewModelTest {
 
         assertFalse(vm.state.value.isLoading)
         assertNull(vm.state.value.recipe)
-        assertNotNull(vm.state.value.error)
+        assertEquals("Recipe not found", vm.state.value.error)
     }
 
     @Test
