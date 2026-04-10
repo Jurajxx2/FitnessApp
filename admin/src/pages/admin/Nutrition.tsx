@@ -1,9 +1,13 @@
 // admin/src/pages/admin/Nutrition.tsx
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import { uploadRecipePhoto } from '../../lib/storage'
 import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
 import type { Recipe, RecipeIngredient, MealPlan } from '../../types/database'
+import RecipeImportModal from './RecipeImportModal'
+import RecipePhotoUploadModal from './RecipePhotoUploadModal'
+import MealPlanImportModal from './MealPlanImportModal'
 
 // ─── Recipes ────────────────────────────────────────────────────────────────
 
@@ -40,34 +44,63 @@ function RecipesTab() {
   const { data: recipes = [], isLoading } = useRecipes()
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Recipe | null>(null)
-  const [form, setForm] = useState({ name: '', description: '', prep_time_min: '', servings: '1' })
+  const [form, setForm] = useState({ name: '', description: '', prep_time_min: '', servings: '1', external_id: '', photo_file_name: '' })
   const [ingredients, setIngredients] = useState<IngredientDraft[]>([blankIngredient(0)])
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [photoUploadOpen, setPhotoUploadOpen] = useState(false)
 
   function openCreate() {
     setEditing(null)
-    setForm({ name: '', description: '', prep_time_min: '', servings: '1' })
+    setForm({ name: '', description: '', prep_time_min: '', servings: '1', external_id: '', photo_file_name: '' })
     setIngredients([blankIngredient(0)])
+    setPhotoFile(null)
+    setPhotoPreview(null)
     setEditorOpen(true)
   }
 
   async function openEdit(r: Recipe) {
     setEditing(r)
-    setForm({ name: r.name, description: r.description ?? '', prep_time_min: String(r.prep_time_min ?? ''), servings: String(r.servings) })
+    setForm({ name: r.name, description: r.description ?? '', prep_time_min: String(r.prep_time_min ?? ''), servings: String(r.servings), external_id: r.external_id ?? '', photo_file_name: r.photo_file_name ?? '' })
     const { data } = await supabase.from('recipe_ingredients').select('*').eq('recipe_id', r.id).order('sort_order')
     setIngredients(data?.map(i => ({ name: i.name, quantity: i.quantity, unit: i.unit ?? '', calories: i.calories, protein_g: i.protein_g, carbs_g: i.carbs_g, fat_g: i.fat_g, sort_order: i.sort_order })) ?? [blankIngredient(0)])
+    setPhotoFile(null)
+    setPhotoPreview(r.photo_url ?? null)
     setEditorOpen(true)
+  }
+
+  function onPhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    setPhotoFile(file)
+    if (file) {
+      setPhotoPreview(URL.createObjectURL(file))
+      if (!form.photo_file_name) setForm(f => ({ ...f, photo_file_name: file.name }))
+    }
   }
 
   const saveRecipe = useMutation({
     mutationFn: async () => {
       const macros = calcMacros(ingredients)
-      const payload = {
+
+      let photoUrl: string | undefined
+      if (photoFile) {
+        const fileName = form.photo_file_name || photoFile.name
+        photoUrl = await uploadRecipePhoto(photoFile, fileName)
+      }
+
+      const payload: Record<string, unknown> = {
         name: form.name,
         description: form.description || null,
         prep_time_min: form.prep_time_min ? Number(form.prep_time_min) : null,
         servings: Number(form.servings),
+        external_id: form.external_id || null,
+        photo_file_name: form.photo_file_name || null,
         ...macros,
+        ...(photoUrl !== undefined ? { photo_url: photoUrl } : {}),
       }
+
       if (editing) {
         const { error: rUpdateErr } = await supabase.from('recipes').update(payload).eq('id', editing.id)
         if (rUpdateErr) throw rUpdateErr
@@ -103,20 +136,31 @@ function RecipesTab() {
     <>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-[var(--text-muted)]">{recipes.length} recipes in library</p>
-        <Button onClick={openCreate}>+ Add recipe</Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => setPhotoUploadOpen(true)}>Upload photos</Button>
+          <Button variant="ghost" onClick={() => setImportOpen(true)}>Import JSON</Button>
+          <Button onClick={openCreate}>+ Add recipe</Button>
+        </div>
       </div>
 
       {isLoading ? <p className="text-sm text-[var(--text-disabled)]">Loading…</p> : (
         <Table>
           <thead>
             <tr>
-              <Th>Name</Th><Th>Calories</Th><Th>Protein</Th><Th>Carbs</Th><Th>Fat</Th><Th>Prep</Th><Th>{''}</Th>
+              <Th>{''}</Th><Th>Name</Th><Th>ID</Th><Th>Calories</Th><Th>Protein</Th><Th>Carbs</Th><Th>Fat</Th><Th>Prep</Th><Th>{''}</Th>
             </tr>
           </thead>
           <tbody>
             {recipes.map(r => (
               <tr key={r.id} className="hover:bg-[var(--bg-card-hover)]">
+                <Td>
+                  {r.photo_url
+                    ? <img src={r.photo_url} alt={r.name} className="w-8 h-8 rounded object-cover" />
+                    : <div className="w-8 h-8 rounded bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center text-[var(--text-disabled)] text-xs">?</div>
+                  }
+                </Td>
                 <Td className="text-[var(--text)] font-semibold">{r.name}</Td>
+                <Td className="text-[var(--text-muted)] text-xs font-mono">{r.external_id ?? '—'}</Td>
                 <Td>{Math.round(r.calories)} kcal</Td>
                 <Td>{r.protein_g.toFixed(1)}g</Td>
                 <Td>{r.carbs_g.toFixed(1)}g</Td>
@@ -134,6 +178,9 @@ function RecipesTab() {
         </Table>
       )}
 
+      <RecipeImportModal open={importOpen} onClose={() => setImportOpen(false)} />
+      <RecipePhotoUploadModal open={photoUploadOpen} onClose={() => setPhotoUploadOpen(false)} />
+
       <Modal
         open={editorOpen}
         onClose={() => setEditorOpen(false)}
@@ -149,10 +196,28 @@ function RecipesTab() {
       >
         <div className="flex flex-col gap-3">
           <Input label="Recipe name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Overnight Oats" required />
+          <Input label="External ID" value={form.external_id} onChange={e => setForm(f => ({ ...f, external_id: e.target.value }))} placeholder="e.g. overnight-oats (stable import key)" />
           <Input label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional" />
           <div className="grid grid-cols-2 gap-3">
             <Input label="Prep time (min)" type="number" value={form.prep_time_min} onChange={e => setForm(f => ({ ...f, prep_time_min: e.target.value }))} />
             <Input label="Servings" type="number" value={form.servings} onChange={e => setForm(f => ({ ...f, servings: e.target.value }))} />
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Photo</p>
+            <div className="flex items-center gap-3">
+              {photoPreview
+                ? <img src={photoPreview} alt="preview" className="w-16 h-16 rounded-lg object-cover border border-[var(--border)]" />
+                : <div className="w-16 h-16 rounded-lg bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center text-[var(--text-disabled)] text-xs">No photo</div>
+              }
+              <div className="flex flex-col gap-1">
+                <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={onPhotoSelected} />
+                <button onClick={() => photoInputRef.current?.click()} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border border-[var(--border)] rounded px-2 py-1 cursor-pointer">
+                  {photoPreview ? 'Change photo' : 'Upload photo'}
+                </button>
+                <Input label="Photo file name" value={form.photo_file_name} onChange={e => setForm(f => ({ ...f, photo_file_name: e.target.value }))} placeholder="e.g. overnight-oats.jpg" />
+              </div>
+            </div>
           </div>
 
           <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 grid grid-cols-4 gap-2 text-center">
@@ -216,6 +281,7 @@ function MealPlansTab() {
   const [editing, setEditing] = useState<MealPlan | null>(null)
   const [form, setForm] = useState({ name: '', description: '', valid_from: '', valid_to: '', is_active: true })
   const [meals, setMeals] = useState<MealDraft[]>([{ name: 'Breakfast', time_of_day: '08:00', recipes: [] }])
+  const [importOpen, setImportOpen] = useState(false)
 
   function openCreate() {
     setEditing(null)
@@ -309,7 +375,10 @@ function MealPlansTab() {
     <>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-[var(--text-muted)]">{mealPlans.length} meal plans</p>
-        <Button onClick={openCreate}>+ Create meal plan</Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => setImportOpen(true)}>Import JSON</Button>
+          <Button onClick={openCreate}>+ Create meal plan</Button>
+        </div>
       </div>
 
       {isLoading ? <p className="text-sm text-[var(--text-disabled)]">Loading…</p> : (
@@ -335,6 +404,8 @@ function MealPlansTab() {
           </tbody>
         </Table>
       )}
+
+      <MealPlanImportModal open={importOpen} onClose={() => setImportOpen(false)} />
 
       <Modal
         open={editorOpen}

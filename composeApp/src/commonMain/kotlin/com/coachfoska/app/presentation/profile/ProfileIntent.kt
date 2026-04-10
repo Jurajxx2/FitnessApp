@@ -18,4 +18,5 @@ sealed interface ProfileIntent {
     data object SignOut : ProfileIntent
     data object DismissError : ProfileIntent
     data object SignedOut : ProfileIntent
+    data object ToggleTheme : ProfileIntent
 }

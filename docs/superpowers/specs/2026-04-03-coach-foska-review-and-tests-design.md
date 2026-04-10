@@ -1,4 +1,4 @@
-# Coach Foška — App Review & Test Implementation Design
+# Coach Foska — App Review & Test Implementation Design
 
 **Date:** 2026-04-03  
 **Scope:** Full app code review, fix all findings, implement unit tests for UseCases + ViewModels + RepositoryImpls  

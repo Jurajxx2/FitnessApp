@@ -2,17 +2,21 @@ package com.coachfoska.app.presentation.home
 
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.Workout
+import com.coachfoska.app.domain.repository.ChatRepository
 import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.auth.aUser
+import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -32,15 +36,22 @@ class HomeViewModelTest {
     private val userRepo: UserRepository = mockk()
     private val workoutRepo: WorkoutRepository = mockk()
     private val mealRepo: MealRepository = mockk()
+    private val chatRepo: ChatRepository = mockk()
 
     private fun viewModel() = HomeViewModel(
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         getAssignedWorkoutsUseCase = GetAssignedWorkoutsUseCase(workoutRepo),
         getDailyNutritionSummaryUseCase = GetDailyNutritionSummaryUseCase(mealRepo),
+        observeChatMessagesUseCase = ObserveChatMessagesUseCase(chatRepo),
         userId = "user-1"
     )
 
-    @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)
+    @BeforeTest
+    fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        every { chatRepo.observeMessages(any(), any()) } returns flowOf(emptyList())
+    }
+
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     @Test
@@ -63,7 +74,7 @@ class HomeViewModelTest {
     fun `loadData with profile failure surfaces error to state`() = runTest {
         coEvery { userRepo.getProfile(any()) } returns Result.failure(RuntimeException("Unauthorized"))
         coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
-        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(mockk())
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
 
         val vm = viewModel()
 
@@ -75,7 +86,7 @@ class HomeViewModelTest {
     fun `loadData with workouts failure surfaces error to state`() = runTest {
         coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
         coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.failure(RuntimeException("Workouts unavailable"))
-        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(mockk())
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
 
         val vm = viewModel()
 
@@ -87,7 +98,7 @@ class HomeViewModelTest {
         val user = aUser()
         coEvery { userRepo.getProfile(any()) } returns Result.success(user)
         coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.failure(RuntimeException("err"))
-        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(mockk())
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
 
         val vm = viewModel()
 
@@ -102,7 +113,7 @@ class HomeViewModelTest {
         val workoutNoDay = Workout(id = "w1", name = "Anytime", dayOfWeek = null, durationMinutes = 60, exercises = emptyList())
         coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
         coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(listOf(workoutNoDay))
-        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(mockk())
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
 
         val vm = viewModel()
 
@@ -113,7 +124,7 @@ class HomeViewModelTest {
     fun `Refresh intent triggers reload`() = runTest {
         coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
         coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
-        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(mockk())
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
         val vm = viewModel()
 
         vm.onIntent(HomeIntent.Refresh)

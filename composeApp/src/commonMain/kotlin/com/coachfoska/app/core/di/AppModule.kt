@@ -37,6 +37,8 @@ import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
 import com.coachfoska.app.domain.usecase.profile.LogWeightUseCase
 import com.coachfoska.app.domain.usecase.profile.UpdateUserProfileUseCase
 import com.coachfoska.app.BuildKonfig
+import com.coachfoska.app.core.theme.ThemeRepository
+import com.russhwolf.settings.Settings
 import com.coachfoska.app.data.ai.ChatAiProvider
 import com.coachfoska.app.data.ai.ClaudeAiProvider
 import com.coachfoska.app.data.remote.datasource.ChatRemoteDataSource
@@ -70,6 +72,11 @@ import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+
+val themeModule = module {
+    single { Settings() }
+    single { ThemeRepository(get()) }
+}
 
 val networkModule = module {
     single { SupabaseClientProvider.client }
@@ -145,7 +152,7 @@ val viewModelModule = module {
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), userId) }
-    viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
     viewModelOf(::ExerciseViewModel)
 }
@@ -171,6 +178,7 @@ val chatModule = module {
 }
 
 val appModules = listOf(
+    themeModule,
     networkModule,
     dataSourceModule,
     repositoryModule,

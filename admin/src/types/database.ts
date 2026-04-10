@@ -93,6 +93,9 @@ export interface MealFood {
 
 export interface Recipe {
   id: string
+  external_id: string | null
+  photo_file_name: string | null
+  photo_url: string | null
   name: string
   description: string | null
   prep_time_min: number | null

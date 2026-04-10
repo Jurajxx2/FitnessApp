@@ -71,6 +71,9 @@ kotlin {
             // Logging
             implementation(libs.napier)
 
+            // Persistent key-value settings
+            implementation(libs.multiplatform.settings)
+
             // Lifecycle / ViewModel (KMP)
             implementation(libs.lifecycle.viewmodel)
             implementation(libs.lifecycle.viewmodel.compose)

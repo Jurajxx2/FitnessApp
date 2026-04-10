@@ -11,5 +11,6 @@ data class ProfileState(
     val isSavingProfile: Boolean = false,
     val isSigningOut: Boolean = false,
     val signedOut: Boolean = false,
+    val isDarkTheme: Boolean = true,
     val error: String? = null
 )

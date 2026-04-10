@@ -12,6 +12,7 @@ supabase = "3.4.1"
 koin = "4.1.1"
 buildkonfig = "0.17.1"
 napier = "2.7.1"
+multiplatform-settings = "1.2.0"
 lifecycle = "2.9.0"
 mockk = "1.13.12"
 turbine = "1.2.0"
@@ -72,6 +73,9 @@ google-identity = { module = "com.google.android.libraries.identity.googleid:goo
 
 # Logging
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
+
+# Settings (KMP persistent key-value storage)
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatform-settings" }
 
 # Testing
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }

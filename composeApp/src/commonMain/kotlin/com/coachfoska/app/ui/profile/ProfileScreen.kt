@@ -56,7 +56,7 @@ fun ProfileScreen(
     state: ProfileState,
     onIntent: (ProfileIntent) -> Unit,
     onProgressClick: () -> Unit,
-    onAboutCoachClick: () -> Unit
+    onAboutCoachClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -124,6 +124,14 @@ fun ProfileScreen(
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
                 ProfileMenuItem(label = stringResource(Res.string.about_foska), onClick = onAboutCoachClick)
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+                ProfileThemeToggleRow(
+                    isDarkTheme = state.isDarkTheme,
+                    onToggle = { onIntent(ProfileIntent.ToggleTheme) }
+                )
                 HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
             }
 
@@ -189,6 +197,34 @@ private fun ProfileStatCard(label: String, value: String, modifier: Modifier = M
                 fontWeight = FontWeight.Bold
             )
         }
+    }
+}
+
+@Composable
+private fun ProfileThemeToggleRow(isDarkTheme: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = if (isDarkTheme) "DARK MODE" else "LIGHT MODE",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            letterSpacing = 1.sp
+        )
+        Switch(
+            checked = isDarkTheme,
+            onCheckedChange = { onToggle() },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.background,
+                checkedTrackColor = MaterialTheme.colorScheme.onBackground,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onBackground,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
     }
 }
 

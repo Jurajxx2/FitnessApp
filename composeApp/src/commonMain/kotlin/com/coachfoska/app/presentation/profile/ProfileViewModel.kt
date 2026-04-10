@@ -2,6 +2,7 @@ package com.coachfoska.app.presentation.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.coachfoska.app.core.theme.ThemeRepository
 import com.coachfoska.app.domain.usecase.auth.SignOutUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
@@ -11,6 +12,8 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -22,6 +25,7 @@ class ProfileViewModel(
     private val getWeightHistoryUseCase: GetWeightHistoryUseCase,
     private val logWeightUseCase: LogWeightUseCase,
     private val signOutUseCase: SignOutUseCase,
+    private val themeRepository: ThemeRepository,
     private val userId: String
 ) : ViewModel() {
 
@@ -29,6 +33,9 @@ class ProfileViewModel(
     val state: StateFlow<ProfileState> = _state.asStateFlow()
 
     init {
+        themeRepository.isDarkTheme
+            .onEach { dark -> _state.update { it.copy(isDarkTheme = dark) } }
+            .launchIn(viewModelScope)
         onIntent(ProfileIntent.LoadProfile)
     }
 
@@ -42,6 +49,7 @@ class ProfileViewModel(
             ProfileIntent.SignOut -> signOut()
             ProfileIntent.DismissError -> _state.update { it.copy(error = null) }
             ProfileIntent.SignedOut -> _state.update { it.copy(signedOut = false) }
+            ProfileIntent.ToggleTheme -> themeRepository.toggle()
         }
     }
 

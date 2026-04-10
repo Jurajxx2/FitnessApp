@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.coachfoska.app.core.theme.ThemeRepository
+import org.koin.compose.koinInject
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
@@ -52,7 +54,10 @@ import com.coachfoska.app.ui.workout.WorkoutListRoute
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
-    CoachFoskaTheme {
+    val themeRepository = koinInject<ThemeRepository>()
+    val isDarkTheme by themeRepository.isDarkTheme.collectAsState()
+
+    CoachFoskaTheme(darkTheme = isDarkTheme) {
         val navController = rememberNavController()
         var currentUserId by remember { mutableStateOf("") }
 
