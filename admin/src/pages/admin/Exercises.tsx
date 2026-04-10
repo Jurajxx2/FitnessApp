@@ -142,7 +142,8 @@ export default function Exercises() {
       }
 
       // Replace muscles
-      await supabase.from('exercise_muscles').delete().eq('exercise_id', exerciseId)
+      const { error: delMusclesErr } = await supabase.from('exercise_muscles').delete().eq('exercise_id', exerciseId)
+      if (delMusclesErr) throw delMusclesErr
       const muscleRows = [
         ...primaryMuscles.map(id => ({ exercise_id: exerciseId, muscle_id: id, is_primary: true })),
         ...secondaryMuscles.map(id => ({ exercise_id: exerciseId, muscle_id: id, is_primary: false })),
@@ -153,7 +154,8 @@ export default function Exercises() {
       }
 
       // Replace equipment
-      await supabase.from('exercise_equipment').delete().eq('exercise_id', exerciseId)
+      const { error: delEquipmentErr } = await supabase.from('exercise_equipment').delete().eq('exercise_id', exerciseId)
+      if (delEquipmentErr) throw delEquipmentErr
       const equipmentRows = selectedEquipment.map(id => ({ exercise_id: exerciseId, equipment_id: id }))
       if (equipmentRows.length > 0) {
         const { error } = await supabase.from('exercise_equipment').insert(equipmentRows)
