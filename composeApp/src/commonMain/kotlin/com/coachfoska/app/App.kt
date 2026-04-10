@@ -36,6 +36,7 @@ import com.coachfoska.app.ui.nutrition.MealCaptureRoute
 import com.coachfoska.app.ui.nutrition.MealDetailRoute
 import com.coachfoska.app.ui.nutrition.MealHistoryRoute
 import com.coachfoska.app.ui.nutrition.MealPlanRoute
+import com.coachfoska.app.ui.recipe.RecipeDetailRoute
 import com.coachfoska.app.ui.onboarding.OnboardingRoute
 import com.coachfoska.app.ui.chat.ChatHubRoute
 import com.coachfoska.app.ui.chat.ChatRoute
@@ -103,6 +104,7 @@ fun App() {
                     currentRoute?.contains("AiCoachChat") == true -> "AI COACH"
                     currentRoute?.contains("MealCapture") == true -> "RECORD MEAL"
                     currentRoute?.contains("MealHistory") == true -> "MEAL HISTORY"
+                    currentRoute?.contains("RecipeDetail") == true -> "RECIPE"
                     currentRoute?.contains("MealDetail") == true -> "MEAL DETAIL"
                     currentRoute?.contains("Progress") == true -> "MY PROGRESS"
                     currentRoute?.contains("AboutCoach") == true -> aboutFoskaTitle
@@ -358,7 +360,7 @@ fun App() {
                         userId = currentUserId,
                         onMealClick = { mealId -> navController.navigate(MealDetail(mealId)) },
                         onRecordMealClick = { navController.navigate(MealCapture) },
-                        onRecipeClick = { recipeId -> navController.navigate(MealDetail(recipeId)) } // Using MealDetail for recipes for now
+                        onRecipeClick = { recipeId -> navController.navigate(RecipeDetail(recipeId)) }
                     )
                 }
 
@@ -383,6 +385,11 @@ fun App() {
                         userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )
+                }
+
+                composable<RecipeDetail> { backStackEntry ->
+                    val route = backStackEntry.toRoute<RecipeDetail>()
+                    RecipeDetailRoute(recipeId = route.recipeId)
                 }
 
                 // ── Chat ─────────────────────────────────────────────────

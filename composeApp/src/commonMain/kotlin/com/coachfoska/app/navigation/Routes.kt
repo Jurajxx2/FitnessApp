@@ -30,6 +30,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class MealDetail(val mealId: String)
 @Serializable object MealCapture
 @Serializable object MealHistory
+@Serializable data class RecipeDetail(val recipeId: String)
 
 // Chat
 @Serializable object Chat
