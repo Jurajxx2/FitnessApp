@@ -6,6 +6,7 @@ import com.coachfoska.app.domain.repository.ChatRepository
 import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
+import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.usecase.auth.aUser
 import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
@@ -14,6 +15,7 @@ import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf

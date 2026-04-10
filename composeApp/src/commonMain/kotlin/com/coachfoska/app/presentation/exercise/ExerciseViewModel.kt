@@ -75,7 +75,7 @@ class ExerciseViewModel(
         }
     }
 
-    private fun loadExerciseDetail(id: Int) {
+    private fun loadExerciseDetail(id: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoadingDetail = true) }
             getExerciseByIdUseCase(id)

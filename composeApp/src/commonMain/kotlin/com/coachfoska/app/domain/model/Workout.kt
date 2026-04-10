@@ -21,9 +21,9 @@ data class WorkoutExercise(
     val reps: String,
     val restSeconds: Int,
     val tips: String?,
-    val wgerExerciseId: Int? = null,
     val videoUrl: String? = null,
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    val exerciseId: String? = null
 )
 
 data class WorkoutLog(

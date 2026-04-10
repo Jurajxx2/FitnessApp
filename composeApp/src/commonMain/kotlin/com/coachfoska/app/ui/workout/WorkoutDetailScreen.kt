@@ -27,7 +27,7 @@ fun WorkoutDetailRoute(
     workoutId: String,
     userId: String,
     onBackClick: () -> Unit,
-    onExerciseClick: (Int) -> Unit,
+    onExerciseClick: (String) -> Unit,
     viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -47,7 +47,7 @@ fun WorkoutDetailRoute(
 fun WorkoutDetailScreen(
     state: WorkoutState,
     onBackClick: () -> Unit,
-    onExerciseClick: (Int) -> Unit
+    onExerciseClick: (String) -> Unit
 ) {
     if (state.isLoading) {
         CoachLoadingBox()
@@ -79,7 +79,7 @@ fun WorkoutDetailScreen(
                         ExerciseRow(
                             index = index + 1,
                             exercise = exercise,
-                            onClick = { exercise.wgerExerciseId?.let { onExerciseClick(it) } }
+                            onClick = { exercise.exerciseId?.let { onExerciseClick(it) } }
                         )
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 24.dp),
