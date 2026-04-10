@@ -34,21 +34,20 @@ export function useAuth(): AuthState {
   useEffect(() => {
     let mounted = true
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return
-      if (session) {
-        const profile = await fetchProfile(session.user.id)
-        setState({ session, user: session.user, profile, isAdmin: profile?.is_admin ?? false, isLoading: false })
-      } else {
-        setState({ ...initialState, isLoading: false })
-      }
-    })
-
+    // onAuthStateChange fires INITIAL_SESSION on mount — covers the same case
+    // as getSession() but without the race condition of two concurrent calls.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
       if (!mounted) return
       if (session) {
-        const profile = await fetchProfile(session.user.id)
-        setState({ session, user: session.user, profile, isAdmin: profile?.is_admin ?? false, isLoading: false })
+        try {
+          const profile = await fetchProfile(session.user.id)
+          if (!mounted) return
+          setState({ session, user: session.user, profile, isAdmin: profile?.is_admin ?? false, isLoading: false })
+        } catch {
+          // Profile fetch failed — treat as unauthenticated rather than hanging
+          if (!mounted) return
+          setState({ ...initialState, isLoading: false })
+        }
       } else {
         setState({ ...initialState, isLoading: false })
       }
