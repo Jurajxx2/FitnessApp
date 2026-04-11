@@ -49,7 +49,8 @@ async function downloadAndUpload(
     if (error) throw error
     const { data } = supabase.storage.from('exercises').getPublicUrl(filename)
     return data.publicUrl
-  } catch {
+  } catch (err) {
+    console.warn(`Image upload failed for ${filename}:`, err)
     return null
   }
 }
@@ -123,12 +124,14 @@ async function importExercises(
         ...(ex.muscles ?? []).map((m: any) => ({ exercise_id: exerciseId, muscle_id: m.id, is_primary: true })),
         ...(ex.muscles_secondary ?? []).map((m: any) => ({ exercise_id: exerciseId, muscle_id: m.id, is_primary: false })),
       ]
-      await supabase.from('exercise_muscles').upsert(muscleRows, { onConflict: 'exercise_id,muscle_id' })
+      const { error: muscleErr } = await supabase.from('exercise_muscles').upsert(muscleRows, { onConflict: 'exercise_id,muscle_id' })
+      if (muscleErr) console.warn(`Muscle upsert failed for exercise ${exerciseId}:`, muscleErr)
     }
 
     if (ex.equipment?.length > 0) {
       const eqRows = ex.equipment.map((e: any) => ({ exercise_id: exerciseId, equipment_id: e.id }))
-      await supabase.from('exercise_equipment').upsert(eqRows, { onConflict: 'exercise_id,equipment_id' })
+      const { error: equipErr } = await supabase.from('exercise_equipment').upsert(eqRows, { onConflict: 'exercise_id,equipment_id' })
+      if (equipErr) console.warn(`Equipment upsert failed for exercise ${exerciseId}:`, equipErr)
     }
 
     imported++
@@ -168,8 +171,9 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } },
     )
-    const { error: authError } = await callerClient.auth.getUser()
-    if (authError) throw new Error('Unauthorized')
+    const { data: { user }, error: authError } = await callerClient.auth.getUser()
+    if (authError || !user) throw new Error('Unauthorized')
+    if (user.app_metadata?.role !== 'admin') throw new Error('Admin role required')
 
     const categories = await importCategories(supabaseAdmin)
     const muscles = await importMuscles(supabaseAdmin)
