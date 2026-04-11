@@ -164,7 +164,8 @@ Deno.serve(async (req) => {
   // Decode payload directly to check admin role without an extra network call.
   try {
     const token = authHeader.replace('Bearer ', '')
-    const payload = JSON.parse(atob(token.split('.')[1]))
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(base64))
     if (payload.app_metadata?.role !== 'admin') {
       return new Response(JSON.stringify({ error: 'Admin role required' }), {
         status: 403,
