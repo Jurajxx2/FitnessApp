@@ -160,20 +160,30 @@ Deno.serve(async (req) => {
     })
   }
 
+  const callerClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } },
+  )
+  const { data: { user }, error: authError } = await callerClient.auth.getUser()
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+  if (user.app_metadata?.role !== 'admin') {
+    return new Response(JSON.stringify({ error: 'Admin role required' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
-
-    const callerClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } },
-    )
-    const { data: { user }, error: authError } = await callerClient.auth.getUser()
-    if (authError || !user) throw new Error('Unauthorized')
-    if (user.app_metadata?.role !== 'admin') throw new Error('Admin role required')
 
     const categories = await importCategories(supabaseAdmin)
     const muscles = await importMuscles(supabaseAdmin)
