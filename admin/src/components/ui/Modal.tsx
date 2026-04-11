@@ -20,14 +20,14 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl w-full max-w-xl mx-4 flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+      <div className="relative z-10 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl w-full max-w-xl mx-3 sm:mx-4 flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--border)]">
           <h2 className="text-base font-bold text-[var(--text)]">{title}</h2>
           <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer border-0 bg-transparent text-xl leading-none">×</button>
         </div>
-        <div className="overflow-y-auto px-6 py-4 flex-1">{children}</div>
+        <div className="overflow-y-auto px-4 sm:px-6 py-4 flex-1">{children}</div>
         {footer && (
-          <div className="px-6 py-4 border-t border-[var(--border)] flex justify-end gap-2">{footer}</div>
+          <div className="px-4 sm:px-6 py-4 border-t border-[var(--border)] flex justify-end gap-2 flex-wrap">{footer}</div>
         )}
       </div>
     </div>

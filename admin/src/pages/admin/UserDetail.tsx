@@ -140,7 +140,7 @@ export default function UserDetail() {
         </div>
 
         {/* Profile info */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
           <Field label="Full name"  value={user.full_name} />
           <Field label="Email"      value={user.email} />
           <Field label="Age"        value={user.age} />

@@ -43,14 +43,14 @@ export default function Users() {
   })
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-lg font-bold text-[var(--text)]">
           Users <span className="text-sm text-[var(--text-disabled)] font-normal ml-2">{users.length} total</span>
         </h1>
       </div>
 
-      <div className="mb-4 max-w-xs">
+      <div className="mb-4 w-full sm:max-w-xs">
         <Input
           placeholder="Search by name or email…"
           value={search}

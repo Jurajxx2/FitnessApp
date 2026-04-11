@@ -114,13 +114,13 @@ export default function Dashboard() {
   const navigate = useNavigate()
 
   return (
-    <div className="p-6 max-w-5xl">
+    <div className="p-4 sm:p-6 max-w-5xl">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-bold text-[var(--text)]">Dashboard</h1>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <StatCard label="Total Users"   value={stats.data?.users    ?? 0} />
         <StatCard label="Workout Plans" value={stats.data?.workouts  ?? 0} />
         <StatCard label="Meal Plans"    value={stats.data?.mealPlans ?? 0} />
@@ -141,7 +141,7 @@ export default function Dashboard() {
       </div>
 
       {/* Panels */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Recent Activity */}
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-5">
           <p className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest mb-3">Recent Activity</p>

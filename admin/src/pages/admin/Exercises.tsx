@@ -188,17 +188,17 @@ export default function Exercises() {
   }
 
   return (
-    <div className="p-6 max-w-6xl">
+    <div className="p-4 sm:p-6 max-w-6xl">
       {/* Filters */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-4">
         <Input
           placeholder="Search by name…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-64"
+          className="w-full sm:w-64"
         />
         <select
-          className="text-sm bg-[var(--bg-card)] border border-[var(--border)] rounded-md px-3 text-[var(--text)]"
+          className="text-sm bg-[var(--bg-card)] border border-[var(--border)] rounded-md px-3 text-[var(--text)] w-full sm:w-auto"
           value={filterCategory ?? ''}
           onChange={e => setFilterCategory(e.target.value ? parseInt(e.target.value) : null)}
         >
@@ -257,8 +257,8 @@ export default function Exercises() {
 
       {/* Editor Modal */}
       <Modal open={editorOpen} onClose={() => setEditorOpen(false)} title={editing ? 'Edit Exercise' : 'Add Exercise'}>
-        <div className="flex flex-col gap-3 min-w-[520px] max-h-[70vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest">Name (EN) *</label>
               <Input value={form.name_en} onChange={e => setForm(f => ({ ...f, name_en: e.target.value }))} />
@@ -269,7 +269,7 @@ export default function Exercises() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest">Description (EN)</label>
               <textarea
@@ -288,7 +288,7 @@ export default function Exercises() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest">Category</label>
               <select
@@ -311,7 +311,7 @@ export default function Exercises() {
                 {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
-            <div className="flex items-end pb-2">
+            <div className="flex items-center sm:items-end sm:pb-2">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
                 <span className="text-sm text-[var(--text-muted)]">Active</span>
@@ -319,7 +319,7 @@ export default function Exercises() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest">Image URL</label>
               <Input value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://…" />

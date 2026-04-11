@@ -118,7 +118,7 @@ export default function Workouts() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-lg font-bold text-[var(--text)]">Workouts</h1>
         <Button onClick={openCreate}>+ Create plan</Button>
@@ -195,7 +195,7 @@ export default function Workouts() {
             <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Exercises</p>
             {exercises.map((ex, i) => (
               <div key={i} className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 mb-2">
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                   <Input label="Exercise name" value={ex.name} onChange={e => updateExercise(i, 'name', e.target.value)} placeholder="e.g. Bench Press" />
                   <Input label="Muscle group" value={ex.muscle_group ?? ''} onChange={e => updateExercise(i, 'muscle_group', e.target.value)} placeholder="e.g. Chest" />
                 </div>

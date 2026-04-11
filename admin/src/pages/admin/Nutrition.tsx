@@ -144,9 +144,9 @@ function RecipesTab() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <p className="text-sm text-[var(--text-muted)]">{recipes.length} recipes in library</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={() => setPhotoUploadOpen(true)}>Upload photos</Button>
           <Button variant="ghost" onClick={() => setImportOpen(true)}>Import JSON</Button>
           <Button onClick={openCreate}>+ Add recipe</Button>
@@ -211,11 +211,11 @@ function RecipesTab() {
           <Input label="External ID" value={form.external_id} onChange={e => setForm(f => ({ ...f, external_id: e.target.value }))} placeholder="e.g. overnight-oats (stable import key)" />
           <Input label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional" />
           <div className="grid grid-cols-3 gap-3">
-            <Input label="Prep time (min)" type="number" value={form.prep_time_min} onChange={e => setForm(f => ({ ...f, prep_time_min: e.target.value }))} />
-            <Input label="Cook time (min)" type="number" value={form.cook_time_min} onChange={e => setForm(f => ({ ...f, cook_time_min: e.target.value }))} />
+            <Input label="Prep (min)" type="number" value={form.prep_time_min} onChange={e => setForm(f => ({ ...f, prep_time_min: e.target.value }))} />
+            <Input label="Cook (min)" type="number" value={form.cook_time_min} onChange={e => setForm(f => ({ ...f, cook_time_min: e.target.value }))} />
             <Input label="Servings" type="number" value={form.servings} onChange={e => setForm(f => ({ ...f, servings: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <p className="text-xs text-[var(--text-muted)] mb-1">Difficulty</p>
               <select
@@ -269,7 +269,7 @@ function RecipesTab() {
             </div>
           </div>
 
-          <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 grid grid-cols-4 gap-2 text-center">
+          <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
             {[['Calories', `${Math.round(macros.calories)} kcal`], ['Protein', `${macros.protein_g.toFixed(1)}g`], ['Carbs', `${macros.carbs_g.toFixed(1)}g`], ['Fat', `${macros.fat_g.toFixed(1)}g`]].map(([label, val]) => (
               <div key={label}>
                 <p className="text-[9px] text-[var(--text-disabled)] uppercase tracking-wider">{label}</p>
@@ -284,10 +284,10 @@ function RecipesTab() {
               <div key={i} className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 mb-2">
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   <Input label="Name" value={ing.name} onChange={e => updateIngredient(i, 'name', e.target.value)} placeholder="e.g. Oats" />
-                  <Input label="Quantity" type="number" value={String(ing.quantity ?? '')} onChange={e => updateIngredient(i, 'quantity', e.target.value ? Number(e.target.value) : null)} />
-                  <Input label="Unit" value={ing.unit ?? ''} onChange={e => updateIngredient(i, 'unit', e.target.value)} placeholder="g, ml, tbsp" />
+                  <Input label="Qty" type="number" value={String(ing.quantity ?? '')} onChange={e => updateIngredient(i, 'quantity', e.target.value ? Number(e.target.value) : null)} />
+                  <Input label="Unit" value={ing.unit ?? ''} onChange={e => updateIngredient(i, 'unit', e.target.value)} placeholder="g, ml…" />
                 </div>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <Input label="Calories" type="number" value={String(ing.calories)} onChange={e => updateIngredient(i, 'calories', Number(e.target.value))} />
                   <Input label="Protein" type="number" value={String(ing.protein_g)} onChange={e => updateIngredient(i, 'protein_g', Number(e.target.value))} />
                   <Input label="Carbs" type="number" value={String(ing.carbs_g)} onChange={e => updateIngredient(i, 'carbs_g', Number(e.target.value))} />
@@ -422,9 +422,9 @@ function MealPlansTab() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <p className="text-sm text-[var(--text-muted)]">{mealPlans.length} meal plans</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={() => setImportOpen(true)}>Import JSON</Button>
           <Button onClick={openCreate}>+ Create meal plan</Button>
         </div>
@@ -472,7 +472,7 @@ function MealPlansTab() {
         <div className="flex flex-col gap-3">
           <Input label="Plan name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
           <Input label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label="Valid from" type="date" value={form.valid_from} onChange={e => setForm(f => ({ ...f, valid_from: e.target.value }))} />
             <Input label="Valid to" type="date" value={form.valid_to} onChange={e => setForm(f => ({ ...f, valid_to: e.target.value }))} />
           </div>
@@ -485,13 +485,13 @@ function MealPlansTab() {
             <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Meal Slots</p>
             {meals.map((meal, mi) => (
               <div key={mi} className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 mb-2">
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                   <Input label="Meal name" value={meal.name} onChange={e => setMeals(ms => ms.map((m, i) => i === mi ? { ...m, name: e.target.value } : m))} placeholder="e.g. Breakfast" />
                   <Input label="Time" type="time" value={meal.time_of_day} onChange={e => setMeals(ms => ms.map((m, i) => i === mi ? { ...m, time_of_day: e.target.value } : m))} />
                 </div>
-                <div className="flex gap-2 items-center">
+                <div className="flex flex-wrap gap-2 items-center">
                   <select
-                    className="flex-1 bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-xs text-[var(--text)] outline-none"
+                    className="flex-1 min-w-0 bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-xs text-[var(--text)] outline-none"
                     defaultValue=""
                     onChange={e => {
                       if (!e.target.value) return
@@ -502,7 +502,7 @@ function MealPlansTab() {
                     <option value="" disabled>Add recipe…</option>
                     {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                   </select>
-                  <button onClick={() => setMeals(ms => ms.filter((_, i) => i !== mi))} className="text-xs text-red-400 bg-transparent border-0 cursor-pointer">Remove slot</button>
+                  <button onClick={() => setMeals(ms => ms.filter((_, i) => i !== mi))} className="text-xs text-red-400 bg-transparent border-0 cursor-pointer whitespace-nowrap">Remove slot</button>
                 </div>
                 {meal.recipes.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
@@ -535,7 +535,7 @@ export default function Nutrition() {
   const [activeTab, setActiveTab] = useState<'recipes' | 'meal-plans'>('recipes')
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-lg font-bold text-[var(--text)]">Nutrition</h1>
       </div>

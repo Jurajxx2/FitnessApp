@@ -91,7 +91,7 @@ export default function Quotes() {
   })
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-lg font-bold text-[var(--text)]">Quotes</h1>
         <Button onClick={openCreate}>+ Add quote</Button>

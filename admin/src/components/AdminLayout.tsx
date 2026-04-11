@@ -22,30 +22,27 @@ function deriveTitle(pathname: string): string {
 
 export function AdminLayout() {
   const [actions, setActions] = useState<React.ReactNode>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const location = useLocation()
   const title = deriveTitle(location.pathname)
 
   return (
     <AdminLayoutContext.Provider value={{ setActions }}>
       <div className="flex h-screen overflow-hidden bg-[var(--bg)]">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <header
-            style={{
-              height: '56px',
-              borderBottom: '1px solid var(--border)',
-              background: 'var(--bg)',
-              padding: '0 1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text)' }}>
-              {title}
-            </span>
-            {actions && <div style={{ display: 'flex', gap: '0.5rem' }}>{actions}</div>}
+        <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <header className="flex items-center justify-between px-4 flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg)]" style={{ height: '56px' }}>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="md:hidden bg-transparent border-0 cursor-pointer text-[var(--text)] text-xl leading-none p-1"
+                aria-label="Open menu"
+              >
+                ☰
+              </button>
+              <span className="font-semibold text-base text-[var(--text)]">{title}</span>
+            </div>
+            {actions && <div className="flex gap-2">{actions}</div>}
           </header>
           <main className="flex-1 overflow-y-auto">
             <Outlet />
