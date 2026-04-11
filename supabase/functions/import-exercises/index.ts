@@ -160,21 +160,20 @@ Deno.serve(async (req) => {
     })
   }
 
-  const callerClient = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } },
-  )
-  const { data: { user }, error: authError } = await callerClient.auth.getUser()
-  if (authError || !user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+  // JWT is already verified by Supabase gateway (verify_jwt: true).
+  // Decode payload directly to check admin role without an extra network call.
+  try {
+    const token = authHeader.replace('Bearer ', '')
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (payload.app_metadata?.role !== 'admin') {
+      return new Response(JSON.stringify({ error: 'Admin role required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid token' }), {
       status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-  if (user.app_metadata?.role !== 'admin') {
-    return new Response(JSON.stringify({ error: 'Admin role required' }), {
-      status: 403,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
