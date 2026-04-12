@@ -160,13 +160,32 @@ Deno.serve(async (req) => {
     })
   }
 
-  // JWT is already verified by Supabase gateway (verify_jwt: true).
-  // Decode payload directly to check admin role without an extra network call.
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  )
+
   try {
-    const token = authHeader.replace('Bearer ', '')
-    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-    const payload = JSON.parse(atob(base64))
-    if (payload.app_metadata?.role !== 'admin') {
+    // Verify the caller is an admin by checking profiles.is_admin.
+    // JWT is already verified by the Supabase gateway (verify_jwt: true).
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    )
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser()
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single()
+    if (!profile?.is_admin) {
       return new Response(JSON.stringify({ error: 'Admin role required' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -180,11 +199,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    )
-
     const categories = await importCategories(supabaseAdmin)
     const muscles = await importMuscles(supabaseAdmin)
     const equipment = await importEquipment(supabaseAdmin)

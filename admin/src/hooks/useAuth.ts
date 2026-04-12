@@ -50,6 +50,13 @@ export function useAuth(): AuthState {
     let _mounted = true
     const mounted = () => _mounted
 
+    // Safety net: if auth resolution hangs (e.g. Supabase cross-tab lock not
+    // released), stop showing the loading spinner after 8 s and fall through to
+    // the unauthenticated state so the user can try again.
+    const fallbackTimer = setTimeout(() => {
+      if (_mounted) setState({ ...initialState, isLoading: false })
+    }, 8000)
+
     // getSession() reliably returns the stored session on page load.
     // INITIAL_SESSION from onAuthStateChange can be missed in React StrictMode
     // (the event fires async; by the time it fires, the first subscription has
@@ -57,6 +64,7 @@ export function useAuth(): AuthState {
     supabase.auth.getSession()
       .then(({ data: { session } }) => resolveSession(session, setState, mounted))
       .catch(() => { if (_mounted) setState({ ...initialState, isLoading: false }) })
+      .finally(() => clearTimeout(fallbackTimer))
 
     // Subscribe to subsequent auth changes (sign-out, token refresh, etc.).
     // INITIAL_SESSION is skipped here — getSession() above handles initial load.
@@ -68,6 +76,7 @@ export function useAuth(): AuthState {
 
     return () => {
       _mounted = false
+      clearTimeout(fallbackTimer)
       subscription.unsubscribe()
     }
   }, [])

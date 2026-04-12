@@ -2,11 +2,21 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
 import type { DailyQuote } from '../types/database'
 
 export default function Landing() {
   const navigate = useNavigate()
+  const { session, isAdmin, isLoading: authLoading } = useAuth()
   const [quote, setQuote] = useState<DailyQuote | null>(null)
+
+  // Redirect authenticated users directly to the appropriate destination.
+  useEffect(() => {
+    if (authLoading) return
+    if (session) {
+      navigate(isAdmin ? '/admin' : '/403', { replace: true })
+    }
+  }, [authLoading, session, isAdmin, navigate])
 
   useEffect(() => {
     supabase
@@ -28,7 +38,7 @@ export default function Landing() {
           <a href="#features" className="text-sm text-zinc-500 hover:text-white transition-colors">Features</a>
           <a href="#how"      className="text-sm text-zinc-500 hover:text-white transition-colors">How it works</a>
           <button
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate(session ? (isAdmin ? '/admin' : '/403') : '/auth')}
             className="px-5 py-2 bg-white text-black text-sm font-semibold rounded-md hover:opacity-85 transition-opacity cursor-pointer border-0"
           >
             Login →

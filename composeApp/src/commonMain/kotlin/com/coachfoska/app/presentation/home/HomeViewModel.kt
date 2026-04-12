@@ -33,6 +33,8 @@ class HomeViewModel(
     private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
+    private var initialLoadStarted = false
+
     init {
         onIntent(HomeIntent.LoadData)
     }
@@ -40,11 +42,17 @@ class HomeViewModel(
     fun onIntent(intent: HomeIntent) {
         Napier.d("onIntent: $intent", tag = TAG)
         when (intent) {
-            HomeIntent.LoadData, HomeIntent.Refresh -> loadData()
+            HomeIntent.LoadData -> loadData(force = false)
+            HomeIntent.Refresh -> loadData(force = true)
         }
     }
 
-    private fun loadData() {
+    private fun loadData(force: Boolean = false) {
+        if (!force && (initialLoadStarted || _state.value.isLoading)) {
+            Napier.d("loadData skipped — already loaded or in progress", tag = TAG)
+            return
+        }
+        initialLoadStarted = true
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             val today = todayDate()

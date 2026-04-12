@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
 import { Input, Button } from '../components/ui'
 
 export default function Login() {
@@ -8,6 +9,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const { session, isAdmin, isLoading: authLoading } = useAuth()
+
+  // Redirect already-authenticated users so they don't see the login form.
+  useEffect(() => {
+    if (authLoading) return
+    if (session) {
+      navigate(isAdmin ? '/admin' : '/403', { replace: true })
+    }
+  }, [authLoading, session, isAdmin, navigate])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -24,6 +34,15 @@ export default function Login() {
       sessionStorage.setItem('otp-email', email.trim().toLowerCase())
       navigate('/auth/verify')
     }
+  }
+
+  // Don't flash the login form while we're resolving the existing session.
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <p className="text-[var(--text-muted)] text-sm">Loading…</p>
+      </div>
+    )
   }
 
   return (
