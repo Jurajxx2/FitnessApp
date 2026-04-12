@@ -25,8 +25,18 @@ export default function Verify() {
 
   function handleDigitChange(index: number, value: string) {
     if (!/^\d*$/.test(value)) return
+    // Handle paste: spread digits across boxes starting from current position
+    if (value.length > 1) {
+      const pasted = value.slice(0, 6 - index)
+      const next = [...digits]
+      for (let i = 0; i < pasted.length; i++) next[index + i] = pasted[i]
+      setDigits(next)
+      const nextFocus = Math.min(index + pasted.length, 5)
+      inputs.current[nextFocus]?.focus()
+      return
+    }
     const next = [...digits]
-    next[index] = value.slice(-1)
+    next[index] = value
     setDigits(next)
     if (value && index < 5) inputs.current[index + 1]?.focus()
   }

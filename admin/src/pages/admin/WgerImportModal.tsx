@@ -22,7 +22,10 @@ export default function WgerImportModal({ open, onClose }: Props) {
   async function runImport() {
     setState({ status: 'running' })
     try {
-      const { data, error } = await supabase.functions.invoke('import-exercises')
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data, error } = await supabase.functions.invoke('import-exercises', {
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+      })
       if (error) throw error
       const result = data as { categories: number; muscles: number; equipment: number; imported: number; skipped: number }
       setState({ status: 'done', ...result })
