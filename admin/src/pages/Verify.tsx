@@ -53,15 +53,45 @@ export default function Verify() {
     if (token.length < 6) return
     setError('')
     setLoading(true)
-    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
-    setLoading(false)
-    if (error) {
-      setError(error.message)
-      return
+
+    try {
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'magiclink'
+      })
+
+      if (verifyError) {
+        setError(verifyError.message)
+        setLoading(false)
+        return
+      }
+
+      if (!data.user) {
+        setError('Verification failed: No user returned')
+        setLoading(false)
+        return
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', data.user.id)
+        .single()
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError)
+        // Fall through to navigate(false) -> /403
+      }
+
+      sessionStorage.removeItem('otp-email')
+      navigate(profile?.is_admin ? '/admin' : '/403', { replace: true })
+    } catch (err) {
+      console.error('Unexpected verification error:', err)
+      setError('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', data.user!.id).single()
-    sessionStorage.removeItem('otp-email')
-    navigate(profile?.is_admin ? '/admin' : '/403', { replace: true })
   }
 
   async function handleResend() {
