@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
 import { useAdminLayoutActions } from '../../components/AdminLayout'
 import ImportExercisesModal from './ImportExercisesModal'
-import type { Exercise, ExerciseCategory, Muscle, Equipment, Difficulty } from '../../types/database'
+import type { Exercise, ExerciseCategory, Difficulty } from '../../types/database'
 
 const DIFFICULTIES: Difficulty[] = ['beginner', 'intermediate', 'advanced']
 
@@ -31,25 +31,6 @@ function useCategories() {
   })
 }
 
-function useMuscles() {
-  return useQuery<Muscle[]>({
-    queryKey: ['muscles'],
-    queryFn: async () => {
-      const { data } = await supabase.from('muscles').select('*').order('name')
-      return data ?? []
-    },
-  })
-}
-
-function useEquipment() {
-  return useQuery<Equipment[]>({
-    queryKey: ['equipment'],
-    queryFn: async () => {
-      const { data } = await supabase.from('equipment').select('*').order('name')
-      return data ?? []
-    },
-  })
-}
 
 interface ExerciseFormState {
   name_en: string
@@ -62,13 +43,17 @@ interface ExerciseFormState {
   difficulty: string
   force: string
   mechanic: string
+  primary_muscles: string
+  secondary_muscles: string
+  equipment_names: string
   is_active: boolean
 }
 
 const blankForm = (): ExerciseFormState => ({
   name_en: '', description_en: '', name_cs: '', description_cs: '',
   category_id: '', image_url: '', video_url: '', difficulty: '',
-  force: '', mechanic: '', is_active: true,
+  force: '', mechanic: '', primary_muscles: '', secondary_muscles: '',
+  equipment_names: '', is_active: true,
 })
 
 export default function Exercises() {
@@ -79,22 +64,14 @@ export default function Exercises() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Exercise | null>(null)
   const [form, setForm] = useState<ExerciseFormState>(blankForm())
-  const [primaryMuscles, setPrimaryMuscles] = useState<number[]>([])
-  const [secondaryMuscles, setSecondaryMuscles] = useState<number[]>([])
-  const [selectedEquipment, setSelectedEquipment] = useState<number[]>([])
   const [importModalOpen, setImportModalOpen] = useState(false)
 
   const { data: exercises = [], isLoading } = useExercises(search, filterCategory)
   const { data: categories = [] } = useCategories()
-  const { data: muscles = [] } = useMuscles()
-  const { data: equipment = [] } = useEquipment()
 
   function openCreate() {
     setEditing(null)
     setForm(blankForm())
-    setPrimaryMuscles([])
-    setSecondaryMuscles([])
-    setSelectedEquipment([])
     setEditorOpen(true)
   }
 
@@ -109,20 +86,19 @@ export default function Exercises() {
       image_url: ex.image_url ?? '',
       video_url: ex.video_url ?? '',
       difficulty: ex.difficulty ?? '',
+      force: ex.force ?? '',
+      mechanic: ex.mechanic ?? '',
+      primary_muscles: (ex.primary_muscles ?? []).join(', '),
+      secondary_muscles: (ex.secondary_muscles ?? []).join(', '),
+      equipment_names: (ex.equipment_names ?? []).join(', '),
       is_active: ex.is_active,
     })
-    const [musclesRes, equipmentRes] = await Promise.all([
-      supabase.from('exercise_muscles').select('*').eq('exercise_id', ex.id),
-      supabase.from('exercise_equipment').select('*').eq('exercise_id', ex.id),
-    ])
-    setPrimaryMuscles((musclesRes.data ?? []).filter(m => m.is_primary).map(m => m.muscle_id))
-    setSecondaryMuscles((musclesRes.data ?? []).filter(m => !m.is_primary).map(m => m.muscle_id))
-    setSelectedEquipment((equipmentRes.data ?? []).map(e => e.equipment_id))
     setEditorOpen(true)
   }
 
   const saveExercise = useMutation({
     mutationFn: async () => {
+      const toArray = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean)
       const payload = {
         name_en: form.name_en,
         description_en: form.description_en,
@@ -132,38 +108,19 @@ export default function Exercises() {
         image_url: form.image_url || null,
         video_url: form.video_url || null,
         difficulty: (form.difficulty as Difficulty) || null,
+        force: form.force || null,
+        mechanic: form.mechanic || null,
+        primary_muscles: toArray(form.primary_muscles),
+        secondary_muscles: toArray(form.secondary_muscles),
+        equipment_names: toArray(form.equipment_names),
         is_active: form.is_active,
       }
 
-      let exerciseId: string
       if (editing) {
         const { error } = await supabase.from('exercises').update(payload).eq('id', editing.id)
         if (error) throw error
-        exerciseId = editing.id
       } else {
-        const { data, error } = await supabase.from('exercises').insert(payload).select('id').single()
-        if (error) throw error
-        exerciseId = data.id
-      }
-
-      // Replace muscles
-      const { error: delMusclesErr } = await supabase.from('exercise_muscles').delete().eq('exercise_id', exerciseId)
-      if (delMusclesErr) throw delMusclesErr
-      const muscleRows = [
-        ...primaryMuscles.map(id => ({ exercise_id: exerciseId, muscle_id: id, is_primary: true })),
-        ...secondaryMuscles.map(id => ({ exercise_id: exerciseId, muscle_id: id, is_primary: false })),
-      ]
-      if (muscleRows.length > 0) {
-        const { error } = await supabase.from('exercise_muscles').insert(muscleRows)
-        if (error) throw error
-      }
-
-      // Replace equipment
-      const { error: delEquipmentErr } = await supabase.from('exercise_equipment').delete().eq('exercise_id', exerciseId)
-      if (delEquipmentErr) throw delEquipmentErr
-      const equipmentRows = selectedEquipment.map(id => ({ exercise_id: exerciseId, equipment_id: id }))
-      if (equipmentRows.length > 0) {
-        const { error } = await supabase.from('exercise_equipment').insert(equipmentRows)
+        const { error } = await supabase.from('exercises').insert(payload).select('id').single()
         if (error) throw error
       }
     },
@@ -190,10 +147,6 @@ export default function Exercises() {
     )
     return () => setActions(null)
   }, [])
-
-  function toggleMuscle(id: number, list: number[], setList: (v: number[]) => void) {
-    setList(list.includes(id) ? list.filter(m => m !== id) : [...list, id])
-  }
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl">
@@ -338,65 +291,19 @@ export default function Exercises() {
             </div>
           </div>
 
-          {/* Muscles */}
           <div>
-            <label className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest block mb-1">Primary Muscles</label>
-            <div className="flex flex-wrap gap-1">
-              {muscles.map(m => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => toggleMuscle(m.id, primaryMuscles, setPrimaryMuscles)}
-                  className={`text-xs px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
-                    primaryMuscles.includes(m.id)
-                      ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-                      : 'text-[var(--text-muted)] border-[var(--border)]'
-                  }`}
-                >
-                  {m.name}
-                </button>
-              ))}
-            </div>
+            <label className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest block mb-1">Primary Muscles <span className="normal-case">(comma-separated)</span></label>
+            <Input value={form.primary_muscles} onChange={e => setForm(f => ({ ...f, primary_muscles: e.target.value }))} placeholder="e.g. chest, triceps" />
           </div>
 
           <div>
-            <label className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest block mb-1">Secondary Muscles</label>
-            <div className="flex flex-wrap gap-1">
-              {muscles.map(m => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => toggleMuscle(m.id, secondaryMuscles, setSecondaryMuscles)}
-                  className={`text-xs px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
-                    secondaryMuscles.includes(m.id)
-                      ? 'bg-blue-500 text-white border-blue-500'
-                      : 'text-[var(--text-muted)] border-[var(--border)]'
-                  }`}
-                >
-                  {m.name}
-                </button>
-              ))}
-            </div>
+            <label className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest block mb-1">Secondary Muscles <span className="normal-case">(comma-separated)</span></label>
+            <Input value={form.secondary_muscles} onChange={e => setForm(f => ({ ...f, secondary_muscles: e.target.value }))} placeholder="e.g. shoulders" />
           </div>
 
           <div>
-            <label className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest block mb-1">Equipment</label>
-            <div className="flex flex-wrap gap-1">
-              {equipment.map(eq => (
-                <button
-                  key={eq.id}
-                  type="button"
-                  onClick={() => toggleMuscle(eq.id, selectedEquipment, setSelectedEquipment)}
-                  className={`text-xs px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
-                    selectedEquipment.includes(eq.id)
-                      ? 'bg-orange-500 text-white border-orange-500'
-                      : 'text-[var(--text-muted)] border-[var(--border)]'
-                  }`}
-                >
-                  {eq.name}
-                </button>
-              ))}
-            </div>
+            <label className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest block mb-1">Equipment <span className="normal-case">(comma-separated)</span></label>
+            <Input value={form.equipment_names} onChange={e => setForm(f => ({ ...f, equipment_names: e.target.value }))} placeholder="e.g. barbell, bench" />
           </div>
 
           {saveExercise.error && (
