@@ -75,7 +75,7 @@ export default function Exercises() {
     setEditorOpen(true)
   }
 
-  async function openEdit(ex: Exercise) {
+  function openEdit(ex: Exercise) {
     setEditing(ex)
     setForm({
       name_en: ex.name_en,
