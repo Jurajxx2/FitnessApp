@@ -19,6 +19,7 @@ import com.coachfoska.app.presentation.exercise.ExerciseIntent
 import com.coachfoska.app.presentation.exercise.ExerciseState
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -51,10 +52,11 @@ fun ExerciseByCategoryScreen(
     onBackClick: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        CoachTopBar(title = categoryName.uppercase(), onBackClick = onBackClick)
         when {
-            state.isCategoryExercisesLoading -> CoachLoadingBox()
+            state.isCategoryExercisesLoading -> CoachLoadingBox(Modifier.weight(1f))
             state.error != null -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     Text(
                         text = state.error,
                         color = MaterialTheme.colorScheme.error,
@@ -64,6 +66,7 @@ fun ExerciseByCategoryScreen(
             }
             else -> {
                 LazyColumn(
+                    modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {

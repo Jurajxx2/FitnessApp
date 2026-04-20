@@ -39,6 +39,7 @@ import com.coachfoska.app.presentation.chat.ChatViewModel
 import com.coachfoska.app.ui.chat.components.ChatBubble
 import com.coachfoska.app.ui.chat.components.ChatInputBar
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -47,12 +48,14 @@ import org.koin.core.parameter.parametersOf
 fun ChatRoute(
     userId: String,
     chatType: ChatType,
+    onBackClick: () -> Unit,
     viewModel: ChatViewModel = koinViewModel { parametersOf(userId, chatType) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     ChatScreen(
         state = state,
         chatType = chatType,
+        onBackClick = onBackClick,
         onIntent = viewModel::onIntent
     )
 }
@@ -61,6 +64,7 @@ fun ChatRoute(
 fun ChatScreen(
     state: ChatState,
     chatType: ChatType,
+    onBackClick: () -> Unit,
     onIntent: (ChatIntent) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -101,6 +105,10 @@ fun ChatScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        CoachTopBar(
+            title = when (chatType) { ChatType.Human -> "COACH"; ChatType.Ai -> "AI COACH" },
+            onBackClick = onBackClick
+        )
         if (state.isLoading) {
             LinearProgressIndicator(
                 modifier = Modifier.fillMaxWidth(),

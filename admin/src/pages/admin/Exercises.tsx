@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
 import { useAdminLayoutActions } from '../../components/AdminLayout'
-import WgerImportModal from './WgerImportModal'
+import ImportExercisesModal from './ImportExercisesModal'
 import type { Exercise, ExerciseCategory, Muscle, Equipment, Difficulty } from '../../types/database'
 
 const DIFFICULTIES: Difficulty[] = ['beginner', 'intermediate', 'advanced']
@@ -60,12 +60,15 @@ interface ExerciseFormState {
   image_url: string
   video_url: string
   difficulty: string
+  force: string
+  mechanic: string
   is_active: boolean
 }
 
 const blankForm = (): ExerciseFormState => ({
   name_en: '', description_en: '', name_cs: '', description_cs: '',
-  category_id: '', image_url: '', video_url: '', difficulty: '', is_active: true,
+  category_id: '', image_url: '', video_url: '', difficulty: '',
+  force: '', mechanic: '', is_active: true,
 })
 
 export default function Exercises() {
@@ -181,7 +184,7 @@ export default function Exercises() {
   useEffect(() => {
     setActions(
       <div className="flex gap-2">
-        <Button variant="ghost" onClick={() => setImportModalOpen(true)}>Import from wger</Button>
+        <Button variant="ghost" onClick={() => setImportModalOpen(true)}>Sync Exercises</Button>
         <Button variant="primary" onClick={openCreate}>+ Add Exercise</Button>
       </div>
     )
@@ -413,7 +416,7 @@ export default function Exercises() {
         </div>
       </Modal>
 
-      <WgerImportModal open={importModalOpen} onClose={() => setImportModalOpen(false)} />
+      <ImportExercisesModal open={importModalOpen} onClose={() => setImportModalOpen(false)} />
     </div>
   )
 }

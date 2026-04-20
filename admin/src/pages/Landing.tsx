@@ -7,16 +7,8 @@ import type { DailyQuote } from '../types/database'
 
 export default function Landing() {
   const navigate = useNavigate()
-  const { session, isAdmin, isLoading: authLoading } = useAuth()
+  const { session, isAdmin, isLoading: authLoading, profile } = useAuth()
   const [quote, setQuote] = useState<DailyQuote | null>(null)
-
-  // Redirect authenticated users directly to the appropriate destination.
-  useEffect(() => {
-    if (authLoading) return
-    if (session) {
-      navigate(isAdmin ? '/admin' : '/403', { replace: true })
-    }
-  }, [authLoading, session, isAdmin, navigate])
 
   useEffect(() => {
     supabase
@@ -28,6 +20,14 @@ export default function Landing() {
       .then(({ data }) => setQuote(data))
   }, [])
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <p className="text-[var(--text-muted)] text-sm">Loading…</p>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* NAV */}
@@ -37,12 +37,27 @@ export default function Landing() {
           <a href="#about"    className="text-sm text-zinc-500 hover:text-white transition-colors">About</a>
           <a href="#features" className="text-sm text-zinc-500 hover:text-white transition-colors">Features</a>
           <a href="#how"      className="text-sm text-zinc-500 hover:text-white transition-colors">How it works</a>
-          <button
-            onClick={() => navigate(session ? (isAdmin ? '/admin' : '/403') : '/auth')}
-            className="px-5 py-2 bg-white text-black text-sm font-semibold rounded-md hover:opacity-85 transition-opacity cursor-pointer border-0"
-          >
-            Login →
-          </button>
+          
+          {session ? (
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-zinc-500 hidden sm:inline">
+                Logged in as <span className="text-zinc-300">{profile?.full_name || session.user.email}</span>
+              </span>
+              <button
+                onClick={() => navigate(isAdmin ? '/admin' : '/403')}
+                className="px-5 py-2 bg-white text-black text-sm font-semibold rounded-md hover:opacity-85 transition-opacity cursor-pointer border-0"
+              >
+                Go to App →
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('/auth')}
+              className="px-5 py-2 bg-white text-black text-sm font-semibold rounded-md hover:opacity-85 transition-opacity cursor-pointer border-0"
+            >
+              Login →
+            </button>
+          )}
         </div>
       </nav>
 

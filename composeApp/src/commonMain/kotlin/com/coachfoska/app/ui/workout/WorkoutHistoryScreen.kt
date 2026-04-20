@@ -26,6 +26,7 @@ import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -51,24 +52,27 @@ fun WorkoutHistoryScreen(
     onBackClick: () -> Unit,
     onLogClick: (String) -> Unit
 ) {
-    if (state.isHistoryLoading) {
-        CoachLoadingBox()
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(state.workoutHistory) { log ->
-                WorkoutHistoryDetailCard(log = log, onClick = { onLogClick(log.id) })
-            }
-            if (state.workoutHistory.isEmpty()) {
-                item {
-                    Text(
-                        text = "No workouts logged yet.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                    )
+    Column(modifier = Modifier.fillMaxSize()) {
+        CoachTopBar(title = "WORKOUT HISTORY", onBackClick = onBackClick)
+        if (state.isHistoryLoading) {
+            CoachLoadingBox(Modifier.weight(1f))
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(state.workoutHistory) { log ->
+                    WorkoutHistoryDetailCard(log = log, onClick = { onLogClick(log.id) })
+                }
+                if (state.workoutHistory.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No workouts logged yet.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                        )
+                    }
                 }
             }
         }

@@ -14,6 +14,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.coachfoska.app.core.util.currentInstant
@@ -66,13 +67,7 @@ class HomeViewModel(
             val nutritionDeferred = async { getDailyNutritionSummaryUseCase(userId, today) }
             val chatDeferred = async {
                 runCatching {
-                    var lastMessage: com.coachfoska.app.domain.model.ChatMessage? = null
-                    observeChatMessagesUseCase(userId, ChatType.Human).collect { messages ->
-                        lastMessage = messages.lastOrNull()
-                        // Take only the first emission for the home preview
-                        return@collect
-                    }
-                    lastMessage
+                    observeChatMessagesUseCase(userId, ChatType.Human).first().lastOrNull()
                 }.getOrNull()
             }
 

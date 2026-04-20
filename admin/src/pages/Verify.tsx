@@ -58,7 +58,7 @@ export default function Verify() {
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
         email,
         token,
-        type: 'magiclink'
+        type: 'email'
       })
 
       if (verifyError) {
@@ -81,14 +81,13 @@ export default function Verify() {
 
       if (profileError) {
         console.error('Error fetching profile:', profileError)
-        // Fall through to navigate(false) -> /403
       }
 
       sessionStorage.removeItem('otp-email')
       navigate(profile?.is_admin ? '/admin' : '/403', { replace: true })
-    } catch (err) {
+    } catch (err: any) {
       console.error('Unexpected verification error:', err)
-      setError('An unexpected error occurred. Please try again.')
+      setError(err.message || 'An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }

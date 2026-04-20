@@ -6,6 +6,7 @@ sealed interface NutritionIntent {
     data object LoadMealPlan : NutritionIntent
     data object LoadHistory : NutritionIntent
     data class SelectMeal(val mealId: String) : NutritionIntent
+    data class SelectMealLog(val logId: String) : NutritionIntent
     data object LoadRecipes : NutritionIntent
     data class LogMeal(
         val mealName: String,

@@ -5,17 +5,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coachfoska.composeapp.generated.resources.Res
+import androidx.compose.foundation.Image
+import io.github.alexzhirkevich.compottie.Compottie
+import io.github.alexzhirkevich.compottie.LottieCompositionSpec
+import io.github.alexzhirkevich.compottie.rememberLottieComposition
+import io.github.alexzhirkevich.compottie.rememberLottiePainter
 
 @Composable
 fun CoachButton(
@@ -111,11 +119,29 @@ fun CoachSectionHeader(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun CoachLoadingBox(modifier: Modifier = Modifier.fillMaxSize()) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(
-            color = MaterialTheme.colorScheme.onBackground,
-            strokeWidth = 2.dp,
-            modifier = Modifier.size(32.dp)
+    val composition by rememberLottieComposition {
+        LottieCompositionSpec.JsonString(
+            Res.readBytes("files/barbell_loader.json").decodeToString()
         )
+    }
+
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        if (composition != null) {
+            Image(
+                painter = rememberLottiePainter(
+                    composition = composition,
+                    iterations = Compottie.IterateForever
+                ),
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                modifier = Modifier.sizeIn(maxWidth = 200.dp, maxHeight = 200.dp).fillMaxSize()
+            )
+        } else {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.onBackground,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(32.dp)
+            )
+        }
     }
 }

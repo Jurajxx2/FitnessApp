@@ -9,6 +9,7 @@ data class NutritionState(
     val mealPlan: MealPlan? = null,
     val selectedMeal: Meal? = null,
     val mealHistory: List<MealLog> = emptyList(),
+    val selectedMealLog: MealLog? = null,
     val isHistoryLoading: Boolean = false,
     val recipes: List<com.coachfoska.app.domain.model.Recipe> = emptyList(),
     val isRecipesLoading: Boolean = false,

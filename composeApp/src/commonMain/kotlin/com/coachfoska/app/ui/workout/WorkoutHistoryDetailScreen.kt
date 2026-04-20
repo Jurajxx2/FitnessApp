@@ -23,6 +23,7 @@ import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -56,14 +57,16 @@ fun WorkoutHistoryDetailScreen(
     onBackClick: () -> Unit,
     onCaptureVideo: (String) -> Unit
 ) {
-    if (state.isHistoryLoading && state.selectedWorkoutLog == null) {
-        CoachLoadingBox()
-    } else {
-        state.selectedWorkoutLog?.let { log ->
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 32.dp)
-            ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        CoachTopBar(title = "SESSION DETAIL", onBackClick = onBackClick)
+        if (state.isHistoryLoading && state.selectedWorkoutLog == null) {
+            CoachLoadingBox(Modifier.weight(1f))
+        } else {
+            state.selectedWorkoutLog?.let { log ->
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
                     item {
                         Column(modifier = Modifier.padding(24.dp)) {
                             Text(
@@ -125,11 +128,13 @@ fun WorkoutHistoryDetailScreen(
                         )
                     }
                 }
-            } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            } ?: Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(text = "Log not found", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
             }
         }
+    }
 }
+
 @Composable
 private fun ExerciseLogDetailRow(
     log: ExerciseLog,

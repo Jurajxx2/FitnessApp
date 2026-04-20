@@ -14,10 +14,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.core.util.MediaCaptureMode
 import com.coachfoska.app.domain.model.MealLogFood
@@ -27,6 +30,7 @@ import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
@@ -81,13 +85,15 @@ fun MealCaptureScreen(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(32.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        CoachTopBar(title = "RECORD MEAL", onBackClick = onBackClick)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp)
+        ) {
         CoachTextField(
             value = mealName,
             onValueChange = { mealName = it },
@@ -126,6 +132,18 @@ fun MealCaptureScreen(
                     style = MaterialTheme.typography.labelLarge
                 )
             }
+        }
+
+        if (mediaUri != null) {
+            AsyncImage(
+                model = mediaUri,
+                contentDescription = "Meal photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            )
         }
 
         CoachSectionHeader(text = stringResource(Res.string.food_items_section))
@@ -196,6 +214,7 @@ fun MealCaptureScreen(
         )
 
         Spacer(modifier = Modifier.height(48.dp))
+        }
     }
 }
 

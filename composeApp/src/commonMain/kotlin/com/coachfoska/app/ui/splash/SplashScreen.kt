@@ -5,20 +5,26 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
 import com.coachfoska.app.presentation.splash.SplashNavState
 import com.coachfoska.app.presentation.splash.SplashViewModel
+import io.github.alexzhirkevich.compottie.Compottie
+import io.github.alexzhirkevich.compottie.LottieCompositionSpec
+import io.github.alexzhirkevich.compottie.rememberLottieComposition
+import io.github.alexzhirkevich.compottie.rememberLottiePainter
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -46,6 +52,12 @@ fun SplashRoute(
 fun SplashScreen() {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
+
+    val composition by rememberLottieComposition {
+        LottieCompositionSpec.JsonString(
+            Res.readBytes("files/barbell_loader.json").decodeToString()
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -78,11 +90,15 @@ fun SplashScreen() {
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 8.sp
                 )
-                Spacer(modifier = Modifier.height(32.dp))
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.onBackground,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(24.dp)
+                Spacer(modifier = Modifier.height(24.dp))
+                Image(
+                    painter = rememberLottiePainter(
+                        composition = composition,
+                        iterations = Compottie.IterateForever
+                    ),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(160.dp)
                 )
             }
         }

@@ -2,6 +2,7 @@ package com.coachfoska.app.ui.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,6 +20,7 @@ fun CoachTopBar(
     onBackClick: (() -> Unit)? = null
 ) {
     TopAppBar(
+        windowInsets = WindowInsets(0),
         title = {
             Text(
                 text = title,

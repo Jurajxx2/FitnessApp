@@ -74,6 +74,9 @@ kotlin {
             // Persistent key-value settings
             implementation(libs.multiplatform.settings)
 
+            // Lottie for Compose Multiplatform
+            implementation(libs.compottie)
+
             // Lifecycle / ViewModel (KMP)
             implementation(libs.lifecycle.viewmodel)
             implementation(libs.lifecycle.viewmodel.compose)

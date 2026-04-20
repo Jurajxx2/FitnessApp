@@ -7,14 +7,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import com.coachfoska.app.core.theme.ThemeRepository
 import org.koin.compose.koinInject
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -23,9 +20,6 @@ import androidx.navigation.toRoute
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.navigation.*
 import com.coachfoska.app.theme.CoachFoskaTheme
-import coachfoska.composeapp.generated.resources.Res
-import coachfoska.composeapp.generated.resources.*
-import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.ui.auth.EmailOtpRoute
 import com.coachfoska.app.ui.auth.VerifyOtpRoute
 import com.coachfoska.app.ui.auth.WelcomeRoute
@@ -34,6 +28,7 @@ import com.coachfoska.app.ui.components.BottomNavTab
 import com.coachfoska.app.ui.home.HomeRoute
 import com.coachfoska.app.ui.nutrition.MealCaptureRoute
 import com.coachfoska.app.ui.nutrition.MealDetailRoute
+import com.coachfoska.app.ui.nutrition.MealHistoryDetailRoute
 import com.coachfoska.app.ui.nutrition.MealHistoryRoute
 import com.coachfoska.app.ui.nutrition.MealPlanRoute
 import com.coachfoska.app.ui.recipe.RecipeDetailRoute
@@ -52,7 +47,6 @@ import com.coachfoska.app.ui.workout.WorkoutHistoryRoute
 import com.coachfoska.app.ui.workout.WorkoutHistoryDetailRoute
 import com.coachfoska.app.ui.workout.WorkoutListRoute
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
     val themeRepository = koinInject<ThemeRepository>()
@@ -82,37 +76,6 @@ fun App() {
         val showBottomBar = currentRoute != null &&
             authRoutes.none { currentRoute.contains(it ?: "") }
 
-        val showTopBar = currentRoute != null &&
-            authRoutes.none { currentRoute.contains(it ?: "") } &&
-            bottomTabRoutes.none { currentRoute.contains(it ?: "") }
-
-        val aboutFoskaTitle = stringResource(Res.string.about_foska)
-
-        val topBarTitle by remember(currentRoute, aboutFoskaTitle) {
-            derivedStateOf {
-                when {
-                    currentRoute?.contains("ExercisesByCategory") == true ->
-                        runCatching {
-                            navBackStackEntry?.toRoute<ExercisesByCategory>()?.categoryName?.uppercase()
-                        }.getOrNull() ?: "EXERCISES"
-                    currentRoute?.contains("WorkoutHistoryDetail") == true -> "SESSION DETAIL"
-                    currentRoute?.contains("WorkoutHistory") == true -> "WORKOUT HISTORY"
-                    currentRoute?.contains("WorkoutDetail") == true -> "WORKOUT"
-                    currentRoute?.contains("ExerciseDetail") == true -> "EXERCISE"
-                    currentRoute?.contains("LogWorkout") == true -> "LOG SESSION"
-                    currentRoute?.contains("HumanCoachChat") == true -> "COACH"
-                    currentRoute?.contains("AiCoachChat") == true -> "AI COACH"
-                    currentRoute?.contains("MealCapture") == true -> "RECORD MEAL"
-                    currentRoute?.contains("MealHistory") == true -> "MEAL HISTORY"
-                    currentRoute?.contains("RecipeDetail") == true -> "RECIPE"
-                    currentRoute?.contains("MealDetail") == true -> "MEAL DETAIL"
-                    currentRoute?.contains("Progress") == true -> "MY PROGRESS"
-                    currentRoute?.contains("AboutCoach") == true -> aboutFoskaTitle
-                    else -> ""
-                }
-            }
-        }
-
         val selectedTab by remember(currentRoute) {
             derivedStateOf {
                 when {
@@ -122,7 +85,8 @@ fun App() {
                     currentRoute?.contains("Chat", ignoreCase = true) == true ||
                         currentRoute?.contains("CoachChat") == true -> BottomNavTab.Chat
                     currentRoute?.contains("Meal", ignoreCase = true) == true ||
-                        currentRoute?.contains("Nutrition", ignoreCase = true) == true -> BottomNavTab.Nutrition
+                        currentRoute?.contains("Nutrition", ignoreCase = true) == true ||
+                        currentRoute?.contains("Recipe", ignoreCase = true) == true -> BottomNavTab.Nutrition
                     currentRoute?.contains("Profile", ignoreCase = true) == true ||
                         currentRoute?.contains("Progress") == true ||
                         currentRoute?.contains("AboutCoach") == true -> BottomNavTab.Profile
@@ -132,29 +96,6 @@ fun App() {
         }
 
         Scaffold(
-            topBar = {
-                if (showTopBar) {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = topBarTitle,
-                                style = MaterialTheme.typography.labelLarge,
-                                letterSpacing = 1.sp
-                            )
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.background,
-                            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                            titleContentColor = MaterialTheme.colorScheme.onBackground
-                        )
-                    )
-                }
-            },
             bottomBar = {
                 if (showBottomBar) {
                     BottomNavBar(
@@ -383,13 +324,26 @@ fun App() {
                 composable<MealHistory> {
                     MealHistoryRoute(
                         userId = currentUserId,
+                        onBackClick = { navController.popBackStack() },
+                        onLogClick = { logId -> navController.navigate(MealHistoryDetail(logId)) }
+                    )
+                }
+
+                composable<MealHistoryDetail> { backStackEntry ->
+                    val route = backStackEntry.toRoute<MealHistoryDetail>()
+                    MealHistoryDetailRoute(
+                        logId = route.logId,
+                        userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
 
                 composable<RecipeDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<RecipeDetail>()
-                    RecipeDetailRoute(recipeId = route.recipeId)
+                    RecipeDetailRoute(
+                        recipeId = route.recipeId,
+                        onBackClick = { navController.popBackStack() }
+                    )
                 }
 
                 // ── Chat ─────────────────────────────────────────────────
@@ -409,14 +363,16 @@ fun App() {
                 composable<HumanCoachChat> {
                     ChatRoute(
                         userId = currentUserId,
-                        chatType = ChatType.Human
+                        chatType = ChatType.Human,
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
 
                 composable<AiCoachChat> {
                     ChatRoute(
                         userId = currentUserId,
-                        chatType = ChatType.Ai
+                        chatType = ChatType.Ai,
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
 

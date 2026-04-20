@@ -1,13 +1,6 @@
 package com.coachfoska.app.ui.nutrition
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,6 +19,7 @@ import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -33,6 +27,7 @@ import org.koin.core.parameter.parametersOf
 fun MealHistoryRoute(
     userId: String,
     onBackClick: () -> Unit,
+    onLogClick: (String) -> Unit,
     viewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -41,24 +36,25 @@ fun MealHistoryRoute(
         viewModel.onIntent(NutritionIntent.LoadHistory)
     }
 
-    MealHistoryScreen(state = state, onBackClick = onBackClick)
+    MealHistoryScreen(state = state, onBackClick = onBackClick, onLogClick = onLogClick)
 }
 
 @Composable
 fun MealHistoryScreen(
     state: NutritionState,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onLogClick: (String) -> Unit
 ) {
-    var expandedId by remember { mutableStateOf<String?>(null) }
-
-    if (state.isHistoryLoading) {
-        CoachLoadingBox()
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        CoachTopBar(title = "MEAL HISTORY", onBackClick = onBackClick)
+        if (state.isHistoryLoading) {
+            CoachLoadingBox(Modifier.weight(1f))
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 item {
                     Text(
                         text = "YOUR LOGS",
@@ -68,13 +64,9 @@ fun MealHistoryScreen(
                 }
 
                 items(state.mealHistory) { log ->
-                    MealLogCard(
-                        log = log,
-                        isExpanded = expandedId == log.id,
-                        onClick = { expandedId = if (expandedId == log.id) null else log.id }
-                    )
+                    MealLogCard(log = log, onClick = { onLogClick(log.id) })
                 }
-                
+
                 if (state.mealHistory.isEmpty()) {
                     item {
                         Text(
@@ -86,10 +78,11 @@ fun MealHistoryScreen(
                 }
             }
         }
+    }
 }
 
 @Composable
-private fun MealLogCard(log: MealLog, isExpanded: Boolean, onClick: () -> Unit) {
+private fun MealLogCard(log: MealLog, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -113,7 +106,7 @@ private fun MealLogCard(log: MealLog, isExpanded: Boolean, onClick: () -> Unit) 
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                 )
             }
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -130,38 +123,6 @@ private fun MealLogCard(log: MealLog, isExpanded: Boolean, onClick: () -> Unit) 
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
-            }
-
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(tween(200)) + fadeIn(tween(200)),
-                exit = shrinkVertically(tween(150)) + fadeOut(tween(150))
-            ) {
-                Column(
-                    modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    log.foods.forEach { food ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = food.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "${food.calories.toInt()} kcal",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                            )
-                        }
-                    }
-                }
             }
         }
     }

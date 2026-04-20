@@ -26,6 +26,7 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachSectionHeader
+import com.coachfoska.app.ui.components.CoachTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -50,16 +51,18 @@ fun ProgressScreen(
     state: ProfileState,
     onBackClick: () -> Unit
 ) {
-    if (state.isWeightHistoryLoading) {
-        CoachLoadingBox()
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(32.dp)
-        ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        CoachTopBar(title = "MY PROGRESS", onBackClick = onBackClick)
+        if (state.isWeightHistoryLoading) {
+            CoachLoadingBox(Modifier.weight(1f))
+        } else {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(32.dp)
+            ) {
                 // Weight Progress Card
                 if (state.weightHistory.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -146,6 +149,7 @@ fun ProgressScreen(
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
+    }
 }
 
 @Composable

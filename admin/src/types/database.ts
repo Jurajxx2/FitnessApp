@@ -183,6 +183,8 @@ export interface Exercise {
   image_url: string | null
   video_url: string | null
   difficulty: Difficulty | null
+  force: string | null
+  mechanic: string | null
   is_active: boolean
   wger_id: number | null
   created_at: string

@@ -37,7 +37,8 @@ async function resolveSession(session: Session | null, setState: (s: AuthState) 
     const profile = await fetchProfile(session.user.id)
     if (!mounted()) return
     setState({ session, user: session.user, profile, isAdmin: profile?.is_admin ?? false, isLoading: false })
-  } catch {
+  } catch (err) {
+    console.error('useAuth: error in resolveSession', err)
     if (!mounted()) return
     setState({ ...initialState, isLoading: false })
   }
@@ -50,33 +51,33 @@ export function useAuth(): AuthState {
     let _mounted = true
     const mounted = () => _mounted
 
-    // Safety net: if auth resolution hangs (e.g. Supabase cross-tab lock not
-    // released), stop showing the loading spinner after 8 s and fall through to
-    // the unauthenticated state so the user can try again.
-    const fallbackTimer = setTimeout(() => {
-      if (_mounted) setState({ ...initialState, isLoading: false })
-    }, 8000)
+    // Safety timeout: if Supabase's internal locking hangs getSession(),
+    // don't block the whole app. Proceed after 1.5s.
+    const getSessionPromise = supabase.auth.getSession()
+    const timeoutPromise = new Promise<{data: {session: any}}>((_, reject) => 
+      setTimeout(() => reject(new Error('getSession lock timeout')), 1500)
+    )
 
-    // getSession() reliably returns the stored session on page load.
-    // INITIAL_SESSION from onAuthStateChange can be missed in React StrictMode
-    // (the event fires async; by the time it fires, the first subscription has
-    // already been cleaned up and the second one may not receive it).
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => resolveSession(session, setState, mounted))
-      .catch(() => { if (_mounted) setState({ ...initialState, isLoading: false }) })
-      .finally(() => clearTimeout(fallbackTimer))
+    Promise.race([getSessionPromise, timeoutPromise])
+      .then(({ data: { session } }) => {
+        return resolveSession(session, (newState) => {
+          if (_mounted) setState(newState)
+        }, mounted)
+      })
+      .catch(() => { 
+        if (_mounted) setState(s => ({ ...s, isLoading: false }))
+      })
 
-    // Subscribe to subsequent auth changes (sign-out, token refresh, etc.).
-    // INITIAL_SESSION is skipped here — getSession() above handles initial load.
+    // Subscribe to subsequent auth changes. This often fires even if getSession hangs.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!_mounted) return
-      if (event === 'INITIAL_SESSION') return
-      await resolveSession(session, setState, mounted)
+      await resolveSession(session, (newState) => {
+        if (_mounted) setState(newState)
+      }, mounted)
     })
 
     return () => {
       _mounted = false
-      clearTimeout(fallbackTimer)
       subscription.unsubscribe()
     }
   }, [])

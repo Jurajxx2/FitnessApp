@@ -26,6 +26,7 @@ import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
@@ -76,13 +77,15 @@ fun LogWorkoutScreen(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        CoachTopBar(title = "LOG SESSION", onBackClick = onBackClick)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             CoachTextField(
                 value = workoutName,
@@ -158,6 +161,7 @@ fun LogWorkoutScreen(
         )
 
         Spacer(modifier = Modifier.height(48.dp))
+        }
     }
 }
 

@@ -19,6 +19,7 @@ import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -49,12 +50,14 @@ fun WorkoutDetailScreen(
     onBackClick: () -> Unit,
     onExerciseClick: (String) -> Unit
 ) {
-    if (state.isLoading) {
-        CoachLoadingBox()
-    } else {
-        state.selectedWorkout?.let { workout ->
+    Column(modifier = Modifier.fillMaxSize()) {
+        CoachTopBar(title = "WORKOUT", onBackClick = onBackClick)
+        if (state.isLoading) {
+            CoachLoadingBox(Modifier.weight(1f))
+        } else {
+            state.selectedWorkout?.let { workout ->
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 32.dp)
             ) {
                     item {
@@ -87,6 +90,7 @@ fun WorkoutDetailScreen(
                         )
                     }
                 }
+        }
         }
     }
 }

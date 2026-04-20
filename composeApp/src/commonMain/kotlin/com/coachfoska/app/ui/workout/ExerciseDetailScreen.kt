@@ -18,6 +18,7 @@ import com.coachfoska.app.presentation.exercise.ExerciseState
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachSectionHeader
+import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -40,17 +41,19 @@ fun ExerciseDetailScreen(
     state: ExerciseState,
     onBackClick: () -> Unit
 ) {
-    if (state.isLoadingDetail) {
-        CoachLoadingBox()
-    } else {
-        state.selectedExercise?.let { exercise ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(32.dp)
-            ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        CoachTopBar(title = "EXERCISE", onBackClick = onBackClick)
+        if (state.isLoadingDetail) {
+            CoachLoadingBox(Modifier.weight(1f))
+        } else {
+            state.selectedExercise?.let { exercise ->
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(32.dp)
+                ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         exercise.category?.let {
                             Text(
@@ -112,11 +115,12 @@ fun ExerciseDetailScreen(
                     Spacer(modifier = Modifier.height(32.dp))
                 }
             } ?: state.error?.let {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
             }
         }
+    }
 }
 
 @Composable

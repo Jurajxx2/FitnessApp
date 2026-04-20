@@ -32,37 +32,44 @@ import com.coachfoska.app.domain.model.Recipe
 import com.coachfoska.app.domain.model.RecipeIngredient
 import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
 fun RecipeDetailRoute(
     recipeId: String,
+    onBackClick: () -> Unit,
     viewModel: RecipeDetailViewModel = koinViewModel { parametersOf(recipeId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    when {
-        state.isLoading -> CoachLoadingBox()
-        state.error != null -> Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = state.error!!,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error
+    Column(modifier = Modifier.fillMaxSize()) {
+        CoachTopBar(title = "RECIPE", onBackClick = onBackClick)
+        when {
+            state.isLoading -> CoachLoadingBox(Modifier.weight(1f))
+            state.error != null -> Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = state.error!!,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            state.recipe != null -> RecipeDetailScreen(
+                recipe = state.recipe!!,
+                modifier = Modifier.weight(1f)
             )
         }
-        state.recipe != null -> RecipeDetailScreen(recipe = state.recipe!!)
     }
 }
 
 @Composable
-fun RecipeDetailScreen(recipe: Recipe) {
+fun RecipeDetailScreen(recipe: Recipe, modifier: Modifier = Modifier) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
             .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(bottom = 40.dp)
     ) {

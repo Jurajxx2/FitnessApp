@@ -37,6 +37,7 @@ class NutritionViewModel(
             NutritionIntent.LoadHistory -> loadHistory()
             NutritionIntent.LoadRecipes -> loadRecipes()
             is NutritionIntent.SelectMeal -> selectMeal(intent.mealId)
+            is NutritionIntent.SelectMealLog -> selectMealLog(intent.logId)
             is NutritionIntent.LogMeal -> logMeal(intent)
             NutritionIntent.DismissError -> _state.update { it.copy(error = null) }
             NutritionIntent.MealLogged -> _state.update { it.copy(mealLoggedSuccess = false) }
@@ -84,6 +85,11 @@ class NutritionViewModel(
     private fun selectMeal(mealId: String) {
         val meal = _state.value.mealPlan?.meals?.firstOrNull { it.id == mealId }
         _state.update { it.copy(selectedMeal = meal) }
+    }
+
+    private fun selectMealLog(logId: String) {
+        val log = _state.value.mealHistory.firstOrNull { it.id == logId }
+        _state.update { it.copy(selectedMealLog = log) }
     }
 
     private fun logMeal(intent: NutritionIntent.LogMeal) {

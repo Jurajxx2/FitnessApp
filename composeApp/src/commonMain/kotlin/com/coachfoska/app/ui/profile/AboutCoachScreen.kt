@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.ui.components.CoachSectionHeader
+import com.coachfoska.app.ui.components.CoachTopBar
 import org.jetbrains.compose.resources.stringResource
 
 private val coachName = "Andrea Krišková"
@@ -40,9 +41,11 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(
+        Column(modifier = Modifier.fillMaxSize()) {
+            CoachTopBar(title = stringResource(Res.string.about_foska), onBackClick = onBackClick)
+            Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(32.dp)
@@ -126,6 +129,7 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(40.dp))
             }
+        }
     }
 }
 

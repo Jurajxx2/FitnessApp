@@ -1,3 +1,12 @@
+# AI tooling — local only
+.agents/
+.claude/
+.superpowers/
+.cursor/
+.aider*
+.continue/
+.copilot/
+
 # Secrets — never commit
 local.properties
 *.jks
