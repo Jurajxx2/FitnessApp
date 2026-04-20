@@ -75,14 +75,14 @@ fun ExerciseDetailScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 if (exercise.muscles.isNotEmpty()) {
                                     Text(
-                                        text = "Primary: " + exercise.muscles.joinToString(", ") { it.name },
+                                        text = "Primary: " + exercise.muscles.joinToString(", "),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onBackground
                                     )
                                 }
                                 if (exercise.musclesSecondary.isNotEmpty()) {
                                     Text(
-                                        text = "Secondary: " + exercise.musclesSecondary.joinToString(", ") { it.name },
+                                        text = "Secondary: " + exercise.musclesSecondary.joinToString(", "),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                                     )
@@ -94,7 +94,7 @@ fun ExerciseDetailScreen(
                     if (exercise.equipment.isNotEmpty()) {
                         InfoSection(title = "EQUIPMENT") {
                             Text(
-                                text = exercise.equipment.joinToString(", ") { it.name },
+                                text = exercise.equipment.joinToString(", "),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onBackground
                             )

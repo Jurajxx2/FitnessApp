@@ -114,7 +114,7 @@ private fun ExerciseListItem(exercise: Exercise, onClick: () -> Unit) {
             )
             if (exercise.muscles.isNotEmpty()) {
                 Text(
-                    text = exercise.muscles.joinToString(", ") { it.name },
+                    text = exercise.muscles.joinToString(", "),
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     fontSize = 12.sp
                 )
