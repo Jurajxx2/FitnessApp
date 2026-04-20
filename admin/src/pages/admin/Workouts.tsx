@@ -26,7 +26,7 @@ function useWorkouts() {
 }
 
 
-type ExerciseDraft = Omit<WorkoutExercise, 'id' | 'workout_id' | 'created_at' | 'wger_exercise_id'>
+type ExerciseDraft = Omit<WorkoutExercise, 'id' | 'workout_id' | 'created_at'>
 
 const blankExercise = (): ExerciseDraft => ({
   name: '', muscle_group: '', sets: 3, reps: '10', rest_seconds: 60, tips: '', sort_order: 0,
