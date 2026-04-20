@@ -44,7 +44,6 @@ export interface WorkoutExercise {
   reps: string
   rest_seconds: number
   tips: string | null
-  wger_exercise_id: number | null
   sort_order: number
   created_at: string
 }
@@ -162,17 +161,6 @@ export interface ExerciseCategory {
   name: string
 }
 
-export interface Muscle {
-  id: number
-  name: string
-  is_front: boolean
-}
-
-export interface Equipment {
-  id: number
-  name: string
-}
-
 export interface Exercise {
   id: string
   name_en: string
@@ -185,14 +173,10 @@ export interface Exercise {
   difficulty: Difficulty | null
   force: string | null
   mechanic: string | null
+  primary_muscles: string[]
+  secondary_muscles: string[]
+  equipment_names: string[]
   is_active: boolean
-  wger_id: number | null
   created_at: string
   updated_at: string
-}
-
-export interface ExerciseMuscle {
-  exercise_id: string
-  muscle_id: number
-  is_primary: boolean
 }
