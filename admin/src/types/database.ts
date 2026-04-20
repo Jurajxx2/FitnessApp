@@ -177,6 +177,8 @@ export interface Exercise {
   secondary_muscles: string[]
   equipment_names: string[]
   is_active: boolean
+  external_id: string | null
+  source_provider: string
   created_at: string
   updated_at: string
 }
