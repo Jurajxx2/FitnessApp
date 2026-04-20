@@ -96,6 +96,6 @@ class GetExerciseCategoriesUseCaseTest {
 
 private fun anExercise(id: String = "uuid-1") = Exercise(
     id = id, name = "Bench Press", description = "", category = null,
-    muscles = emptyList(), musclesSecondary = emptyList(), equipment = emptyList(),
+    muscles = emptyList<String>(), musclesSecondary = emptyList<String>(), equipment = emptyList<String>(),
     imageUrl = null, videoUrl = null, difficulty = null
 )

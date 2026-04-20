@@ -86,13 +86,37 @@ class ExerciseRepositoryImplTest {
         assertEquals(emptyList(), result.getOrThrow())
         coVerify(exactly = 0) { dataSource.searchExercises(any()) }
     }
+
+    @Test
+    fun `getExercisesByCategory maps muscles and equipment`() = runTest {
+        val dto = anExerciseDto(
+            primaryMuscles = listOf("chest", "triceps"),
+            secondaryMuscles = listOf("anterior deltoid"),
+            equipmentNames = listOf("barbell")
+        )
+        coEvery { dataSource.getExercisesByCategory(1) } returns listOf(dto)
+
+        val result = repository.getExercisesByCategory(1)
+
+        assertTrue(result.isSuccess)
+        val exercise = result.getOrThrow().first()
+        assertEquals(listOf("chest", "triceps"), exercise.muscles)
+        assertEquals(listOf("anterior deltoid"), exercise.musclesSecondary)
+        assertEquals(listOf("barbell"), exercise.equipment)
+    }
 }
 
 private fun anExerciseDto(
     id: String = "uuid-1",
-    nameEn: String = "Exercise"
+    nameEn: String = "Exercise",
+    primaryMuscles: List<String> = emptyList(),
+    secondaryMuscles: List<String> = emptyList(),
+    equipmentNames: List<String> = emptyList()
 ) = ExerciseDto(
     id = id,
     nameEn = nameEn,
-    descriptionEn = "Description"
+    descriptionEn = "Description",
+    primaryMuscles = primaryMuscles,
+    secondaryMuscles = secondaryMuscles,
+    equipmentNames = equipmentNames
 )
