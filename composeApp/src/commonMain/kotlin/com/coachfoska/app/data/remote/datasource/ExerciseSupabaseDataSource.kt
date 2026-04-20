@@ -7,7 +7,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 
-private const val EXERCISE_COLUMNS = "*, exercise_categories(id, name), exercise_muscles(is_primary, muscles(id, name, is_front)), exercise_equipment(equipment(id, name))"
+private const val EXERCISE_COLUMNS = "*, exercise_categories(id, name)"
 
 class ExerciseSupabaseDataSource(private val supabase: SupabaseClient) {
 
