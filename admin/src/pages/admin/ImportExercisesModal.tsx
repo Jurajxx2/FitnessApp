@@ -46,7 +46,7 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
         await Promise.all(batch.map(async (ex: any) => {
           const imagePath = ex.images?.[0] ? `${IMAGE_BASE_URL}${ex.images[0]}` : null
 
-          await supabase.from('exercises').upsert({
+          const { error } = await supabase.from('exercises').upsert({
             name_en: ex.name,
             description_en: Array.isArray(ex.instructions) ? ex.instructions.join('\n\n') : '',
             category_id: CATEGORY_MAP[ex.category?.toLowerCase()] ?? 10,
@@ -59,6 +59,7 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
             equipment_names: ex.equipment ? [ex.equipment] : [],
             is_active: true,
           }, { onConflict: 'name_en' })
+          if (error) throw error
         }))
 
         setProgress(p => ({ ...p, current: Math.min(i + batchSize, p.total) }))
