@@ -7,16 +7,21 @@ import ImportExercisesModal from './ImportExercisesModal'
 import type { Exercise, ExerciseCategory, Difficulty } from '../../types/database'
 
 const DIFFICULTIES: Difficulty[] = ['beginner', 'intermediate', 'advanced']
+const PAGE_SIZE_OPTIONS = [25, 50, 100]
 
-function useExercises(search: string, categoryId: number | null) {
-  return useQuery<Exercise[]>({
-    queryKey: ['exercises-admin', search, categoryId],
+function useExercises(search: string, categoryId: number | null, page: number, pageSize: number) {
+  return useQuery<{ data: Exercise[]; count: number }>({
+    queryKey: ['exercises-admin', search, categoryId, page, pageSize],
     queryFn: async () => {
-      let q = supabase.from('exercises').select('*').order('name_en')
+      let q = supabase
+        .from('exercises')
+        .select('*', { count: 'exact' })
+        .order('name_en')
+        .range(page * pageSize, page * pageSize + pageSize - 1)
       if (search) q = q.ilike('name_en', `%${search}%`)
       if (categoryId !== null) q = q.eq('category_id', categoryId)
-      const { data } = await q
-      return data ?? []
+      const { data, count } = await q
+      return { data: data ?? [], count: count ?? 0 }
     },
   })
 }
@@ -61,13 +66,20 @@ export default function Exercises() {
   const { setActions } = useAdminLayoutActions()
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState<number | null>(null)
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Exercise | null>(null)
   const [form, setForm] = useState<ExerciseFormState>(blankForm())
   const [importModalOpen, setImportModalOpen] = useState(false)
 
-  const { data: exercises = [], isLoading } = useExercises(search, filterCategory)
+  const { data: { data: exercises = [], count: totalCount = 0 } = {}, isLoading } = useExercises(search, filterCategory, page, pageSize)
+  const totalPages = Math.ceil(totalCount / pageSize)
   const { data: categories = [] } = useCategories()
+
+  function handleSearch(value: string) { setSearch(value); setPage(0) }
+  function handleCategory(value: number | null) { setFilterCategory(value); setPage(0) }
+  function handlePageSize(value: number) { setPageSize(value); setPage(0) }
 
   function openCreate() {
     setEditing(null)
@@ -155,13 +167,13 @@ export default function Exercises() {
         <Input
           placeholder="Search by name…"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => handleSearch(e.target.value)}
           className="w-full sm:w-64"
         />
         <select
           className="text-sm bg-[var(--bg-card)] border border-[var(--border)] rounded-md px-3 text-[var(--text)] w-full sm:w-auto"
           value={filterCategory ?? ''}
-          onChange={e => setFilterCategory(e.target.value ? parseInt(e.target.value) : null)}
+          onChange={e => handleCategory(e.target.value ? parseInt(e.target.value) : null)}
         >
           <option value="">All categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -214,6 +226,31 @@ export default function Exercises() {
             ))}
           </tbody>
         </Table>
+      )}
+
+      {/* Pagination */}
+      {!isLoading && totalCount > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+          <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+            <span>Rows per page:</span>
+            <select
+              className="text-sm bg-[var(--bg-card)] border border-[var(--border)] rounded-md px-2 py-1 text-[var(--text)]"
+              value={pageSize}
+              onChange={e => handlePageSize(parseInt(e.target.value))}
+            >
+              {PAGE_SIZE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-[var(--text-muted)]">
+            <span>
+              {page * pageSize + 1}–{Math.min(page * pageSize + pageSize, totalCount)} of {totalCount}
+            </span>
+            <div className="flex gap-1">
+              <Button variant="ghost" onClick={() => setPage(p => p - 1)} disabled={page === 0}>←</Button>
+              <Button variant="ghost" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>→</Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Editor Modal */}

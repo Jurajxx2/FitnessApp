@@ -17,5 +17,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    // The Supabase SDK uses navigator.locks to serialize localStorage writes
+    // across tabs. In some browsers/extensions this lock hangs indefinitely,
+    // causing verifyOtp / getSession to never resolve. The admin is a
+    // single-user tool so cross-tab serialisation is not needed.
+    lock: (_name, _acquireTimeout, fn) => fn(),
   },
 })

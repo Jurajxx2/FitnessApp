@@ -10,7 +10,7 @@ export default function Verify() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const inputs = useRef<Array<HTMLInputElement | null>>([])
   const navigate = useNavigate()
-  const email = sessionStorage.getItem('otp-email') ?? ''
+  const [email] = useState(() => sessionStorage.getItem('otp-email') ?? '')
 
   useEffect(() => {
     if (!email) navigate('/auth')

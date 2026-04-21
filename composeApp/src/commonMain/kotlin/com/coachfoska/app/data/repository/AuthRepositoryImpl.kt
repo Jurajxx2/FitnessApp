@@ -36,18 +36,18 @@ class AuthRepositoryImpl(
     override suspend fun verifyEmailOtp(email: String, otp: String): Result<User> = runCatching {
         val userInfo = authDataSource.verifyEmailOtp(email, otp)
         runCatching { userDataSource.getProfile(userInfo.id).toDomain() }.getOrElse {
-            User(
-                id = userInfo.id,
-                email = userInfo.email ?: email,
-                fullName = null,
-                age = null,
-                heightCm = null,
-                weightKg = null,
-                goal = null,
-                activityLevel = null,
-                onboardingComplete = false
-            )
-        }
+                User(
+                    id = userInfo.id,
+                    email = userInfo.email ?: email,
+                    fullName = null,
+                    age = null,
+                    heightCm = null,
+                    weightKg = null,
+                    goal = null,
+                    activityLevel = null,
+                    onboardingComplete = false
+                )
+            }
     }
 
     override suspend fun signInWithGoogleIdToken(idToken: String): Result<User> = runCatching {
