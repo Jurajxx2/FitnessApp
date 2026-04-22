@@ -48,13 +48,21 @@ import com.coachfoska.app.ui.workout.WorkoutHistoryDetailRoute
 import com.coachfoska.app.ui.workout.WorkoutListRoute
 
 @Composable
-fun App() {
+fun App(openHumanChat: Boolean = false) {
     val themeRepository = koinInject<ThemeRepository>()
     val isDarkTheme by themeRepository.isDarkTheme.collectAsState()
 
     CoachFoskaTheme(darkTheme = isDarkTheme) {
         val navController = rememberNavController()
         var currentUserId by remember { mutableStateOf("") }
+
+        LaunchedEffect(openHumanChat, currentUserId) {
+            if (openHumanChat && currentUserId.isNotEmpty()) {
+                navController.navigate(HumanCoachChat) {
+                    launchSingleTop = true
+                }
+            }
+        }
 
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
