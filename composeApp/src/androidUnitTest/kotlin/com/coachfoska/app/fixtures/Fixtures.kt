@@ -1,5 +1,6 @@
 package com.coachfoska.app.fixtures
 
+import com.coachfoska.app.data.remote.dto.ChatMessageDto
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.Recipe
@@ -130,4 +131,23 @@ fun aChatMessage(id: String = "msg-1") = ChatMessage(
     senderType = SenderType.Coach,
     content = MessageContent.Text("Great workout today!"),
     createdAt = Instant.parse("2026-04-06T09:00:00Z")
+)
+
+fun aChatMessageDto(
+    id: String = "msg-1",
+    userId: String = "user-1",
+    chatType: String = "human",
+    senderType: String = "coach",
+    textContent: String = "Great workout today!",
+    createdAt: String = "2026-04-23T10:00:00Z"
+) = ChatMessageDto(
+    id = id,
+    userId = userId,
+    chatType = chatType,
+    senderType = senderType,
+    contentType = "text",
+    textContent = textContent,
+    imageUrl = null,
+    createdAt = createdAt,
+    readAt = null
 )
