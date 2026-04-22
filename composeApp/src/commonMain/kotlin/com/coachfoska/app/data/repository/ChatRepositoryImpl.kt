@@ -11,8 +11,11 @@ import com.coachfoska.app.domain.model.MessageContent
 import com.coachfoska.app.domain.model.SenderType
 import com.coachfoska.app.domain.repository.ChatRepository
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.datetime.Instant
 
 private const val TAG = "ChatRepositoryImpl"
 
@@ -22,29 +25,77 @@ class ChatRepositoryImpl(
     @Suppress("UNUSED_PARAMETER") private val aiProvider: ChatAiProvider
 ) : ChatRepository {
 
+    companion object {
+        private const val MAX_RETRIES = 3
+        private fun retryDelayMs(attempt: Int): Long = 1000L shl (attempt - 1) // 1s, 2s, 4s
+    }
+
     override fun observeMessages(userId: String, chatType: ChatType): Flow<List<ChatMessage>> =
         channelFlow {
             val messages = mutableListOf<ChatMessage>()
+            var lastSeenAt: Instant? = null
 
-            // Seed with persisted history (newest first from DB → reverse to oldest first for display)
-            val initial = runCatching {
-                dataSource.fetchMessages(userId, chatType)
-            }.getOrElse { e ->
-                Napier.e("Failed to fetch initial messages", e, tag = TAG)
-                emptyList()
-            }
-            messages.addAll(initial.map { it.toDomain() }.sortedBy { it.createdAt })
-            send(messages.toList())
-
-            // Stream new inserts via Realtime
-            dataSource.observeNewMessages(userId, chatType).collect { dto ->
-                val msg = dto.toDomain()
+            suspend fun addAndEmit(msg: ChatMessage) {
                 if (messages.none { it.id == msg.id }) {
                     messages.add(msg)
                     messages.sortBy { it.createdAt }
+                }
+                lastSeenAt = messages.maxOfOrNull { it.createdAt }
+                send(messages.toList())
+            }
+
+            suspend fun fillGap() {
+                val since = lastSeenAt ?: return
+                val gap = runCatching { dataSource.fetchMessagesSince(userId, chatType, since) }
+                    .getOrElse { emptyList() }
+                var changed = false
+                for (dto in gap) {
+                    val msg = dto.toDomain()
+                    if (messages.none { it.id == msg.id }) {
+                        messages.add(msg)
+                        changed = true
+                    }
+                }
+                if (changed) {
+                    messages.sortBy { it.createdAt }
+                    lastSeenAt = messages.maxOfOrNull { it.createdAt }
                     send(messages.toList())
                 }
             }
+
+            // Subscribe FIRST — channel buffers any inserts that arrive during the seed fetch below
+            val realtimeJob = launch {
+                var attempt = 0
+                while (attempt <= MAX_RETRIES) {
+                    val error = runCatching {
+                        dataSource.observeNewMessages(userId, chatType).collect { dto ->
+                            addAndEmit(dto.toDomain())
+                        }
+                    }.exceptionOrNull()
+
+                    if (error == null) break
+                    attempt++
+                    if (attempt > MAX_RETRIES) {
+                        Napier.e("Realtime gave up after $MAX_RETRIES retries", error, tag = TAG)
+                        break
+                    }
+                    Napier.w("Realtime disconnected (attempt $attempt), retrying in ${retryDelayMs(attempt)}ms", tag = TAG)
+                    delay(retryDelayMs(attempt))
+                    fillGap()
+                }
+            }
+
+            // Seed with persisted history AFTER Realtime is subscribed
+            val initial = runCatching { dataSource.fetchMessages(userId, chatType) }
+                .getOrElse { emptyList() }
+            for (dto in initial.sortedBy { it.createdAt }) {
+                if (messages.none { it.id == dto.id }) messages.add(dto.toDomain())
+            }
+            messages.sortBy { it.createdAt }
+            lastSeenAt = messages.maxOfOrNull { it.createdAt }
+            send(messages.toList())
+
+            realtimeJob.join()
         }
 
     override suspend fun sendMessage(
