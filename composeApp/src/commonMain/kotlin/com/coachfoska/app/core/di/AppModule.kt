@@ -44,6 +44,7 @@ import com.russhwolf.settings.Settings
 import com.coachfoska.app.data.ai.ChatAiProvider
 import com.coachfoska.app.data.ai.ClaudeAiProvider
 import com.coachfoska.app.data.remote.datasource.ChatRemoteDataSource
+import com.coachfoska.app.data.remote.datasource.DeviceTokenDataSource
 import com.coachfoska.app.data.remote.datasource.ChatStorageDataSource
 import com.coachfoska.app.data.repository.ChatRepositoryImpl
 import com.coachfoska.app.domain.model.ChatType
@@ -183,6 +184,12 @@ val chatModule = module {
     viewModel { (userId: String) -> ChatHubViewModel(get(), userId) }
 }
 
+val pushModule = module {
+    single { DeviceTokenDataSource(get()) }
+    // DeviceTokenRepository is provided by platform modules (androidModule / iosModule)
+    // because the platform string ("android" / "ios") differs per platform
+}
+
 val appModules = listOf(
     themeModule,
     networkModule,
@@ -190,5 +197,6 @@ val appModules = listOf(
     repositoryModule,
     useCaseModule,
     viewModelModule,
-    chatModule
+    chatModule,
+    pushModule
 )
