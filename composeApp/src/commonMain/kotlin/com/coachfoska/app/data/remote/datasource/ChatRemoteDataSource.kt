@@ -16,6 +16,7 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.datetime.Instant
 
 private const val TAG = "ChatRemoteDataSource"
 private const val TABLE = "chat_messages"
@@ -70,6 +71,21 @@ class ChatRemoteDataSource(private val supabase: SupabaseClient) {
             }
             .decodeList<ChatMessageDto>()
             .firstOrNull()
+
+    suspend fun fetchMessagesSince(
+        userId: String,
+        chatType: ChatType,
+        since: Instant
+    ): List<ChatMessageDto> = supabase.postgrest[TABLE]
+        .select {
+            filter {
+                eq("user_id", userId)
+                eq("chat_type", chatType.toDbValue())
+                gt("created_at", since.toString())
+            }
+            order("created_at", Order.ASCENDING)
+        }
+        .decodeList<ChatMessageDto>()
 
     suspend fun countUnread(userId: String, chatType: ChatType): Int =
         supabase.postgrest[TABLE]
