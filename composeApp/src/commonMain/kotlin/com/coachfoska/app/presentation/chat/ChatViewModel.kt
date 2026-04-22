@@ -17,11 +17,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.coachfoska.app.core.util.currentInstant
+import kotlin.math.abs
 
 private const val TAG = "ChatViewModel"
+private const val OPTIMISTIC_MATCH_WINDOW_SECONDS = 5L
 
 class ChatViewModel(
     private val observeChatMessages: ObserveChatMessagesUseCase,
@@ -36,43 +39,60 @@ class ChatViewModel(
     private val _state = MutableStateFlow(ChatState())
     val state: StateFlow<ChatState> = _state.asStateFlow()
 
+    // Server-confirmed messages from the repository flow
+    private val _serverMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
+
+    // Locally added optimistic messages awaiting server confirmation
+    private val _optimistic = MutableStateFlow<List<ChatMessage>>(emptyList())
+
     private var observeJob: Job? = null
 
     init {
-        onIntent(ChatIntent.LoadMessages)
+        startObserving()
     }
 
     fun onIntent(intent: ChatIntent) {
         Napier.d("onIntent: $intent", tag = TAG)
         when (intent) {
-            ChatIntent.LoadMessages -> loadMessages()
-            ChatIntent.LoadMoreMessages -> loadMoreMessages()
+            ChatIntent.LoadMessages -> {
+                observeJob?.cancel()
+                startObserving()
+            }
+            ChatIntent.LoadMoreMessages -> Napier.d("LoadMoreMessages: not yet implemented", tag = TAG)
             is ChatIntent.SendTextMessage -> sendText(intent.text)
             is ChatIntent.SendImageMessage -> sendImage(intent.imageBytes)
             ChatIntent.MarkAllRead -> markAllRead()
         }
     }
 
-    private fun loadMessages() {
-        observeJob?.cancel()
+    private fun startObserving() {
         observeJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
+
+            // Merge server + optimistic into displayed messages
+            launch {
+                combine(_serverMessages, _optimistic) { server, optimistic ->
+                    val confirmed = optimistic.filter { opt -> server.any { srv -> srv.isConfirmedFor(opt) } }
+                    if (confirmed.isNotEmpty()) {
+                        _optimistic.update { current -> current - confirmed.toSet() }
+                    }
+                    (server + _optimistic.value).sortedBy { it.createdAt }
+                }.collect { combined ->
+                    _state.update { it.copy(messages = combined) }
+                }
+            }
+
             observeChatMessages(userId, chatType)
                 .catch { e ->
                     Napier.e("observeMessages failed", e, tag = TAG)
                     _state.update { it.copy(isLoading = false, error = e.message) }
                 }
                 .collect { messages ->
-                    _state.update { it.copy(isLoading = false, messages = messages) }
-                    // Mark as read on first load
+                    _serverMessages.value = messages
+                    _state.update { it.copy(isLoading = false) }
                     markAllRead()
                 }
         }
-    }
-
-    private fun loadMoreMessages() {
-        // Pagination: future implementation via ChatIntent.LoadMoreMessages
-        Napier.d("LoadMoreMessages: not yet implemented", tag = TAG)
     }
 
     private fun sendText(text: String) {
@@ -84,11 +104,22 @@ class ChatViewModel(
     }
 
     private fun sendHumanText(text: String) {
+        val optimistic = ChatMessage(
+            id = "optimistic-${currentInstant().toEpochMilliseconds()}",
+            userId = userId,
+            chatType = ChatType.Human,
+            senderType = SenderType.User,
+            content = MessageContent.Text(text),
+            createdAt = currentInstant()
+        )
+        _optimistic.update { it + optimistic }
+
         viewModelScope.launch {
             _state.update { it.copy(isSending = true, error = null) }
             sendHumanMessage(userId, MessageContent.Text(text))
                 .onFailure { e ->
                     Napier.e("sendHumanMessage failed", e, tag = TAG)
+                    _optimistic.update { list -> list.filter { it.id != optimistic.id } }
                     _state.update { it.copy(isSending = false, error = e.message) }
                 }
                 .onSuccess {
@@ -113,7 +144,6 @@ class ChatViewModel(
                     _state.update { it.copy(streamingText = accumulatedText.toString()) }
                 }
 
-            // Stream complete — append the full AI message to the list
             val fullText = accumulatedText.toString()
             if (fullText.isNotEmpty()) {
                 val aiMessage = ChatMessage(
@@ -161,5 +191,16 @@ class ChatViewModel(
             markMessagesRead(userId, chatType)
                 .onFailure { e -> Napier.e("markMessagesRead failed", e, tag = TAG) }
         }
+    }
+
+    // A server message confirms an optimistic one if it's the same user text within a 5s window
+    private fun ChatMessage.isConfirmedFor(optimistic: ChatMessage): Boolean {
+        if (senderType != SenderType.User) return false
+        val thisContent = content
+        val optContent = optimistic.content
+        if (thisContent !is MessageContent.Text || optContent !is MessageContent.Text) return false
+        if (thisContent.text != optContent.text) return false
+        if (userId != optimistic.userId) return false
+        return abs((createdAt - optimistic.createdAt).inWholeSeconds) <= OPTIMISTIC_MATCH_WINDOW_SECONDS
     }
 }

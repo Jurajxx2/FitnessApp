@@ -9,5 +9,6 @@ data class ChatState(
     val isAiStreaming: Boolean = false,
     val streamingText: String = "",
     val error: String? = null,
-    val hasMorePages: Boolean = false
+    val hasMorePages: Boolean = false,
+    val isReconnecting: Boolean = false
 )
