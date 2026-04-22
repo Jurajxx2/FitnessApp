@@ -13,3 +13,9 @@ create policy "Users can manage own device tokens"
   on device_tokens for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+create extension if not exists moddatetime schema extensions;
+
+create trigger handle_updated_at
+  before update on device_tokens
+  for each row execute function extensions.moddatetime('updated_at');
