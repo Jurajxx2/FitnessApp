@@ -39,9 +39,9 @@ class ChatRepositoryImpl(
                 if (messages.none { it.id == msg.id }) {
                     messages.add(msg)
                     messages.sortBy { it.createdAt }
+                    lastSeenAt = messages.maxOfOrNull { it.createdAt }
+                    send(messages.toList())
                 }
-                lastSeenAt = messages.maxOfOrNull { it.createdAt }
-                send(messages.toList())
             }
 
             suspend fun fillGap() {
@@ -87,7 +87,10 @@ class ChatRepositoryImpl(
 
             // Seed with persisted history AFTER Realtime is subscribed
             val initial = runCatching { dataSource.fetchMessages(userId, chatType) }
-                .getOrElse { emptyList() }
+                .getOrElse { e ->
+                    Napier.e("Failed to fetch initial messages", e, tag = TAG)
+                    emptyList()
+                }
             for (dto in initial.sortedBy { it.createdAt }) {
                 if (messages.none { it.id == dto.id }) messages.add(dto.toDomain())
             }
