@@ -85,7 +85,7 @@ class ChatViewModel(
             observeChatMessages(userId, chatType)
                 .catch { e ->
                     Napier.e("observeMessages failed", e, tag = TAG)
-                    _state.update { it.copy(isLoading = false, error = e.message) }
+                    _state.update { it.copy(isLoading = false, isReconnecting = true, error = e.message) }
                 }
                 .collect { messages ->
                     _serverMessages.value = messages

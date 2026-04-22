@@ -77,7 +77,7 @@ class ChatRepositoryImpl(
                     attempt++
                     if (attempt > MAX_RETRIES) {
                         Napier.e("Realtime gave up after $MAX_RETRIES retries", error, tag = TAG)
-                        break
+                        throw error!!
                     }
                     Napier.w("Realtime disconnected (attempt $attempt), retrying in ${retryDelayMs(attempt)}ms", tag = TAG)
                     delay(retryDelayMs(attempt))
