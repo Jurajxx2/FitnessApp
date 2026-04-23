@@ -60,7 +60,7 @@ class ChatUseCasesTest {
             val emitted = awaitItem()
             assertEquals(1, emitted.size)
             assertEquals("msg-1", emitted[0].id)
-            cancelAndIgnoreRemainingEvents()
+            awaitComplete()
         }
     }
 
@@ -101,6 +101,7 @@ class ChatUseCasesTest {
 
         assertTrue(result.isSuccess)
         assertEquals("https://storage/image.jpg", result.getOrThrow())
+        coVerify(exactly = 1) { chatRepository.uploadImage("user-1", bytes) }
     }
 
     @Test
@@ -116,18 +117,19 @@ class ChatUseCasesTest {
     // --- SendAiChatMessageUseCase ---
 
     @Test
-    fun `sendAiChatMessage streams AI response and persists user message on start`() = runTest {
+    fun `sendAiChatMessage persists user message before first chunk is emitted`() = runTest {
         val chunks = listOf("Hello", " coach", "!")
         every { aiProvider.streamResponse(any(), any(), any()) } returns flowOf(*chunks.toTypedArray())
         coEvery { chatRepository.sendMessage(any(), any(), any()) } returns Result.success(aChatMessage())
 
-        val collected = mutableListOf<String>()
-        sendAiChatMessageUseCase.invoke("user-1", emptyList(), "Hi coach")
-            .collect { collected.add(it) }
-
-        assertEquals(chunks, collected)
-        coVerify(exactly = 1) {
-            chatRepository.sendMessage("user-1", ChatType.Ai, MessageContent.Text("Hi coach"))
+        sendAiChatMessageUseCase.invoke("user-1", emptyList(), "Hi coach").test {
+            coVerify(exactly = 1) {
+                chatRepository.sendMessage("user-1", ChatType.Ai, MessageContent.Text("Hi coach"))
+            }
+            assertEquals("Hello", awaitItem())
+            assertEquals(" coach", awaitItem())
+            assertEquals("!", awaitItem())
+            awaitComplete()
         }
     }
 }
