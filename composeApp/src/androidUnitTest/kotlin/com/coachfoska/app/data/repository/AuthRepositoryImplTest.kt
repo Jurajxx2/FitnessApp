@@ -39,6 +39,7 @@ class AuthRepositoryImplTest {
         assertEquals("user-1", result.id)
         assertEquals("Alice", result.fullName)
         assertTrue(result.onboardingComplete)
+        assertEquals("test@example.com", result.email)
     }
 
     @Test
@@ -56,6 +57,7 @@ class AuthRepositoryImplTest {
         assertEquals("user-1", result.id)
         assertEquals("test@example.com", result.email)
         assertNull(result.fullName)
+        assertEquals(false, result.onboardingComplete)
     }
 
     @Test
@@ -119,6 +121,17 @@ class AuthRepositoryImplTest {
     @Test
     fun `hasCompletedOnboarding returns false when not authenticated`() = runTest {
         every { authDataSource.getCurrentUserInfo() } returns null
+
+        val result = repository.hasCompletedOnboarding()
+
+        assertEquals(false, result)
+    }
+
+    @Test
+    fun `hasCompletedOnboarding returns false when profile fetch throws`() = runTest {
+        val userInfo = mockk<UserInfo> { every { id } returns "user-1" }
+        every { authDataSource.getCurrentUserInfo() } returns userInfo
+        coEvery { userDataSource.getProfile("user-1") } throws RuntimeException("DB error")
 
         val result = repository.hasCompletedOnboarding()
 
