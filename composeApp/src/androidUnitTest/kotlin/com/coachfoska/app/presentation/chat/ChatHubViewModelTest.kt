@@ -64,6 +64,7 @@ class ChatHubViewModelTest {
         assertEquals(3, vm.state.value.summaries[0].unreadCount)
         assertEquals(ChatType.Human, vm.state.value.summaries[0].chatType)
         assertEquals(ChatType.Ai, vm.state.value.summaries[1].chatType)
+        assertFalse(vm.state.value.isLoading)
     }
 
     @Test
