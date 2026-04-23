@@ -97,6 +97,22 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `CompleteOnboarding with invalid weight sets error without calling repository`() = runTest {
+        val vm = viewModel()
+        vm.onIntent(OnboardingIntent.GoalSelected(UserGoal.MUSCLE_GAIN))
+        vm.onIntent(OnboardingIntent.ActivityLevelSelected(ActivityLevel.MODERATELY_ACTIVE))
+        vm.onIntent(OnboardingIntent.HeightChanged("175"))
+        vm.onIntent(OnboardingIntent.WeightChanged("not-a-number"))
+        vm.onIntent(OnboardingIntent.AgeChanged("30"))
+
+        vm.onIntent(OnboardingIntent.CompleteOnboarding)
+
+        assertEquals("Invalid weight", vm.state.value.error)
+        assertFalse(vm.state.value.isLoading)
+        assertFalse(vm.state.value.onboardingComplete)
+    }
+
+    @Test
     fun `CompleteOnboarding success sets onboardingComplete true`() = runTest {
         coEvery {
             userRepository.completeOnboarding(any(), any(), any(), any(), any(), any())
