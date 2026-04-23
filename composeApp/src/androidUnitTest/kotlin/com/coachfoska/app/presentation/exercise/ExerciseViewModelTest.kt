@@ -79,6 +79,17 @@ class ExerciseViewModelTest {
     }
 
     @Test
+    fun `Search with blank query returns empty results without calling repository`() = runTest {
+        val vm = viewModel()
+
+        vm.onIntent(ExerciseIntent.Search)
+
+        assertTrue(vm.state.value.searchResults.isEmpty())
+        assertFalse(vm.state.value.isSearching)
+        coVerify(exactly = 0) { repo.searchExercises(any()) }
+    }
+
+    @Test
     fun `LoadCategories success populates categories list`() = runTest {
         val cats = listOf(ExerciseCategory(1, "Chest"), ExerciseCategory(2, "Back"))
         coEvery { repo.getCategories() } returns Result.success(cats)
@@ -100,6 +111,19 @@ class ExerciseViewModelTest {
         vm.onIntent(ExerciseIntent.LoadCategories) // second call
 
         coVerify(exactly = 1) { repo.getCategories() }
+    }
+
+    @Test
+    fun `LoadExercisesByCategory success populates categoryExercises`() = runTest {
+        val exercises = listOf(anExercise())
+        coEvery { repo.getExercisesByCategory(1) } returns Result.success(exercises)
+        val vm = viewModel()
+
+        vm.onIntent(ExerciseIntent.LoadExercisesByCategory(1))
+
+        assertEquals(1, vm.state.value.categoryExercises.size)
+        assertEquals("ex-1", vm.state.value.categoryExercises[0].id)
+        assertFalse(vm.state.value.isCategoryExercisesLoading)
     }
 
     @Test
@@ -131,7 +155,7 @@ class ExerciseViewModelTest {
     fun `DismissError clears error`() = runTest {
         coEvery { repo.searchExercises(any()) } returns Result.failure(RuntimeException("err"))
         val vm = viewModel()
-        vm.onIntent(ExerciseIntent.SearchQueryChanged("bench"))  // REQUIRED: query must be non-blank
+        vm.onIntent(ExerciseIntent.SearchQueryChanged("bench"))
         vm.onIntent(ExerciseIntent.Search)
         assertNotNull(vm.state.value.error)
 
