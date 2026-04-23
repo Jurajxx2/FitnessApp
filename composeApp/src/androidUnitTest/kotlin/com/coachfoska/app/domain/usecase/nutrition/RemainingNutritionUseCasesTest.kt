@@ -1,9 +1,10 @@
 package com.coachfoska.app.domain.usecase.nutrition
 
-import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.fixtures.aRecipe
+import com.coachfoska.app.fixtures.aNutritionSummary
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -20,13 +21,14 @@ class RemainingNutritionUseCasesTest {
     @Test
     fun `getDailyNutritionSummary delegates to repository with userId and date`() = runTest {
         val date = LocalDate.parse("2026-04-24")
-        val summary = DailyNutritionSummary(calories = 2000f, proteinG = 150f, carbsG = 200f, fatG = 80f)
+        val summary = aNutritionSummary()
         coEvery { mealRepository.getDailyNutritionSummary("user-1", date) } returns Result.success(summary)
 
         val result = GetDailyNutritionSummaryUseCase(mealRepository)("user-1", date)
 
         assertTrue(result.isSuccess)
         assertEquals(summary, result.getOrThrow())
+        coVerify(exactly = 1) { mealRepository.getDailyNutritionSummary("user-1", date) }
     }
 
     @Test
