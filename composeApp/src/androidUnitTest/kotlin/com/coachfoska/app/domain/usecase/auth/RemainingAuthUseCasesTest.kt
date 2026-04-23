@@ -3,6 +3,7 @@ package com.coachfoska.app.domain.usecase.auth
 import com.coachfoska.app.domain.auth.AppleSignInCredential
 import com.coachfoska.app.domain.auth.SocialAuthProvider
 import com.coachfoska.app.domain.repository.AuthRepository
+import com.coachfoska.app.fixtures.aUser
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -27,6 +28,7 @@ class RemainingAuthUseCasesTest {
         val result = GetCurrentUserUseCase(authRepository)()
 
         assertEquals(user, result)
+        coVerify(exactly = 1) { authRepository.getCurrentUser() }
     }
 
     @Test
@@ -36,6 +38,7 @@ class RemainingAuthUseCasesTest {
         val result = GetCurrentUserUseCase(authRepository)()
 
         assertNull(result)
+        coVerify(exactly = 1) { authRepository.getCurrentUser() }
     }
 
     // --- SignOutUseCase ---
