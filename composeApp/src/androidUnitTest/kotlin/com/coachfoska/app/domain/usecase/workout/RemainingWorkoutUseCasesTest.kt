@@ -14,6 +14,8 @@ import kotlin.test.assertTrue
 class RemainingWorkoutUseCasesTest {
 
     private val workoutRepository: WorkoutRepository = mockk()
+    private val getWorkoutByIdUseCase = GetWorkoutByIdUseCase(workoutRepository)
+    private val getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(workoutRepository)
 
     // --- GetWorkoutByIdUseCase ---
 
@@ -22,7 +24,7 @@ class RemainingWorkoutUseCasesTest {
         val workout = aWorkout()
         coEvery { workoutRepository.getWorkoutById("workout-1") } returns Result.success(workout)
 
-        val result = GetWorkoutByIdUseCase(workoutRepository)("workout-1")
+        val result = getWorkoutByIdUseCase("workout-1")
 
         assertTrue(result.isSuccess)
         assertEquals(workout, result.getOrThrow())
@@ -33,7 +35,7 @@ class RemainingWorkoutUseCasesTest {
     fun `getWorkoutById propagates repository failure`() = runTest {
         coEvery { workoutRepository.getWorkoutById(any()) } returns Result.failure(RuntimeException("Not found"))
 
-        val result = GetWorkoutByIdUseCase(workoutRepository)("workout-1")
+        val result = getWorkoutByIdUseCase("workout-1")
 
         assertTrue(result.isFailure)
         assertEquals("Not found", result.exceptionOrNull()?.message)
@@ -46,18 +48,17 @@ class RemainingWorkoutUseCasesTest {
         val logs = listOf(aWorkoutLog())
         coEvery { workoutRepository.getWorkoutHistory("user-1") } returns Result.success(logs)
 
-        val result = GetWorkoutHistoryUseCase(workoutRepository)("user-1")
+        val result = getWorkoutHistoryUseCase("user-1")
 
         assertTrue(result.isSuccess)
-        assertEquals(1, result.getOrThrow().size)
-        assertEquals("log-1", result.getOrThrow()[0].id)
+        assertEquals(logs, result.getOrThrow())
     }
 
     @Test
     fun `getWorkoutHistory returns empty list when no history`() = runTest {
         coEvery { workoutRepository.getWorkoutHistory("user-1") } returns Result.success(emptyList())
 
-        val result = GetWorkoutHistoryUseCase(workoutRepository)("user-1")
+        val result = getWorkoutHistoryUseCase("user-1")
 
         assertTrue(result.isSuccess)
         assertTrue(result.getOrThrow().isEmpty())

@@ -14,6 +14,7 @@ import kotlin.test.assertTrue
 class CompleteOnboardingUseCaseTest {
 
     private val userRepository: UserRepository = mockk()
+    private val useCase = CompleteOnboardingUseCase(userRepository)
 
     @Test
     fun `invoke passes all parameters to repository`() = runTest {
@@ -21,7 +22,7 @@ class CompleteOnboardingUseCaseTest {
             userRepository.completeOnboarding(any(), any(), any(), any(), any(), any())
         } returns Result.success(Unit)
 
-        val result = CompleteOnboardingUseCase(userRepository)(
+        val result = useCase(
             userId = "user-1",
             goal = UserGoal.MUSCLE_GAIN,
             heightCm = 175f,
@@ -44,7 +45,7 @@ class CompleteOnboardingUseCaseTest {
             userRepository.completeOnboarding(any(), any(), any(), any(), any(), any())
         } returns Result.failure(RuntimeException("Save failed"))
 
-        val result = CompleteOnboardingUseCase(userRepository)(
+        val result = useCase(
             userId = "user-1",
             goal = UserGoal.WEIGHT_LOSS,
             heightCm = 160f,
