@@ -24,7 +24,7 @@ import org.jetbrains.compose.resources.stringResource
 
 enum class BottomNavTab(val labelRes: StringResource, val icon: ImageVector) {
     Home(Res.string.nav_home, Icons.Default.Home),
-    Workout(Res.string.nav_workout, Icons.Default.FitnessCenter),
+    Activity(Res.string.nav_activity, Icons.Default.FitnessCenter),
     Chat(Res.string.nav_chat, Icons.AutoMirrored.Filled.Chat),
     Nutrition(Res.string.nav_nutrition, Icons.Default.Restaurant),
     Profile(Res.string.nav_profile, Icons.Default.Person)

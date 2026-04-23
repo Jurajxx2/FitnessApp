@@ -30,7 +30,9 @@ import com.coachfoska.app.ui.nutrition.MealCaptureRoute
 import com.coachfoska.app.ui.nutrition.MealDetailRoute
 import com.coachfoska.app.ui.nutrition.MealHistoryDetailRoute
 import com.coachfoska.app.ui.nutrition.MealHistoryRoute
-import com.coachfoska.app.ui.nutrition.MealPlanRoute
+import com.coachfoska.app.ui.nutrition.MealPlanDetailRoute
+import com.coachfoska.app.ui.nutrition.NutritionHubRoute
+import com.coachfoska.app.ui.nutrition.RecipesListRoute
 import com.coachfoska.app.ui.recipe.RecipeDetailRoute
 import com.coachfoska.app.ui.onboarding.OnboardingRoute
 import com.coachfoska.app.ui.chat.ChatHubRoute
@@ -45,7 +47,9 @@ import com.coachfoska.app.ui.workout.LogWorkoutRoute
 import com.coachfoska.app.ui.workout.WorkoutDetailRoute
 import com.coachfoska.app.ui.workout.WorkoutHistoryRoute
 import com.coachfoska.app.ui.workout.WorkoutHistoryDetailRoute
-import com.coachfoska.app.ui.workout.WorkoutListRoute
+import com.coachfoska.app.ui.workout.ActivityHubRoute
+import com.coachfoska.app.ui.workout.ExerciseLibraryRoute
+import com.coachfoska.app.ui.workout.WorkoutPlanRoute
 
 @Composable
 fun App(openHumanChat: Boolean = false) {
@@ -89,7 +93,7 @@ fun App(openHumanChat: Boolean = false) {
                 when {
                     currentRoute?.contains("Home") == true -> BottomNavTab.Home
                     currentRoute?.contains("Workout", ignoreCase = true) == true ||
-                        currentRoute?.contains("Exercise", ignoreCase = true) == true -> BottomNavTab.Workout
+                        currentRoute?.contains("Exercise", ignoreCase = true) == true -> BottomNavTab.Activity
                     currentRoute?.contains("Chat", ignoreCase = true) == true ||
                         currentRoute?.contains("CoachChat") == true -> BottomNavTab.Chat
                     currentRoute?.contains("Meal", ignoreCase = true) == true ||
@@ -111,7 +115,7 @@ fun App(openHumanChat: Boolean = false) {
                         onTabSelected = { tab ->
                             val route: Any = when (tab) {
                                 BottomNavTab.Home -> Home
-                                BottomNavTab.Workout -> WorkoutList
+                                BottomNavTab.Activity -> WorkoutList
                                 BottomNavTab.Chat -> Chat
                                 BottomNavTab.Nutrition -> MealPlan
                                 BottomNavTab.Profile -> Profile
@@ -235,14 +239,11 @@ fun App(openHumanChat: Boolean = false) {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    WorkoutListRoute(
+                    ActivityHubRoute(
                         userId = currentUserId,
-                        onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
-                        onLogWorkoutClick = { navController.navigate(LogWorkout) },
-                        onCategoryClick = { categoryId, categoryName ->
-                            navController.navigate(ExercisesByCategory(categoryId, categoryName))
-                        },
-                        onHistoryItemClick = { logId -> navController.navigate(WorkoutHistoryDetail(logId)) }
+                        onPlanClick = { navController.navigate(WorkoutPlan) },
+                        onHistoryClick = { navController.navigate(WorkoutHistory) },
+                        onLibraryClick = { navController.navigate(ExerciseLibrary) }
                     )
                 }
 
@@ -298,6 +299,24 @@ fun App(openHumanChat: Boolean = false) {
                     )
                 }
 
+                composable<WorkoutPlan> {
+                    WorkoutPlanRoute(
+                        userId = currentUserId,
+                        onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
+                        onLogWorkoutClick = { navController.navigate(LogWorkout) },
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable<ExerciseLibrary> {
+                    ExerciseLibraryRoute(
+                        onCategoryClick = { categoryId, categoryName ->
+                            navController.navigate(ExercisesByCategory(categoryId, categoryName))
+                        },
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
                 // ── Nutrition ─────────────────────────────────────────────
                 composable<MealPlan>(
                     enterTransition = { fadeIn(tween(150)) },
@@ -305,11 +324,11 @@ fun App(openHumanChat: Boolean = false) {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    MealPlanRoute(
+                    NutritionHubRoute(
                         userId = currentUserId,
-                        onMealClick = { mealId -> navController.navigate(MealDetail(mealId)) },
-                        onRecordMealClick = { navController.navigate(MealCapture) },
-                        onRecipeClick = { recipeId -> navController.navigate(RecipeDetail(recipeId)) }
+                        onPlanClick = { navController.navigate(MealPlanDetail) },
+                        onHistoryClick = { navController.navigate(MealHistory) },
+                        onRecipesClick = { navController.navigate(RecipesList) }
                     )
                 }
 
@@ -334,6 +353,23 @@ fun App(openHumanChat: Boolean = false) {
                         userId = currentUserId,
                         onBackClick = { navController.popBackStack() },
                         onLogClick = { logId -> navController.navigate(MealHistoryDetail(logId)) }
+                    )
+                }
+
+                composable<MealPlanDetail> {
+                    MealPlanDetailRoute(
+                        userId = currentUserId,
+                        onMealClick = { mealId -> navController.navigate(MealDetail(mealId)) },
+                        onRecordMealClick = { navController.navigate(MealCapture) },
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable<RecipesList> {
+                    RecipesListRoute(
+                        userId = currentUserId,
+                        onRecipeClick = { recipeId -> navController.navigate(RecipeDetail(recipeId)) },
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
 

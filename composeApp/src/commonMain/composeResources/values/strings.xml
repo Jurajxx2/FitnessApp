@@ -74,6 +74,7 @@
     <!-- Bottom Nav -->
     <string name="nav_home">Home</string>
     <string name="nav_workout">Workout</string>
+    <string name="nav_activity">Activity</string>
     <string name="nav_chat">Chat</string>
     <string name="nav_nutrition">Nutrition</string>
     <string name="nav_profile">Profile</string>

@@ -24,6 +24,8 @@ import kotlinx.serialization.Serializable
 @Serializable object LogWorkout
 @Serializable object WorkoutHistory
 @Serializable data class WorkoutHistoryDetail(val logId: String)
+@Serializable object WorkoutPlan
+@Serializable object ExerciseLibrary
 
 // Nutrition
 @Serializable object MealPlan
@@ -32,6 +34,8 @@ import kotlinx.serialization.Serializable
 @Serializable object MealHistory
 @Serializable data class MealHistoryDetail(val logId: String)
 @Serializable data class RecipeDetail(val recipeId: String)
+@Serializable object MealPlanDetail
+@Serializable object RecipesList
 
 // Chat
 @Serializable object Chat
