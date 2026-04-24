@@ -26,7 +26,6 @@ class AndroidWaterReminderScheduler(private val context: Context) : WaterReminde
             settings.intervalMinutes.toLong(), TimeUnit.MINUTES
         )
             .setInputData(inputData)
-            .setConstraints(Constraints(requiredNetworkType = NetworkType.CONNECTED))
             .build()
 
         workManager.enqueueUniquePeriodicWork(

@@ -13,9 +13,6 @@ import kotlinx.datetime.toLocalDateTime
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-private const val CHANNEL_ID = "hydration_reminders"
-private const val NOTIFICATION_ID = 1001
-
 class HydrationWorker(
     private val context: Context,
     params: WorkerParameters
@@ -24,7 +21,7 @@ class HydrationWorker(
     private val hydrationRepository: HydrationRepository by inject()
 
     override suspend fun doWork(): Result {
-        val userId = inputData.getString(KEY_USER_ID) ?: return Result.failure()
+        val userId = inputData.getString(KEY_USER_ID)?.takeIf { it.isNotBlank() } ?: return Result.failure()
         val goalMl = inputData.getInt(KEY_GOAL_ML, 2000)
         val startHour = inputData.getInt(KEY_START_HOUR, 7)
         val endHour = inputData.getInt(KEY_END_HOUR, 22)
@@ -35,13 +32,17 @@ class HydrationWorker(
         if (currentHour < startHour || currentHour >= endHour) return Result.success()
 
         if (smartSuppress) {
-            val logs = hydrationRepository.getTodayLogs(userId).getOrNull() ?: return Result.success()
-            if (logs.sumOf { it.amountMl } >= goalMl) return Result.success()
-            val lastLog = logs.firstOrNull()
-            if (lastLog != null) {
-                val minutesSinceLast = (currentInstant() - lastLog.loggedAt).inWholeMinutes
-                if (minutesSinceLast < intervalMinutes / 2) return Result.success()
+            val logsResult = hydrationRepository.getTodayLogs(userId)
+            val logs = logsResult.getOrNull()
+            if (logs != null) {
+                if (logs.sumOf { it.amountMl } >= goalMl) return Result.success()
+                val lastLog = logs.firstOrNull()
+                if (lastLog != null) {
+                    val minutesSinceLast = (currentInstant() - lastLog.loggedAt).inWholeMinutes
+                    if (minutesSinceLast < intervalMinutes / 2) return Result.success()
+                }
             }
+            // If network failed (logs == null), show notification anyway
         }
 
         showNotification()
@@ -72,5 +73,7 @@ class HydrationWorker(
         const val KEY_SMART_SUPPRESS = "smart_suppress"
         const val KEY_INTERVAL_MINUTES = "interval_minutes"
         const val WORK_NAME = "hydration_reminder"
+        const val CHANNEL_ID = "hydration_reminders"
+        const val NOTIFICATION_ID = 1001
     }
 }
