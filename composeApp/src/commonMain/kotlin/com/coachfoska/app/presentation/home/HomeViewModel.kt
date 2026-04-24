@@ -87,6 +87,7 @@ class HomeViewModel(
             profileResult.onFailure { e -> Napier.e("loadProfile failed", e, tag = TAG) }
             workoutsResult.onFailure { e -> Napier.e("loadWorkouts failed", e, tag = TAG) }
             nutritionResult.onFailure { e -> Napier.e("loadNutrition failed", e, tag = TAG) }
+            waterLogsResult.onFailure { e -> Napier.e("loadWaterLogs failed", e, tag = TAG) }
 
             val error = profileResult.exceptionOrNull()?.message
                 ?: workoutsResult.exceptionOrNull()?.message
