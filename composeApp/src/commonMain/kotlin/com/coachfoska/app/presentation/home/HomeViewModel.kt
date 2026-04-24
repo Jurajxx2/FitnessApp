@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.core.util.todayDate
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.DayOfWeek
+import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
+import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
@@ -28,6 +30,8 @@ class HomeViewModel(
     private val getAssignedWorkoutsUseCase: GetAssignedWorkoutsUseCase,
     private val getDailyNutritionSummaryUseCase: GetDailyNutritionSummaryUseCase,
     private val observeChatMessagesUseCase: ObserveChatMessagesUseCase,
+    private val hydrationRepository: HydrationRepository,
+    private val calculateWaterGoalUseCase: CalculateWaterGoalUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -70,11 +74,15 @@ class HomeViewModel(
                     observeChatMessagesUseCase(userId, ChatType.Human).first().lastOrNull()
                 }.getOrNull()
             }
+            val waterLogsDeferred = async { hydrationRepository.getTodayLogs(userId) }
 
             val profileResult = profileDeferred.await()
             val workoutsResult = workoutsDeferred.await()
             val nutritionResult = nutritionDeferred.await()
             val lastCoachMessage = chatDeferred.await()
+            val waterLogsResult = waterLogsDeferred.await()
+            val waterConsumed = waterLogsResult.getOrDefault(emptyList()).sumOf { it.amountMl }
+            val waterGoal = profileResult.getOrNull()?.let { calculateWaterGoalUseCase(it) } ?: 2000
 
             profileResult.onFailure { e -> Napier.e("loadProfile failed", e, tag = TAG) }
             workoutsResult.onFailure { e -> Napier.e("loadWorkouts failed", e, tag = TAG) }
@@ -94,6 +102,8 @@ class HomeViewModel(
                     todayWorkout = todayWorkout,
                     nutritionSummary = nutritionResult.getOrNull(),
                     lastCoachMessage = lastCoachMessage,
+                    waterConsumedMl = waterConsumed,
+                    waterGoalMl = waterGoal,
                     error = error
                 )
             }

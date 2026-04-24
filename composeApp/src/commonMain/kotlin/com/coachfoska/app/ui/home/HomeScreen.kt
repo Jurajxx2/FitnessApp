@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -33,17 +34,19 @@ import org.koin.core.parameter.parametersOf
 fun HomeRoute(
     userId: String,
     onChatClick: () -> Unit = {},
+    onWaterClick: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HomeScreen(state = state, onIntent = viewModel::onIntent, onChatClick = onChatClick)
+    HomeScreen(state = state, onIntent = viewModel::onIntent, onChatClick = onChatClick, onWaterClick = onWaterClick)
 }
 
 @Composable
 fun HomeScreen(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
-    onChatClick: () -> Unit = {}
+    onChatClick: () -> Unit = {},
+    onWaterClick: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -134,6 +137,11 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                             )
+                            WaterProgressRow(
+                                consumedMl = state.waterConsumedMl,
+                                goalMl = state.waterGoalMl,
+                                onClick = onWaterClick
+                            )
                         }
                     }
                 }
@@ -177,6 +185,54 @@ private fun WorkoutHomeCard(workout: Workout) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "💧",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "WATER",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                letterSpacing = 1.sp,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "$consumedMl / $goalMl ml",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        val fraction = if (goalMl > 0) (consumedMl.toFloat() / goalMl).coerceIn(0f, 1f) else 0f
+        LinearProgressIndicator(
+            progress = { fraction },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(5.dp)
+                .clip(RoundedCornerShape(50)),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
+        )
     }
 }
 

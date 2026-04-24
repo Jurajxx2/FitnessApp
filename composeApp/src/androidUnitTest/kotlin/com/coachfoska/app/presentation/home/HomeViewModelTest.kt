@@ -3,12 +3,14 @@ package com.coachfoska.app.presentation.home
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.repository.ChatRepository
+import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.usecase.auth.aUser
 import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
+import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
@@ -39,12 +41,15 @@ class HomeViewModelTest {
     private val workoutRepo: WorkoutRepository = mockk()
     private val mealRepo: MealRepository = mockk()
     private val chatRepo: ChatRepository = mockk()
+    private val hydrationRepo: HydrationRepository = mockk()
 
     private fun viewModel() = HomeViewModel(
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         getAssignedWorkoutsUseCase = GetAssignedWorkoutsUseCase(workoutRepo),
         getDailyNutritionSummaryUseCase = GetDailyNutritionSummaryUseCase(mealRepo),
         observeChatMessagesUseCase = ObserveChatMessagesUseCase(chatRepo),
+        hydrationRepository = hydrationRepo,
+        calculateWaterGoalUseCase = CalculateWaterGoalUseCase(),
         userId = "user-1"
     )
 
@@ -52,6 +57,7 @@ class HomeViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         every { chatRepo.observeMessages(any(), any()) } returns flowOf(emptyList())
+        coEvery { hydrationRepo.getTodayLogs(any()) } returns Result.success(emptyList())
     }
 
     @AfterTest fun tearDown() = Dispatchers.resetMain()

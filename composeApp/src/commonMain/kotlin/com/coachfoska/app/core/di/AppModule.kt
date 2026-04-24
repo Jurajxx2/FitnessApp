@@ -161,7 +161,7 @@ val useCaseModule = module {
 val viewModelModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::AuthViewModel)
-    viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), userId) }
     viewModel { (recipeId: String) -> RecipeDetailViewModel(get(), recipeId) }

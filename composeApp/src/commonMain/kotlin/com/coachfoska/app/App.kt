@@ -230,7 +230,8 @@ fun App(openHumanChat: Boolean = false) {
                 ) {
                     HomeRoute(
                         userId = currentUserId,
-                        onChatClick = { navController.navigate(HumanCoachChat) }
+                        onChatClick = { navController.navigate(HumanCoachChat) },
+                        onWaterClick = { navController.navigate(Hydration) }
                     )
                 }
 

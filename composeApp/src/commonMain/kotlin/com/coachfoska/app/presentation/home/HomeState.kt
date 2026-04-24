@@ -11,5 +11,7 @@ data class HomeState(
     val todayWorkout: Workout? = null,
     val nutritionSummary: DailyNutritionSummary? = null,
     val lastCoachMessage: ChatMessage? = null,
+    val waterConsumedMl: Int = 0,
+    val waterGoalMl: Int = 2000,
     val error: String? = null
 )
