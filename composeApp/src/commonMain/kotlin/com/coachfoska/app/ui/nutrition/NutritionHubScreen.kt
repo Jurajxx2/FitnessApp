@@ -25,6 +25,7 @@ fun NutritionHubRoute(
     onPlanClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onRecipesClick: () -> Unit,
+    onWaterClick: () -> Unit,
     viewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -32,7 +33,8 @@ fun NutritionHubRoute(
         state = state,
         onPlanClick = onPlanClick,
         onHistoryClick = onHistoryClick,
-        onRecipesClick = onRecipesClick
+        onRecipesClick = onRecipesClick,
+        onWaterClick = onWaterClick
     )
 }
 
@@ -41,7 +43,8 @@ fun NutritionHubScreen(
     state: NutritionState,
     onPlanClick: () -> Unit,
     onHistoryClick: () -> Unit,
-    onRecipesClick: () -> Unit
+    onRecipesClick: () -> Unit,
+    onWaterClick: () -> Unit
 ) {
     val planSubtitle = when {
         state.isLoading -> "Loading..."
@@ -96,6 +99,16 @@ fun NutritionHubScreen(
                     title = "Recipes",
                     subtitle = "Meal ideas",
                     onClick = onRecipesClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
+                )
+                HubImageCard(
+                    imageRes = Res.drawable.img_nutrition_history,
+                    eyebrow = "Track",
+                    title = "Water",
+                    subtitle = "Daily intake",
+                    onClick = onWaterClick,
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(1f)
