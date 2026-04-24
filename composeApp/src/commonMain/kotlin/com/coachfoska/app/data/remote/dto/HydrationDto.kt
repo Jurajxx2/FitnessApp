@@ -8,15 +8,15 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class WaterLogDto(
-    val id: String,
+    @SerialName("id") val id: String,
     @SerialName("user_id") val userId: String,
     @SerialName("amount_ml") val amountMl: Int,
-    @SerialName("logged_at") val loggedAt: String
+    @SerialName("logged_at") val loggedAt: Instant
 ) {
     fun toDomain(): WaterLog = WaterLog(
         id = id,
         amountMl = amountMl,
-        loggedAt = Instant.parse(loggedAt)
+        loggedAt = loggedAt
     )
 }
 
