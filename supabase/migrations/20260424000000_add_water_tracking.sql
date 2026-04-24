@@ -10,7 +10,9 @@ CREATE TABLE water_logs (
 ALTER TABLE water_logs ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users manage own water logs"
-    ON water_logs FOR ALL USING (auth.uid() = user_id);
+    ON water_logs FOR ALL
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 
 CREATE INDEX idx_water_logs_user_date ON water_logs(user_id, logged_at DESC);
 
@@ -29,4 +31,10 @@ CREATE TABLE hydration_settings (
 ALTER TABLE hydration_settings ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users manage own hydration settings"
-    ON hydration_settings FOR ALL USING (auth.uid() = user_id);
+    ON hydration_settings FOR ALL
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE TRIGGER handle_updated_at
+    BEFORE UPDATE ON hydration_settings
+    FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime('updated_at');
