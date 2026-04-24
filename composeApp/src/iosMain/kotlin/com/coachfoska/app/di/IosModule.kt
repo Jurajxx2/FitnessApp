@@ -7,6 +7,8 @@ import com.coachfoska.app.domain.auth.SocialAuthProvider
 import com.coachfoska.app.domain.push.PushNotificationService
 import com.coachfoska.app.domain.repository.DeviceTokenRepository
 import com.coachfoska.app.push.IosPushNotificationService
+import com.coachfoska.app.domain.hydration.WaterReminderScheduler
+import com.coachfoska.app.hydration.IosWaterReminderScheduler
 import org.koin.dsl.module
 
 val iosModule = module {
@@ -15,4 +17,5 @@ val iosModule = module {
     single<DeviceTokenRepository> {
         DeviceTokenRepositoryImpl(dataSource = get(), pushService = get(), platform = "ios")
     }
+    single<WaterReminderScheduler> { IosWaterReminderScheduler() }
 }

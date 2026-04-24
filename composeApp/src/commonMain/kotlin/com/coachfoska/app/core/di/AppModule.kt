@@ -69,6 +69,12 @@ import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
 import com.coachfoska.app.presentation.profile.ProfileViewModel
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
+import com.coachfoska.app.data.remote.datasource.HydrationRemoteDataSource
+import com.coachfoska.app.data.repository.HydrationRepositoryImpl
+import com.coachfoska.app.domain.hydration.WaterReminderScheduler
+import com.coachfoska.app.domain.repository.HydrationRepository
+import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
+import com.coachfoska.app.presentation.hydration.HydrationViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -190,6 +196,13 @@ val pushModule = module {
     // because the platform string ("android" / "ios") differs per platform
 }
 
+val hydrationModule = module {
+    single { HydrationRemoteDataSource(get()) }
+    single<HydrationRepository> { HydrationRepositoryImpl(get()) }
+    factory { CalculateWaterGoalUseCase() }
+    viewModel { (userId: String) -> HydrationViewModel(get(), get(), get(), get(), userId) }
+}
+
 val appModules = listOf(
     themeModule,
     networkModule,
@@ -198,5 +211,6 @@ val appModules = listOf(
     useCaseModule,
     viewModelModule,
     chatModule,
-    pushModule
+    pushModule,
+    hydrationModule
 )
