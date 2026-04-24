@@ -50,6 +50,7 @@ import com.coachfoska.app.ui.workout.WorkoutHistoryDetailRoute
 import com.coachfoska.app.ui.workout.ActivityHubRoute
 import com.coachfoska.app.ui.workout.ExerciseLibraryRoute
 import com.coachfoska.app.ui.workout.WorkoutPlanRoute
+import com.coachfoska.app.ui.hydration.HydrationRoute
 
 @Composable
 fun App(openHumanChat: Boolean = false) {
@@ -98,7 +99,8 @@ fun App(openHumanChat: Boolean = false) {
                         currentRoute?.contains("CoachChat") == true -> BottomNavTab.Chat
                     currentRoute?.contains("Meal", ignoreCase = true) == true ||
                         currentRoute?.contains("Nutrition", ignoreCase = true) == true ||
-                        currentRoute?.contains("Recipe", ignoreCase = true) == true -> BottomNavTab.Nutrition
+                        currentRoute?.contains("Recipe", ignoreCase = true) == true ||
+                        currentRoute?.contains("Hydration", ignoreCase = true) == true -> BottomNavTab.Nutrition
                     currentRoute?.contains("Profile", ignoreCase = true) == true ||
                         currentRoute?.contains("Progress") == true ||
                         currentRoute?.contains("AboutCoach") == true -> BottomNavTab.Profile
@@ -328,7 +330,8 @@ fun App(openHumanChat: Boolean = false) {
                         userId = currentUserId,
                         onPlanClick = { navController.navigate(MealPlanDetail) },
                         onHistoryClick = { navController.navigate(MealHistory) },
-                        onRecipesClick = { navController.navigate(RecipesList) }
+                        onRecipesClick = { navController.navigate(RecipesList) },
+                        onWaterClick = { navController.navigate(Hydration) }
                     )
                 }
 
@@ -386,6 +389,13 @@ fun App(openHumanChat: Boolean = false) {
                     val route = backStackEntry.toRoute<RecipeDetail>()
                     RecipeDetailRoute(
                         recipeId = route.recipeId,
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable<Hydration> {
+                    HydrationRoute(
+                        userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
