@@ -3,6 +3,7 @@ package com.coachfoska.app.presentation.hydration
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.hydration.WaterReminderScheduler
+import com.coachfoska.app.domain.model.HydrationSettings
 import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
@@ -58,13 +59,17 @@ class HydrationViewModel(
             val profile = profileResult.getOrNull()
             val goalMl = if (profile != null) calculateWaterGoalUseCase(profile) else 2000
 
+            val error = logsResult.exceptionOrNull()?.message
+                ?: profileResult.exceptionOrNull()?.message
+                ?: settingsResult.exceptionOrNull()?.message
+
             _state.update {
                 it.copy(
                     isLoading = false,
                     todayLogs = logsResult.getOrDefault(emptyList()),
                     goalMl = goalMl,
                     settings = settingsResult.getOrDefault(it.settings),
-                    error = logsResult.exceptionOrNull()?.message
+                    error = error
                 )
             }
         }
@@ -96,13 +101,14 @@ class HydrationViewModel(
         }
     }
 
-    private fun updateSettings(settings: com.coachfoska.app.domain.model.HydrationSettings) {
+    private fun updateSettings(settings: HydrationSettings) {
         viewModelScope.launch {
             hydrationRepository.saveSettings(userId, settings)
                 .onSuccess {
+                    val goalMl = _state.value.goalMl
                     _state.update { it.copy(settings = settings) }
                     if (settings.remindersEnabled) {
-                        reminderScheduler.schedule(settings, _state.value.goalMl)
+                        reminderScheduler.schedule(settings, goalMl)
                     } else {
                         reminderScheduler.cancel()
                     }
