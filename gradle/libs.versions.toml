@@ -19,6 +19,7 @@ mockk = "1.14.9"
 turbine = "1.2.1"
 credentials = "1.6.0"
 googleid = "1.1.1"
+work = "2.10.0"
 
 [libraries]
 # Compose Multiplatform (explicit artifacts, no deprecated plugin accessors)
@@ -71,6 +72,7 @@ lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecyc
 credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
 credentials-play-services = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
 google-identity = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 
 # Logging
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }

@@ -29,6 +29,7 @@ class HydrationViewModel(
     val state: StateFlow<HydrationState> = _state.asStateFlow()
 
     init {
+        reminderScheduler.setUserId(userId)
         onIntent(HydrationIntent.LoadData)
     }
 

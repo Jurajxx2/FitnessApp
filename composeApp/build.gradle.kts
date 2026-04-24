@@ -95,6 +95,9 @@ kotlin {
             implementation(libs.credentials)
             implementation(libs.credentials.play.services)
             implementation(libs.google.identity)
+
+            // WorkManager
+            implementation(libs.work.runtime.ktx)
         }
 
         iosMain.dependencies {
