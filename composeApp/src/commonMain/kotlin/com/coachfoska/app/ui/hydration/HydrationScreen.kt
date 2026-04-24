@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -11,8 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -21,6 +22,7 @@ import com.coachfoska.app.domain.model.WaterLog
 import com.coachfoska.app.presentation.hydration.HydrationIntent
 import com.coachfoska.app.presentation.hydration.HydrationState
 import com.coachfoska.app.presentation.hydration.HydrationViewModel
+import com.coachfoska.app.ui.components.CoachTopBar
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
@@ -56,33 +58,30 @@ fun HydrationScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(28.dp)
     ) {
-        Text(
-            text = "WATER",
-            style = MaterialTheme.typography.displayMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        CoachTopBar(title = "WATER", onBackClick = onBackClick)
 
-        WaterProgressRing(
-            consumed = state.consumedMl,
-            goal = state.goalMl,
-            fraction = state.progressFraction,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-
-        QuickAddButtons(onIntent = onIntent)
-
-        if (state.todayLogs.isNotEmpty()) {
-            TodayLogSection(logs = state.todayLogs, onDelete = { onIntent(HydrationIntent.DeleteLog(it)) })
-        }
-
-        ReminderSettingsSection(settings = state.settings, onUpdate = { onIntent(HydrationIntent.UpdateSettings(it)) })
-
-        state.error?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(28.dp)
+        ) {
+            WaterProgressRing(
+                consumed = state.consumedMl,
+                goal = state.goalMl,
+                fraction = state.progressFraction,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            QuickAddButtons(onIntent = onIntent)
+            if (state.todayLogs.isNotEmpty()) {
+                TodayLogSection(logs = state.todayLogs, onDelete = { onIntent(HydrationIntent.DeleteLog(it)) })
+            }
+            ReminderSettingsSection(settings = state.settings, onUpdate = { onIntent(HydrationIntent.UpdateSettings(it)) })
+            state.error?.let {
+                Text(text = it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }
@@ -140,16 +139,27 @@ private fun QuickAddButtons(onIntent: (HydrationIntent) -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(150, 250, 500).forEach { amount ->
                 val isPrimary = amount == 250
-                Button(
-                    onClick = { onIntent(HydrationIntent.LogWater(amount)) },
-                    modifier = Modifier.weight(1f),
-                    colors = if (isPrimary) ButtonDefaults.buttonColors()
-                             else ButtonDefaults.outlinedButtonColors(),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("$amount", fontWeight = FontWeight.Bold)
-                        Text("ml", style = MaterialTheme.typography.labelSmall)
+                if (isPrimary) {
+                    Button(
+                        onClick = { onIntent(HydrationIntent.LogWater(amount)) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("$amount", fontWeight = FontWeight.Bold)
+                            Text("ml", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { onIntent(HydrationIntent.LogWater(amount)) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("$amount", fontWeight = FontWeight.Bold)
+                            Text("ml", style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                 }
             }
@@ -326,15 +336,17 @@ private fun <T> SettingsPickerRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = if (enabled) 1f else 0.4f))
-            TextButton(onClick = { if (enabled) expanded = true }) {
-                Text(value, color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f))
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                options.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(optionLabel(option)) },
-                        onClick = { onSelect(option); expanded = false }
-                    )
+            Box {
+                TextButton(onClick = { if (enabled) expanded = true }) {
+                    Text(value, color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f))
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    options.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(optionLabel(option)) },
+                            onClick = { onSelect(option); expanded = false }
+                        )
+                    }
                 }
             }
         }
@@ -353,7 +365,8 @@ private fun CustomAmountDialog(onConfirm: (Int) -> Unit, onDismiss: () -> Unit) 
                 value = text,
                 onValueChange = { text = it.filter { c -> c.isDigit() }.take(4) },
                 label = { Text("ml") },
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
         },
         confirmButton = {
