@@ -35,10 +35,12 @@ export function ExerciseCombobox({ value, onChange }: ExerciseComboboxProps) {
   const [debouncedTerm, setDebouncedTerm] = useState('')
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
   const inputRef = useRef<HTMLInputElement>(null)
+  const skipDebounce = useRef(false)
 
   useEffect(() => { setInputValue(value) }, [value])
 
   useEffect(() => {
+    if (skipDebounce.current) { skipDebounce.current = false; return }
     const t = setTimeout(() => setDebouncedTerm(inputValue), 200)
     return () => clearTimeout(t)
   }, [inputValue])
@@ -52,6 +54,7 @@ export function ExerciseCombobox({ value, onChange }: ExerciseComboboxProps) {
   }, [open, results])
 
   function handleSelect(ex: ExerciseResult) {
+    skipDebounce.current = true
     onChange(ex.name_en, ex.primary_muscles?.[0] ?? '')
     setInputValue(ex.name_en)
     setOpen(false)
