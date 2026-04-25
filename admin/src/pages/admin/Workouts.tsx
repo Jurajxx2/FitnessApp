@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
+import { ExerciseCombobox } from '../../components/ExerciseCombobox'
+import { ExerciseBrowserSlideOver } from '../../components/ExerciseBrowserSlideOver'
 import type { Workout, WorkoutExercise } from '../../types/database'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -46,6 +48,7 @@ export default function Workouts() {
   const [editing, setEditing] = useState<Workout | null>(null)
   const [form, setForm] = useState<WorkoutFormState>({ name: '', day_of_week: null, notes: '', is_active: true })
   const [exercises, setExercises] = useState<ExerciseDraft[]>([blankExercise()])
+  const [slideOverOpen, setSlideOverOpen] = useState(false)
 
   function openCreate() {
     setEditing(null)
@@ -99,6 +102,7 @@ export default function Workouts() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['workouts-admin'] })
       setEditorOpen(false)
+      setSlideOverOpen(false)
     },
   })
 
@@ -111,6 +115,12 @@ export default function Workouts() {
 
   function updateExercise(i: number, field: keyof ExerciseDraft, value: string | number) {
     setExercises(ex => ex.map((e, idx) => idx === i ? { ...e, [field]: value } : e))
+  }
+
+  function updateExerciseName(i: number, name: string, muscleGroup: string) {
+    setExercises(ex => ex.map((e, idx) =>
+      idx === i ? { ...e, name, ...(muscleGroup ? { muscle_group: muscleGroup } : {}) } : e
+    ))
   }
 
   function removeExercise(i: number) {
@@ -158,7 +168,7 @@ export default function Workouts() {
 
       <Modal
         open={editorOpen}
-        onClose={() => setEditorOpen(false)}
+        onClose={() => { setEditorOpen(false); setSlideOverOpen(false) }}
         title={editing ? 'Edit Workout Plan' : 'New Workout Plan'}
         footer={
           <>
@@ -196,7 +206,25 @@ export default function Workouts() {
             {exercises.map((ex, i) => (
               <div key={i} className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 mb-2">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                  <Input label="Exercise name" value={ex.name} onChange={e => updateExercise(i, 'name', e.target.value)} placeholder="e.g. Bench Press" />
+                  <div>
+                    <label className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider block mb-1">Exercise name</label>
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1">
+                        <ExerciseCombobox
+                          value={ex.name}
+                          onChange={(name, muscleGroup) => updateExerciseName(i, name, muscleGroup)}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSlideOverOpen(true)}
+                        className="flex-shrink-0 text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border border-[var(--border)] rounded-md px-2 py-2 whitespace-nowrap cursor-pointer"
+                        title="Browse exercise database"
+                      >
+                        ⊞ Browse
+                      </button>
+                    </div>
+                  </div>
                   <Input label="Muscle group" value={ex.muscle_group ?? ''} onChange={e => updateExercise(i, 'muscle_group', e.target.value)} placeholder="e.g. Chest" />
                 </div>
                 <div className="grid grid-cols-3 gap-2 mb-2">
@@ -219,6 +247,15 @@ export default function Workouts() {
           </div>
         </div>
       </Modal>
+
+      <ExerciseBrowserSlideOver
+        open={slideOverOpen}
+        onClose={() => setSlideOverOpen(false)}
+        addedNames={exercises.map(e => e.name)}
+        onAdd={(name, muscleGroup) =>
+          setExercises(ex => [...ex, { ...blankExercise(), name, muscle_group: muscleGroup, sort_order: ex.length }])
+        }
+      />
     </div>
   )
 }
