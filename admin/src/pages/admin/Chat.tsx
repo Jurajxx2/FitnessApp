@@ -72,7 +72,7 @@ function useChatMessages() {
 
 function useChatProfiles(userIds: string[]) {
   return useQuery<Profile[]>({
-    queryKey: ['admin-chat-profiles', userIds.join(',')],
+    queryKey: ['admin-chat-profiles', [...userIds].sort().join(',')],
     enabled: userIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -105,7 +105,7 @@ export default function Chat() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [threadMessages.length])
+  }, [threadMessages.length, selectedUserId])
 
   // Mark user messages as read when opening a conversation
   const markRead = useMutation({
@@ -120,6 +120,7 @@ export default function Chat() {
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-chat-messages'] }),
+    onError: (err) => console.error('Failed to mark messages as read:', err),
   })
 
   function selectUser(userId: string) {
@@ -142,6 +143,7 @@ export default function Chat() {
       qc.invalidateQueries({ queryKey: ['admin-chat-messages'] })
       setText('')
     },
+    onError: (_err, { message }) => setText(message),
   })
 
   function handleSend() {
@@ -149,10 +151,11 @@ export default function Chat() {
     sendMessage.mutate({ userId: selectedUserId, message: text.trim() })
   }
 
-  // Realtime: invalidate cache on any new human chat insert
+  // Realtime: invalidate cache on any new human chat insert.
+  // Unique channel name per mount avoids Strict Mode double-mount teardown issues.
   useEffect(() => {
     const channel = supabase
-      .channel('admin-chat-realtime')
+      .channel(`admin-chat-realtime-${Date.now()}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: 'chat_type=eq.human' },
@@ -165,7 +168,7 @@ export default function Chat() {
   const selectedProfile = profiles.find(p => p.id === selectedUserId)
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
       {/* Left: conversation list */}
       <div className="w-64 flex-shrink-0 border-r border-[var(--border)] flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-[var(--border)] flex-shrink-0">
