@@ -125,6 +125,21 @@ export interface RecipeIngredient {
   sort_order: number
 }
 
+export interface Food {
+  id: string
+  name: string
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  serving_size: number
+  serving_unit: string
+  brand: string | null
+  is_verified: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface MealPlanRecipe {
   id: string
   meal_plan_id: string
@@ -181,4 +196,20 @@ export interface Exercise {
   source_provider: string
   created_at: string
   updated_at: string
+}
+
+export type ChatType = 'human' | 'ai'
+export type SenderType = 'user' | 'coach' | 'ai'
+export type ContentType = 'text' | 'image'
+
+export interface ChatMessage {
+  id: string
+  user_id: string
+  chat_type: ChatType
+  sender_type: SenderType
+  content_type: ContentType
+  text_content: string | null
+  image_url: string | null
+  created_at: string
+  read_at: string | null
 }
