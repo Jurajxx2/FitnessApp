@@ -17,6 +17,7 @@ import Workouts from './pages/admin/Workouts'
 import Nutrition from './pages/admin/Nutrition'
 import Quotes from './pages/admin/Quotes'
 import Exercises from './pages/admin/Exercises'
+import Chat from './pages/admin/Chat'
 
 export default function App() {
   return (
@@ -32,12 +33,14 @@ export default function App() {
             <Route element={<AdminRouteGuard />}>
               <Route element={<AdminLayout />}>
                 <Route path="/admin"           element={<Dashboard />} />
-                <Route path="/admin/users"     element={<Users />} />
-                <Route path="/admin/users/:id" element={<UserDetail />} />
+                <Route path="/admin/users" element={<Users />}>
+                  <Route path=":id" element={<UserDetail />} />
+                </Route>
                 <Route path="/admin/workouts"  element={<Workouts />} />
                 <Route path="/admin/nutrition" element={<Nutrition />} />
                 <Route path="/admin/quotes"     element={<Quotes />} />
                 <Route path="/admin/exercises" element={<Exercises />} />
+                <Route path="/admin/chat"      element={<Chat />} />
               </Route>
             </Route>
           </Routes>
