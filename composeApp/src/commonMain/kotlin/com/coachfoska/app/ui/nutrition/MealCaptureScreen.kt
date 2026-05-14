@@ -1,6 +1,8 @@
 package com.coachfoska.app.ui.nutrition
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,6 +12,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.core.util.MediaCaptureMode
+import com.coachfoska.app.domain.model.Food
 import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
@@ -76,12 +80,35 @@ fun MealCaptureScreen(
     var foods by remember { mutableStateOf(listOf(FoodEntry("", "", "", "", ""))) }
     var mediaUri by remember { mutableStateOf<String?>(null) }
     var showMediaSheet by remember { mutableStateOf(false) }
+    var searchingIndex by remember { mutableStateOf<Int?>(null) }
 
     if (showMediaSheet) {
         MediaCaptureBottomSheet(
             mode = MediaCaptureMode.PHOTO,
             onDismiss = { showMediaSheet = false },
             onResult = { uri -> mediaUri = uri }
+        )
+    }
+
+    if (searchingIndex != null) {
+        FoodSearchDialog(
+            state = state,
+            onSearch = { onIntent(NutritionIntent.SearchFoods(it)) },
+            onDismiss = { searchingIndex = null },
+            onSelect = { food ->
+                searchingIndex?.let { index ->
+                    foods = foods.toMutableList().also {
+                        it[index] = FoodEntry(
+                            name = food.name,
+                            calories = food.calories.toInt().toString(),
+                            protein = food.proteinG.toString(),
+                            carbs = food.carbsG.toString(),
+                            fat = food.fatG.toString()
+                        )
+                    }
+                }
+                searchingIndex = null
+            }
         )
     }
 
@@ -158,7 +185,8 @@ fun MealCaptureScreen(
                     },
                     onRemove = if (foods.size > 1) {
                         { foods = foods.toMutableList().also { it.removeAt(i) } }
-                    } else null
+                    } else null,
+                    onSearch = { searchingIndex = i }
                 )
             }
 
@@ -218,12 +246,73 @@ fun MealCaptureScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FoodSearchDialog(
+    state: NutritionState,
+    onSearch: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onSelect: (Food) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.background
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f).padding(24.dp)) {
+            Text("SEARCH FOOD", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(16.dp))
+            CoachTextField(
+                value = query,
+                onValueChange = { 
+                    query = it
+                    onSearch(it)
+                },
+                label = "Type food name…",
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(16.dp))
+            
+            if (state.isSearching) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            
+            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(state.searchResults) { food ->
+                    Surface(
+                        onClick = { onSelect(food) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(food.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                                if (food.brand != null) {
+                                    Text(food.brand, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f))
+                                }
+                            }
+                            Text("${food.calories.toInt()} kcal", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun FoodEntryRow(
     index: Int,
     food: FoodEntry,
     onUpdate: (FoodEntry) -> Unit,
-    onRemove: (() -> Unit)?
+    onRemove: (() -> Unit)?,
+    onSearch: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -254,11 +343,21 @@ private fun FoodEntryRow(
                 }
             }
 
-            CoachTextField(
-                value = food.name,
-                onValueChange = { onUpdate(food.copy(name = it)) },
-                label = stringResource(Res.string.food_name_label)
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                CoachTextField(
+                    value = food.name,
+                    onValueChange = { onUpdate(food.copy(name = it)) },
+                    label = stringResource(Res.string.food_name_label),
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = onSearch,
+                    modifier = Modifier.size(48.dp).padding(top = 8.dp),
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                ) {
+                    Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.primary)
+                }
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CoachTextField(

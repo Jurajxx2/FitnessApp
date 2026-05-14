@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
+import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ class NutritionViewModel(
     private val logMealUseCase: LogMealUseCase,
     private val getMealHistoryUseCase: GetMealHistoryUseCase,
     private val getRecipesUseCase: GetRecipesUseCase,
+    private val searchFoodsUseCase: SearchFoodsUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -41,6 +43,25 @@ class NutritionViewModel(
             is NutritionIntent.LogMeal -> logMeal(intent)
             NutritionIntent.DismissError -> _state.update { it.copy(error = null) }
             NutritionIntent.MealLogged -> _state.update { it.copy(mealLoggedSuccess = false) }
+            is NutritionIntent.SearchFoods -> searchFoods(intent.query)
+        }
+    }
+
+    private fun searchFoods(query: String) {
+        if (query.isBlank()) {
+            _state.update { it.copy(searchResults = emptyList()) }
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(isSearching = true) }
+            searchFoodsUseCase(query)
+                .onSuccess { results ->
+                    _state.update { it.copy(isSearching = false, searchResults = results) }
+                }
+                .onFailure { e ->
+                    Napier.e("searchFoods($query) failed", e, tag = TAG)
+                    _state.update { it.copy(isSearching = false, error = e.message) }
+                }
         }
     }
 

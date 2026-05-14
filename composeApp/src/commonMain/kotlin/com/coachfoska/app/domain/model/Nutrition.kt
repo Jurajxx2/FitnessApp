@@ -97,3 +97,17 @@ data class DailyNutritionSummary(
     val carbsG: Float,
     val fatG: Float
 )
+
+data class Food(
+    val id: String,
+    val name: String,
+    val calories: Float,
+    val proteinG: Float,
+    val carbsG: Float,
+    val fatG: Float,
+    val servingSize: Float,
+    val servingUnit: String,
+    val brand: String?,
+    val isVerified: Boolean
+)
+

@@ -50,6 +50,7 @@ import com.coachfoska.app.ui.workout.WorkoutHistoryDetailRoute
 import com.coachfoska.app.ui.workout.ActivityHubRoute
 import com.coachfoska.app.ui.workout.ExerciseLibraryRoute
 import com.coachfoska.app.ui.workout.WorkoutPlanRoute
+import com.coachfoska.app.ui.workout.ActiveSessionRoute
 import com.coachfoska.app.ui.hydration.HydrationRoute
 
 @Composable
@@ -256,7 +257,22 @@ fun App(openHumanChat: Boolean = false) {
                         workoutId = route.workoutId,
                         userId = currentUserId,
                         onBackClick = { navController.popBackStack() },
-                        onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) }
+                        onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
+                        onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) }
+                    )
+                }
+
+                composable<ActiveSession> { backStackEntry ->
+                    val route = backStackEntry.toRoute<ActiveSession>()
+                    ActiveSessionRoute(
+                        workoutId = route.workoutId,
+                        userId = currentUserId,
+                        onBackClick = { navController.popBackStack() },
+                        onFinish = {
+                            navController.navigate(WorkoutHistory) {
+                                popUpTo<WorkoutList> { inclusive = false }
+                            }
+                        }
                     )
                 }
 

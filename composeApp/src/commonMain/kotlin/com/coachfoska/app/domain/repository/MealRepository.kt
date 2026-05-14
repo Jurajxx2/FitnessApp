@@ -1,6 +1,7 @@
 package com.coachfoska.app.domain.repository
 
 import com.coachfoska.app.domain.model.DailyNutritionSummary
+import com.coachfoska.app.domain.model.Food
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.domain.model.MealPlan
@@ -28,6 +29,9 @@ interface MealRepository {
 
     /** Returns user's meal log history. */
     suspend fun getMealHistory(userId: String): Result<List<MealLog>>
+
+    /** Search global food database. */
+    suspend fun searchFoods(query: String): Result<List<Food>>
 
     /** Returns today's nutrition summary from meal logs. */
     suspend fun getDailyNutritionSummary(

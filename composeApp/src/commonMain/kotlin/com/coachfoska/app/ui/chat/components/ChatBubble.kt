@@ -77,8 +77,9 @@ fun ChatBubble(
 
             val localTime = message.createdAt
                 .toLocalDateTime(TimeZone.currentSystemDefault())
+            val timeStr = "${localTime.hour.toString().padStart(2, '0')}:${localTime.minute.toString().padStart(2, '0')}"
             Text(
-                text = "%02d:%02d".format(localTime.hour, localTime.minute),
+                text = timeStr,
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 10.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),

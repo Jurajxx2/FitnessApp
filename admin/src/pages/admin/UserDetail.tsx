@@ -52,6 +52,38 @@ function useWeightHistory(userId: string) {
   })
 }
 
+function useUserCompliance(userId: string) {
+  return useQuery({
+    queryKey: ['user-compliance', userId],
+    queryFn: async () => {
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      
+      const [workouts, meals] = await Promise.all([
+        supabase.from('workout_logs').select('*').eq('user_id', userId).gte('logged_at', sevenDaysAgo.toISOString()),
+        supabase.from('meal_logs').select('*, meal_log_foods(*)').eq('user_id', userId).gte('logged_at', sevenDaysAgo.toISOString())
+      ])
+      
+      const mealLogs = (meals.data ?? []) as any[]
+      let totalCals = 0
+      let totalProt = 0
+      mealLogs.forEach(log => {
+        log.meal_log_foods.forEach((f: any) => {
+          totalCals += f.calories
+          totalProt += f.protein_g
+        })
+      })
+
+      return {
+        workoutsCompleted: workouts.data?.length ?? 0,
+        avgCalories: mealLogs.length > 0 ? Math.round(totalCals / 7) : 0,
+        avgProtein: mealLogs.length > 0 ? Math.round(totalProt / 7) : 0,
+        logCount: mealLogs.length
+      }
+    }
+  })
+}
+
 const GOAL_LABELS: Record<string, string> = {
   weight_loss: 'Weight loss', muscle_gain: 'Muscle gain', mental_strength: 'Mental strength',
 }
@@ -75,6 +107,7 @@ export default function UserDetail() {
   const { data: workoutPlans = [] } = useWorkoutPlans()
   const { data: mealPlans = [] } = useMealPlans()
   const { data: weightHistory = [] } = useWeightHistory(id!)
+  const { data: compliance } = useUserCompliance(id!)
 
   const [adminNotes, setAdminNotes] = useState('')
 
@@ -137,6 +170,25 @@ export default function UserDetail() {
         {/* Status */}
         <div className="flex items-center gap-2">
           <Badge status={deriveStatus(user)} />
+        </div>
+
+        {/* Compliance Dashboard */}
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 grid grid-cols-3 gap-4">
+          <div className="text-center">
+            <p className="text-[10px] text-[var(--text-disabled)] uppercase mb-1">Workouts</p>
+            <p className="text-lg font-bold text-[var(--text)]">{compliance?.workoutsCompleted ?? 0}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">last 7d</p>
+          </div>
+          <div className="text-center border-x border-[var(--border)]">
+            <p className="text-[10px] text-[var(--text-disabled)] uppercase mb-1">Avg kcal</p>
+            <p className="text-lg font-bold text-[var(--text)]">{compliance?.avgCalories ?? 0}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">daily</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] text-[var(--text-disabled)] uppercase mb-1">Avg prot</p>
+            <p className="text-lg font-bold text-[var(--text)]">{compliance?.avgProtein ?? 0}g</p>
+            <p className="text-[10px] text-[var(--text-muted)]">daily</p>
+          </div>
         </div>
 
         {/* Profile info */}

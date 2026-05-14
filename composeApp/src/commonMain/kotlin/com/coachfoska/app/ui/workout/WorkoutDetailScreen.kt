@@ -29,6 +29,7 @@ fun WorkoutDetailRoute(
     userId: String,
     onBackClick: () -> Unit,
     onExerciseClick: (String) -> Unit,
+    onStartWorkout: (String) -> Unit,
     viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -40,7 +41,8 @@ fun WorkoutDetailRoute(
     WorkoutDetailScreen(
         state = state,
         onBackClick = onBackClick,
-        onExerciseClick = onExerciseClick
+        onExerciseClick = onExerciseClick,
+        onStartWorkout = onStartWorkout
     )
 }
 
@@ -48,7 +50,8 @@ fun WorkoutDetailRoute(
 fun WorkoutDetailScreen(
     state: WorkoutState,
     onBackClick: () -> Unit,
-    onExerciseClick: (String) -> Unit
+    onExerciseClick: (String) -> Unit,
+    onStartWorkout: (String) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(title = "WORKOUT", onBackClick = onBackClick)
@@ -56,41 +59,68 @@ fun WorkoutDetailScreen(
             CoachLoadingBox(Modifier.weight(1f))
         } else {
             state.selectedWorkout?.let { workout ->
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = 32.dp)
-            ) {
-                    item {
-                        Column(modifier = Modifier.padding(24.dp)) {
-                            Text(
-                                text = workout.name,
-                                style = MaterialTheme.typography.displayMedium,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            if (workout.notes != null) {
-                                Spacer(modifier = Modifier.height(12.dp))
+                Box(modifier = Modifier.weight(1f)) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 100.dp)
+                    ) {
+                        item {
+                            Column(modifier = Modifier.padding(24.dp)) {
                                 Text(
-                                    text = workout.notes,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                    text = workout.name,
+                                    style = MaterialTheme.typography.displayMedium,
+                                    color = MaterialTheme.colorScheme.onBackground
                                 )
+                                if (workout.notes != null) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = workout.notes,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                    )
+                                }
                             }
+                        }
+
+                        itemsIndexed(workout.exercises.sortedBy { it.sortOrder }) { index, exercise ->
+                            ExerciseRow(
+                                index = index + 1,
+                                exercise = exercise,
+                                onClick = { exercise.exerciseId?.let { onExerciseClick(it) } }
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 24.dp),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
+                            )
                         }
                     }
 
-                    itemsIndexed(workout.exercises.sortedBy { it.sortOrder }) { index, exercise ->
-                        ExerciseRow(
-                            index = index + 1,
-                            exercise = exercise,
-                            onClick = { exercise.exerciseId?.let { onExerciseClick(it) } }
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 24.dp),
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
-                        )
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(24.dp),
+                        color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
+                    ) {
+                        Button(
+                            onClick = { onStartWorkout(workout.id) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Text(
+                                text = "START WORKOUT",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
-        }
+            }
         }
     }
 }

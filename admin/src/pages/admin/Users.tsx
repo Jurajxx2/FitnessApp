@@ -1,7 +1,7 @@
 // admin/src/pages/admin/Users.tsx
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Outlet } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { Badge, Input, Table, Th, Td } from '../../components/ui'
 import type { Profile } from '../../types/database'
@@ -94,6 +94,7 @@ export default function Users() {
           </tbody>
         </Table>
       )}
+      <Outlet />
     </div>
   )
 }

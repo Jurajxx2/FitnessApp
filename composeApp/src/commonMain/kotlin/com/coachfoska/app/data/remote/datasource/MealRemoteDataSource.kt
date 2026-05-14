@@ -71,6 +71,14 @@ class MealRemoteDataSource(private val supabase: SupabaseClient) {
             }
             .decodeList<MealLogDto>()
 
+    suspend fun searchFoods(query: String): List<com.coachfoska.app.data.remote.dto.FoodDto> =
+        supabase.postgrest["foods"]
+            .select {
+                filter { ilike("name", "%$query%") }
+                limit(20)
+            }
+            .decodeList<com.coachfoska.app.data.remote.dto.FoodDto>()
+
     suspend fun getRecipes(): List<RecipeDto> =
         supabase.postgrest["recipes"]
             .select()

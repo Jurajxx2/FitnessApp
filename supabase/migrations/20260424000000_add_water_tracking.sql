@@ -35,6 +35,14 @@ CREATE POLICY "Users manage own hydration settings"
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
 
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$;
+
 CREATE TRIGGER handle_updated_at
     BEFORE UPDATE ON hydration_settings
-    FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime('updated_at');
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();

@@ -11,6 +11,34 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import com.coachfoska.app.domain.model.Food
+
+@Serializable
+data class FoodDto(
+    val id: String,
+    val name: String,
+    val calories: Float,
+    @SerialName("protein_g") val proteinG: Float,
+    @SerialName("carbs_g") val carbsG: Float,
+    @SerialName("fat_g") val fatG: Float,
+    @SerialName("serving_size") val servingSize: Float,
+    @SerialName("serving_unit") val servingUnit: String,
+    val brand: String? = null,
+    @SerialName("is_verified") val isVerified: Boolean = true
+) {
+    fun toDomain(): Food = Food(
+        id = id,
+        name = name,
+        calories = calories,
+        proteinG = proteinG,
+        carbsG = carbsG,
+        fatG = fatG,
+        servingSize = servingSize,
+        servingUnit = servingUnit,
+        brand = brand,
+        isVerified = isVerified
+    )
+}
 
 @Serializable
 data class MealPlanDto(

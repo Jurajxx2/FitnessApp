@@ -32,6 +32,7 @@ import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCa
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
+import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import com.coachfoska.app.domain.usecase.profile.CompleteOnboardingUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
@@ -143,6 +144,7 @@ val useCaseModule = module {
     factory { GetDailyNutritionSummaryUseCase(get()) }
     factory { GetRecipesUseCase(get()) }
     factory { GetRecipeByIdUseCase(get()) }
+    factory { SearchFoodsUseCase(get()) }
 
     // Profile
     factory { GetUserProfileUseCase(get()) }
@@ -163,7 +165,7 @@ val viewModelModule = module {
     viewModelOf(::AuthViewModel)
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
-    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), userId) }
     viewModel { (recipeId: String) -> RecipeDetailViewModel(get(), recipeId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }

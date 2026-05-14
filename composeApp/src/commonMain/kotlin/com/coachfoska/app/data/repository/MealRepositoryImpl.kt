@@ -3,6 +3,7 @@ package com.coachfoska.app.data.repository
 import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
 import com.coachfoska.app.data.remote.dto.MealLogFoodInsertDto
 import com.coachfoska.app.domain.model.DailyNutritionSummary
+import com.coachfoska.app.domain.model.Food
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.domain.model.MealPlan
@@ -57,6 +58,10 @@ class MealRepositoryImpl(
 
     override suspend fun getMealHistory(userId: String): Result<List<MealLog>> = runCatching {
         mealDataSource.getMealHistory(userId).map { it.toDomain() }
+    }
+
+    override suspend fun searchFoods(query: String): Result<List<Food>> = runCatching {
+        mealDataSource.searchFoods(query).map { it.toDomain() }
     }
 
     override suspend fun getDailyNutritionSummary(

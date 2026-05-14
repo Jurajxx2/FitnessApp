@@ -16,4 +16,5 @@ sealed interface NutritionIntent {
     ) : NutritionIntent
     data object DismissError : NutritionIntent
     data object MealLogged : NutritionIntent
+    data class SearchFoods(val query: String) : NutritionIntent
 }

@@ -4,10 +4,180 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { uploadRecipePhoto } from '../../lib/storage'
 import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
-import type { Recipe, RecipeIngredient, MealPlan, RecipeDifficulty } from '../../types/database'
+import type { Recipe, RecipeIngredient, MealPlan, RecipeDifficulty, Food } from '../../types/database'
 import RecipeImportModal from './RecipeImportModal'
 import RecipePhotoUploadModal from './RecipePhotoUploadModal'
 import MealPlanImportModal from './MealPlanImportModal'
+
+// ─── Foods ──────────────────────────────────────────────────────────────────
+
+function useFoods(search: string) {
+  return useQuery<Food[]>({
+    queryKey: ['foods-admin', search],
+    queryFn: async () => {
+      let q = supabase.from('foods').select('*').order('name')
+      if (search) q = q.ilike('name', `%${search}%`)
+      const { data } = await q
+      return data ?? []
+    },
+  })
+}
+
+function FoodsTab() {
+  const qc = useQueryClient()
+  const [search, setSearch] = useState('')
+  const { data: foods = [], isLoading } = useFoods(search)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editing, setEditing] = useState<Food | null>(null)
+  const [form, setForm] = useState({
+    name: '',
+    calories: '0',
+    protein_g: '0',
+    carbs_g: '0',
+    fat_g: '0',
+    serving_size: '100',
+    serving_unit: 'g',
+    brand: '',
+    is_verified: true,
+  })
+
+  function openCreate() {
+    setEditing(null)
+    setForm({ name: '', calories: '0', protein_g: '0', carbs_g: '0', fat_g: '0', serving_size: '100', serving_unit: 'g', brand: '', is_verified: true })
+    setEditorOpen(true)
+  }
+
+  function openEdit(f: Food) {
+    setEditing(f)
+    setForm({
+      name: f.name,
+      calories: String(f.calories),
+      protein_g: String(f.protein_g),
+      carbs_g: String(f.carbs_g),
+      fat_g: String(f.fat_g),
+      serving_size: String(f.serving_size),
+      serving_unit: f.serving_unit,
+      brand: f.brand ?? '',
+      is_verified: f.is_verified,
+    })
+    setEditorOpen(true)
+  }
+
+  const saveFood = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        name: form.name,
+        calories: Number(form.calories),
+        protein_g: Number(form.protein_g),
+        carbs_g: Number(form.carbs_g),
+        fat_g: Number(form.fat_g),
+        serving_size: Number(form.serving_size),
+        serving_unit: form.serving_unit,
+        brand: form.brand || null,
+        is_verified: form.is_verified,
+      }
+      if (editing) {
+        const { error } = await supabase.from('foods').update(payload).eq('id', editing.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('foods').insert(payload)
+        if (error) throw error
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['foods-admin'] })
+      setEditorOpen(false)
+    },
+  })
+
+  const deleteFood = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('foods').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['foods-admin'] }),
+  })
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-[var(--text-muted)]">{foods.length} foods</p>
+          <Input
+            placeholder="Search foods…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-48 sm:w-64"
+          />
+        </div>
+        <Button onClick={openCreate}>+ Add food</Button>
+      </div>
+
+      {isLoading ? <p className="text-sm text-[var(--text-disabled)]">Loading…</p> : (
+        <Table>
+          <thead>
+            <tr>
+              <Th>Name</Th><Th>Brand</Th><Th>Calories</Th><Th>Protein</Th><Th>Carbs</Th><Th>Fat</Th><Th>Serving</Th><Th>Verified</Th><Th>{''}</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {foods.map(f => (
+              <tr key={f.id} className="hover:bg-[var(--bg-card-hover)]">
+                <Td className="text-[var(--text)] font-semibold">{f.name}</Td>
+                <Td className="text-xs text-[var(--text-muted)]">{f.brand ?? '—'}</Td>
+                <Td>{Math.round(f.calories)} kcal</Td>
+                <Td>{f.protein_g}g</Td>
+                <Td>{f.carbs_g}g</Td>
+                <Td>{f.fat_g}g</Td>
+                <Td className="text-xs">{f.serving_size}{f.serving_unit}</Td>
+                <Td>{f.is_verified ? '✅' : '—'}</Td>
+                <Td>
+                  <div className="flex gap-2">
+                    <button onClick={() => openEdit(f)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">Edit</button>
+                    <button onClick={() => { if (confirm('Delete this food?')) deleteFood.mutate(f.id) }} className="text-xs text-red-400 bg-transparent border-0 cursor-pointer">Delete</button>
+                  </div>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
+
+      <Modal
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        title={editing ? 'Edit Food' : 'New Food'}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditorOpen(false)}>Cancel</Button>
+            <Button onClick={() => saveFood.mutate()} loading={saveFood.isPending} disabled={!form.name}>
+              {editing ? 'Save changes' : 'Add food'}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <Input label="Food name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+          <Input label="Brand / Manufacturer" value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} placeholder="Optional" />
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Serving Size" type="number" value={form.serving_size} onChange={e => setForm(f => ({ ...f, serving_size: e.target.value }))} />
+            <Input label="Serving Unit" value={form.serving_unit} onChange={e => setForm(f => ({ ...f, serving_unit: e.target.value }))} placeholder="g, ml, piece…" />
+          </div>
+          <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Input label="Calories" type="number" value={form.calories} onChange={e => setForm(f => ({ ...f, calories: e.target.value }))} />
+            <Input label="Protein" type="number" value={form.protein_g} onChange={e => setForm(f => ({ ...f, protein_g: e.target.value }))} />
+            <Input label="Carbs" type="number" value={form.carbs_g} onChange={e => setForm(f => ({ ...f, carbs_g: e.target.value }))} />
+            <Input label="Fat" type="number" value={form.fat_g} onChange={e => setForm(f => ({ ...f, fat_g: e.target.value }))} />
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-muted)]">
+            <input type="checkbox" checked={form.is_verified} onChange={e => setForm(f => ({ ...f, is_verified: e.target.checked }))} />
+            Verified food (coach approved)
+          </label>
+        </div>
+      </Modal>
+    </>
+  )
+}
 
 // ─── Recipes ────────────────────────────────────────────────────────────────
 
@@ -532,7 +702,7 @@ function MealPlansTab() {
 // ─── Nutrition root (sub-tabs) ───────────────────────────────────────────────
 
 export default function Nutrition() {
-  const [activeTab, setActiveTab] = useState<'recipes' | 'meal-plans'>('recipes')
+  const [activeTab, setActiveTab] = useState<'recipes' | 'meal-plans' | 'foods'>('recipes')
 
   return (
     <div className="p-4 sm:p-6">
@@ -540,7 +710,7 @@ export default function Nutrition() {
         <h1 className="text-lg font-bold text-[var(--text)]">Nutrition</h1>
       </div>
       <div className="flex gap-0 mb-6 border-b border-[var(--border)]">
-        {(['recipes', 'meal-plans'] as const).map(tab => (
+        {(['recipes', 'meal-plans', 'foods'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -550,11 +720,13 @@ export default function Nutrition() {
                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)]'
             }`}
           >
-            {tab === 'recipes' ? 'Recipes' : 'Meal Plans'}
+            {tab.replace('-', ' ')}
           </button>
         ))}
       </div>
-      {activeTab === 'recipes' ? <RecipesTab /> : <MealPlansTab />}
+      {activeTab === 'recipes' && <RecipesTab />}
+      {activeTab === 'meal-plans' && <MealPlansTab />}
+      {activeTab === 'foods' && <FoodsTab />}
     </div>
   )
 }
