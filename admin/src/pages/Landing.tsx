@@ -5,6 +5,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import type { DailyQuote } from '../types/database'
 
+const privacyPolicyUrl = import.meta.env.VITE_PRIVACY_POLICY_URL || '#'
+const termsOfServiceUrl = import.meta.env.VITE_TERMS_OF_SERVICE_URL || '#'
+const contactUrl = import.meta.env.VITE_CONTACT_URL || '#'
+
 export default function Landing() {
   const navigate = useNavigate()
   const { session, isAdmin, isLoading: authLoading, profile } = useAuth()
@@ -145,9 +149,9 @@ export default function Landing() {
       <footer className="flex items-center justify-between px-12 py-8 border-t border-zinc-900">
         <span className="text-xs font-extrabold tracking-widest uppercase text-zinc-700">Coach Foska</span>
         <div className="flex gap-6">
-          <a href="#" className="text-xs text-zinc-600 hover:text-zinc-400">Privacy Policy</a>
-          <a href="#" className="text-xs text-zinc-600 hover:text-zinc-400">Terms</a>
-          <a href="#" className="text-xs text-zinc-600 hover:text-zinc-400">Contact</a>
+          <a href={privacyPolicyUrl} className="text-xs text-zinc-600 hover:text-zinc-400">Privacy Policy</a>
+          <a href={termsOfServiceUrl} className="text-xs text-zinc-600 hover:text-zinc-400">Terms</a>
+          <a href={contactUrl} className="text-xs text-zinc-600 hover:text-zinc-400">Contact</a>
         </div>
         <span className="text-xs text-zinc-800">© 2026 Coach Foska</span>
       </footer>
