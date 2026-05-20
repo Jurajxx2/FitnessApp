@@ -40,6 +40,7 @@ import com.coachfoska.app.ui.chat.ChatRoute
 import com.coachfoska.app.ui.profile.AboutCoachScreen
 import com.coachfoska.app.ui.profile.ProfileRoute
 import com.coachfoska.app.ui.profile.ProgressRoute
+import com.coachfoska.app.ui.profile.SettingsRoute
 import com.coachfoska.app.ui.splash.SplashRoute
 import com.coachfoska.app.ui.workout.ExerciseByCategoryRoute
 import com.coachfoska.app.ui.workout.ExerciseDetailRoute
@@ -458,6 +459,7 @@ fun App(openHumanChat: Boolean = false) {
                         userId = currentUserId,
                         onProgressClick = { navController.navigate(Progress) },
                         onAboutCoachClick = { navController.navigate(AboutCoach) },
+                        onSettingsClick = { navController.navigate(Settings) },
                         onLogoutComplete = {
                             currentUserId = ""
                             navController.navigate(Welcome) { popUpTo(Home) { inclusive = true } }
@@ -474,6 +476,10 @@ fun App(openHumanChat: Boolean = false) {
 
                 composable<AboutCoach> {
                     AboutCoachScreen(onBackClick = { navController.popBackStack() })
+                }
+
+                composable<Settings> {
+                    SettingsRoute(onBackClick = { navController.popBackStack() })
                 }
             }
         }

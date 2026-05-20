@@ -48,3 +48,4 @@ import kotlinx.serialization.Serializable
 @Serializable object Profile
 @Serializable object Progress
 @Serializable object AboutCoach
+@Serializable object Settings

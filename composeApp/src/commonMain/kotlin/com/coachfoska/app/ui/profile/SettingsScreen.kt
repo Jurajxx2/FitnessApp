@@ -55,16 +55,32 @@ import coachfoska.composeapp.generated.resources.settings_units
 import coachfoska.composeapp.generated.resources.settings_units_desc
 import coachfoska.composeapp.generated.resources.store_compliance_ready
 import coachfoska.composeapp.generated.resources.terms_of_service
-import com.coachfoska.app.BuildKonfig
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.coachfoska.app.presentation.settings.SettingsViewModel
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun SettingsRoute(onBackClick: () -> Unit) {
-    SettingsScreen(onBackClick = onBackClick)
+fun SettingsRoute(
+    onBackClick: () -> Unit,
+    viewModel: SettingsViewModel = koinViewModel()
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    SettingsScreen(
+        privacyPolicyUrl = state.privacyPolicyUrl,
+        termsOfServiceUrl = state.termsOfServiceUrl,
+        accountDeletionUrl = state.accountDeletionUrl,
+        onBackClick = onBackClick
+    )
 }
 
 @Composable
-fun SettingsScreen(onBackClick: () -> Unit) {
+fun SettingsScreen(
+    privacyPolicyUrl: String,
+    termsOfServiceUrl: String,
+    accountDeletionUrl: String,
+    onBackClick: () -> Unit
+) {
     val uriHandler = LocalUriHandler.current
     var notice by remember { mutableStateOf<String?>(null) }
     val configureUrlFirst = stringResource(Res.string.configure_url_first)
@@ -135,14 +151,14 @@ fun SettingsScreen(onBackClick: () -> Unit) {
                 SettingsSection {
                     SettingsRow(
                         title = stringResource(Res.string.privacy_policy),
-                        description = BuildKonfig.PRIVACY_POLICY_URL.ifBlank { configureUrlFirst },
-                        onClick = { openConfiguredUrl(BuildKonfig.PRIVACY_POLICY_URL) }
+                        description = privacyPolicyUrl.ifBlank { configureUrlFirst },
+                        onClick = { openConfiguredUrl(privacyPolicyUrl) }
                     )
                     SettingsDivider()
                     SettingsRow(
                         title = stringResource(Res.string.terms_of_service),
-                        description = BuildKonfig.TERMS_OF_SERVICE_URL.ifBlank { configureUrlFirst },
-                        onClick = { openConfiguredUrl(BuildKonfig.TERMS_OF_SERVICE_URL) }
+                        description = termsOfServiceUrl.ifBlank { configureUrlFirst },
+                        onClick = { openConfiguredUrl(termsOfServiceUrl) }
                     )
                     SettingsDivider()
                     SettingsRow(
@@ -155,7 +171,7 @@ fun SettingsScreen(onBackClick: () -> Unit) {
                         title = stringResource(Res.string.delete_account),
                         description = stringResource(Res.string.delete_account_desc),
                         destructive = true,
-                        onClick = { openConfiguredUrl(BuildKonfig.ACCOUNT_DELETION_URL) }
+                        onClick = { openConfiguredUrl(accountDeletionUrl) }
                     )
                 }
             }

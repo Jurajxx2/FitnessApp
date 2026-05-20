@@ -31,6 +31,7 @@ fun ProfileRoute(
     userId: String,
     onProgressClick: () -> Unit,
     onAboutCoachClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     onLogoutComplete: () -> Unit,
     viewModel: ProfileViewModel = koinViewModel { parametersOf(userId) }
 ) {
@@ -47,7 +48,8 @@ fun ProfileRoute(
         state = state,
         onIntent = viewModel::onIntent,
         onProgressClick = onProgressClick,
-        onAboutCoachClick = onAboutCoachClick
+        onAboutCoachClick = onAboutCoachClick,
+        onSettingsClick = onSettingsClick
     )
 }
 
@@ -57,6 +59,7 @@ fun ProfileScreen(
     onIntent: (ProfileIntent) -> Unit,
     onProgressClick: () -> Unit,
     onAboutCoachClick: () -> Unit,
+    onSettingsClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -119,6 +122,11 @@ fun ProfileScreen(
             Column(modifier = Modifier.fillMaxWidth()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
                 ProfileMenuItem(label = stringResource(Res.string.my_progress), onClick = onProgressClick)
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+                ProfileMenuItem(label = stringResource(Res.string.settings_title), onClick = onSettingsClick)
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
                     modifier = Modifier.padding(horizontal = 24.dp)

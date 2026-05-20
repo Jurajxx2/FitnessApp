@@ -70,8 +70,13 @@ import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
 import com.coachfoska.app.presentation.profile.ProfileViewModel
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
+import com.coachfoska.app.data.remote.datasource.AppConfigRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.HydrationRemoteDataSource
+import com.coachfoska.app.data.repository.AppConfigRepositoryImpl
 import com.coachfoska.app.data.repository.HydrationRepositoryImpl
+import com.coachfoska.app.domain.repository.AppConfigRepository
+import com.coachfoska.app.domain.usecase.config.GetAppLinksUseCase
+import com.coachfoska.app.presentation.settings.SettingsViewModel
 import com.coachfoska.app.domain.hydration.WaterReminderScheduler
 import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
@@ -111,6 +116,7 @@ val dataSourceModule = module {
     single { WorkoutRemoteDataSource(get()) }
     single { ExerciseSupabaseDataSource(get()) }
     single { MealRemoteDataSource(get()) }
+    single { AppConfigRemoteDataSource(get()) }
 }
 
 val repositoryModule = module {
@@ -119,6 +125,7 @@ val repositoryModule = module {
     single<WorkoutRepository> { WorkoutRepositoryImpl(get()) }
     single<ExerciseRepository> { ExerciseRepositoryImpl(get()) }
     single<MealRepository> { MealRepositoryImpl(get()) }
+    single<AppConfigRepository> { AppConfigRepositoryImpl(get()) }
 }
 
 val useCaseModule = module {
@@ -153,6 +160,9 @@ val useCaseModule = module {
     factory { GetWeightHistoryUseCase(get()) }
     factory { LogWeightUseCase(get()) }
 
+    // Config
+    factory { GetAppLinksUseCase(get()) }
+
     // Exercise
     factory { SearchExercisesUseCase(get()) }
     factory { GetExerciseByIdUseCase(get()) }
@@ -163,6 +173,7 @@ val useCaseModule = module {
 val viewModelModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::AuthViewModel)
+    viewModelOf(::SettingsViewModel)
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), userId) }
