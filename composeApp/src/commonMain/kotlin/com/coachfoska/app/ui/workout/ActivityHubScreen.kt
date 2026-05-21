@@ -15,6 +15,7 @@ import coachfoska.composeapp.generated.resources.img_activity_library
 import coachfoska.composeapp.generated.resources.img_activity_plan
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
+import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.HubImageCard
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -25,6 +26,7 @@ fun ActivityHubRoute(
     onPlanClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onLibraryClick: () -> Unit,
+    onLogGeneralActivityClick: () -> Unit,
     viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -32,7 +34,8 @@ fun ActivityHubRoute(
         state = state,
         onPlanClick = onPlanClick,
         onHistoryClick = onHistoryClick,
-        onLibraryClick = onLibraryClick
+        onLibraryClick = onLibraryClick,
+        onLogGeneralActivityClick = onLogGeneralActivityClick
     )
 }
 
@@ -41,7 +44,8 @@ fun ActivityHubScreen(
     state: WorkoutState,
     onPlanClick: () -> Unit,
     onHistoryClick: () -> Unit,
-    onLibraryClick: () -> Unit
+    onLibraryClick: () -> Unit,
+    onLogGeneralActivityClick: () -> Unit
 ) {
     val planSubtitle = when {
         state.isLoading -> "Loading..."
@@ -97,6 +101,12 @@ fun ActivityHubScreen(
                         .aspectRatio(1f)
                 )
             }
+            
+            CoachButton(
+                text = "LOG GENERAL ACTIVITY",
+                onClick = onLogGeneralActivityClick,
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
+            )
         }
     }
 }
