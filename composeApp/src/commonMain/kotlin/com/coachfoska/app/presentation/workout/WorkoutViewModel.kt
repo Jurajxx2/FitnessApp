@@ -2,8 +2,8 @@ package com.coachfoska.app.presentation.workout
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.coachfoska.app.domain.usecase.activity.GetActivityHistoryUseCase
-import com.coachfoska.app.domain.usecase.activity.LogGeneralActivityUseCase
+import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
@@ -23,8 +23,6 @@ class WorkoutViewModel(
     private val getWorkoutByIdUseCase: GetWorkoutByIdUseCase,
     private val logWorkoutUseCase: LogWorkoutUseCase,
     private val getWorkoutHistoryUseCase: GetWorkoutHistoryUseCase,
-    private val logGeneralActivityUseCase: LogGeneralActivityUseCase,
-    private val getActivityHistoryUseCase: GetActivityHistoryUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -42,12 +40,17 @@ class WorkoutViewModel(
             is WorkoutIntent.SelectWorkout -> selectWorkout(intent.workoutId)
             WorkoutIntent.LoadHistory -> loadHistory()
             is WorkoutIntent.LogWorkout -> logWorkout(intent)
-            WorkoutIntent.LoadActivityHistory -> loadActivityHistory()
-            is WorkoutIntent.LogGeneralActivity -> logGeneralActivity(intent)
             WorkoutIntent.DismissError -> _state.update { it.copy(error = null) }
             WorkoutIntent.WorkoutLogged -> _state.update { it.copy(workoutLoggedSuccess = false) }
             is WorkoutIntent.SelectWorkoutLog -> selectWorkoutLog(intent.logId)
             is WorkoutIntent.AttachVideoToLog -> { /* TODO */ }
+            
+            is WorkoutIntent.InitDraftFromWorkout -> initDraft(intent.workoutId)
+            is WorkoutIntent.UpdateSetActual -> updateSetActual(intent)
+            is WorkoutIntent.MarkSetComplete -> markSetComplete(intent)
+            is WorkoutIntent.AddExtraSet -> addExtraSet(intent.exerciseIndex)
+            is WorkoutIntent.RemoveSet -> removeSet(intent.exerciseIndex, intent.setIndex)
+            is WorkoutIntent.SubmitActiveSession -> submitDraft(intent.durationMinutes, intent.notes)
         }
     }
 
@@ -93,37 +96,132 @@ class WorkoutViewModel(
         }
     }
 
-    private fun loadActivityHistory() {
+    private fun selectWorkoutLog(logId: String) {
         viewModelScope.launch {
-            _state.update { it.copy(isHistoryLoading = true) }
-            getActivityHistoryUseCase(userId)
-                .onSuccess { history -> _state.update { it.copy(activityHistory = history, isHistoryLoading = false) } }
-                .onFailure { e -> _state.update { it.copy(error = e.message, isHistoryLoading = false) } }
-        }
-    }
-
-    private fun logGeneralActivity(intent: WorkoutIntent.LogGeneralActivity) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLogging = true) }
-            logGeneralActivityUseCase(
-                userId = userId,
-                type = intent.type,
-                durationMinutes = intent.durationMinutes,
-                distanceKm = intent.distanceKm,
-                rpe = intent.rpe,
-                loggedAt = currentInstant(),
-                notes = intent.notes
-            ).onSuccess {
-                _state.update { it.copy(isLogging = false, workoutLoggedSuccess = true) }
-                loadActivityHistory()
-            }.onFailure { e ->
-                _state.update { it.copy(isLogging = false, error = e.message) }
+            if (_state.value.workoutHistory.isEmpty()) {
+                _state.update { it.copy(isHistoryLoading = true) }
+                getWorkoutHistoryUseCase(userId)
+                    .onSuccess { history -> 
+                        val log = history.find { it.id == logId }
+                        _state.update { it.copy(workoutHistory = history, selectedWorkoutLog = log, isHistoryLoading = false) }
+                    }
+                    .onFailure { e -> 
+                        _state.update { it.copy(error = e.message, isHistoryLoading = false) }
+                    }
+            } else {
+                val log = _state.value.workoutHistory.find { it.id == logId }
+                _state.update { it.copy(selectedWorkoutLog = log) }
             }
         }
     }
 
-    private fun selectWorkoutLog(logId: String) {
-        val log = _state.value.workoutHistory.find { it.id == logId }
-        _state.update { it.copy(selectedWorkoutLog = log) }
+    private fun initDraft(workoutId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            getWorkoutByIdUseCase(workoutId).onSuccess { workout ->
+                _state.update { it.copy(
+                    sessionDraft = workout.toDraft(currentInstant().toEpochMilliseconds()),
+                    isLoading = false
+                ) }
+            }.onFailure { e ->
+                _state.update { it.copy(error = e.message, isLoading = false) }
+            }
+        }
+    }
+
+    private fun updateSetActual(intent: WorkoutIntent.UpdateSetActual) {
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            val updatedEx = draft.exercises.toMutableList()
+            val ex = updatedEx[intent.exerciseIndex]
+            val updatedSets = ex.sets.toMutableList()
+            updatedSets[intent.setIndex] = updatedSets[intent.setIndex].copy(
+                actualReps = intent.reps,
+                actualWeightKg = intent.weight,
+                rpe = intent.rpe
+            )
+            updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
+            s.copy(sessionDraft = draft.copy(exercises = updatedEx))
+        }
+    }
+
+    private fun markSetComplete(intent: WorkoutIntent.MarkSetComplete) {
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            val updatedEx = draft.exercises.toMutableList()
+            val ex = updatedEx[intent.exerciseIndex]
+            val updatedSets = ex.sets.toMutableList()
+            updatedSets[intent.setIndex] = updatedSets[intent.setIndex].copy(completed = intent.completed)
+            updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
+            s.copy(sessionDraft = draft.copy(exercises = updatedEx))
+        }
+    }
+
+    private fun addExtraSet(exIndex: Int) {
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            val updatedEx = draft.exercises.toMutableList()
+            val ex = updatedEx[exIndex]
+            val lastSet = ex.sets.lastOrNull()
+            val newSet = SetDraft(
+                sortOrder = (lastSet?.sortOrder ?: 0) + 1,
+                targetReps = lastSet?.targetReps,
+                actualReps = lastSet?.actualReps, // Fix: inherited from previous set per plan
+                targetWeightKg = lastSet?.targetWeightKg,
+                actualWeightKg = lastSet?.actualWeightKg, // Fix: inherited from previous set per plan
+                rpe = null, // Reset for new set
+                targetRestSeconds = lastSet?.targetRestSeconds,
+                actualRestSeconds = null
+            )
+            updatedEx[exIndex] = ex.copy(sets = ex.sets + newSet)
+            s.copy(sessionDraft = draft.copy(exercises = updatedEx))
+        }
+    }
+
+    private fun removeSet(exIndex: Int, setIndex: Int) {
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            val updatedEx = draft.exercises.toMutableList()
+            val ex = updatedEx[exIndex]
+            if (ex.sets.size <= 1) return@update s
+            val updatedSets = ex.sets.toMutableList().apply { removeAt(setIndex) }
+                .mapIndexed { i, set -> set.copy(sortOrder = i + 1) }
+            updatedEx[exIndex] = ex.copy(sets = updatedSets)
+            s.copy(sessionDraft = draft.copy(exercises = updatedEx))
+        }
+    }
+
+    private fun submitDraft(durationMinutes: Int, notes: String?) {
+        val draft = _state.value.sessionDraft ?: return
+        
+        val exerciseLogs = draft.exercises.filter { ex -> ex.sets.any { it.completed } }.map { ex ->
+            ExerciseLog(
+                id = "", workoutLogId = "",
+                exerciseName = ex.exerciseName, notes = null,
+                videoUrl = ex.videoUrl,
+                sets = ex.sets.filter { it.completed }.map { s ->
+                    SetLog(
+                        id = "", exerciseLogId = "", sortOrder = s.sortOrder,
+                        targetReps = s.targetReps, actualReps = s.actualReps,
+                        targetWeightKg = s.targetWeightKg, actualWeightKg = s.actualWeightKg,
+                        rpe = s.rpe, targetRestSeconds = s.targetRestSeconds, actualRestSeconds = s.actualRestSeconds,
+                        completed = true
+                    )
+                }
+            )
+        }
+
+        if (exerciseLogs.isEmpty()) {
+            _state.update { it.copy(error = "No completed sets to save.") }
+            return
+        }
+
+        onIntent(WorkoutIntent.LogWorkout(
+            workoutId = draft.workoutId,
+            workoutName = draft.workoutName,
+            durationMinutes = durationMinutes,
+            notes = notes,
+            exerciseLogs = exerciseLogs
+        ))
     }
 }

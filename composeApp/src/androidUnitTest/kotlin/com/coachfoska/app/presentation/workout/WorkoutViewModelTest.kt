@@ -74,7 +74,7 @@ class WorkoutViewModelTest {
     }
 
     @Test
-    fun `UpdateSetActual updates reps and weight in draft`() = runTest {
+    fun `UpdateSetActual updates reps and weight and rpe in draft`() = runTest {
         val exercises = listOf(
             WorkoutExercise(
                 id = "we1", workoutId = "w1", name = "Squat",
@@ -89,10 +89,11 @@ class WorkoutViewModelTest {
         vm.onIntent(WorkoutIntent.InitDraftFromWorkout("w1"))
         advanceUntilIdle()
 
-        vm.onIntent(WorkoutIntent.UpdateSetActual(exerciseIndex = 0, setIndex = 0, reps = 12, weight = 100f))
+        vm.onIntent(WorkoutIntent.UpdateSetActual(exerciseIndex = 0, setIndex = 0, reps = 12, weight = 100f, rpe = 8))
 
         val set = vm.state.value.sessionDraft?.exercises?.get(0)?.sets?.get(0)
         assertEquals(12, set?.actualReps)
         assertEquals(100f, set?.actualWeightKg)
+        assertEquals(8, set?.rpe)
     }
 }

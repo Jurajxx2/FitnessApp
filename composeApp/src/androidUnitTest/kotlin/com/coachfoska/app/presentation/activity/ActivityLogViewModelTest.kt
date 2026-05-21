@@ -46,20 +46,55 @@ class ActivityLogViewModelTest {
         vm.onIntent(ActivityLogIntent.UpdateDuration("0"))
         assertFalse(vm.state.value.canSubmit)
 
+        vm.onIntent(ActivityLogIntent.UpdateDuration("1441"))
+        assertFalse(vm.state.value.canSubmit)
+
         vm.onIntent(ActivityLogIntent.UpdateDuration("abc"))
         assertFalse(vm.state.value.canSubmit)
     }
 
     @Test
-    fun `Submit success reloads history and clears form`() = runTest {
+    fun `UpdateRpe validates canSubmit`() = runTest {
+        val vm = ActivityLogViewModel(logUseCase, historyUseCase, "u1")
+        vm.onIntent(ActivityLogIntent.UpdateDuration("30"))
+        assertTrue(vm.state.value.canSubmit)
+
+        vm.onIntent(ActivityLogIntent.UpdateRpe(11))
+        assertFalse(vm.state.value.canSubmit)
+
+        vm.onIntent(ActivityLogIntent.UpdateRpe(0))
+        assertFalse(vm.state.value.canSubmit)
+
+        vm.onIntent(ActivityLogIntent.UpdateRpe(5))
+        assertTrue(vm.state.value.canSubmit)
+    }
+
+    @Test
+    fun `UpdateDistance validates canSubmit`() = runTest {
+        val vm = ActivityLogViewModel(logUseCase, historyUseCase, "u1")
+        vm.onIntent(ActivityLogIntent.UpdateDuration("30"))
+        assertTrue(vm.state.value.canSubmit)
+
+        vm.onIntent(ActivityLogIntent.UpdateDistance("5.5"))
+        assertTrue(vm.state.value.canSubmit)
+
+        vm.onIntent(ActivityLogIntent.UpdateDistance("abc"))
+        assertFalse(vm.state.value.canSubmit)
+    }
+
+    @Test
+    fun `Submit success reloads history and clears form including canSubmit`() = runTest {
         coEvery { logUseCase(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(aGeneralActivityLog())
 
         val vm = ActivityLogViewModel(logUseCase, historyUseCase, "u1")
         vm.onIntent(ActivityLogIntent.UpdateDuration("30"))
+        assertTrue(vm.state.value.canSubmit)
+
         vm.onIntent(ActivityLogIntent.Submit)
         advanceUntilIdle()
 
         assertTrue(vm.state.value.success)
+        assertFalse(vm.state.value.canSubmit)
         assertEquals("", vm.state.value.durationMinutesText)
     }
 }

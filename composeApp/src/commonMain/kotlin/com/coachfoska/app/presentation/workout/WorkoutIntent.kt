@@ -1,6 +1,5 @@
 package com.coachfoska.app.presentation.workout
 
-import com.coachfoska.app.domain.model.ActivityType
 import com.coachfoska.app.domain.model.ExerciseLog
 
 sealed interface WorkoutIntent {
@@ -14,15 +13,20 @@ sealed interface WorkoutIntent {
         val notes: String?,
         val exerciseLogs: List<ExerciseLog>
     ) : WorkoutIntent
-
-    data object LoadActivityHistory : WorkoutIntent
-    data class LogGeneralActivity(
-        val type: ActivityType,
-        val durationMinutes: Int,
-        val distanceKm: Double?,
-        val rpe: Int?,
-        val notes: String?,
+    
+    // Session Draft Intents
+    data class InitDraftFromWorkout(val workoutId: String) : WorkoutIntent
+    data class UpdateSetActual(
+        val exerciseIndex: Int,
+        val setIndex: Int,
+        val reps: Int?,
+        val weight: Float?,
+        val rpe: Int?
     ) : WorkoutIntent
+    data class MarkSetComplete(val exerciseIndex: Int, val setIndex: Int, val completed: Boolean) : WorkoutIntent
+    data class AddExtraSet(val exerciseIndex: Int) : WorkoutIntent
+    data class RemoveSet(val exerciseIndex: Int, val setIndex: Int) : WorkoutIntent
+    data class SubmitActiveSession(val durationMinutes: Int, val notes: String?) : WorkoutIntent
 
     data object DismissError : WorkoutIntent
     data object WorkoutLogged : WorkoutIntent
