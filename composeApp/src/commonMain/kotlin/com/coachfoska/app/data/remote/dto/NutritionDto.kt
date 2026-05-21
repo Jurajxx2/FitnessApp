@@ -260,10 +260,11 @@ data class MealLogFoodDto(
         id = id,
         mealLogId = mealLogId,
         name = name,
-        amountGrams = amountGrams,
+        amount = amount.takeIf { it > 0f } ?: amountGrams ?: 100f,
+        unit = unit.ifBlank { "g" },
         calories = calories,
         proteinG = proteinG,
         carbsG = carbsG,
-        fatG = fatG
+        fatG = fatG,
     )
 }
