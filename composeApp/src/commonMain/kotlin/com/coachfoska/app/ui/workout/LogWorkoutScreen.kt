@@ -14,12 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.core.util.MediaCaptureMode
 import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
@@ -61,7 +63,7 @@ fun LogWorkoutScreen(
     var workoutName by remember { mutableStateOf("") }
     var durationMinutes by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    var exercises by remember { mutableStateOf(listOf(ExerciseLog("", "", "", 0, null, null, null))) }
+    var exercises by remember { mutableStateOf(listOf(LogWorkoutFlatDraftRow(""))) }
     var videoSheetForIndex by remember { mutableStateOf<Int?>(null) }
 
     videoSheetForIndex?.let { index ->
@@ -86,81 +88,77 @@ fun LogWorkoutScreen(
                 .padding(horizontal = 24.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            CoachTextField(
-                value = workoutName,
-                onValueChange = { workoutName = it },
-                label = stringResource(Res.string.workout_name_label)
-            )
-            CoachTextField(
-                value = durationMinutes,
-                onValueChange = { durationMinutes = it },
-                label = stringResource(Res.string.duration_minutes_label),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-        }
-
-        CoachSectionHeader(text = stringResource(Res.string.exercises_section))
-
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            exercises.forEachIndexed { i, exercise ->
-                ExerciseLogRow(
-                    index = i + 1,
-                    exercise = exercise,
-                    onUpdate = { updated ->
-                        exercises = exercises.toMutableList().also { it[i] = updated }
-                    },
-                    onRemove = if (exercises.size > 1) {
-                        { exercises = exercises.toMutableList().also { it.removeAt(i) } }
-                    } else null,
-                    onAddVideo = { videoSheetForIndex = i }
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                CoachTextField(
+                    value = workoutName,
+                    onValueChange = { workoutName = it },
+                    label = "WORKOUT NAME"
+                )
+                CoachTextField(
+                    value = durationMinutes,
+                    onValueChange = { durationMinutes = it },
+                    label = "DURATION (MINS)",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
-        }
 
-        OutlinedButton(
-            onClick = { exercises = exercises + ExerciseLog("", "", "", 0, null, null, null) },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(Res.string.add_exercise), style = MaterialTheme.typography.labelLarge)
-        }
+            CoachSectionHeader(text = "EXERCISES")
 
-        CoachTextField(
-            value = notes,
-            onValueChange = { notes = it },
-            label = stringResource(Res.string.notes_optional),
-            singleLine = false
-        )
-
-        state.error?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        CoachButton(
-            text = stringResource(Res.string.save_session),
-            onClick = {
-                onIntent(
-                    WorkoutIntent.LogWorkout(
-                        workoutId = null,
-                        workoutName = workoutName,
-                        durationMinutes = durationMinutes.toIntOrNull() ?: 0,
-                        notes = notes.ifBlank { null },
-                        exerciseLogs = exercises.filter { it.exerciseName.isNotBlank() }
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                exercises.forEachIndexed { i, exercise ->
+                    ExerciseLogRow(
+                        index = i + 1,
+                        exercise = exercise,
+                        onUpdate = { updated ->
+                            exercises = exercises.toMutableList().also { it[i] = updated }
+                        },
+                        onRemove = if (exercises.size > 1) ({
+                            exercises = exercises.toMutableList().also { it.removeAt(i) }
+                        }) else null,
+                        onAddVideo = { videoSheetForIndex = i }
                     )
-                )
-            },
-            enabled = workoutName.isNotBlank() && exercises.any { it.exerciseName.isNotBlank() },
-            isLoading = state.isLogging
-        )
+                }
+                
+                Button(
+                    onClick = { exercises = exercises + LogWorkoutFlatDraftRow("") },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f), contentColor = MaterialTheme.colorScheme.onBackground)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("ADD EXERCISE")
+                }
+            }
 
-        Spacer(modifier = Modifier.height(48.dp))
+            CoachSectionHeader(text = "NOTES")
+            CoachTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = "Workout notes (optional)",
+                modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
+                singleLine = false
+            )
+
+            CoachButton(
+                text = "SAVE WORKOUT",
+                onClick = {
+                    onIntent(
+                        WorkoutIntent.LogWorkout(
+                            workoutId = null,
+                            workoutName = workoutName,
+                            durationMinutes = durationMinutes.toIntOrNull() ?: 0,
+                            notes = notes.takeIf { it.isNotBlank() },
+                            exerciseLogs = logWorkoutFlatRowsToExerciseLogs(exercises.filter { it.exerciseName.isNotBlank() && it.setsCompleted > 0 })
+                        )
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp).navigationBarsPadding(),
+                isLoading = state.isLogging,
+                enabled = workoutName.isNotBlank() && exercises.any { it.exerciseName.isNotBlank() && it.setsCompleted > 0 }
+            )
+
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }
@@ -168,8 +166,8 @@ fun LogWorkoutScreen(
 @Composable
 private fun ExerciseLogRow(
     index: Int,
-    exercise: ExerciseLog,
-    onUpdate: (ExerciseLog) -> Unit,
+    exercise: LogWorkoutFlatDraftRow,
+    onUpdate: (LogWorkoutFlatDraftRow) -> Unit,
     onRemove: (() -> Unit)?,
     onAddVideo: () -> Unit
 ) {
@@ -188,7 +186,7 @@ private fun ExerciseLogRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(Res.string.exercise_label, index),
+                    text = "EXERCISE #$index",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                     letterSpacing = 1.sp
@@ -230,21 +228,27 @@ private fun ExerciseLogRow(
             CoachTextField(
                 value = exercise.exerciseName,
                 onValueChange = { onUpdate(exercise.copy(exerciseName = it)) },
-                label = stringResource(Res.string.exercise_name_label)
+                label = "EXERCISE NAME"
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CoachTextField(
                     value = exercise.setsCompleted.takeIf { it > 0 }?.toString() ?: "",
                     onValueChange = { onUpdate(exercise.copy(setsCompleted = it.toIntOrNull() ?: 0)) },
-                    label = stringResource(Res.string.sets_label),
+                    label = "SETS",
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 CoachTextField(
+                    value = exercise.reps,
+                    onValueChange = { onUpdate(exercise.copy(reps = it)) },
+                    label = "REPS",
+                    modifier = Modifier.weight(1f)
+                )
+                CoachTextField(
                     value = exercise.weightKg?.toString() ?: "",
                     onValueChange = { onUpdate(exercise.copy(weightKg = it.toFloatOrNull())) },
-                    label = stringResource(Res.string.weight_kg_label),
+                    label = "KG",
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
@@ -252,3 +256,32 @@ private fun ExerciseLogRow(
         }
     }
 }
+
+private data class LogWorkoutFlatDraftRow(
+    val exerciseName: String,
+    val setsCompleted: Int = 0,
+    val reps: String = "",
+    val weightKg: Float? = null,
+    val videoUrl: String? = null
+)
+
+private fun logWorkoutFlatRowsToExerciseLogs(rows: List<LogWorkoutFlatDraftRow>): List<ExerciseLog> =
+    rows.map { row ->
+        val parsedReps = row.reps.trim().substringBefore('-').filter { it.isDigit() }.toIntOrNull()
+        val sets = (1..row.setsCompleted).map { order ->
+            SetLog(
+                id = "", exerciseLogId = "", sortOrder = order,
+                targetReps = parsedReps, actualReps = parsedReps,
+                targetWeightKg = row.weightKg, actualWeightKg = row.weightKg,
+                rpe = null,
+                targetRestSeconds = null, actualRestSeconds = null,
+                completed = true,
+            )
+        }
+        ExerciseLog(
+            id = "", workoutLogId = "",
+            exerciseName = row.exerciseName, notes = null,
+            sets = sets,
+            videoUrl = row.videoUrl
+        )
+    }

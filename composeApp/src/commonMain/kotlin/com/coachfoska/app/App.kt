@@ -268,12 +268,7 @@ fun App(openHumanChat: Boolean = false) {
                     ActiveSessionRoute(
                         workoutId = route.workoutId,
                         userId = currentUserId,
-                        onBackClick = { navController.popBackStack() },
-                        onFinish = {
-                            navController.navigate(WorkoutHistory) {
-                                popUpTo<WorkoutList> { inclusive = false }
-                            }
-                        }
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
 

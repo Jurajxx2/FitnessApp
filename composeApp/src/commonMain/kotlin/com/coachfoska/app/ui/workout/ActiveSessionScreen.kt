@@ -3,33 +3,34 @@ package com.coachfoska.app.ui.workout
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.CoachTopBar
+import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -38,7 +39,6 @@ fun ActiveSessionRoute(
     workoutId: String,
     userId: String,
     onBackClick: () -> Unit,
-    onFinish: () -> Unit,
     viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -50,7 +50,7 @@ fun ActiveSessionRoute(
     LaunchedEffect(state.workoutLoggedSuccess) {
         if (state.workoutLoggedSuccess) {
             viewModel.onIntent(WorkoutIntent.WorkoutLogged)
-            onFinish()
+            onBackClick()
         }
     }
 
@@ -78,16 +78,13 @@ fun ActiveSessionScreen(
     val currentExercise = exercises.getOrNull(currentExerciseIndex)
 
     // Log tracking state
-    var exerciseLogs by remember(workout) {
+    var draftRows by remember(workout) {
         mutableStateOf(exercises.map { ex ->
-            ExerciseLog(
-                id = "",
-                workoutLogId = "temp",
+            ActiveSessionFlatDraftRow(
                 exerciseName = ex.name,
                 setsCompleted = 0,
-                repsCompleted = ex.reps,
-                weightKg = null,
-                notes = null
+                reps = ex.reps,
+                weightKg = null
             )
         })
     }
@@ -98,7 +95,7 @@ fun ActiveSessionScreen(
     LaunchedEffect(isTimerActive) {
         if (isTimerActive) {
             while (restTimerSeconds > 0) {
-                kotlinx.coroutines.delay(1000)
+                delay(1000)
                 restTimerSeconds--
             }
             isTimerActive = false
@@ -106,32 +103,9 @@ fun ActiveSessionScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // Custom Header
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(onClick = onBackClick) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Exit")
-            }
-            Text(
-                text = "${currentExerciseIndex + 1} OF ${exercises.size}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                letterSpacing = 2.sp
-            )
-            IconButton(onClick = { /* TODO: Settings or Timer */ }) {
-                Icon(Icons.Default.Timer, contentDescription = "Timer", tint = if (isTimerActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground)
-            }
-        }
-
-        // Progress bar
-        LinearProgressIndicator(
-            progress = { (currentExerciseIndex + 1).toFloat() / exercises.size },
-            modifier = Modifier.fillMaxWidth().height(4.dp),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
+        CoachTopBar(
+            title = "ACTIVE SESSION",
+            onBackClick = onBackClick
         )
 
         Column(
@@ -141,9 +115,9 @@ fun ActiveSessionScreen(
             if (currentExercise != null) {
                 ExerciseSessionView(
                     exercise = currentExercise,
-                    log = exerciseLogs[currentExerciseIndex],
+                    log = draftRows[currentExerciseIndex],
                     onLogUpdate = { updated ->
-                        exerciseLogs = exerciseLogs.toMutableList().also { it[currentExerciseIndex] = updated }
+                        draftRows = draftRows.toMutableList().also { it[currentExerciseIndex] = updated }
                     },
                     onSetComplete = {
                         restTimerSeconds = currentExercise.restSeconds
@@ -194,7 +168,7 @@ fun ActiveSessionScreen(
                                     workoutName = workout.name,
                                     durationMinutes = 0, // TODO: track actual duration
                                     notes = null,
-                                    exerciseLogs = exerciseLogs.filter { it.setsCompleted > 0 }
+                                    exerciseLogs = activeSessionFlatRowsToExerciseLogs(draftRows.filter { it.setsCompleted > 0 })
                                 )
                             )
                         },
@@ -220,18 +194,17 @@ fun ActiveSessionScreen(
                 val mins = restTimerSeconds / 60
                 val secs = restTimerSeconds % 60
                 val timeStr = "${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}"
-
-                Text("REST", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, letterSpacing = 4.sp)
+                
+                Text("REST TIME", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
                 Spacer(Modifier.height(16.dp))
-                Text(
-                    text = timeStr,
-                    style = MaterialTheme.typography.displayLarge,
-                    fontSize = 80.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(32.dp))
-                Button(onClick = { isTimerActive = false }) {
-                    Text("SKIP REST")
+                Text(timeStr, style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(48.dp))
+                
+                Button(
+                    onClick = { isTimerActive = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onBackground)
+                ) {
+                    Text("SKIP TIMER")
                 }
             }
         }
@@ -241,8 +214,8 @@ fun ActiveSessionScreen(
 @Composable
 private fun ExerciseSessionView(
     exercise: WorkoutExercise,
-    log: ExerciseLog,
-    onLogUpdate: (ExerciseLog) -> Unit,
+    log: ActiveSessionFlatDraftRow,
+    onLogUpdate: (ActiveSessionFlatDraftRow) -> Unit,
     onSetComplete: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -311,28 +284,36 @@ private fun ExerciseSessionView(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f), contentColor = MaterialTheme.colorScheme.onBackground)
             ) {
                 Icon(Icons.Default.Check, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("LOG SET + START REST")
-            }
-        }
-
-        // Ghost stats (Mocked for now)
-        Surface(
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-            shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text("👻", fontSize = 24.sp)
-                Column {
-                    Text("LAST SESSION", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    Text("60 kg × 10 reps", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                }
+                Spacer(Modifier.width(12.dp))
+                Text("LOG COMPLETED SET")
             }
         }
     }
 }
+
+private data class ActiveSessionFlatDraftRow(
+    val exerciseName: String,
+    val setsCompleted: Int = 0,
+    val reps: String = "",
+    val weightKg: Float? = null
+)
+
+private fun activeSessionFlatRowsToExerciseLogs(rows: List<ActiveSessionFlatDraftRow>): List<ExerciseLog> =
+    rows.map { row ->
+        val parsedReps = row.reps.trim().substringBefore('-').filter { it.isDigit() }.toIntOrNull()
+        val sets = (1..row.setsCompleted).map { order ->
+            SetLog(
+                id = "", exerciseLogId = "", sortOrder = order,
+                targetReps = parsedReps, actualReps = parsedReps,
+                targetWeightKg = row.weightKg, actualWeightKg = row.weightKg,
+                rpe = null,
+                targetRestSeconds = null, actualRestSeconds = null,
+                completed = true,
+            )
+        }
+        ExerciseLog(
+            id = "", workoutLogId = "",
+            exerciseName = row.exerciseName, notes = null,
+            sets = sets,
+        )
+    }

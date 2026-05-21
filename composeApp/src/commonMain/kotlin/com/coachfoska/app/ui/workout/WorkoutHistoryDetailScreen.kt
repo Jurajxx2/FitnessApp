@@ -159,22 +159,14 @@ private fun ExerciseLogDetailRow(
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "${log.setsCompleted} SETS",
+                        text = "${log.setsCompletedCount} SETS",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
-                    if (log.repsCompleted != null) {
+                    if (log.summaryLine.isNotEmpty()) {
                         Box(modifier = Modifier.size(2.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)))
                         Text(
-                            text = "${log.repsCompleted} REPS",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                        )
-                    }
-                    if (log.weightKg != null) {
-                        Box(modifier = Modifier.size(2.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)))
-                        Text(
-                            text = "${log.weightKg} KG",
+                            text = log.summaryLine,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )

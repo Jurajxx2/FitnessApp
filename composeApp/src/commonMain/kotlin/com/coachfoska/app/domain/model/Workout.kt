@@ -41,12 +41,40 @@ data class ExerciseLog(
     val id: String,
     val workoutLogId: String,
     val exerciseName: String,
-    val setsCompleted: Int,
-    val repsCompleted: String?,
-    val weightKg: Float?,
     val notes: String?,
-    val videoUrl: String? = null
+    val videoUrl: String? = null,
+    val sets: List<SetLog> = emptyList(),
+) {
+    val setsCompletedCount: Int get() = sets.count { it.completed }
+    val summaryLine: String get() = buildSummaryLine(sets)
+}
+
+data class SetLog(
+    val id: String,
+    val exerciseLogId: String,
+    val sortOrder: Int,
+    val targetReps: Int?,
+    val actualReps: Int?,
+    val targetWeightKg: Float?,
+    val actualWeightKg: Float?,
+    val rpe: Int?,
+    val targetRestSeconds: Int?,
+    val actualRestSeconds: Int?,
+    val completed: Boolean,
 )
+
+private fun buildSummaryLine(sets: List<SetLog>): String {
+    val done = sets.filter { it.completed }
+    if (done.isEmpty()) return ""
+    val reps = done.map { it.actualReps }
+    val repsPart = when {
+        reps.all { it == null } -> "${done.size} sets"
+        reps.all { it == reps.first() } -> "${done.size} × ${reps.first()}"
+        else -> reps.map { it?.toString() ?: "?" }.joinToString(", ")
+    }
+    val maxWeight = done.mapNotNull { it.actualWeightKg }.maxOrNull()
+    return if (maxWeight != null) "$repsPart @ $maxWeight kg" else repsPart
+}
 
 enum class DayOfWeek(val index: Int, val displayName: String) {
     MONDAY(0, "Monday"),
