@@ -2,6 +2,8 @@ package com.coachfoska.app.ui.workout
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,10 +15,14 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.img_activity_history
 import coachfoska.composeapp.generated.resources.img_activity_library
 import coachfoska.composeapp.generated.resources.img_activity_plan
+import com.coachfoska.app.domain.model.DayOfWeek
+import com.coachfoska.app.domain.model.Workout
+import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.app.ui.components.HubIconCard
 import com.coachfoska.app.ui.components.HubImageCard
+import androidx.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -101,12 +107,47 @@ fun ActivityHubScreen(
                         .aspectRatio(1f)
                 )
             }
-            
-            CoachButton(
-                text = "LOG GENERAL ACTIVITY",
+            HubIconCard(
+                icon = Icons.Default.Add,
+                eyebrow = "Log",
+                title = "Log Activity",
+                subtitle = "Walk, run, swim...",
                 onClick = onLogGeneralActivityClick,
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
+                modifier = Modifier.fillMaxWidth().height(120.dp),
             )
         }
     }
+}
+
+@Preview
+@Composable
+private fun ActivityHubScreenPreview() {
+    ActivityHubScreen(
+        state = WorkoutState(
+            workouts = listOf(
+                Workout(
+                    id = "w-1",
+                    name = "Push Day",
+                    dayOfWeek = DayOfWeek.MONDAY,
+                    durationMinutes = 60,
+                    exercises = listOf(
+                        WorkoutExercise(
+                            id = "we-1",
+                            workoutId = "w-1",
+                            name = "Bench Press",
+                            muscleGroup = "Chest",
+                            sets = 3,
+                            reps = "10",
+                            restSeconds = 60,
+                            tips = null,
+                        )
+                    ),
+                )
+            )
+        ),
+        onPlanClick = {},
+        onHistoryClick = {},
+        onLibraryClick = {},
+        onLogGeneralActivityClick = {},
+    )
 }

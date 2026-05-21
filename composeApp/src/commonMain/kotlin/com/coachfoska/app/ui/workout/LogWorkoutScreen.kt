@@ -1,6 +1,17 @@
 package com.coachfoska.app.ui.workout
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,18 +21,33 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.add_video_cd
+import coachfoska.composeapp.generated.resources.remove_cd
 import com.coachfoska.app.core.util.MediaCaptureMode
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.SetLog
+import com.coachfoska.app.presentation.workout.SetDraft
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
@@ -30,9 +56,8 @@ import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
-import coachfoska.composeapp.generated.resources.Res
-import coachfoska.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -40,7 +65,7 @@ import org.koin.core.parameter.parametersOf
 fun LogWorkoutRoute(
     userId: String,
     onBackClick: () -> Unit,
-    viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
+    viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -58,12 +83,12 @@ fun LogWorkoutRoute(
 fun LogWorkoutScreen(
     state: WorkoutState,
     onIntent: (WorkoutIntent) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
 ) {
     var workoutName by remember { mutableStateOf("") }
     var durationMinutes by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    var exercises by remember { mutableStateOf(listOf(LogWorkoutFlatDraftRow(""))) }
+    var exercises by remember { mutableStateOf(listOf(LocalDraftExercise())) }
     var videoSheetForIndex by remember { mutableStateOf<Int?>(null) }
 
     videoSheetForIndex?.let { index ->
@@ -72,12 +97,59 @@ fun LogWorkoutScreen(
             onDismiss = { videoSheetForIndex = null },
             onResult = { uri ->
                 if (uri != null) {
-                    exercises = exercises.toMutableList().also { it[index] = it[index].copy(videoUrl = uri) }
+                    exercises = exercises.toMutableList().also {
+                        it[index] = it[index].copy(videoUrl = uri)
+                    }
                 }
                 videoSheetForIndex = null
-            }
+            },
         )
     }
+
+    LogWorkoutContent(
+        workoutName = workoutName,
+        onWorkoutName = { workoutName = it },
+        durationMinutes = durationMinutes,
+        onDurationMinutes = { durationMinutes = it },
+        notes = notes,
+        onNotes = { notes = it },
+        exercises = exercises,
+        onExercises = { exercises = it },
+        onAddVideo = { videoSheetForIndex = it },
+        onBackClick = onBackClick,
+        isLogging = state.isLogging,
+        onSave = {
+            onIntent(
+                WorkoutIntent.LogWorkout(
+                    workoutId = null,
+                    workoutName = workoutName,
+                    durationMinutes = durationMinutes.toIntOrNull() ?: 0,
+                    notes = notes.takeIf { it.isNotBlank() },
+                    exerciseLogs = exercises.toExerciseLogs(),
+                )
+            )
+        },
+    )
+}
+
+@Composable
+private fun LogWorkoutContent(
+    workoutName: String,
+    onWorkoutName: (String) -> Unit,
+    durationMinutes: String,
+    onDurationMinutes: (String) -> Unit,
+    notes: String,
+    onNotes: (String) -> Unit,
+    exercises: List<LocalDraftExercise>,
+    onExercises: (List<LocalDraftExercise>) -> Unit,
+    onAddVideo: (Int) -> Unit,
+    onBackClick: () -> Unit,
+    isLogging: Boolean,
+    onSave: () -> Unit,
+) {
+    val canSave = workoutName.isNotBlank() &&
+        durationMinutes.toIntOrNull()?.let { it > 0 } == true &&
+        exercises.any { it.name.isNotBlank() && it.sets.any { set -> set.completed } }
 
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(title = "LOG SESSION", onBackClick = onBackClick)
@@ -86,47 +158,49 @@ fun LogWorkoutScreen(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 CoachTextField(
                     value = workoutName,
-                    onValueChange = { workoutName = it },
-                    label = "WORKOUT NAME"
+                    onValueChange = onWorkoutName,
+                    label = "WORKOUT NAME",
                 )
                 CoachTextField(
                     value = durationMinutes,
-                    onValueChange = { durationMinutes = it },
+                    onValueChange = onDurationMinutes,
                     label = "DURATION (MINS)",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             }
 
             CoachSectionHeader(text = "EXERCISES")
-
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                exercises.forEachIndexed { i, exercise ->
-                    ExerciseLogRow(
-                        index = i + 1,
+                exercises.forEachIndexed { index, exercise ->
+                    ManualExerciseCard(
+                        index = index,
                         exercise = exercise,
                         onUpdate = { updated ->
-                            exercises = exercises.toMutableList().also { it[i] = updated }
+                            onExercises(exercises.toMutableList().also { it[index] = updated })
                         },
-                        onRemove = if (exercises.size > 1) ({
-                            exercises = exercises.toMutableList().also { it.removeAt(i) }
-                        }) else null,
-                        onAddVideo = { videoSheetForIndex = i }
+                        onRemove = if (exercises.size > 1) {
+                            { onExercises(exercises.toMutableList().also { it.removeAt(index) }) }
+                        } else null,
+                        onAddVideo = { onAddVideo(index) },
                     )
                 }
-                
+
                 Button(
-                    onClick = { exercises = exercises + LogWorkoutFlatDraftRow("") },
+                    onClick = { onExercises(exercises + LocalDraftExercise()) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f), contentColor = MaterialTheme.colorScheme.onBackground)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                        contentColor = MaterialTheme.colorScheme.onBackground,
+                    ),
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.size(8.dp))
                     Text("ADD EXERCISE")
                 }
             }
@@ -134,91 +208,78 @@ fun LogWorkoutScreen(
             CoachSectionHeader(text = "NOTES")
             CoachTextField(
                 value = notes,
-                onValueChange = { notes = it },
+                onValueChange = onNotes,
                 label = "Workout notes (optional)",
                 modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
-                singleLine = false
+                singleLine = false,
             )
 
             CoachButton(
                 text = "SAVE WORKOUT",
-                onClick = {
-                    onIntent(
-                        WorkoutIntent.LogWorkout(
-                            workoutId = null,
-                            workoutName = workoutName,
-                            durationMinutes = durationMinutes.toIntOrNull() ?: 0,
-                            notes = notes.takeIf { it.isNotBlank() },
-                            exerciseLogs = logWorkoutFlatRowsToExerciseLogs(exercises.filter { it.exerciseName.isNotBlank() && it.setsCompleted > 0 })
-                        )
-                    )
-                },
+                onClick = onSave,
                 modifier = Modifier.fillMaxWidth().height(56.dp).navigationBarsPadding(),
-                isLoading = state.isLogging,
-                enabled = workoutName.isNotBlank() && exercises.any { it.exerciseName.isNotBlank() && it.setsCompleted > 0 }
+                isLoading = isLogging,
+                enabled = canSave,
             )
-
             Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }
 
 @Composable
-private fun ExerciseLogRow(
+private fun ManualExerciseCard(
     index: Int,
-    exercise: LogWorkoutFlatDraftRow,
-    onUpdate: (LogWorkoutFlatDraftRow) -> Unit,
+    exercise: LocalDraftExercise,
+    onUpdate: (LocalDraftExercise) -> Unit,
     onRemove: (() -> Unit)?,
-    onAddVideo: () -> Unit
+    onAddVideo: () -> Unit,
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)),
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "EXERCISE #$index",
+                    text = "EXERCISE #${index + 1}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                    letterSpacing = 1.sp
                 )
-
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     IconButton(
                         onClick = onAddVideo,
                         modifier = Modifier.size(32.dp),
                         colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = if (exercise.videoUrl != null)
+                            containerColor = if (exercise.videoUrl != null) {
                                 MaterialTheme.colorScheme.onBackground
-                            else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                            contentColor = if (exercise.videoUrl != null)
+                            } else {
+                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
+                            },
+                            contentColor = if (exercise.videoUrl != null) {
                                 MaterialTheme.colorScheme.background
-                            else MaterialTheme.colorScheme.onBackground
-                        )
+                            } else {
+                                MaterialTheme.colorScheme.onBackground
+                            },
+                        ),
                     ) {
                         Icon(
                             imageVector = if (exercise.videoUrl != null) Icons.Default.Check else Icons.Default.Videocam,
                             contentDescription = stringResource(Res.string.add_video_cd),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
                         )
                     }
-
                     if (onRemove != null) {
                         IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = stringResource(Res.string.remove_cd),
                                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(16.dp),
                             )
                         }
                     }
@@ -226,62 +287,154 @@ private fun ExerciseLogRow(
             }
 
             CoachTextField(
-                value = exercise.exerciseName,
-                onValueChange = { onUpdate(exercise.copy(exerciseName = it)) },
-                label = "EXERCISE NAME"
+                value = exercise.name,
+                onValueChange = { onUpdate(exercise.copy(name = it)) },
+                label = "EXERCISE NAME",
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                CoachTextField(
-                    value = exercise.setsCompleted.takeIf { it > 0 }?.toString() ?: "",
-                    onValueChange = { onUpdate(exercise.copy(setsCompleted = it.toIntOrNull() ?: 0)) },
-                    label = "SETS",
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            exercise.sets.forEachIndexed { setIndex, set ->
+                SetInputRow(
+                    setDraft = set.toSetDraft(),
+                    onActualReps = { reps ->
+                        onUpdate(exercise.updateSet(setIndex) { it.copy(actualReps = reps) })
+                    },
+                    onActualWeight = { weight ->
+                        onUpdate(exercise.updateSet(setIndex) { it.copy(actualWeightKg = weight) })
+                    },
+                    onRpe = { rpe ->
+                        onUpdate(exercise.updateSet(setIndex) { it.copy(rpe = rpe) })
+                    },
+                    onCompleted = {
+                        onUpdate(exercise.updateSet(setIndex) { it.copy(completed = !it.completed) })
+                    },
                 )
-                CoachTextField(
-                    value = exercise.reps,
-                    onValueChange = { onUpdate(exercise.copy(reps = it)) },
-                    label = "REPS",
-                    modifier = Modifier.weight(1f)
-                )
-                CoachTextField(
-                    value = exercise.weightKg?.toString() ?: "",
-                    onValueChange = { onUpdate(exercise.copy(weightKg = it.toFloatOrNull())) },
-                    label = "KG",
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                )
+            }
+
+            TextButton(onClick = { onUpdate(exercise.addSet()) }) {
+                Text("+ ADD SET")
             }
         }
     }
 }
 
-private data class LogWorkoutFlatDraftRow(
-    val exerciseName: String,
-    val setsCompleted: Int = 0,
-    val reps: String = "",
-    val weightKg: Float? = null,
-    val videoUrl: String? = null
+private data class LocalDraftExercise(
+    val name: String = "",
+    val sets: List<LocalDraftSet> = listOf(LocalDraftSet(sortOrder = 1)),
+    val videoUrl: String? = null,
 )
 
-private fun logWorkoutFlatRowsToExerciseLogs(rows: List<LogWorkoutFlatDraftRow>): List<ExerciseLog> =
-    rows.map { row ->
-        val parsedReps = row.reps.trim().substringBefore('-').filter { it.isDigit() }.toIntOrNull()
-        val sets = (1..row.setsCompleted).map { order ->
-            SetLog(
-                id = "", exerciseLogId = "", sortOrder = order,
-                targetReps = parsedReps, actualReps = parsedReps,
-                targetWeightKg = row.weightKg, actualWeightKg = row.weightKg,
-                rpe = null,
-                targetRestSeconds = null, actualRestSeconds = null,
-                completed = true,
+private data class LocalDraftSet(
+    val sortOrder: Int,
+    val actualReps: Int? = null,
+    val actualWeightKg: Float? = null,
+    val rpe: Int? = null,
+    val completed: Boolean = false,
+)
+
+private fun LocalDraftExercise.updateSet(
+    setIndex: Int,
+    transform: (LocalDraftSet) -> LocalDraftSet,
+): LocalDraftExercise = copy(
+    sets = sets.mapIndexed { index, set -> if (index == setIndex) transform(set) else set },
+)
+
+private fun LocalDraftExercise.addSet(): LocalDraftExercise {
+    val last = sets.lastOrNull()
+    return copy(
+        sets = sets + LocalDraftSet(
+            sortOrder = (last?.sortOrder ?: 0) + 1,
+            actualReps = last?.actualReps,
+            actualWeightKg = last?.actualWeightKg,
+        ),
+    )
+}
+
+private fun LocalDraftSet.toSetDraft(): SetDraft = SetDraft(
+    sortOrder = sortOrder,
+    targetReps = null,
+    actualReps = actualReps,
+    targetWeightKg = null,
+    actualWeightKg = actualWeightKg,
+    rpe = rpe,
+    targetRestSeconds = null,
+    actualRestSeconds = null,
+    completed = completed,
+)
+
+private fun List<LocalDraftExercise>.toExerciseLogs(): List<ExerciseLog> =
+    filter { it.name.isNotBlank() }
+        .map { exercise ->
+            ExerciseLog(
+                id = "",
+                workoutLogId = "",
+                exerciseName = exercise.name,
+                notes = null,
+                videoUrl = exercise.videoUrl,
+                sets = exercise.sets.filter { it.completed }.map { set ->
+                    SetLog(
+                        id = "",
+                        exerciseLogId = "",
+                        sortOrder = set.sortOrder,
+                        targetReps = null,
+                        actualReps = set.actualReps,
+                        targetWeightKg = null,
+                        actualWeightKg = set.actualWeightKg,
+                        rpe = set.rpe,
+                        targetRestSeconds = null,
+                        actualRestSeconds = null,
+                        completed = true,
+                    )
+                },
             )
         }
-        ExerciseLog(
-            id = "", workoutLogId = "",
-            exerciseName = row.exerciseName, notes = null,
-            sets = sets,
-            videoUrl = row.videoUrl
-        )
-    }
+        .filter { it.sets.isNotEmpty() }
+
+@Preview
+@Composable
+private fun LogWorkoutScreenPreviewEmpty() {
+    LogWorkoutContent(
+        workoutName = "",
+        onWorkoutName = {},
+        durationMinutes = "",
+        onDurationMinutes = {},
+        notes = "",
+        onNotes = {},
+        exercises = listOf(LocalDraftExercise()),
+        onExercises = {},
+        onAddVideo = {},
+        onBackClick = {},
+        isLogging = false,
+        onSave = {},
+    )
+}
+
+@Preview
+@Composable
+private fun LogWorkoutScreenPreviewTwoExercises() {
+    LogWorkoutContent(
+        workoutName = "Upper Body",
+        onWorkoutName = {},
+        durationMinutes = "45",
+        onDurationMinutes = {},
+        notes = "Good session.",
+        onNotes = {},
+        exercises = listOf(
+            LocalDraftExercise(
+                name = "Bench Press",
+                sets = listOf(
+                    LocalDraftSet(1, 10, 60f, 7, true),
+                    LocalDraftSet(2, 8, 62.5f, 8, true),
+                ),
+            ),
+            LocalDraftExercise(
+                name = "Rows",
+                sets = listOf(LocalDraftSet(1, 12, 40f, 6, true)),
+            ),
+        ),
+        onExercises = {},
+        onAddVideo = {},
+        onBackClick = {},
+        isLogging = false,
+        onSave = {},
+    )
+}

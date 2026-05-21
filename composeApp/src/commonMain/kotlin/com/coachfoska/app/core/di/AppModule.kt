@@ -69,6 +69,7 @@ import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
+import com.coachfoska.app.presentation.activity.ActivityLogViewModel
 import com.coachfoska.app.presentation.auth.AuthViewModel
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.app.presentation.splash.SplashViewModel
@@ -185,7 +186,8 @@ val viewModelModule = module {
     viewModelOf(::AuthViewModel)
     viewModelOf(::SettingsViewModel)
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), userId) }
-    viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> ActivityLogViewModel(get(), get(), userId) }
     viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), userId) }
     viewModel { (recipeId: String) -> RecipeDetailViewModel(get(), recipeId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }

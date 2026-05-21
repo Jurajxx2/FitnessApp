@@ -44,6 +44,11 @@ import com.coachfoska.app.ui.profile.SettingsRoute
 import com.coachfoska.app.ui.splash.SplashRoute
 import com.coachfoska.app.ui.workout.ExerciseByCategoryRoute
 import com.coachfoska.app.ui.workout.ExerciseDetailRoute
+import com.coachfoska.app.domain.model.ActivityType
+import com.coachfoska.app.navigation.ActivityTypeSelector
+import com.coachfoska.app.navigation.LogActivity
+import com.coachfoska.app.ui.activity.ActivityTypeSelectorRoute
+import com.coachfoska.app.ui.activity.LogActivityFormRoute
 import com.coachfoska.app.ui.workout.LogWorkoutRoute
 import com.coachfoska.app.ui.workout.WorkoutDetailRoute
 import com.coachfoska.app.ui.workout.WorkoutHistoryRoute
@@ -96,7 +101,8 @@ fun App(openHumanChat: Boolean = false) {
                 when {
                     currentRoute?.contains("Home") == true -> BottomNavTab.Home
                     currentRoute?.contains("Workout", ignoreCase = true) == true ||
-                        currentRoute?.contains("Exercise", ignoreCase = true) == true -> BottomNavTab.Activity
+                        currentRoute?.contains("Exercise", ignoreCase = true) == true ||
+                        currentRoute?.contains("Activity", ignoreCase = true) == true -> BottomNavTab.Activity
                     currentRoute?.contains("Chat", ignoreCase = true) == true ||
                         currentRoute?.contains("CoachChat") == true -> BottomNavTab.Chat
                     currentRoute?.contains("Meal", ignoreCase = true) == true ||
@@ -248,7 +254,8 @@ fun App(openHumanChat: Boolean = false) {
                         userId = currentUserId,
                         onPlanClick = { navController.navigate(WorkoutPlan) },
                         onHistoryClick = { navController.navigate(WorkoutHistory) },
-                        onLibraryClick = { navController.navigate(ExerciseLibrary) }
+                        onLibraryClick = { navController.navigate(ExerciseLibrary) },
+                        onLogGeneralActivityClick = { navController.navigate(ActivityTypeSelector) }
                     )
                 }
 
@@ -294,6 +301,26 @@ fun App(openHumanChat: Boolean = false) {
                     LogWorkoutRoute(
                         userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable<ActivityTypeSelector> {
+                    ActivityTypeSelectorRoute(
+                        onBackClick = { navController.popBackStack() },
+                        onTypeSelected = { type -> navController.navigate(LogActivity(type.name)) }
+                    )
+                }
+
+                composable<LogActivity> { backStackEntry ->
+                    val route: LogActivity = backStackEntry.toRoute()
+                    LogActivityFormRoute(
+                        userId = currentUserId,
+                        type = ActivityType.fromStorageValue(route.type),
+                        onBackClick = { navController.popBackStack() },
+                        onSaved = {
+                            navController.popBackStack()
+                            navController.popBackStack()
+                        }
                     )
                 }
 
