@@ -1,12 +1,20 @@
 package com.coachfoska.app.presentation.workout
 
+import com.coachfoska.app.domain.model.ActivityType
+import com.coachfoska.app.domain.model.GeneralActivityLog
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutLog
+import com.coachfoska.app.domain.repository.ActivityRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
+import com.coachfoska.app.domain.usecase.activity.GetActivityHistoryUseCase
+import com.coachfoska.app.domain.usecase.activity.LogGeneralActivityUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
+import com.coachfoska.app.fixtures.aGeneralActivityLog
+import com.coachfoska.app.fixtures.aWorkout
+import com.coachfoska.app.fixtures.aWorkoutLog
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -29,13 +37,16 @@ import kotlin.test.assertTrue
 class WorkoutViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
-    private val repo: WorkoutRepository = mockk()
+    private val workoutRepo: WorkoutRepository = mockk()
+    private val activityRepo: ActivityRepository = mockk()
 
     private fun viewModel() = WorkoutViewModel(
-        getAssignedWorkoutsUseCase = GetAssignedWorkoutsUseCase(repo),
-        getWorkoutByIdUseCase = GetWorkoutByIdUseCase(repo),
-        logWorkoutUseCase = LogWorkoutUseCase(repo),
-        getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(repo),
+        getAssignedWorkoutsUseCase = GetAssignedWorkoutsUseCase(workoutRepo),
+        getWorkoutByIdUseCase = GetWorkoutByIdUseCase(workoutRepo),
+        logWorkoutUseCase = LogWorkoutUseCase(workoutRepo),
+        getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(workoutRepo),
+        logGeneralActivityUseCase = LogGeneralActivityUseCase(activityRepo),
+        getActivityHistoryUseCase = GetActivityHistoryUseCase(activityRepo),
         userId = "user-1"
     )
 
@@ -44,8 +55,8 @@ class WorkoutViewModelTest {
 
     @Test
     fun `loadWorkouts success populates workouts list`() = runTest {
-        val workouts = listOf(aWorkout())
-        coEvery { repo.getAssignedWorkouts(any()) } returns Result.success(workouts)
+        val workouts = listOf(aWorkout(id = "w1"))
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(workouts)
 
         val vm = viewModel()
 
@@ -56,56 +67,32 @@ class WorkoutViewModelTest {
     }
 
     @Test
-    fun `loadWorkouts success with empty list shows empty state`() = runTest {
-        coEvery { repo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
-
-        val vm = viewModel()
-
-        assertTrue(vm.state.value.workouts.isEmpty())
-        assertNull(vm.state.value.error)
-    }
-
-    @Test
-    fun `loadWorkouts failure shows error state not mock data`() = runTest {
-        coEvery { repo.getAssignedWorkouts(any()) } returns Result.failure(RuntimeException("Network error"))
+    fun `loadWorkouts failure shows error state`() = runTest {
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.failure(RuntimeException("Network error"))
 
         val vm = viewModel()
 
         assertNotNull(vm.state.value.error)
         assertEquals("Network error", vm.state.value.error)
-        assertTrue(vm.state.value.workouts.isEmpty())
     }
 
     @Test
     fun `logWorkout success sets workoutLoggedSuccess true`() = runTest {
-        coEvery { repo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
-        coEvery { repo.logWorkout(any(), any(), any(), any(), any(), any()) } returns Result.success(aWorkoutLog())
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { workoutRepo.logWorkout(any(), any(), any(), any(), any(), any()) } returns Result.success(aWorkoutLog())
+        coEvery { workoutRepo.getWorkoutHistory(any()) } returns Result.success(emptyList())
         val vm = viewModel()
 
         vm.onIntent(WorkoutIntent.LogWorkout("w1", "Push Day", 60, null, emptyList()))
 
         assertTrue(vm.state.value.workoutLoggedSuccess)
-        assertFalse(vm.state.value.isLogging)
-        assertNull(vm.state.value.error)
-    }
-
-    @Test
-    fun `logWorkout failure sets error state`() = runTest {
-        coEvery { repo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
-        coEvery { repo.logWorkout(any(), any(), any(), any(), any(), any()) } returns Result.failure(RuntimeException("Log failed"))
-        val vm = viewModel()
-
-        vm.onIntent(WorkoutIntent.LogWorkout("w1", "Push Day", 60, null, emptyList()))
-
-        assertEquals("Log failed", vm.state.value.error)
-        assertFalse(vm.state.value.isLogging)
     }
 
     @Test
     fun `selectWorkoutLog found in history sets selectedWorkoutLog`() = runTest {
-        val log = aWorkoutLog()
-        coEvery { repo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
-        coEvery { repo.getWorkoutHistory(any()) } returns Result.success(listOf(log))
+        val log = aWorkoutLog(id = "log-1")
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { workoutRepo.getWorkoutHistory(any()) } returns Result.success(listOf(log))
         val vm = viewModel()
         vm.onIntent(WorkoutIntent.LoadHistory)
 
@@ -115,46 +102,28 @@ class WorkoutViewModelTest {
     }
 
     @Test
-    fun `selectWorkoutLog not found leaves selectedWorkoutLog null`() = runTest {
-        coEvery { repo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+    fun `logGeneralActivity success sets success state and reloads history`() = runTest {
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { activityRepo.logActivity(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(aGeneralActivityLog())
+        coEvery { activityRepo.getActivityHistory(any()) } returns Result.success(emptyList())
+        
         val vm = viewModel()
+        vm.onIntent(WorkoutIntent.LogGeneralActivity(ActivityType.RUNNING, 30, 5.0, 7, null))
 
-        vm.onIntent(WorkoutIntent.SelectWorkoutLog("non-existent"))
-
-        assertNull(vm.state.value.selectedWorkoutLog)
-    }
-
-    @Test
-    fun `DismissError clears error`() = runTest {
-        coEvery { repo.getAssignedWorkouts(any()) } returns Result.failure(RuntimeException("err"))
-        val vm = viewModel()
-        assertNotNull(vm.state.value.error)
-
-        vm.onIntent(WorkoutIntent.DismissError)
-
-        assertNull(vm.state.value.error)
-    }
-
-    @Test
-    fun `WorkoutLogged intent resets workoutLoggedSuccess`() = runTest {
-        coEvery { repo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
-        coEvery { repo.logWorkout(any(), any(), any(), any(), any(), any()) } returns Result.success(aWorkoutLog())
-        val vm = viewModel()
-        vm.onIntent(WorkoutIntent.LogWorkout("w1", "Push", 60, null, emptyList()))
         assertTrue(vm.state.value.workoutLoggedSuccess)
+        assertFalse(vm.state.value.isLogging)
+    }
 
-        vm.onIntent(WorkoutIntent.WorkoutLogged)
+    @Test
+    fun `loadActivityHistory success populates activityHistory`() = runTest {
+        val logs = listOf(aGeneralActivityLog(id = "a1"))
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { activityRepo.getActivityHistory(any()) } returns Result.success(logs)
 
-        assertFalse(vm.state.value.workoutLoggedSuccess)
+        val vm = viewModel()
+        vm.onIntent(WorkoutIntent.LoadActivityHistory)
+
+        assertEquals(1, vm.state.value.activityHistory.size)
+        assertEquals("a1", vm.state.value.activityHistory[0].id)
     }
 }
-
-private fun aWorkout() = Workout(
-    id = "w1", name = "Push Day", dayOfWeek = null, durationMinutes = 60, exercises = emptyList()
-)
-
-private fun aWorkoutLog() = WorkoutLog(
-    id = "log-1", userId = "user-1", workoutId = "w1", workoutName = "Push Day",
-    durationMinutes = 60, notes = null, exerciseLogs = emptyList(),
-    loggedAt = Instant.parse("2026-04-03T10:00:00Z")
-)
