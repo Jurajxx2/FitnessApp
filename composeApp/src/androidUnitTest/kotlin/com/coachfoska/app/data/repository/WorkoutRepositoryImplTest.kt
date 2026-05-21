@@ -3,13 +3,17 @@ package com.coachfoska.app.data.repository
 import com.coachfoska.app.data.remote.datasource.WorkoutRemoteDataSource
 import com.coachfoska.app.data.remote.dto.ExerciseLogDto
 import com.coachfoska.app.data.remote.dto.ExerciseLogInsertDto
+import com.coachfoska.app.data.remote.dto.SetLogDto
+import com.coachfoska.app.data.remote.dto.SetLogInsertDto
 import com.coachfoska.app.data.remote.dto.WorkoutDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogDto
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.SetLog
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -47,61 +51,81 @@ class WorkoutRepositoryImplTest {
     }
 
     @Test
-    fun `logWorkout with exercise logs calls insertExerciseLogs`() = runTest {
-        val logDto = aWorkoutLogDto()
-        coEvery { dataSource.insertWorkoutLog(any(), any(), any(), any(), any()) } returns logDto
-        coEvery { dataSource.insertExerciseLogs(any<List<ExerciseLogInsertDto>>()) } returns listOf(anExerciseLogDto())
+    fun `logWorkout inserts set_logs per exercise with correct exercise_log_id`() = runTest {
+        val workoutLogDto = WorkoutLogDto(
+            id = "wl-1", userId = "u", workoutName = "Push",
+            durationMinutes = 60, loggedAt = "2026-05-21T10:00:00Z",
+        )
+        coEvery { dataSource.insertWorkoutLog("u", null, "Push", 60, null) } returns workoutLogDto
+        coEvery { dataSource.insertExerciseLog(any()) } answers {
+            val payload = firstArg<ExerciseLogInsertDto>()
+            ExerciseLogDto(
+                id = "el-${payload.exerciseName}", workoutLogId = workoutLogDto.id,
+                exerciseName = payload.exerciseName, notes = payload.notes,
+            )
+        }
+        val capturedSetPayloads = slot<List<SetLogInsertDto>>()
+        coEvery { dataSource.insertSetLogs(capture(capturedSetPayloads)) } returns emptyList()
 
-        val exerciseLogs = listOf(anExerciseLog())
-        val result = repository.logWorkout("user-1", "w1", "Push Day", 60, null, exerciseLogs)
+        val sets = listOf(
+            SetLog(id = "", exerciseLogId = "", sortOrder = 1,
+                targetReps = 10, actualReps = 10,
+                targetWeightKg = 60f, actualWeightKg = 60f,
+                rpe = 7, targetRestSeconds = 60, actualRestSeconds = null,
+                completed = true),
+        )
+        val exerciseLogs = listOf(
+            ExerciseLog(id = "", workoutLogId = "", exerciseName = "Bench Press",
+                notes = null, sets = sets),
+        )
+
+        val result = repository.logWorkout("u", null, "Push", 60, null, exerciseLogs)
 
         assertTrue(result.isSuccess)
-        coVerify(exactly = 1) { dataSource.insertExerciseLogs(any<List<ExerciseLogInsertDto>>()) }
+        assertEquals(1, capturedSetPayloads.captured.size)
+        assertEquals("el-Bench Press", capturedSetPayloads.captured[0].exerciseLogId)
+        assertEquals(1, capturedSetPayloads.captured[0].sortOrder)
     }
 
     @Test
-    fun `logWorkout with empty exercise logs skips insertExerciseLogs`() = runTest {
-        val logDto = aWorkoutLogDto()
-        coEvery { dataSource.insertWorkoutLog(any(), any(), any(), any(), any()) } returns logDto
+    fun `logWorkout with empty sets skips insertSetLogs payload`() = runTest {
+        val workoutLogDto = WorkoutLogDto(
+            id = "wl-1", userId = "u", workoutName = "Push",
+            durationMinutes = 60, loggedAt = "2026-05-21T10:00:00Z",
+        )
+        coEvery { dataSource.insertWorkoutLog("u", null, "Push", 60, null) } returns workoutLogDto
+        coEvery { dataSource.insertExerciseLog(any()) } returns ExerciseLogDto(
+            id = "el-1", workoutLogId = "wl-1", exerciseName = "Bench Press",
+        )
+        val capturedSetPayloads = slot<List<SetLogInsertDto>>()
+        coEvery { dataSource.insertSetLogs(capture(capturedSetPayloads)) } returns emptyList()
 
-        repository.logWorkout("user-1", null, "Push Day", 60, null, emptyList())
+        repository.logWorkout("u", null, "Push", 60, null,
+            listOf(ExerciseLog(id = "", workoutLogId = "", exerciseName = "Bench Press", notes = null)))
 
-        coVerify(exactly = 0) { dataSource.insertExerciseLogs(any<List<ExerciseLogInsertDto>>()) }
+        assertTrue(capturedSetPayloads.captured.isEmpty())
     }
 
     @Test
-    fun `getWorkoutHistory maps DTOs to domain models`() = runTest {
-        coEvery { dataSource.getWorkoutHistory("user-1") } returns listOf(aWorkoutLogDto())
+    fun `getWorkoutHistory stitches set_logs into exercise_logs by id`() = runTest {
+        coEvery { dataSource.getWorkoutLogs("u") } returns listOf(
+            WorkoutLogDto(id = "wl-1", userId = "u", workoutName = "A",
+                durationMinutes = 45, loggedAt = "2026-05-21T10:00:00Z"),
+        )
+        coEvery { dataSource.getExerciseLogsForWorkouts(listOf("wl-1")) } returns listOf(
+            ExerciseLogDto(id = "el-1", workoutLogId = "wl-1", exerciseName = "Bench Press"),
+        )
+        coEvery { dataSource.getSetLogsForExerciseLogs(listOf("el-1")) } returns listOf(
+            SetLogDto(id = "s1", exerciseLogId = "el-1", sortOrder = 1,
+                actualReps = 10, actualWeightKg = 60f, completed = true),
+        )
 
-        val result = repository.getWorkoutHistory("user-1")
-
+        val result = repository.getWorkoutHistory("u")
         assertTrue(result.isSuccess)
-        assertEquals(1, result.getOrThrow().size)
-        assertEquals("log-1", result.getOrThrow()[0].id)
+        val logs = result.getOrThrow()
+        assertEquals(1, logs.size)
+        assertEquals(1, logs[0].exerciseLogs.size)
+        assertEquals(1, logs[0].exerciseLogs[0].sets.size)
+        assertEquals(10, logs[0].exerciseLogs[0].sets[0].actualReps)
     }
 }
-
-private fun aWorkoutLogDto() = WorkoutLogDto(
-    id = "log-1",
-    userId = "user-1",
-    workoutName = "Push Day",
-    durationMinutes = 60,
-    loggedAt = "2026-04-03T10:00:00Z"
-)
-
-private fun anExerciseLogDto() = ExerciseLogDto(
-    id = "elog-1",
-    workoutLogId = "log-1",
-    exerciseName = "Bench Press",
-    setsCompleted = 3
-)
-
-private fun anExerciseLog() = ExerciseLog(
-    id = "elog-1",
-    workoutLogId = "log-1",
-    exerciseName = "Bench Press",
-    setsCompleted = 3,
-    repsCompleted = "10",
-    weightKg = 80f,
-    notes = null
-)

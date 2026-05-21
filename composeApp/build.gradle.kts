@@ -46,6 +46,7 @@ kotlin {
             implementation(libs.compose.material.icons)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
+            implementation(libs.compose.ui.tooling.preview)
 
             implementation(libs.navigation.compose)
             implementation(libs.kotlinx.serialization.json)
@@ -85,6 +86,7 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.compose.ui.tooling.preview)
+            implementation(libs.compose.ui.tooling)
             implementation(libs.ktor.client.android)
             implementation(libs.kotlinx.coroutines.android)
 

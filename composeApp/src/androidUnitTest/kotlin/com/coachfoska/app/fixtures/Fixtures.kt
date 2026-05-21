@@ -1,24 +1,7 @@
 package com.coachfoska.app.fixtures
 
-import com.coachfoska.app.data.remote.dto.ChatMessageDto
-import com.coachfoska.app.domain.model.ActivityLevel
-import com.coachfoska.app.domain.model.ChatMessage
-import com.coachfoska.app.domain.model.Recipe
-import com.coachfoska.app.domain.model.RecipeIngredient
-import com.coachfoska.app.domain.model.ChatType
-import com.coachfoska.app.domain.model.DailyNutritionSummary
-import com.coachfoska.app.domain.model.DayOfWeek
-import com.coachfoska.app.domain.model.ExerciseLog
-import com.coachfoska.app.domain.model.MealLog
-import com.coachfoska.app.domain.model.MealPlan
-import com.coachfoska.app.domain.model.MessageContent
-import com.coachfoska.app.domain.model.SenderType
-import com.coachfoska.app.domain.model.SessionAuthState
-import com.coachfoska.app.domain.model.User
-import com.coachfoska.app.domain.model.UserGoal
-import com.coachfoska.app.domain.model.WeightEntry
-import com.coachfoska.app.domain.model.Workout
-import com.coachfoska.app.domain.model.WorkoutLog
+import com.coachfoska.app.data.remote.dto.*
+import com.coachfoska.app.domain.model.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 
@@ -39,39 +22,64 @@ fun aUser(
 )
 
 fun aWorkout(
-    id: String = "workout-1",
+    id: String = "w-1",
     name: String = "Push Day",
-    dayOfWeek: DayOfWeek? = DayOfWeek.MONDAY
+    exercises: List<WorkoutExercise> = emptyList()
 ) = Workout(
     id = id,
     name = name,
-    dayOfWeek = dayOfWeek,
+    dayOfWeek = DayOfWeek.MONDAY,
     durationMinutes = 60,
-    exercises = emptyList()
+    exercises = exercises
 )
 
 fun aWorkoutLog(
     id: String = "log-1",
-    userId: String = "user-1"
+    userId: String = "user-1",
+    workoutName: String = "Push Day",
+    exerciseLogs: List<ExerciseLog> = emptyList()
 ) = WorkoutLog(
     id = id,
     userId = userId,
-    workoutId = "workout-1",
-    workoutName = "Push Day",
+    workoutId = "w-1",
+    workoutName = workoutName,
     durationMinutes = 60,
     notes = null,
-    exerciseLogs = emptyList(),
-    loggedAt = Instant.parse("2026-04-06T10:00:00Z")
+    exerciseLogs = exerciseLogs,
+    loggedAt = Instant.parse("2026-04-03T10:00:00Z")
 )
 
-fun anExerciseLog(id: String = "ex-log-1", workoutLogId: String = "log-1") = ExerciseLog(
+fun aSetLog(
+    id: String = "set-1",
+    exerciseLogId: String = "ex-log-1",
+    sortOrder: Int = 1,
+    targetReps: Int? = 10,
+    actualReps: Int? = 10,
+    targetWeightKg: Float? = 80f,
+    actualWeightKg: Float? = 80f,
+    rpe: Int? = 7,
+    targetRestSeconds: Int? = 90,
+    actualRestSeconds: Int? = null,
+    completed: Boolean = true,
+) = SetLog(
+    id = id, exerciseLogId = exerciseLogId, sortOrder = sortOrder,
+    targetReps = targetReps, actualReps = actualReps,
+    targetWeightKg = targetWeightKg, actualWeightKg = actualWeightKg,
+    rpe = rpe,
+    targetRestSeconds = targetRestSeconds, actualRestSeconds = actualRestSeconds,
+    completed = completed,
+)
+
+fun anExerciseLog(
+    id: String = "ex-log-1",
+    workoutLogId: String = "log-1",
+    sets: List<SetLog> = emptyList(),
+) = ExerciseLog(
     id = id,
     workoutLogId = workoutLogId,
     exerciseName = "Bench Press",
-    setsCompleted = 3,
-    repsCompleted = "10",
-    weightKg = 80f,
-    notes = null
+    notes = null,
+    sets = sets,
 )
 
 fun aMealPlan(
@@ -150,4 +158,43 @@ fun aChatMessageDto(
     imageUrl = null,
     createdAt = createdAt,
     readAt = null
+)
+
+fun aGeneralActivityLog(
+    id: String = "act-1",
+    userId: String = "user-1",
+    type: ActivityType = ActivityType.RUNNING,
+    durationMinutes: Int = 30,
+    distanceKm: Double? = 5.0,
+    rpe: Int? = 7,
+) = GeneralActivityLog(
+    id = id, userId = userId, type = type,
+    durationMinutes = durationMinutes, distanceKm = distanceKm, rpe = rpe,
+    loggedAt = Instant.parse("2026-05-21T10:00:00Z"),
+    notes = null,
+)
+
+fun aGeneralActivityLogDto(
+    id: String = "act-1",
+    activityType: String = "RUNNING",
+) = GeneralActivityLogDto(
+    id = id, userId = "user-1", activityType = activityType,
+    durationMinutes = 30, distanceKm = 5.0, rpe = 7,
+    loggedAt = "2026-05-21T10:00:00Z", notes = null,
+)
+
+fun aWorkoutDto(id: String = "w-1") = WorkoutDto(
+    id = id,
+    name = "Push Day",
+    dayOfWeek = 0,
+    durationMinutes = 60,
+    exercises = emptyList()
+)
+
+fun aWorkoutLogDto(id: String = "log-1") = WorkoutLogDto(
+    id = id,
+    userId = "user-1",
+    workoutName = "Push Day",
+    durationMinutes = 60,
+    loggedAt = "2026-04-03T10:00:00Z"
 )
