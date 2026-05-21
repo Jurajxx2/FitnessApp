@@ -1,21 +1,29 @@
 package com.coachfoska.app.core.di
 
 import com.coachfoska.app.core.network.SupabaseClientProvider
+import com.coachfoska.app.data.remote.datasource.ActivityRemoteDataSource
+import com.coachfoska.app.data.remote.datasource.AppConfigRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.AuthRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.ExerciseSupabaseDataSource
 import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.UserRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.WorkoutRemoteDataSource
+import com.coachfoska.app.data.repository.ActivityRepositoryImpl
+import com.coachfoska.app.data.repository.AppConfigRepositoryImpl
 import com.coachfoska.app.data.repository.AuthRepositoryImpl
 import com.coachfoska.app.data.repository.ExerciseRepositoryImpl
 import com.coachfoska.app.data.repository.MealRepositoryImpl
 import com.coachfoska.app.data.repository.UserRepositoryImpl
 import com.coachfoska.app.data.repository.WorkoutRepositoryImpl
+import com.coachfoska.app.domain.repository.ActivityRepository
+import com.coachfoska.app.domain.repository.AppConfigRepository
 import com.coachfoska.app.domain.repository.AuthRepository
 import com.coachfoska.app.domain.repository.ExerciseRepository
 import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
+import com.coachfoska.app.domain.usecase.activity.GetActivityHistoryUseCase
+import com.coachfoska.app.domain.usecase.activity.LogGeneralActivityUseCase
 import com.coachfoska.app.domain.usecase.auth.GetCurrentUserUseCase
 import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.domain.usecase.auth.SendOtpUseCase
@@ -70,15 +78,11 @@ import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
 import com.coachfoska.app.presentation.profile.ProfileViewModel
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
-import com.coachfoska.app.data.remote.datasource.AppConfigRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.HydrationRemoteDataSource
-import com.coachfoska.app.data.repository.AppConfigRepositoryImpl
 import com.coachfoska.app.data.repository.HydrationRepositoryImpl
-import com.coachfoska.app.domain.repository.AppConfigRepository
+import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.usecase.config.GetAppLinksUseCase
 import com.coachfoska.app.presentation.settings.SettingsViewModel
-import com.coachfoska.app.domain.hydration.WaterReminderScheduler
-import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
 import com.coachfoska.app.presentation.hydration.HydrationViewModel
 import io.ktor.client.HttpClient
@@ -113,6 +117,7 @@ val networkModule = module {
 val dataSourceModule = module {
     single { AuthRemoteDataSource(get(), get()) }
     single { UserRemoteDataSource(get()) }
+    single { ActivityRemoteDataSource(get()) }
     single { WorkoutRemoteDataSource(get()) }
     single { ExerciseSupabaseDataSource(get()) }
     single { MealRemoteDataSource(get()) }
@@ -122,6 +127,7 @@ val dataSourceModule = module {
 val repositoryModule = module {
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get()) }
+    single<ActivityRepository> { ActivityRepositoryImpl(get()) }
     single<WorkoutRepository> { WorkoutRepositoryImpl(get()) }
     single<ExerciseRepository> { ExerciseRepositoryImpl(get()) }
     single<MealRepository> { MealRepositoryImpl(get()) }
@@ -143,6 +149,10 @@ val useCaseModule = module {
     factory { GetWorkoutByIdUseCase(get()) }
     factory { LogWorkoutUseCase(get()) }
     factory { GetWorkoutHistoryUseCase(get()) }
+
+    // Activity
+    factory { LogGeneralActivityUseCase(get()) }
+    factory { GetActivityHistoryUseCase(get()) }
 
     // Nutrition
     factory { GetActiveMealPlanUseCase(get()) }
@@ -175,7 +185,7 @@ val viewModelModule = module {
     viewModelOf(::AuthViewModel)
     viewModelOf(::SettingsViewModel)
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), userId) }
-    viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), userId) }
     viewModel { (recipeId: String) -> RecipeDetailViewModel(get(), recipeId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
