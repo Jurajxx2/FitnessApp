@@ -160,7 +160,7 @@ fun RecipeDetailScreen(recipe: Recipe, modifier: Modifier = Modifier) {
             }
             recipe.steps.forEachIndexed { index, step ->
                 item(key = "step-$index") {
-                    StepRow(number = index + 1, text = step)
+                    StepRow(number = index + 1, text = step.instruction)
                 }
             }
         }
