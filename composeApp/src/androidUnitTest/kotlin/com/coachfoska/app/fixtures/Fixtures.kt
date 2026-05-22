@@ -120,7 +120,8 @@ fun aNutritionSummary() = DailyNutritionSummary(
 fun aRecipe(
     id: String = "r-1",
     name: String = "Overnight Oats",
-    ingredients: List<RecipeIngredient> = emptyList()
+    ingredients: List<RecipeIngredient> = emptyList(),
+    steps: List<RecipeStep> = emptyList()
 ) = Recipe(
     id = id,
     name = name,
@@ -129,7 +130,18 @@ fun aRecipe(
     protein = 16f,
     carbs = 65f,
     fat = 9f,
-    ingredients = ingredients
+    ingredients = ingredients,
+    steps = steps
+)
+
+fun aRecipeStep(
+    id: String = "s-1",
+    stepNumber: Int = 1,
+    instruction: String = "Mix ingredients in a bowl"
+) = RecipeStep(
+    id = id,
+    stepNumber = stepNumber,
+    instruction = instruction
 )
 
 fun aChatMessage(id: String = "msg-1") = ChatMessage(
