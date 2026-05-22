@@ -53,6 +53,15 @@ fun HydrationScreen(
             onDismiss = { onIntent(HydrationIntent.DismissCustomAmountDialog) }
         )
     }
+    if (state.showManageContainersSheet) {
+        com.coachfoska.app.ui.hydration.components.ManageContainersSheet(
+            containers = state.containers,
+            onAdd = { name, volume -> onIntent(HydrationIntent.AddContainer(name, volume)) },
+            onDelete = { id -> onIntent(HydrationIntent.DeleteContainer(id)) },
+            onToggleFavorite = { id, fav -> onIntent(HydrationIntent.ToggleFavoriteContainer(id, fav)) },
+            onDismiss = { onIntent(HydrationIntent.DismissManageContainersSheet) },
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -68,110 +77,22 @@ fun HydrationScreen(
                 .padding(horizontal = 24.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
-            WaterProgressRing(
-                consumed = state.consumedMl,
-                goal = state.goalMl,
+            com.coachfoska.app.ui.hydration.components.WaterFillAnimation(
                 fraction = state.progressFraction,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                consumedMl = state.consumedMl,
+                goalMl = state.goalMl,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
             )
-            QuickAddButtons(onIntent = onIntent)
+            ContainerQuickAddSection(
+                containers = state.containers,
+                onIntent = onIntent,
+            )
             if (state.todayLogs.isNotEmpty()) {
                 TodayLogSection(logs = state.todayLogs, onDelete = { onIntent(HydrationIntent.DeleteLog(it)) })
             }
             ReminderSettingsSection(settings = state.settings, onUpdate = { onIntent(HydrationIntent.UpdateSettings(it)) })
             state.error?.let {
                 Text(text = it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
-}
-
-@Composable
-private fun WaterProgressRing(consumed: Int, goal: Int, fraction: Float, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(160.dp)) {
-            CircularProgressIndicator(
-                progress = { fraction },
-                modifier = Modifier.fillMaxSize(),
-                strokeWidth = 10.dp,
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f)
-            )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = consumed.toString(),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "/ $goal ml",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                )
-                Text(
-                    text = "${(fraction * 100).toInt()}%",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        val remaining = (goal - consumed).coerceAtLeast(0)
-        Text(
-            text = if (remaining > 0) "$remaining ml remaining" else "Goal reached!",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-        )
-    }
-}
-
-@Composable
-private fun QuickAddButtons(onIntent: (HydrationIntent) -> Unit) {
-    Column {
-        Text(
-            text = "QUICK ADD",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-            letterSpacing = 2.sp
-        )
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(150, 250, 500).forEach { amount ->
-                val isPrimary = amount == 250
-                if (isPrimary) {
-                    Button(
-                        onClick = { onIntent(HydrationIntent.LogWater(amount)) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$amount", fontWeight = FontWeight.Bold)
-                            Text("ml", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { onIntent(HydrationIntent.LogWater(amount)) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$amount", fontWeight = FontWeight.Bold)
-                            Text("ml", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
-            }
-            OutlinedButton(
-                onClick = { onIntent(HydrationIntent.ShowCustomAmountDialog) },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("+", fontWeight = FontWeight.Bold)
-                    Text("custom", style = MaterialTheme.typography.labelSmall)
-                }
             }
         }
     }
@@ -351,6 +272,77 @@ private fun <T> SettingsPickerRow(
             }
         }
         if (showDivider) HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+    }
+}
+
+@Composable
+private fun ContainerQuickAddSection(
+    containers: List<com.coachfoska.app.domain.model.WaterContainer>,
+    onIntent: (HydrationIntent) -> Unit,
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "QUICK ADD",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                letterSpacing = 2.sp,
+            )
+            TextButton(onClick = { onIntent(HydrationIntent.ShowManageContainersSheet) }) {
+                Text("Manage", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        if (containers.isEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(150, 250, 500).forEach { amount ->
+                    OutlinedButton(
+                        onClick = { onIntent(HydrationIntent.LogWater(amount)) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("$amount", fontWeight = FontWeight.Bold)
+                            Text("ml", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+                OutlinedButton(
+                    onClick = { onIntent(HydrationIntent.ShowCustomAmountDialog) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("+", fontWeight = FontWeight.Bold)
+                        Text("custom", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                containers.take(3).forEach { container ->
+                    com.coachfoska.app.ui.hydration.components.ContainerQuickAddButton(
+                        container = container,
+                        onClick = { onIntent(HydrationIntent.LogFromContainer(container.id)) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                OutlinedButton(
+                    onClick = { onIntent(HydrationIntent.ShowCustomAmountDialog) },
+                    modifier = Modifier.weight(1f).height(96.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("+", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                        Text("custom", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
     }
 }
 
