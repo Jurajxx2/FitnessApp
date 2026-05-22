@@ -47,15 +47,15 @@ object MockData {
         description = "Optimized for muscle growth and recovery.",
         meals = listOf(
             Meal(
-                id = "m1", mealPlanId = "plan_1", name = "Breakfast", timeOfDay = "08:00", sortOrder = 0,
+                id = "m1", mealPlanId = "plan_1", name = "Breakfast", timeOfDay = "08:00", sortOrder = 0, dayOfWeek = null,
                 foods = listOf(MealFood("f1", "m1", "Oatmeal", 50f, 350f, 12f, 60f, 6f))
             ),
             Meal(
-                id = "m2", mealPlanId = "plan_1", name = "Lunch", timeOfDay = "13:00", sortOrder = 1,
+                id = "m2", mealPlanId = "plan_1", name = "Lunch", timeOfDay = "13:00", sortOrder = 1, dayOfWeek = null,
                 foods = listOf(MealFood("f2", "m2", "Chicken & Rice", 200f, 550f, 45f, 70f, 10f))
             ),
             Meal(
-                id = "m3", mealPlanId = "plan_1", name = "Dinner", timeOfDay = "19:00", sortOrder = 2,
+                id = "m3", mealPlanId = "plan_1", name = "Dinner", timeOfDay = "19:00", sortOrder = 2, dayOfWeek = null,
                 foods = listOf(MealFood("f3", "m3", "Salmon & Broccoli", 150f, 400f, 35f, 5f, 25f))
             )
         ),

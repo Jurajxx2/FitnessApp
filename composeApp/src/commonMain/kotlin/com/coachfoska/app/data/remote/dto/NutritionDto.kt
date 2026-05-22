@@ -67,6 +67,7 @@ data class MealDto(
     val name: String,
     @SerialName("time_of_day") val timeOfDay: String? = null,
     @SerialName("sort_order") val sortOrder: Int = 0,
+    @SerialName("day_of_week") val dayOfWeek: Int? = null,
     @SerialName("meal_foods") val foods: List<MealFoodDto> = emptyList()
 ) {
     fun toDomain(): Meal = Meal(
@@ -75,6 +76,7 @@ data class MealDto(
         name = name,
         timeOfDay = timeOfDay,
         sortOrder = sortOrder,
+        dayOfWeek = dayOfWeek,
         foods = foods.map { it.toDomain() }
     )
 }

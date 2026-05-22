@@ -18,6 +18,7 @@ data class Meal(
     val name: String,
     val timeOfDay: String?,
     val sortOrder: Int,
+    val dayOfWeek: Int?,  // 0=Mon … 6=Sun; null = every day (legacy)
     val foods: List<MealFood>
 ) {
     val totalCalories: Float get() = foods.sumOf { it.calories.toDouble() }.toFloat()

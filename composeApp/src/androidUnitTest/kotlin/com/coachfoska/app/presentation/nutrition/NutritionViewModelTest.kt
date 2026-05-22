@@ -132,7 +132,7 @@ private fun aMealPlan(meals: List<Meal> = emptyList()) = MealPlan(
 
 private fun aMeal() = Meal(
     id = "meal-1", mealPlanId = "mp-1", name = "Lunch",
-    timeOfDay = "12:00", sortOrder = 0, foods = emptyList()
+    timeOfDay = "12:00", sortOrder = 0, dayOfWeek = null, foods = emptyList()
 )
 
 private fun aMealLog() = MealLog(

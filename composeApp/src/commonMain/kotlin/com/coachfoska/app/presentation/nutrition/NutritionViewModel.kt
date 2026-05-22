@@ -44,6 +44,7 @@ class NutritionViewModel(
             NutritionIntent.DismissError -> _state.update { it.copy(error = null) }
             NutritionIntent.MealLogged -> _state.update { it.copy(mealLoggedSuccess = false) }
             is NutritionIntent.SearchFoods -> searchFoods(intent.query)
+            is NutritionIntent.SelectDay -> _state.update { it.copy(selectedDayOfWeek = intent.dayOfWeek) }
         }
     }
 

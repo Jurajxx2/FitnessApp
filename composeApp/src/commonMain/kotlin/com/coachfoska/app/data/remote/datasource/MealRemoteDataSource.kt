@@ -16,29 +16,14 @@ import kotlinx.datetime.LocalDate
 
 class MealRemoteDataSource(private val supabase: SupabaseClient) {
 
-    suspend fun getActiveMealPlan(userId: String): MealPlanDto? {
-        val global = supabase.postgrest["meal_plans"]
-            .select {
-                filter {
-                    exact("user_id", null)
-                    eq("is_active", true)
-                }
+    suspend fun getActiveMealPlan(userId: String): MealPlanDto? =
+        supabase.postgrest["meal_plans"]
+            .select(columns = Columns.raw("*, meals(*, meal_foods(*))")) {
+                filter { eq("is_active", true) }
                 limit(1)
             }
             .decodeList<MealPlanDto>()
-
-        val userSpecific = supabase.postgrest["meal_plans"]
-            .select {
-                filter {
-                    eq("user_id", userId)
-                    eq("is_active", true)
-                }
-                limit(1)
-            }
-            .decodeList<MealPlanDto>()
-
-        return (userSpecific + global).firstOrNull()
-    }
+            .firstOrNull()
 
     suspend fun insertMealLog(
         userId: String,

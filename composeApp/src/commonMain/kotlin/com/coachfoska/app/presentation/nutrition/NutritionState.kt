@@ -8,6 +8,7 @@ import com.coachfoska.app.domain.model.MealPlan
 data class NutritionState(
     val isLoading: Boolean = false,
     val mealPlan: MealPlan? = null,
+    val selectedDayOfWeek: Int = 0,
     val selectedMeal: Meal? = null,
     val mealHistory: List<MealLog> = emptyList(),
     val selectedMealLog: MealLog? = null,
