@@ -18,6 +18,7 @@ import Nutrition from './pages/admin/Nutrition'
 import Quotes from './pages/admin/Quotes'
 import Exercises from './pages/admin/Exercises'
 import Chat from './pages/admin/Chat'
+import MealPlanEditor from './pages/admin/MealPlanEditor'
 
 export default function App() {
   return (
@@ -38,6 +39,8 @@ export default function App() {
                 </Route>
                 <Route path="/admin/workouts"  element={<Workouts />} />
                 <Route path="/admin/nutrition" element={<Nutrition />} />
+                <Route path="/admin/nutrition/meal-plans/new" element={<MealPlanEditor />} />
+                <Route path="/admin/nutrition/meal-plans/:id"  element={<MealPlanEditor />} />
                 <Route path="/admin/quotes"     element={<Quotes />} />
                 <Route path="/admin/exercises" element={<Exercises />} />
                 <Route path="/admin/chat"      element={<Chat />} />
