@@ -7,6 +7,7 @@ import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.domain.model.MealPlan
 import com.coachfoska.app.domain.model.Recipe
 import com.coachfoska.app.domain.model.RecipeIngredient
+import com.coachfoska.app.domain.model.RecipeStep
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -245,7 +246,9 @@ data class RecipeDetailDto(
         servings = servings,
         difficulty = difficulty,
         tags = tags,
-        steps = steps.sortedBy { it.stepNumber }.map { it.instruction },
+        steps = steps
+            .sortedBy { it.stepNumber }
+            .map { RecipeStep(id = it.id, stepNumber = it.stepNumber, instruction = it.instruction) },
         ingredients = ingredients.sortedBy { it.sortOrder }.map { it.toDomain() }
     )
 }
