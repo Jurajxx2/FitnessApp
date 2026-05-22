@@ -193,7 +193,7 @@ val viewModelModule = module {
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> ActivityLogViewModel(get(), get(), userId) }
     viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), userId) }
-    viewModel { (recipeId: String) -> RecipeDetailViewModel(get(), recipeId) }
+    viewModel { (recipeId: String) -> RecipeDetailViewModel(get(), get(), recipeId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
     viewModelOf(::ExerciseViewModel)
