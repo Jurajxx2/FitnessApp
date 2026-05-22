@@ -1,6 +1,7 @@
 package com.coachfoska.app.ui.recipe.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +24,7 @@ fun CookingStepCard(stepNumber: Int, instruction: String, modifier: Modifier = M
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
         ),

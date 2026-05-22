@@ -39,6 +39,8 @@ import com.coachfoska.app.presentation.recipe.RecipeDetailIntent
 import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.app.ui.recipe.components.CookingStepCard
+import com.coachfoska.app.ui.recipe.components.ServingsAdjuster
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -149,7 +151,7 @@ private fun IngredientsTab(
 ) {
     LazyColumn(modifier = modifier, contentPadding = PaddingValues(bottom = 40.dp)) {
         item {
-            com.coachfoska.app.ui.recipe.components.ServingsAdjuster(
+            ServingsAdjuster(
                 servings = selectedServings,
                 onServingsChange = { onIntent(RecipeDetailIntent.AdjustRecipeServings(it)) },
             )
@@ -185,7 +187,7 @@ private fun DirectionsTab(steps: List<RecipeStep>, modifier: Modifier = Modifier
             }
         } else {
             items(items = steps, key = { it.id.ifBlank { "step-${it.stepNumber}" } }) { step ->
-                com.coachfoska.app.ui.recipe.components.CookingStepCard(
+                CookingStepCard(
                     stepNumber = step.stepNumber,
                     instruction = step.instruction,
                 )
