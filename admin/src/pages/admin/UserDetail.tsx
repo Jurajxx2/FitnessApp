@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { SlideOver, Button, Input, Badge } from '../../components/ui'
-import type { Profile, Workout, WeightEntry } from '../../types/database'
+import type { Profile, Workout, WeightEntry, MealPlan } from '../../types/database'
 
 function useUser(id: string) {
   return useQuery<Profile>({
@@ -74,6 +74,46 @@ function useUserCompliance(userId: string) {
   })
 }
 
+function useMealPlans() {
+  return useQuery<Pick<MealPlan, 'id' | 'name'>[]>({
+    queryKey: ['meal-plans-admin'],
+    queryFn: async () => {
+      const { data } = await supabase.from('meal_plans').select('id, name').order('name')
+      return data ?? []
+    },
+  })
+}
+
+function useUserMealPlan(userId: string) {
+  return useQuery<string | null>({
+    queryKey: ['user-meal-plan', userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_meal_plans')
+        .select('meal_plan_id')
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle()
+      return data?.meal_plan_id ?? null
+    },
+  })
+}
+
+function useUserWorkoutPlan(userId: string) {
+  return useQuery<string | null>({
+    queryKey: ['user-workout-plan', userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_workouts')
+        .select('workout_id')
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle()
+      return data?.workout_id ?? null
+    },
+  })
+}
+
 const GOAL_LABELS: Record<string, string> = {
   weight_loss: 'Weight loss', muscle_gain: 'Muscle gain', mental_strength: 'Mental strength',
 }
@@ -95,6 +135,9 @@ export default function UserDetail() {
 
   const { data: user, isLoading } = useUser(id!)
   const { data: workoutPlans = [] } = useWorkoutPlans()
+  const { data: mealPlans = [] } = useMealPlans()
+  const { data: userMealPlanId } = useUserMealPlan(id!)
+  const { data: userWorkoutPlanId } = useUserWorkoutPlan(id!)
   const { data: weightHistory = [] } = useWeightHistory(id!)
   const { data: compliance } = useUserCompliance(id!)
 
@@ -114,14 +157,34 @@ export default function UserDetail() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['user', id] }),
   })
 
-  const assignWorkout = useMutation({
-    mutationFn: async (workoutId: string) => {
-      const { error } = await supabase.from('workouts').update({ user_id: id }).eq('id', workoutId)
-      if (error) throw error
+  const assignMealPlan = useMutation({
+    mutationFn: async (mealPlanId: string | null) => {
+      await supabase.from('user_meal_plans').delete().eq('user_id', id!)
+      if (mealPlanId) {
+        const { error } = await supabase
+          .from('user_meal_plans')
+          .insert({ user_id: id!, meal_plan_id: mealPlanId })
+        if (error) throw error
+      }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-users'] })
-      qc.invalidateQueries({ queryKey: ['user', id] })
+      qc.invalidateQueries({ queryKey: ['user-meal-plan', id] })
+      qc.invalidateQueries({ queryKey: ['meal-plan-assignment-counts'] })
+    },
+  })
+
+  const assignWorkoutPlan = useMutation({
+    mutationFn: async (workoutId: string | null) => {
+      await supabase.from('user_workouts').delete().eq('user_id', id!)
+      if (workoutId) {
+        const { error } = await supabase
+          .from('user_workouts')
+          .insert({ user_id: id!, workout_id: workoutId })
+        if (error) throw error
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user-workout-plan', id] })
     },
   })
 
@@ -182,15 +245,30 @@ export default function UserDetail() {
           <Field label="Onboarding" value={user.onboarding_complete ? 'Complete' : 'Incomplete'} />
         </div>
 
-        {/* Assign workout plan */}
+        {/* Assign Meal Plan */}
         <div>
-          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Assign Workout Plan</p>
+          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Meal Plan</p>
           <select
             className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] outline-none"
-            defaultValue=""
-            onChange={e => { if (e.target.value) assignWorkout.mutate(e.target.value) }}
+            value={userMealPlanId ?? ''}
+            onChange={e => assignMealPlan.mutate(e.target.value || null)}
+            disabled={assignMealPlan.isPending}
           >
-            <option value="" disabled>Select a plan…</option>
+            <option value="">None</option>
+            {mealPlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+
+        {/* Assign Workout Plan */}
+        <div>
+          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Workout Plan</p>
+          <select
+            className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] outline-none"
+            value={userWorkoutPlanId ?? ''}
+            onChange={e => assignWorkoutPlan.mutate(e.target.value || null)}
+            disabled={assignWorkoutPlan.isPending}
+          >
+            <option value="">None</option>
             {workoutPlans.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
           </select>
         </div>
