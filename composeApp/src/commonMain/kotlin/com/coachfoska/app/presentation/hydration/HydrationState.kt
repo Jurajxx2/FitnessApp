@@ -1,6 +1,7 @@
 package com.coachfoska.app.presentation.hydration
 
 import com.coachfoska.app.domain.model.HydrationSettings
+import com.coachfoska.app.domain.model.WaterContainer
 import com.coachfoska.app.domain.model.WaterLog
 
 data class HydrationState(
@@ -9,8 +10,11 @@ data class HydrationState(
     val goalMl: Int = 2000,
     val settings: HydrationSettings = HydrationSettings(),
     val error: String? = null,
-    val showCustomAmountDialog: Boolean = false
+    val showCustomAmountDialog: Boolean = false,
+    val containers: List<WaterContainer> = emptyList(),
+    val showManageContainersSheet: Boolean = false,
 ) {
     val consumedMl: Int get() = todayLogs.sumOf { it.amountMl }
-    val progressFraction: Float get() = if (goalMl > 0) (consumedMl.toFloat() / goalMl).coerceIn(0f, 1f) else 0f
+    val progressFraction: Float get() =
+        if (goalMl > 0) (consumedMl.toFloat() / goalMl).coerceIn(0f, 1f) else 0f
 }

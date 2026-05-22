@@ -9,4 +9,12 @@ sealed interface HydrationIntent {
     data class UpdateSettings(val settings: HydrationSettings) : HydrationIntent
     data object ShowCustomAmountDialog : HydrationIntent
     data object DismissCustomAmountDialog : HydrationIntent
+
+    // Containers
+    data class LogFromContainer(val containerId: String) : HydrationIntent
+    data class AddContainer(val name: String, val volumeMl: Int) : HydrationIntent
+    data class DeleteContainer(val containerId: String) : HydrationIntent
+    data class ToggleFavoriteContainer(val containerId: String, val isFavorite: Boolean) : HydrationIntent
+    data object ShowManageContainersSheet : HydrationIntent
+    data object DismissManageContainersSheet : HydrationIntent
 }
