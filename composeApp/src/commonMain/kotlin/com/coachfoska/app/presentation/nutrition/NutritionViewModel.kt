@@ -7,6 +7,7 @@ import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
+import com.coachfoska.app.core.util.todayDate
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +26,7 @@ class NutritionViewModel(
     private val userId: String
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(NutritionState())
+    private val _state = MutableStateFlow(NutritionState(selectedDayOfWeek = todayDayOfWeek()))
     val state: StateFlow<NutritionState> = _state.asStateFlow()
 
     init {
@@ -128,4 +129,6 @@ class NutritionViewModel(
                 }
         }
     }
+
+    private fun todayDayOfWeek(): Int = todayDate().dayOfWeek.ordinal
 }

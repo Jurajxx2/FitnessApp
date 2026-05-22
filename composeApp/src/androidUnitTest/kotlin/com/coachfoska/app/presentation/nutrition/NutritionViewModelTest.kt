@@ -123,6 +123,27 @@ class NutritionViewModelTest {
 
         assertNull(vm.state.value.error)
     }
+
+    @Test
+    fun `SelectDay updates selectedDayOfWeek in state`() = runTest {
+        coEvery { repo.getActiveMealPlan(any()) } returns Result.success(null)
+
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.SelectDay(3))
+
+        assertEquals(3, vm.state.value.selectedDayOfWeek)
+    }
+
+    @Test
+    fun `SelectDay to same day is idempotent`() = runTest {
+        coEvery { repo.getActiveMealPlan(any()) } returns Result.success(null)
+
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.SelectDay(2))
+        vm.onIntent(NutritionIntent.SelectDay(2))
+
+        assertEquals(2, vm.state.value.selectedDayOfWeek)
+    }
 }
 
 private fun aMealPlan(meals: List<Meal> = emptyList()) = MealPlan(
