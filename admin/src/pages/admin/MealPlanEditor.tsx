@@ -350,7 +350,7 @@ export default function MealPlanEditor() {
           .from('meals')
           .insert({
             meal_plan_id: planId,
-            name: draft.meal_type.charAt(0).toUpperCase() + draft.meal_type.slice(1),
+            name: MEAL_LABELS[draft.meal_type],
             day_of_week: draft.day_of_week,
             time_of_day: MEAL_TIMES[draft.meal_type],
             sort_order: draft.day_of_week * 3 + MEAL_TYPES.indexOf(draft.meal_type),

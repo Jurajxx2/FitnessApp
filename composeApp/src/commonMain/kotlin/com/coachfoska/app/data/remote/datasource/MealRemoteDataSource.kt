@@ -16,6 +16,7 @@ import kotlinx.datetime.LocalDate
 
 class MealRemoteDataSource(private val supabase: SupabaseClient) {
 
+    // userId unused — RLS policy filters to plans assigned via user_meal_plans join table
     suspend fun getActiveMealPlan(userId: String): MealPlanDto? =
         supabase.postgrest["meal_plans"]
             .select(columns = Columns.raw("*, meals(*, meal_foods(*))")) {
