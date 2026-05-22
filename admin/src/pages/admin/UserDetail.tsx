@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { SlideOver, Button, Input, Badge } from '../../components/ui'
-import type { Profile, Workout, MealPlan, WeightEntry } from '../../types/database'
+import type { Profile, Workout, WeightEntry } from '../../types/database'
 
 function useUser(id: string) {
   return useQuery<Profile>({
@@ -23,16 +23,6 @@ function useWorkoutPlans() {
     queryFn: async () => {
       const { data } = await supabase.from('workouts').select('id, name').order('name')
       return (data ?? []) as Pick<Workout, 'id' | 'name'>[]
-    },
-  })
-}
-
-function useMealPlans() {
-  return useQuery<Pick<MealPlan, 'id' | 'name'>[]>({
-    queryKey: ['meal-plans'],
-    queryFn: async () => {
-      const { data } = await supabase.from('meal_plans').select('id, name').order('name')
-      return (data ?? []) as Pick<MealPlan, 'id' | 'name'>[]
     },
   })
 }
@@ -105,7 +95,6 @@ export default function UserDetail() {
 
   const { data: user, isLoading } = useUser(id!)
   const { data: workoutPlans = [] } = useWorkoutPlans()
-  const { data: mealPlans = [] } = useMealPlans()
   const { data: weightHistory = [] } = useWeightHistory(id!)
   const { data: compliance } = useUserCompliance(id!)
 
@@ -128,17 +117,6 @@ export default function UserDetail() {
   const assignWorkout = useMutation({
     mutationFn: async (workoutId: string) => {
       const { error } = await supabase.from('workouts').update({ user_id: id }).eq('id', workoutId)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-users'] })
-      qc.invalidateQueries({ queryKey: ['user', id] })
-    },
-  })
-
-  const assignMealPlan = useMutation({
-    mutationFn: async (planId: string) => {
-      const { error } = await supabase.from('meal_plans').update({ user_id: id }).eq('id', planId)
       if (error) throw error
     },
     onSuccess: () => {
@@ -214,19 +192,6 @@ export default function UserDetail() {
           >
             <option value="" disabled>Select a plan…</option>
             {workoutPlans.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select>
-        </div>
-
-        {/* Assign meal plan */}
-        <div>
-          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Assign Meal Plan</p>
-          <select
-            className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] outline-none"
-            defaultValue=""
-            onChange={e => { if (e.target.value) assignMealPlan.mutate(e.target.value) }}
-          >
-            <option value="" disabled>Select a plan…</option>
-            {mealPlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
 
