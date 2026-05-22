@@ -47,6 +47,12 @@ data class RecipeIngredient(
     val fatG: Float
 )
 
+data class RecipeStep(
+    val id: String,
+    val stepNumber: Int,
+    val instruction: String,
+)
+
 data class Recipe(
     val id: String,
     val name: String,
@@ -61,7 +67,7 @@ data class Recipe(
     val servings: Int = 1,
     val difficulty: String? = null,
     val tags: List<String> = emptyList(),
-    val steps: List<String> = emptyList(),
+    val steps: List<RecipeStep> = emptyList(),
     val ingredients: List<RecipeIngredient> = emptyList()
 )
 
