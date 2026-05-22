@@ -512,7 +512,8 @@ function MealPlansTab() {
 
   const deletePlan = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from('meal_plans').delete().eq('id', id)
+      const { error } = await supabase.from('meal_plans').delete().eq('id', id)
+      if (error) throw error
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['meal-plans-admin'] })
