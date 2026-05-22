@@ -42,11 +42,13 @@ class MealRepositoryImpl(
             MealLogFoodInsertDto(
                 mealLogId = logDto.id,
                 name = food.name,
-                amountGrams = food.amountGrams,
+                amount = food.amount,
+                unit = food.unit,
+                amountGrams = if (food.unit == "g") food.amount else food.amount, // keep column populated; treated as "primary amount" until legacy column dropped
                 calories = food.calories,
                 proteinG = food.proteinG,
                 carbsG = food.carbsG,
-                fatG = food.fatG
+                fatG = food.fatG,
             )
         }
         val insertedFoods = if (foodPayloads.isNotEmpty()) {

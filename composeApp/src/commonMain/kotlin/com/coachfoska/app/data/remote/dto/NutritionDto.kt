@@ -114,11 +114,13 @@ data class MealLogInsertDto(
 data class MealLogFoodInsertDto(
     @SerialName("meal_log_id") val mealLogId: String,
     val name: String,
-    @SerialName("amount_grams") val amountGrams: Float = 100f,
-    val calories: Float = 0f,
-    @SerialName("protein_g") val proteinG: Float = 0f,
-    @SerialName("carbs_g") val carbsG: Float = 0f,
-    @SerialName("fat_g") val fatG: Float = 0f
+    val amount: Float,
+    val unit: String,
+    @SerialName("amount_grams") val amountGrams: Float, // keep populated for now
+    val calories: Float,
+    @SerialName("protein_g") val proteinG: Float,
+    @SerialName("carbs_g") val carbsG: Float,
+    @SerialName("fat_g") val fatG: Float,
 )
 
 @Serializable
@@ -246,20 +248,23 @@ data class MealLogFoodDto(
     val id: String,
     @SerialName("meal_log_id") val mealLogId: String,
     val name: String,
-    @SerialName("amount_grams") val amountGrams: Float = 100f,
+    val amount: Float = 100f,
+    val unit: String = "g",
+    @SerialName("amount_grams") val amountGrams: Float? = null, // legacy fallback
     val calories: Float = 0f,
     @SerialName("protein_g") val proteinG: Float = 0f,
     @SerialName("carbs_g") val carbsG: Float = 0f,
-    @SerialName("fat_g") val fatG: Float = 0f
+    @SerialName("fat_g") val fatG: Float = 0f,
 ) {
     fun toDomain(): MealLogFood = MealLogFood(
         id = id,
         mealLogId = mealLogId,
         name = name,
-        amountGrams = amountGrams,
+        amount = amount.takeIf { it > 0f } ?: amountGrams ?: 100f,
+        unit = unit.ifBlank { "g" },
         calories = calories,
         proteinG = proteinG,
         carbsG = carbsG,
-        fatG = fatG
+        fatG = fatG,
     )
 }

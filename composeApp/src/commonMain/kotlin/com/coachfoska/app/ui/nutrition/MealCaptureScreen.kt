@@ -1,11 +1,11 @@
 package com.coachfoska.app.ui.nutrition
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -44,11 +43,28 @@ import org.koin.core.parameter.parametersOf
 
 data class FoodEntry(
     val name: String,
-    val calories: String,
-    val protein: String,
-    val carbs: String,
-    val fat: String
-)
+    val amount: String = "100",
+    val unit: String = "g",
+    // Base macros per `baseServingSize` of `baseServingUnit`. When the user types macros manually
+    // (no Food selected), these equal the displayed macros and ratio == 1.
+    val baseCalories: Float = 0f,
+    val basePro: Float = 0f,
+    val baseCarbs: Float = 0f,
+    val baseFat: Float = 0f,
+    val baseServingSize: Float = 100f,
+    val baseServingUnit: String = "g",
+) {
+    private val ratio: Float
+        get() = when {
+            unit != baseServingUnit -> 1f
+            baseServingSize <= 0f   -> 0f
+            else                    -> (amount.toFloatOrNull() ?: 0f) / baseServingSize
+        }
+    val calories: Float get() = baseCalories * ratio
+    val protein:  Float get() = basePro     * ratio
+    val carbs:    Float get() = baseCarbs   * ratio
+    val fat:      Float get() = baseFat     * ratio
+}
 
 @Composable
 fun MealCaptureRoute(
@@ -77,7 +93,7 @@ fun MealCaptureScreen(
 ) {
     var mealName by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    var foods by remember { mutableStateOf(listOf(FoodEntry("", "", "", "", ""))) }
+    var foods by remember { mutableStateOf(listOf(FoodEntry(""))) }
     var mediaUri by remember { mutableStateOf<String?>(null) }
     var showMediaSheet by remember { mutableStateOf(false) }
     var searchingIndex by remember { mutableStateOf<Int?>(null) }
@@ -100,10 +116,14 @@ fun MealCaptureScreen(
                     foods = foods.toMutableList().also {
                         it[index] = FoodEntry(
                             name = food.name,
-                            calories = food.calories.toInt().toString(),
-                            protein = food.proteinG.toString(),
-                            carbs = food.carbsG.toString(),
-                            fat = food.fatG.toString()
+                            amount = food.servingSize.toString().trimEnd('0').trimEnd('.'),
+                            unit = food.servingUnit,
+                            baseCalories = food.calories,
+                            basePro = food.proteinG,
+                            baseCarbs = food.carbsG,
+                            baseFat = food.fatG,
+                            baseServingSize = food.servingSize,
+                            baseServingUnit = food.servingUnit,
                         )
                     }
                 }
@@ -173,6 +193,13 @@ fun MealCaptureScreen(
             )
         }
 
+        com.coachfoska.app.ui.nutrition.components.MacroRingSummary(
+            calories = foods.sumOf { it.calories.toDouble() }.toFloat(),
+            proteinG = foods.sumOf { it.protein.toDouble() }.toFloat(),
+            carbsG = foods.sumOf { it.carbs.toDouble() }.toFloat(),
+            fatG = foods.sumOf { it.fat.toDouble() }.toFloat(),
+        )
+
         CoachSectionHeader(text = stringResource(Res.string.food_items_section))
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -191,7 +218,7 @@ fun MealCaptureScreen(
             }
 
             OutlinedButton(
-                onClick = { foods = foods + FoodEntry("", "", "", "", "") },
+                onClick = { foods = foods + FoodEntry("") },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
@@ -221,11 +248,12 @@ fun MealCaptureScreen(
                     MealLogFood(
                         id = "", mealLogId = "",
                         name = it.name,
-                        amountGrams = 100f,
-                        calories = it.calories.toFloatOrNull() ?: 0f,
-                        proteinG = it.protein.toFloatOrNull() ?: 0f,
-                        carbsG = it.carbs.toFloatOrNull() ?: 0f,
-                        fatG = it.fat.toFloatOrNull() ?: 0f
+                        amount = it.amount.toFloatOrNull() ?: 100f,
+                        unit = it.unit,
+                        calories = it.calories,
+                        proteinG = it.protein,
+                        carbsG = it.carbs,
+                        fatG = it.fat,
                     )
                 }
                 onIntent(
@@ -312,24 +340,39 @@ private fun FoodEntryRow(
     food: FoodEntry,
     onUpdate: (FoodEntry) -> Unit,
     onRemove: (() -> Unit)?,
-    onSearch: () -> Unit
+    onSearch: () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f),
+        ),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            modifier = Modifier
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
+                            MaterialTheme.colorScheme.surface,
+                        ),
+                    ),
+                )
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = stringResource(Res.string.food_label, index),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                    letterSpacing = 1.sp
+                    letterSpacing = 1.sp,
                 )
                 if (onRemove != null) {
                     IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
@@ -337,42 +380,58 @@ private fun FoodEntryRow(
                             Icons.Default.Close,
                             contentDescription = stringResource(Res.string.remove_cd),
                             tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
                         )
                     }
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 CoachTextField(
                     value = food.name,
                     onValueChange = { onUpdate(food.copy(name = it)) },
                     label = stringResource(Res.string.food_name_label),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
                 IconButton(
                     onClick = onSearch,
                     modifier = Modifier.size(48.dp).padding(top = 8.dp),
-                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    ),
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                CoachTextField(
-                    value = food.calories,
-                    onValueChange = { onUpdate(food.copy(calories = it)) },
-                    label = stringResource(Res.string.kcal_label),
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            com.coachfoska.app.ui.nutrition.components.PortionPicker(
+                amount = food.amount,
+                unit = food.unit,
+                onAmountChange = { onUpdate(food.copy(amount = it)) },
+                onUnitChange = { onUpdate(food.copy(unit = it)) },
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "${food.calories.toInt()} kcal",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
                 )
-                CoachTextField(
-                    value = food.protein,
-                    onValueChange = { onUpdate(food.copy(protein = it)) },
-                    label = stringResource(Res.string.protein_label),
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                Text(
+                    text = "P ${food.protein.toInt()}g · C ${food.carbs.toInt()}g · F ${food.fat.toInt()}g",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                 )
             }
         }

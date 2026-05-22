@@ -40,6 +40,7 @@ import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCa
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
+import com.coachfoska.app.domain.usecase.nutrition.ScaleFoodToPortionUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import com.coachfoska.app.domain.usecase.profile.CompleteOnboardingUseCase
@@ -163,6 +164,7 @@ val useCaseModule = module {
     factory { GetRecipesUseCase(get()) }
     factory { GetRecipeByIdUseCase(get()) }
     factory { SearchFoodsUseCase(get()) }
+    factory { ScaleFoodToPortionUseCase() }
 
     // Profile
     factory { GetUserProfileUseCase(get()) }
