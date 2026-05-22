@@ -172,3 +172,9 @@ data class SetLogInsertDto(
     @SerialName("actual_rest_seconds") val actualRestSeconds: Int? = null,
     val completed: Boolean = false,
 )
+
+@Serializable
+data class UserWorkoutJoinDto(
+    @SerialName("workout_id") val workoutId: String,
+    val workouts: WorkoutDto? = null,
+)

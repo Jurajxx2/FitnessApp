@@ -4,12 +4,14 @@ import com.coachfoska.app.data.remote.dto.ExerciseLogDto
 import com.coachfoska.app.data.remote.dto.ExerciseLogInsertDto
 import com.coachfoska.app.data.remote.dto.SetLogDto
 import com.coachfoska.app.data.remote.dto.SetLogInsertDto
+import com.coachfoska.app.data.remote.dto.UserWorkoutJoinDto
 import com.coachfoska.app.data.remote.dto.WorkoutDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogInsertDto
 import com.coachfoska.app.core.util.currentInstant
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 
@@ -21,12 +23,22 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
                 filter { exact("user_id", null); eq("is_active", true) }
                 order("day_of_week", Order.ASCENDING)
             }.decodeList<WorkoutDto>()
-        val userSpecific = supabase.postgrest["workouts"]
+
+        val legacyUserSpecific = supabase.postgrest["workouts"]
             .select {
                 filter { eq("user_id", userId); eq("is_active", true) }
                 order("day_of_week", Order.ASCENDING)
             }.decodeList<WorkoutDto>()
-        return (global + userSpecific).distinctBy { it.id }
+
+        val viaJoinTable = supabase.postgrest["user_workouts"]
+            .select(columns = Columns.raw("workout_id, workouts(*)")) {
+                filter { eq("user_id", userId) }
+            }
+            .decodeList<UserWorkoutJoinDto>()
+            .mapNotNull { it.workouts }
+            .filter { it.isActive }
+
+        return (global + legacyUserSpecific + viaJoinTable).distinctBy { it.id }
     }
 
     suspend fun getWorkoutById(workoutId: String): WorkoutDto =
