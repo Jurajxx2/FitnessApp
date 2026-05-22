@@ -237,7 +237,19 @@ val hydrationModule = module {
     factory { AddWaterContainerUseCase(get()) }
     factory { DeleteWaterContainerUseCase(get()) }
     factory { ToggleFavoriteWaterContainerUseCase(get()) }
-    viewModel { (userId: String) -> HydrationViewModel(get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) ->
+        HydrationViewModel(
+            hydrationRepository = get(),
+            getUserProfileUseCase = get(),
+            calculateWaterGoalUseCase = get(),
+            getWaterContainersUseCase = get(),
+            addWaterContainerUseCase = get(),
+            deleteWaterContainerUseCase = get(),
+            toggleFavoriteWaterContainerUseCase = get(),
+            reminderScheduler = get(),
+            userId = userId,
+        )
+    }
 }
 
 val appModules = listOf(

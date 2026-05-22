@@ -8,7 +8,11 @@ import com.coachfoska.app.domain.model.UserGoal
 import com.coachfoska.app.domain.model.WaterLog
 import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.repository.UserRepository
+import com.coachfoska.app.domain.usecase.hydration.AddWaterContainerUseCase
 import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
+import com.coachfoska.app.domain.usecase.hydration.DeleteWaterContainerUseCase
+import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
+import com.coachfoska.app.domain.usecase.hydration.ToggleFavoriteWaterContainerUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -46,8 +50,12 @@ class HydrationViewModelTest {
         hydrationRepository = hydrationRepo,
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         calculateWaterGoalUseCase = CalculateWaterGoalUseCase(),
+        getWaterContainersUseCase = GetWaterContainersUseCase(hydrationRepo),
+        addWaterContainerUseCase = AddWaterContainerUseCase(hydrationRepo),
+        deleteWaterContainerUseCase = DeleteWaterContainerUseCase(hydrationRepo),
+        toggleFavoriteWaterContainerUseCase = ToggleFavoriteWaterContainerUseCase(hydrationRepo),
         reminderScheduler = scheduler,
-        userId = "u1"
+        userId = "u1",
     )
 
     @BeforeTest
@@ -56,6 +64,7 @@ class HydrationViewModelTest {
         coEvery { userRepo.getProfile("u1") } returns Result.success(aUser)
         coEvery { hydrationRepo.getTodayLogs("u1") } returns Result.success(emptyList())
         coEvery { hydrationRepo.getSettings("u1") } returns Result.success(HydrationSettings())
+        coEvery { hydrationRepo.getContainers("u1") } returns Result.success(emptyList())
     }
 
     @AfterTest

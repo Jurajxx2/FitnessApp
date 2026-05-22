@@ -5,7 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.hydration.WaterReminderScheduler
 import com.coachfoska.app.domain.model.HydrationSettings
 import com.coachfoska.app.domain.repository.HydrationRepository
+import com.coachfoska.app.domain.usecase.hydration.AddWaterContainerUseCase
 import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
+import com.coachfoska.app.domain.usecase.hydration.DeleteWaterContainerUseCase
+import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
+import com.coachfoska.app.domain.usecase.hydration.ToggleFavoriteWaterContainerUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.async
@@ -21,6 +25,10 @@ class HydrationViewModel(
     private val hydrationRepository: HydrationRepository,
     private val getUserProfileUseCase: GetUserProfileUseCase,
     private val calculateWaterGoalUseCase: CalculateWaterGoalUseCase,
+    private val getWaterContainersUseCase: GetWaterContainersUseCase,
+    private val addWaterContainerUseCase: AddWaterContainerUseCase,
+    private val deleteWaterContainerUseCase: DeleteWaterContainerUseCase,
+    private val toggleFavoriteWaterContainerUseCase: ToggleFavoriteWaterContainerUseCase,
     private val reminderScheduler: WaterReminderScheduler,
     private val userId: String
 ) : ViewModel() {
@@ -42,6 +50,12 @@ class HydrationViewModel(
             is HydrationIntent.UpdateSettings -> updateSettings(intent.settings)
             HydrationIntent.ShowCustomAmountDialog -> _state.update { it.copy(showCustomAmountDialog = true) }
             HydrationIntent.DismissCustomAmountDialog -> _state.update { it.copy(showCustomAmountDialog = false) }
+            is HydrationIntent.LogFromContainer -> logFromContainer(intent.containerId)
+            is HydrationIntent.AddContainer -> addContainer(intent.name, intent.volumeMl)
+            is HydrationIntent.DeleteContainer -> deleteContainer(intent.containerId)
+            is HydrationIntent.ToggleFavoriteContainer -> toggleFavorite(intent.containerId, intent.isFavorite)
+            HydrationIntent.ShowManageContainersSheet -> _state.update { it.copy(showManageContainersSheet = true) }
+            HydrationIntent.DismissManageContainersSheet -> _state.update { it.copy(showManageContainersSheet = false) }
         }
     }
 
@@ -56,6 +70,7 @@ class HydrationViewModel(
             val profileResult = profileDeferred.await()
             val logsResult = logsDeferred.await()
             val settingsResult = settingsDeferred.await()
+            val containers = hydrationRepository.getContainers(userId).getOrElse { emptyList() }
 
             val profile = profileResult.getOrNull()
             val goalMl = if (profile != null) calculateWaterGoalUseCase(profile) else 2000
@@ -70,6 +85,7 @@ class HydrationViewModel(
                     todayLogs = logsResult.getOrDefault(emptyList()),
                     goalMl = goalMl,
                     settings = settingsResult.getOrDefault(it.settings),
+                    containers = containers,
                     error = error
                 )
             }
@@ -119,5 +135,42 @@ class HydrationViewModel(
                     _state.update { it.copy(error = e.message) }
                 }
         }
+    }
+
+    private fun logFromContainer(containerId: String) {
+        val volume = _state.value.containers.firstOrNull { it.id == containerId }?.volumeMl ?: return
+        logWater(volume)
+    }
+
+    private fun addContainer(name: String, volumeMl: Int) {
+        viewModelScope.launch {
+            addWaterContainerUseCase(userId, name, volumeMl).fold(
+                onSuccess = { refreshContainers() },
+                onFailure = { e -> _state.update { it.copy(error = e.message) } },
+            )
+        }
+    }
+
+    private fun deleteContainer(containerId: String) {
+        viewModelScope.launch {
+            deleteWaterContainerUseCase(containerId).fold(
+                onSuccess = { refreshContainers() },
+                onFailure = { e -> _state.update { it.copy(error = e.message) } },
+            )
+        }
+    }
+
+    private fun toggleFavorite(containerId: String, isFavorite: Boolean) {
+        viewModelScope.launch {
+            toggleFavoriteWaterContainerUseCase(containerId, isFavorite).fold(
+                onSuccess = { refreshContainers() },
+                onFailure = { e -> _state.update { it.copy(error = e.message) } },
+            )
+        }
+    }
+
+    private suspend fun refreshContainers() {
+        val containers = getWaterContainersUseCase(userId).getOrElse { return }
+        _state.update { it.copy(containers = containers) }
     }
 }
