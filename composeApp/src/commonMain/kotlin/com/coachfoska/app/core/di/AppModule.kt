@@ -87,6 +87,10 @@ import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.usecase.config.GetAppLinksUseCase
 import com.coachfoska.app.presentation.settings.SettingsViewModel
 import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
+import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
+import com.coachfoska.app.domain.usecase.hydration.AddWaterContainerUseCase
+import com.coachfoska.app.domain.usecase.hydration.DeleteWaterContainerUseCase
+import com.coachfoska.app.domain.usecase.hydration.ToggleFavoriteWaterContainerUseCase
 import com.coachfoska.app.presentation.hydration.HydrationViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -229,6 +233,10 @@ val hydrationModule = module {
     single { HydrationRemoteDataSource(get()) }
     single<HydrationRepository> { HydrationRepositoryImpl(get()) }
     factory { CalculateWaterGoalUseCase() }
+    factory { GetWaterContainersUseCase(get()) }
+    factory { AddWaterContainerUseCase(get()) }
+    factory { DeleteWaterContainerUseCase(get()) }
+    factory { ToggleFavoriteWaterContainerUseCase(get()) }
     viewModel { (userId: String) -> HydrationViewModel(get(), get(), get(), get(), userId) }
 }
 
