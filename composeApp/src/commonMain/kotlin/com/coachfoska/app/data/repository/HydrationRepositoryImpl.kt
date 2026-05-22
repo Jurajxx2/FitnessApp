@@ -3,6 +3,7 @@ package com.coachfoska.app.data.repository
 import com.coachfoska.app.data.remote.datasource.HydrationRemoteDataSource
 import com.coachfoska.app.data.remote.dto.HydrationSettingsDto
 import com.coachfoska.app.domain.model.HydrationSettings
+import com.coachfoska.app.domain.model.WaterContainer
 import com.coachfoska.app.domain.model.WaterLog
 import com.coachfoska.app.domain.repository.HydrationRepository
 
@@ -37,4 +38,21 @@ class HydrationRepositoryImpl(
                 )
             )
         }
+
+    override suspend fun getContainers(userId: String): Result<List<WaterContainer>> =
+        runCatching { dataSource.listContainers(userId).map { it.toDomain() } }
+
+    override suspend fun addContainer(
+        userId: String,
+        name: String,
+        volumeMl: Int,
+        iconName: String,
+    ): Result<WaterContainer> =
+        runCatching { dataSource.insertContainer(userId, name, volumeMl, iconName).toDomain() }
+
+    override suspend fun deleteContainer(containerId: String): Result<Unit> =
+        runCatching { dataSource.deleteContainer(containerId) }
+
+    override suspend fun toggleFavoriteContainer(containerId: String, isFavorite: Boolean): Result<WaterContainer> =
+        runCatching { dataSource.setContainerFavorite(containerId, isFavorite).toDomain() }
 }
