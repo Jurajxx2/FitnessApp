@@ -1,5 +1,6 @@
 // admin/src/pages/admin/Nutrition.tsx
 import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { uploadRecipePhoto } from '../../lib/storage'
@@ -7,7 +8,6 @@ import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
 import type { Recipe, RecipeIngredient, MealPlan, RecipeDifficulty, Food } from '../../types/database'
 import RecipeImportModal from './RecipeImportModal'
 import RecipePhotoUploadModal from './RecipePhotoUploadModal'
-import MealPlanImportModal from './MealPlanImportModal'
 
 // ─── Foods ──────────────────────────────────────────────────────────────────
 
@@ -490,132 +490,69 @@ function useMealPlans() {
   })
 }
 
-interface MealDraft { name: string; time_of_day: string; recipes: { recipe_id: string; meal_type: string }[] }
+function usePlanAssignmentCounts() {
+  return useQuery<Record<string, number>>({
+    queryKey: ['meal-plan-assignment-counts'],
+    queryFn: async () => {
+      const { data } = await supabase.from('user_meal_plans').select('meal_plan_id')
+      const counts: Record<string, number> = {}
+      for (const row of data ?? []) {
+        counts[row.meal_plan_id] = (counts[row.meal_plan_id] ?? 0) + 1
+      }
+      return counts
+    },
+  })
+}
 
 function MealPlansTab() {
-  const qc = useQueryClient()
+  const navigate = useNavigate()
   const { data: mealPlans = [], isLoading } = useMealPlans()
-  const { data: recipes = [] } = useRecipes()
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [editing, setEditing] = useState<MealPlan | null>(null)
-  const [form, setForm] = useState({ name: '', description: '', valid_from: '', valid_to: '', is_active: true })
-  const [meals, setMeals] = useState<MealDraft[]>([{ name: 'Breakfast', time_of_day: '08:00', recipes: [] }])
-  const [importOpen, setImportOpen] = useState(false)
-
-  function openCreate() {
-    setEditing(null)
-    setForm({ name: '', description: '', valid_from: '', valid_to: '', is_active: true })
-    setMeals([{ name: 'Breakfast', time_of_day: '08:00', recipes: [] }])
-    setEditorOpen(true)
-  }
-
-  async function openEditPlan(p: MealPlan) {
-    setEditing(p)
-    setForm({ name: p.name, description: p.description ?? '', valid_from: p.valid_from ?? '', valid_to: p.valid_to ?? '', is_active: p.is_active })
-
-    // Fetch existing meal slots
-    const { data: existingMeals } = await supabase
-      .from('meals')
-      .select('id, name, time_of_day, sort_order')
-      .eq('meal_plan_id', p.id)
-      .order('sort_order')
-
-    if (existingMeals && existingMeals.length > 0) {
-      const mealDrafts: MealDraft[] = await Promise.all(
-        existingMeals.map(async meal => {
-          const { data: mprData } = await supabase
-            .from('meal_plan_recipes')
-            .select('recipe_id, meal_type')
-            .eq('meal_id', meal.id)
-          return {
-            name: meal.name,
-            time_of_day: meal.time_of_day ?? '',
-            recipes: (mprData ?? []).map(r => ({ recipe_id: r.recipe_id, meal_type: r.meal_type ?? 'breakfast' })),
-          }
-        })
-      )
-      setMeals(mealDrafts)
-    } else {
-      setMeals([{ name: 'Breakfast', time_of_day: '08:00', recipes: [] }])
-    }
-
-    setEditorOpen(true)
-  }
-
-  const savePlan = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        name: form.name,
-        description: form.description || null,
-        valid_from: form.valid_from || null,
-        valid_to: form.valid_to || null,
-        is_active: form.is_active,
-      }
-      let planId: string
-      if (editing) {
-        const { error: mpUpdateErr } = await supabase.from('meal_plans').update(payload).eq('id', editing.id)
-        if (mpUpdateErr) throw mpUpdateErr
-        planId = editing.id
-        const { data: existingMeals } = await supabase.from('meals').select('id').eq('meal_plan_id', planId)
-        if (existingMeals) {
-          for (const m of existingMeals) {
-            await supabase.from('meal_plan_recipes').delete().eq('meal_id', m.id)
-          }
-          await supabase.from('meals').delete().eq('meal_plan_id', planId)
-        }
-      } else {
-        const { data: plan, error } = await supabase.from('meal_plans').insert(payload).select().single()
-        if (error) throw error
-        planId = plan.id
-      }
-      for (let i = 0; i < meals.length; i++) {
-        const { data: meal, error: mErr } = await supabase
-          .from('meals')
-          .insert({ meal_plan_id: planId, name: meals[i].name, time_of_day: meals[i].time_of_day || null, sort_order: i })
-          .select()
-          .single()
-        if (mErr) throw mErr
-        if (meals[i].recipes.length) {
-          await supabase.from('meal_plan_recipes').insert(
-            meals[i].recipes.map(r => ({ meal_plan_id: planId, meal_id: meal.id, recipe_id: r.recipe_id, meal_type: r.meal_type || null }))
-          )
-        }
-      }
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['meal-plans-admin'] }); setEditorOpen(false) },
-  })
+  const { data: assignmentCounts = {} } = usePlanAssignmentCounts()
+  const qc = useQueryClient()
 
   const deletePlan = useMutation({
-    mutationFn: async (id: string) => { await supabase.from('meal_plans').delete().eq('id', id) },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['meal-plans-admin'] }),
+    mutationFn: async (id: string) => {
+      await supabase.from('meal_plans').delete().eq('id', id)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['meal-plans-admin'] })
+      qc.invalidateQueries({ queryKey: ['meal-plan-assignment-counts'] })
+    },
   })
 
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <p className="text-sm text-[var(--text-muted)]">{mealPlans.length} meal plans</p>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" onClick={() => setImportOpen(true)}>Import JSON</Button>
-          <Button onClick={openCreate}>+ Create meal plan</Button>
-        </div>
+        <Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>+ Create meal plan</Button>
       </div>
 
       {isLoading ? <p className="text-sm text-[var(--text-disabled)]">Loading…</p> : (
         <Table>
           <thead>
-            <tr><Th>Name</Th><Th>Valid from</Th><Th>Valid to</Th><Th>Status</Th><Th>{''}</Th></tr>
+            <tr><Th>Name</Th><Th>Description</Th><Th>Assigned to</Th><Th>Status</Th><Th>{''}</Th></tr>
           </thead>
           <tbody>
             {mealPlans.map(p => (
               <tr key={p.id} className="hover:bg-[var(--bg-card-hover)]">
                 <Td className="text-[var(--text)] font-semibold">{p.name}</Td>
-                <Td>{p.valid_from ?? '—'}</Td>
-                <Td>{p.valid_to ?? '—'}</Td>
+                <Td className="text-xs text-[var(--text-muted)]">{p.description ?? '—'}</Td>
+                <Td className="text-xs text-[var(--text-muted)]">{assignmentCounts[p.id] ?? 0} users</Td>
                 <Td>{p.is_active ? <span className="text-green-400 text-xs">Active</span> : <span className="text-[var(--text-disabled)] text-xs">Inactive</span>}</Td>
                 <Td>
                   <div className="flex gap-2">
-                    <button onClick={() => openEditPlan(p)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">Edit</button>
-                    <button onClick={() => { if (confirm('Delete this meal plan?')) deletePlan.mutate(p.id) }} className="text-xs text-red-400 bg-transparent border-0 cursor-pointer">Delete</button>
+                    <button
+                      onClick={() => navigate(`/admin/nutrition/meal-plans/${p.id}`)}
+                      className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => { if (confirm('Delete this meal plan?')) deletePlan.mutate(p.id) }}
+                      className="text-xs text-red-400 bg-transparent border-0 cursor-pointer"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </Td>
               </tr>
@@ -623,78 +560,6 @@ function MealPlansTab() {
           </tbody>
         </Table>
       )}
-
-      <MealPlanImportModal open={importOpen} onClose={() => setImportOpen(false)} />
-
-      <Modal
-        open={editorOpen}
-        onClose={() => setEditorOpen(false)}
-        title={editing ? 'Edit Meal Plan' : 'New Meal Plan'}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setEditorOpen(false)}>Cancel</Button>
-            <Button onClick={() => savePlan.mutate()} loading={savePlan.isPending} disabled={!form.name}>
-              {editing ? 'Save changes' : 'Create plan'}
-            </Button>
-          </>
-        }
-      >
-        <div className="flex flex-col gap-3">
-          <Input label="Plan name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
-          <Input label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input label="Valid from" type="date" value={form.valid_from} onChange={e => setForm(f => ({ ...f, valid_from: e.target.value }))} />
-            <Input label="Valid to" type="date" value={form.valid_to} onChange={e => setForm(f => ({ ...f, valid_to: e.target.value }))} />
-          </div>
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-muted)]">
-            <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
-            Active
-          </label>
-
-          <div>
-            <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Meal Slots</p>
-            {meals.map((meal, mi) => (
-              <div key={mi} className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 mb-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                  <Input label="Meal name" value={meal.name} onChange={e => setMeals(ms => ms.map((m, i) => i === mi ? { ...m, name: e.target.value } : m))} placeholder="e.g. Breakfast" />
-                  <Input label="Time" type="time" value={meal.time_of_day} onChange={e => setMeals(ms => ms.map((m, i) => i === mi ? { ...m, time_of_day: e.target.value } : m))} />
-                </div>
-                <div className="flex flex-wrap gap-2 items-center">
-                  <select
-                    className="flex-1 min-w-0 bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-xs text-[var(--text)] outline-none"
-                    defaultValue=""
-                    onChange={e => {
-                      if (!e.target.value) return
-                      setMeals(ms => ms.map((m, i) => i === mi ? { ...m, recipes: [...m.recipes, { recipe_id: e.target.value, meal_type: 'breakfast' }] } : m))
-                      e.target.value = ''
-                    }}
-                  >
-                    <option value="" disabled>Add recipe…</option>
-                    {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
-                  <button onClick={() => setMeals(ms => ms.filter((_, i) => i !== mi))} className="text-xs text-red-400 bg-transparent border-0 cursor-pointer whitespace-nowrap">Remove slot</button>
-                </div>
-                {meal.recipes.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {meal.recipes.map((r, ri) => {
-                      const recipe = recipes.find(rec => rec.id === r.recipe_id)
-                      return (
-                        <span key={ri} className="inline-flex items-center gap-1 px-2 py-0.5 bg-[var(--bg-card)] border border-[var(--border)] rounded text-xs text-[var(--text-muted)]">
-                          {recipe?.name ?? r.recipe_id}
-                          <button onClick={() => setMeals(ms => ms.map((m, i) => i === mi ? { ...m, recipes: m.recipes.filter((_, j) => j !== ri) } : m))} className="text-[var(--text-disabled)] hover:text-red-400 bg-transparent border-0 cursor-pointer">✕</button>
-                        </span>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            ))}
-            <button onClick={() => setMeals(ms => [...ms, { name: '', time_of_day: '', recipes: [] }])} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">
-              + Add meal slot
-            </button>
-          </div>
-        </div>
-      </Modal>
     </>
   )
 }
