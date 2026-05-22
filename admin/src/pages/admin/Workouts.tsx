@@ -5,7 +5,9 @@ import { supabase } from '../../lib/supabase'
 import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
 import { ExerciseCombobox } from '../../components/ExerciseCombobox'
 import { ExerciseBrowserSlideOver } from '../../components/ExerciseBrowserSlideOver'
+import { AssignUsersDialog } from '../../components/AssignUsersDialog'
 import type { Workout, WorkoutExercise } from '../../types/database'
+import type { Profile } from '../../types/database'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -27,6 +29,18 @@ function useWorkouts() {
   })
 }
 
+function useProfiles() {
+  return useQuery<Pick<Profile, 'id' | 'email' | 'full_name'>[]>({
+    queryKey: ['profiles-admin'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .order('full_name')
+      return data ?? []
+    },
+  })
+}
 
 type ExerciseDraft = Omit<WorkoutExercise, 'id' | 'workout_id' | 'created_at'>
 
@@ -44,16 +58,20 @@ interface WorkoutFormState {
 export default function Workouts() {
   const qc = useQueryClient()
   const { data: workouts = [], isLoading } = useWorkouts()
+  const { data: profiles = [] } = useProfiles()
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Workout | null>(null)
   const [form, setForm] = useState<WorkoutFormState>({ name: '', day_of_week: null, notes: '', is_active: true })
   const [exercises, setExercises] = useState<ExerciseDraft[]>([blankExercise()])
   const [slideOverOpen, setSlideOverOpen] = useState(false)
+  const [assignedUserIds, setAssignedUserIds] = useState<string[]>([])
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false)
 
   function openCreate() {
     setEditing(null)
     setForm({ name: '', day_of_week: null, notes: '', is_active: true })
     setExercises([blankExercise()])
+    setAssignedUserIds([])
     setEditorOpen(true)
   }
 
@@ -69,11 +87,18 @@ export default function Workouts() {
       name: e.name, muscle_group: e.muscle_group ?? '', sets: e.sets, reps: e.reps,
       rest_seconds: e.rest_seconds, tips: e.tips ?? '', sort_order: e.sort_order,
     })) ?? [blankExercise()])
+
+    const { data: assignments } = await supabase
+      .from('user_workouts')
+      .select('user_id')
+      .eq('workout_id', w.id)
+    setAssignedUserIds((assignments ?? []).map(a => a.user_id))
     setEditorOpen(true)
   }
 
   const saveWorkout = useMutation({
     mutationFn: async () => {
+      let workoutId: string
       if (editing) {
         const { error: updateErr } = await supabase.from('workouts').update({ ...form }).eq('id', editing.id)
         if (updateErr) throw updateErr
@@ -85,6 +110,7 @@ export default function Workouts() {
           )
           if (insertErr) throw insertErr
         }
+        workoutId = editing.id
       } else {
         const { data: w, error } = await supabase
           .from('workouts')
@@ -97,6 +123,28 @@ export default function Workouts() {
             exercises.map((e, i) => ({ ...e, workout_id: w.id, sort_order: i }))
           )
         }
+        workoutId = w.id
+      }
+
+      // Sync user_workouts
+      const { data: currentRows } = await supabase
+        .from('user_workouts')
+        .select('user_id')
+        .eq('workout_id', workoutId)
+      const currentIds = new Set((currentRows ?? []).map(r => r.user_id))
+      const newIds = new Set(assignedUserIds)
+      const toAdd = assignedUserIds.filter(uid => !currentIds.has(uid))
+      const toRemove = [...currentIds].filter(uid => !newIds.has(uid))
+      if (toAdd.length) {
+        const { error } = await supabase.from('user_workouts').insert(
+          toAdd.map(uid => ({ workout_id: workoutId, user_id: uid }))
+        )
+        if (error) throw error
+      }
+      for (const uid of toRemove) {
+        await supabase.from('user_workouts').delete()
+          .eq('workout_id', workoutId)
+          .eq('user_id', uid)
       }
     },
     onSuccess: () => {
@@ -172,10 +220,18 @@ export default function Workouts() {
         title={editing ? 'Edit Workout Plan' : 'New Workout Plan'}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setEditorOpen(false)}>Cancel</Button>
-            <Button onClick={() => saveWorkout.mutate()} loading={saveWorkout.isPending} disabled={!form.name}>
-              {editing ? 'Save changes' : 'Create plan'}
-            </Button>
+            <button
+              onClick={() => setAssignDialogOpen(true)}
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border border-[var(--border)] rounded-md px-3 py-2 cursor-pointer whitespace-nowrap"
+            >
+              Assigned Users ({assignedUserIds.length})
+            </button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setEditorOpen(false)}>Cancel</Button>
+              <Button onClick={() => saveWorkout.mutate()} loading={saveWorkout.isPending} disabled={!form.name}>
+                {editing ? 'Save changes' : 'Create plan'}
+              </Button>
+            </div>
           </>
         }
       >
@@ -255,6 +311,14 @@ export default function Workouts() {
         onAdd={(name, muscleGroup) =>
           setExercises(ex => [...ex, { ...blankExercise(), name, muscle_group: muscleGroup, sort_order: ex.length }])
         }
+      />
+
+      <AssignUsersDialog
+        open={assignDialogOpen}
+        onClose={() => setAssignDialogOpen(false)}
+        profiles={profiles}
+        value={assignedUserIds}
+        onChange={setAssignedUserIds}
       />
     </div>
   )
