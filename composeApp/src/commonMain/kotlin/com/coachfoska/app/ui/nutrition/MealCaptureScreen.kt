@@ -221,7 +221,8 @@ fun MealCaptureScreen(
                     MealLogFood(
                         id = "", mealLogId = "",
                         name = it.name,
-                        amountGrams = 100f,
+                        amount = 100f,
+                        unit = "g",
                         calories = it.calories.toFloatOrNull() ?: 0f,
                         proteinG = it.protein.toFloatOrNull() ?: 0f,
                         carbsG = it.carbs.toFloatOrNull() ?: 0f,

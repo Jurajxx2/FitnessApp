@@ -145,7 +145,7 @@ private fun aMealLogFoodDto(
 
 private fun aMealLogFood() = MealLogFood(
     id = "food-1", mealLogId = "log-1", name = "Chicken",
-    amountGrams = 150f, calories = 300f, proteinG = 25f, carbsG = 30f, fatG = 10f
+    amount = 150f, unit = "g", calories = 300f, proteinG = 25f, carbsG = 30f, fatG = 10f
 )
 
 private fun aRecipeDto() = RecipeDto(
