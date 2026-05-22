@@ -86,8 +86,10 @@ class MealRemoteDataSource(private val supabase: SupabaseClient) {
 
     suspend fun getRecipeById(id: String): RecipeDetailDto? =
         supabase.postgrest["recipes"]
-            .select(columns = Columns.raw("*, recipe_ingredients(*)")) {
+            .select(columns = Columns.raw("*, recipe_ingredients(*), recipe_steps(*)")) {
                 filter { eq("id", id) }
+                order("step_number", Order.ASCENDING, referencedTable = "recipe_steps")
+                order("sort_order", Order.ASCENDING, referencedTable = "recipe_ingredients")
                 limit(1)
             }
             .decodeList<RecipeDetailDto>()

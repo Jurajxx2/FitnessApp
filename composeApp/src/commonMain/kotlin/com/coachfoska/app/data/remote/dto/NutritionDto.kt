@@ -7,6 +7,7 @@ import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.domain.model.MealPlan
 import com.coachfoska.app.domain.model.Recipe
 import com.coachfoska.app.domain.model.RecipeIngredient
+import com.coachfoska.app.domain.model.RecipeStep
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -145,6 +146,14 @@ data class MealLogDto(
 }
 
 @Serializable
+data class RecipeStepDto(
+    val id: String,
+    @SerialName("recipe_id") val recipeId: String,
+    @SerialName("step_number") val stepNumber: Int,
+    val instruction: String
+)
+
+@Serializable
 data class RecipeIngredientDto(
     val id: String,
     @SerialName("recipe_id") val recipeId: String,
@@ -183,8 +192,7 @@ data class RecipeDto(
     @SerialName("cook_time_min") val cookTimeMin: Int? = null,
     val servings: Int = 1,
     val difficulty: String? = null,
-    val tags: List<String> = emptyList(),
-    val steps: List<String> = emptyList()
+    val tags: List<String> = emptyList()
 ) {
     fun toDomain(): Recipe = Recipe(
         id = id,
@@ -200,7 +208,7 @@ data class RecipeDto(
         servings = servings,
         difficulty = difficulty,
         tags = tags,
-        steps = steps,
+        steps = emptyList(),
         ingredients = emptyList()
     )
 }
@@ -221,7 +229,7 @@ data class RecipeDetailDto(
     val servings: Int = 1,
     val difficulty: String? = null,
     val tags: List<String> = emptyList(),
-    val steps: List<String> = emptyList(),
+    @SerialName("recipe_steps") val steps: List<RecipeStepDto> = emptyList(),
     @SerialName("recipe_ingredients") val ingredients: List<RecipeIngredientDto> = emptyList()
 ) {
     fun toDomain(): Recipe = Recipe(
@@ -238,7 +246,9 @@ data class RecipeDetailDto(
         servings = servings,
         difficulty = difficulty,
         tags = tags,
-        steps = steps,
+        steps = steps
+            .sortedBy { it.stepNumber }
+            .map { RecipeStep(id = it.id, stepNumber = it.stepNumber, instruction = it.instruction) },
         ingredients = ingredients.sortedBy { it.sortOrder }.map { it.toDomain() }
     )
 }

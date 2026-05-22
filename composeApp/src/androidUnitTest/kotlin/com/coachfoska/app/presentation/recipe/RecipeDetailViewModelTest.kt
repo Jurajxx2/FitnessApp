@@ -2,7 +2,7 @@ package com.coachfoska.app.presentation.recipe
 
 import com.coachfoska.app.domain.model.RecipeIngredient
 import com.coachfoska.app.domain.repository.MealRepository
-import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
+import com.coachfoska.app.domain.usecase.recipe.ScaleRecipeUseCase
 import com.coachfoska.app.fixtures.aRecipe
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -26,10 +26,12 @@ class RecipeDetailViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val mealRepository: MealRepository = mockk()
+    private val scaleRecipe = ScaleRecipeUseCase()
 
     private fun viewModel(recipeId: String = "r-1") = RecipeDetailViewModel(
-        getRecipeByIdUseCase = GetRecipeByIdUseCase(mealRepository),
-        recipeId = recipeId
+        repository = mealRepository,
+        scaleRecipe = scaleRecipe,
+        recipeId = recipeId,
     )
 
     @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)

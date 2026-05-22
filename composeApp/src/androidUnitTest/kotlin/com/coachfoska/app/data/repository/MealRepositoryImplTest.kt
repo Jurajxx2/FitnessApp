@@ -7,6 +7,7 @@ import com.coachfoska.app.data.remote.dto.MealPlanDto
 import com.coachfoska.app.data.remote.dto.RecipeDetailDto
 import com.coachfoska.app.data.remote.dto.RecipeDto
 import com.coachfoska.app.data.remote.dto.RecipeIngredientDto
+import com.coachfoska.app.data.remote.dto.RecipeStepDto
 import com.coachfoska.app.domain.model.MealLogFood
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -170,8 +171,20 @@ private fun aRecipeIngredientDto(sortOrder: Int = 0) = RecipeIngredientDto(
     sortOrder = sortOrder
 )
 
+private fun aRecipeStepDto(
+    id: String = "step-1",
+    stepNumber: Int = 1,
+    instruction: String = "Mix ingredients"
+) = RecipeStepDto(
+    id = id,
+    recipeId = "recipe-1",
+    stepNumber = stepNumber,
+    instruction = instruction
+)
+
 private fun aRecipeDetailDto(
-    ingredients: List<RecipeIngredientDto> = emptyList()
+    ingredients: List<RecipeIngredientDto> = emptyList(),
+    steps: List<RecipeStepDto> = emptyList()
 ) = RecipeDetailDto(
     id = "recipe-1",
     name = "Overnight Oats",
@@ -179,5 +192,6 @@ private fun aRecipeDetailDto(
     proteinG = 16f,
     carbsG = 65f,
     fatG = 9f,
-    ingredients = ingredients
+    ingredients = ingredients,
+    steps = steps
 )

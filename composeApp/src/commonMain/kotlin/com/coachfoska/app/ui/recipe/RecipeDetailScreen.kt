@@ -6,20 +6,24 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -30,9 +34,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.coachfoska.app.domain.model.Recipe
 import com.coachfoska.app.domain.model.RecipeIngredient
+import com.coachfoska.app.domain.model.RecipeStep
+import com.coachfoska.app.presentation.recipe.RecipeDetailIntent
 import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.app.ui.recipe.components.CookingStepCard
+import com.coachfoska.app.ui.recipe.components.ServingsAdjuster
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -40,7 +48,7 @@ import org.koin.core.parameter.parametersOf
 fun RecipeDetailRoute(
     recipeId: String,
     onBackClick: () -> Unit,
-    viewModel: RecipeDetailViewModel = koinViewModel { parametersOf(recipeId) }
+    viewModel: RecipeDetailViewModel = koinViewModel { parametersOf(recipeId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -48,120 +56,141 @@ fun RecipeDetailRoute(
         CoachTopBar(title = "RECIPE", onBackClick = onBackClick)
         when {
             state.isLoading -> CoachLoadingBox(Modifier.weight(1f))
-            state.error != null -> Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = state.error!!,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
+            state.error != null -> Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Text(state.error!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
             }
             state.recipe != null -> RecipeDetailScreen(
                 recipe = state.recipe!!,
-                modifier = Modifier.weight(1f)
+                selectedServings = state.selectedServings,
+                onIntent = viewModel::onIntent,
+                modifier = Modifier.weight(1f),
             )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeDetailScreen(recipe: Recipe, modifier: Modifier = Modifier) {
-    LazyColumn(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(bottom = 40.dp)
-    ) {
-        // Photo
-        if (recipe.imageUrl != null) {
-            item {
+fun RecipeDetailScreen(
+    recipe: Recipe,
+    selectedServings: Int,
+    onIntent: (RecipeDetailIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var tabIndex by remember { mutableStateOf(0) }
+    val tabs = listOf("Ingredients", "Directions")
+
+    Column(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
+        Column {
+            if (recipe.imageUrl != null) {
                 AsyncImage(
                     model = recipe.imageUrl,
                     contentDescription = recipe.name,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(240.dp)
+                    modifier = Modifier.fillMaxWidth().height(220.dp),
                 )
             }
-        }
-
-        // Name + description
-        item {
             Column(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     text = recipe.name.uppercase(),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.5.sp,
                 )
                 if (recipe.description.isNotBlank()) {
                     Text(
                         text = recipe.description,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        lineHeight = 22.sp
                     )
                 }
             }
-        }
-
-        // Meta row: prep time, cook time, servings, difficulty
-        item {
             RecipeMetaRow(recipe = recipe)
-        }
-
-        // Tags
-        if (recipe.tags.isNotEmpty()) {
-            item {
-                TagsRow(tags = recipe.tags)
-            }
-        }
-
-        // Macros
-        item {
+            if (recipe.tags.isNotEmpty()) TagsRow(tags = recipe.tags)
             MacrosBand(recipe = recipe)
         }
 
-        // Ingredients
-        if (recipe.ingredients.isNotEmpty()) {
-            item {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "INGREDIENTS",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                    letterSpacing = 2.sp,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+        ScrollableTabRow(
+            selectedTabIndex = tabIndex,
+            edgePadding = 24.dp,
+            containerColor = MaterialTheme.colorScheme.background,
+        ) {
+            tabs.forEachIndexed { i, label ->
+                Tab(
+                    selected = tabIndex == i,
+                    onClick = { tabIndex = i },
+                    text = { Text(label) },
                 )
-            }
-            recipe.ingredients.forEach { ingredient ->
-                item(key = ingredient.name) {
-                    IngredientRow(ingredient = ingredient)
-                }
             }
         }
 
-        // Steps
-        if (recipe.steps.isNotEmpty()) {
+        when (tabIndex) {
+            0 -> IngredientsTab(
+                recipe = recipe,
+                selectedServings = selectedServings,
+                onIntent = onIntent,
+                modifier = Modifier.weight(1f),
+            )
+            else -> DirectionsTab(
+                steps = recipe.steps,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun IngredientsTab(
+    recipe: Recipe,
+    selectedServings: Int,
+    onIntent: (RecipeDetailIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(modifier = modifier, contentPadding = PaddingValues(bottom = 40.dp)) {
+        item {
+            ServingsAdjuster(
+                servings = selectedServings,
+                onServingsChange = { onIntent(RecipeDetailIntent.AdjustRecipeServings(it)) },
+            )
+        }
+        if (recipe.ingredients.isEmpty()) {
             item {
-                Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "PREPARATION",
-                    style = MaterialTheme.typography.labelLarge,
+                    text = "No ingredients listed.",
+                    modifier = Modifier.padding(24.dp),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                    letterSpacing = 2.sp,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                 )
             }
-            recipe.steps.forEachIndexed { index, step ->
-                item(key = "step-$index") {
-                    StepRow(number = index + 1, text = step)
-                }
+        } else {
+            recipe.ingredients.forEach { ingredient ->
+                item(key = ingredient.name) { IngredientRow(ingredient = ingredient) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DirectionsTab(steps: List<RecipeStep>, modifier: Modifier = Modifier) {
+    LazyColumn(modifier = modifier, contentPadding = PaddingValues(vertical = 12.dp)) {
+        if (steps.isEmpty()) {
+            item {
+                Text(
+                    text = "No directions provided.",
+                    modifier = Modifier.padding(24.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                )
+            }
+        } else {
+            items(items = steps, key = { it.id.ifBlank { "step-${it.stepNumber}" } }) { step ->
+                CookingStepCard(
+                    stepNumber = step.stepNumber,
+                    instruction = step.instruction,
+                )
             }
         }
     }
@@ -295,29 +324,5 @@ private fun IngredientRow(ingredient: RecipeIngredient) {
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
             )
         }
-    }
-}
-
-@Composable
-private fun StepRow(number: Int, text: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "$number",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-            modifier = Modifier.width(20.dp)
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
-            lineHeight = 22.sp,
-            modifier = Modifier.weight(1f)
-        )
     }
 }

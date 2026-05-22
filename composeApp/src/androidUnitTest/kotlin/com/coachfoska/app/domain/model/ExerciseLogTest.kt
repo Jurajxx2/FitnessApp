@@ -26,17 +26,22 @@ class ExerciseLogTest {
 
     @Test fun `summaryLine all equal reps - count x reps @ weight`() {
         val sets = listOf(set(1, 10, 60f), set(2, 10, 60f), set(3, 10, 60f))
-        assertEquals("3 × 10 @ 60.0 kg", log(sets).summaryLine)
+        assertEquals("3 × 10 @ 60 kg", log(sets).summaryLine)
     }
 
     @Test fun `summaryLine varying reps - joined comma`() {
         val sets = listOf(set(1, 10, 60f), set(2, 10, 60f), set(3, 8, 60f))
-        assertEquals("10, 10, 8 @ 60.0 kg", log(sets).summaryLine)
+        assertEquals("10, 10, 8 @ 60 kg", log(sets).summaryLine)
     }
 
     @Test fun `summaryLine null reps falls back to N sets`() {
         val sets = listOf(set(1, null, 60f), set(2, null, 60f))
-        assertEquals("2 sets @ 60.0 kg", log(sets).summaryLine)
+        assertEquals("2 sets @ 60 kg", log(sets).summaryLine)
+    }
+
+    @Test fun `summaryLine fractional weight preserves decimal`() {
+        val sets = listOf(set(1, 5, 62.5f), set(2, 5, 62.5f))
+        assertEquals("2 × 5 @ 62.5 kg", log(sets).summaryLine)
     }
 
     @Test fun `summaryLine null weight omits weight segment`() {
