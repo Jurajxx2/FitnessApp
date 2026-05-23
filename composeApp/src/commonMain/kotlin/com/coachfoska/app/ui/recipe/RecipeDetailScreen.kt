@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -80,9 +81,12 @@ fun RecipeDetailScreen(
     var tabIndex by remember { mutableStateOf(0) }
     val tabs = listOf("Ingredients", "Directions")
 
-    Column(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
-        Column {
-            if (recipe.imageUrl != null) {
+    LazyColumn(
+        modifier = modifier.background(MaterialTheme.colorScheme.background),
+        contentPadding = PaddingValues(bottom = 40.dp),
+    ) {
+        if (recipe.imageUrl != null) {
+            item("image") {
                 AsyncImage(
                     model = recipe.imageUrl,
                     contentDescription = recipe.name,
@@ -90,6 +94,8 @@ fun RecipeDetailScreen(
                     modifier = Modifier.fillMaxWidth().height(220.dp),
                 )
             }
+        }
+        item("title") {
             Column(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -108,90 +114,82 @@ fun RecipeDetailScreen(
                     )
                 }
             }
-            RecipeMetaRow(recipe = recipe)
-            if (recipe.tags.isNotEmpty()) TagsRow(tags = recipe.tags)
-            MacrosBand(recipe = recipe)
         }
-
-        ScrollableTabRow(
-            selectedTabIndex = tabIndex,
-            edgePadding = 24.dp,
-            containerColor = MaterialTheme.colorScheme.background,
-        ) {
-            tabs.forEachIndexed { i, label ->
-                Tab(
-                    selected = tabIndex == i,
-                    onClick = { tabIndex = i },
-                    text = { Text(label) },
-                )
+        item("meta") { RecipeMetaRow(recipe = recipe) }
+        if (recipe.tags.isNotEmpty()) item("tags") { TagsRow(tags = recipe.tags) }
+        item("macros") { MacrosBand(recipe = recipe) }
+        item("tabs") {
+            ScrollableTabRow(
+                selectedTabIndex = tabIndex,
+                edgePadding = 24.dp,
+                containerColor = MaterialTheme.colorScheme.background,
+            ) {
+                tabs.forEachIndexed { i, label ->
+                    Tab(
+                        selected = tabIndex == i,
+                        onClick = { tabIndex = i },
+                        text = { Text(label) },
+                    )
+                }
             }
         }
 
         when (tabIndex) {
-            0 -> IngredientsTab(
+            0 -> ingredientsItems(
                 recipe = recipe,
                 selectedServings = selectedServings,
                 onIntent = onIntent,
-                modifier = Modifier.weight(1f),
             )
-            else -> DirectionsTab(
-                steps = recipe.steps,
-                modifier = Modifier.weight(1f),
-            )
+            else -> directionsItems(steps = recipe.steps)
         }
     }
 }
 
-@Composable
-private fun IngredientsTab(
+private fun LazyListScope.ingredientsItems(
     recipe: Recipe,
     selectedServings: Int,
     onIntent: (RecipeDetailIntent) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    LazyColumn(modifier = modifier, contentPadding = PaddingValues(bottom = 40.dp)) {
-        item {
-            ServingsAdjuster(
-                servings = selectedServings,
-                onServingsChange = { onIntent(RecipeDetailIntent.AdjustRecipeServings(it)) },
+    item("servings-adjuster") {
+        ServingsAdjuster(
+            servings = selectedServings,
+            onServingsChange = { onIntent(RecipeDetailIntent.AdjustRecipeServings(it)) },
+        )
+    }
+    if (recipe.ingredients.isEmpty()) {
+        item("ingredients-empty") {
+            Text(
+                text = "No ingredients listed.",
+                modifier = Modifier.padding(24.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             )
         }
-        if (recipe.ingredients.isEmpty()) {
-            item {
-                Text(
-                    text = "No ingredients listed.",
-                    modifier = Modifier.padding(24.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                )
-            }
-        } else {
-            recipe.ingredients.forEach { ingredient ->
-                item(key = ingredient.name) { IngredientRow(ingredient = ingredient) }
-            }
+    } else {
+        items(items = recipe.ingredients, key = { "ing-${it.name}" }) { ingredient ->
+            IngredientRow(ingredient = ingredient)
         }
     }
 }
 
-@Composable
-private fun DirectionsTab(steps: List<RecipeStep>, modifier: Modifier = Modifier) {
-    LazyColumn(modifier = modifier, contentPadding = PaddingValues(vertical = 12.dp)) {
-        if (steps.isEmpty()) {
-            item {
-                Text(
-                    text = "No directions provided.",
-                    modifier = Modifier.padding(24.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                )
-            }
-        } else {
-            items(items = steps, key = { it.id.ifBlank { "step-${it.stepNumber}" } }) { step ->
-                CookingStepCard(
-                    stepNumber = step.stepNumber,
-                    instruction = step.instruction,
-                )
-            }
+private fun LazyListScope.directionsItems(
+    steps: List<RecipeStep>,
+) {
+    if (steps.isEmpty()) {
+        item("steps-empty") {
+            Text(
+                text = "No directions provided.",
+                modifier = Modifier.padding(24.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            )
+        }
+    } else {
+        items(items = steps, key = { "step-${it.id.ifBlank { it.stepNumber.toString() }}" }) { step ->
+            CookingStepCard(
+                stepNumber = step.stepNumber,
+                instruction = step.instruction,
+            )
         }
     }
 }

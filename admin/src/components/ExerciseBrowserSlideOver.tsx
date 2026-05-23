@@ -48,7 +48,7 @@ export function ExerciseBrowserSlideOver({ open, onClose, addedNames, onAdd }: E
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [page, setPage] = useState(0)
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>()
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const { data: categories = [] } = useCategories()
   const { data: { data: exercises = [], count = 0 } = {} } = useBrowserExercises(debouncedSearch, categoryId, page)

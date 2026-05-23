@@ -17,6 +17,7 @@ import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
+import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
@@ -31,8 +32,12 @@ fun MealDetailRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(mealId) {
-        viewModel.onIntent(NutritionIntent.SelectMeal(mealId))
+    // Wait until the meal plan is loaded before selecting — otherwise the lookup
+    // runs against a null plan and selectedMeal stays null forever (blank screen).
+    LaunchedEffect(mealId, state.mealPlan) {
+        if (state.mealPlan != null) {
+            viewModel.onIntent(NutritionIntent.SelectMeal(mealId))
+        }
     }
 
     MealDetailScreen(state = state, onBackClick = onBackClick)
@@ -46,38 +51,51 @@ fun MealDetailScreen(
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CoachTopBar(title = state.selectedMeal?.name ?: "Meal", onBackClick = onBackClick)
 
-        state.selectedMeal?.let { meal ->
-            LazyColumn(
-                contentPadding = PaddingValues(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        when {
+            state.selectedMeal != null -> MealContent(meal = state.selectedMeal)
+            state.isLoading || state.mealPlan == null -> CoachLoadingBox()
+            else -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "Meal not found.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MealContent(meal: Meal) {
+    LazyColumn(
+        contentPadding = PaddingValues(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item { MacroRow(meal) }
+        item { CoachSectionHeader(text = "FOODS") }
+        items(meal.foods) { food ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                item { MacroRow(meal) }
-                item { CoachSectionHeader(text = "FOODS") }
-                items(meal.foods) { food ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = food.name,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "${food.amountGrams.toInt()}g",
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                                fontSize = 12.sp
-                            )
-                        }
-                        Text(
-                            text = "${food.calories.toInt()} kcal",
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                            fontSize = 13.sp
-                        )
-                    }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = food.name,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "${food.amountGrams.toInt()}g",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        fontSize = 12.sp
+                    )
                 }
+                Text(
+                    text = "${food.calories.toInt()} kcal",
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    fontSize = 13.sp
+                )
             }
         }
     }

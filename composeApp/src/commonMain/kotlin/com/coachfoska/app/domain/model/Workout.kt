@@ -73,7 +73,14 @@ private fun buildSummaryLine(sets: List<SetLog>): String {
         else -> reps.map { it?.toString() ?: "?" }.joinToString(", ")
     }
     val maxWeight = done.mapNotNull { it.actualWeightKg }.maxOrNull()
-    return if (maxWeight != null) "$repsPart @ $maxWeight kg" else repsPart
+    return if (maxWeight != null) "$repsPart @ ${formatWeightKg(maxWeight)} kg" else repsPart
+}
+
+// Formats a weight value for display: drops trailing ".0" on whole numbers (60.0f → "60"),
+// keeps fractional precision otherwise (60.5f → "60.5").
+fun formatWeightKg(value: Float): String {
+    val whole = value.toLong()
+    return if (whole.toFloat() == value) whole.toString() else value.toString()
 }
 
 enum class DayOfWeek(val index: Int, val displayName: String) {

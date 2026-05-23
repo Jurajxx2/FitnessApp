@@ -33,7 +33,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun VerifyOtpRoute(
     email: String,
     onBackClick: () -> Unit,
-    onNavigateToHome: (userId: String) -> Unit,
+    onNavigateToHome: () -> Unit,
     onNavigateToOnboarding: (userId: String) -> Unit,
     viewModel: AuthViewModel = koinViewModel()
 ) {
@@ -45,7 +45,7 @@ fun VerifyOtpRoute(
     LaunchedEffect(state.navigateToHome) {
         if (state.navigateToHome) {
             viewModel.onIntent(AuthIntent.NavigatedToHome)
-            onNavigateToHome(state.authenticatedUser?.id ?: "")
+            onNavigateToHome()
         }
     }
     LaunchedEffect(state.navigateToOnboarding) {

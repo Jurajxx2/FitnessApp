@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Intercept createClient so we can inspect what options were passed without
 // needing real Supabase credentials or network access.
-const mockCreateClient = vi.fn(() => ({}))
+const mockCreateClient = vi.fn((..._args: any[]) => ({}))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mockCreateClient }))
 
 describe('supabase client config', () => {
@@ -19,12 +19,12 @@ describe('supabase client config', () => {
   })
 
   it('configures a lock function to prevent navigator.locks hangs', () => {
-    const [,, options] = mockCreateClient.mock.calls[0]
+    const [,, options] = mockCreateClient.mock.calls[0] as any[]
     expect(options.auth.lock).toBeTypeOf('function')
   })
 
   it('lock executes fn immediately without acquiring any real lock', async () => {
-    const [,, options] = mockCreateClient.mock.calls[0]
+    const [,, options] = mockCreateClient.mock.calls[0] as any[]
     const fn = vi.fn().mockResolvedValue('result')
     const result = await options.auth.lock('supabase-auth-token', 5000, fn)
     expect(fn).toHaveBeenCalledOnce()
@@ -32,7 +32,7 @@ describe('supabase client config', () => {
   })
 
   it('lock propagates rejection from fn', async () => {
-    const [,, options] = mockCreateClient.mock.calls[0]
+    const [,, options] = mockCreateClient.mock.calls[0] as any[]
     const fn = vi.fn().mockRejectedValue(new Error('boom'))
     await expect(options.auth.lock('name', 5000, fn)).rejects.toThrow('boom')
   })

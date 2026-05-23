@@ -19,19 +19,19 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
 
     suspend fun getAssignedWorkouts(userId: String): List<WorkoutDto> {
         val global = supabase.postgrest["workouts"]
-            .select {
+            .select(columns = Columns.raw("*, workout_exercises(*)")) {
                 filter { exact("user_id", null); eq("is_active", true) }
                 order("day_of_week", Order.ASCENDING)
             }.decodeList<WorkoutDto>()
 
         val legacyUserSpecific = supabase.postgrest["workouts"]
-            .select {
+            .select(columns = Columns.raw("*, workout_exercises(*)")) {
                 filter { eq("user_id", userId); eq("is_active", true) }
                 order("day_of_week", Order.ASCENDING)
             }.decodeList<WorkoutDto>()
 
         val viaJoinTable = supabase.postgrest["user_workouts"]
-            .select(columns = Columns.raw("workout_id, workouts(*)")) {
+            .select(columns = Columns.raw("workout_id, workouts(*, workout_exercises(*))")) {
                 filter { eq("user_id", userId) }
             }
             .decodeList<UserWorkoutJoinDto>()
@@ -43,7 +43,9 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
 
     suspend fun getWorkoutById(workoutId: String): WorkoutDto =
         supabase.postgrest["workouts"]
-            .select { filter { eq("id", workoutId) } }
+            .select(columns = Columns.raw("*, workout_exercises(*)")) {
+                filter { eq("id", workoutId) }
+            }
             .decodeSingle<WorkoutDto>()
 
     suspend fun insertWorkoutLog(

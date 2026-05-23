@@ -29,7 +29,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SplashRoute(
-    onNavigateToHome: (userId: String) -> Unit,
+    onNavigateToHome: () -> Unit,
     onNavigateToOnboarding: (userId: String) -> Unit,
     onNavigateToWelcome: () -> Unit,
     viewModel: SplashViewModel = koinViewModel()
@@ -38,7 +38,7 @@ fun SplashRoute(
 
     LaunchedEffect(state) {
         when (val s = state) {
-            is SplashNavState.NavigateToHome -> onNavigateToHome(s.userId)
+            is SplashNavState.NavigateToHome -> onNavigateToHome()
             is SplashNavState.NavigateToOnboarding -> onNavigateToOnboarding(s.userId)
             SplashNavState.NavigateToWelcome -> onNavigateToWelcome()
             SplashNavState.Loading -> Unit

@@ -25,7 +25,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun WelcomeRoute(
     onNavigateToEmailOtp: () -> Unit,
-    onNavigateToHome: (userId: String) -> Unit,
+    onNavigateToHome: () -> Unit,
     onNavigateToOnboarding: (userId: String) -> Unit,
     viewModel: AuthViewModel = koinViewModel()
 ) {
@@ -34,7 +34,7 @@ fun WelcomeRoute(
     LaunchedEffect(state.navigateToHome) {
         if (state.navigateToHome) {
             viewModel.onIntent(AuthIntent.NavigatedToHome)
-            onNavigateToHome(state.authenticatedUser?.id ?: "")
+            onNavigateToHome()
         }
     }
     LaunchedEffect(state.navigateToOnboarding) {

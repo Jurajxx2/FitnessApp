@@ -9,6 +9,7 @@ import com.coachfoska.app.fixtures.aUser
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,8 +31,8 @@ class SplashViewModelTest {
     private val authRepository: AuthRepository = mockk()
     private val deviceTokenRepository: DeviceTokenRepository = mockk()
 
-    private fun viewModel() = SplashViewModel(
-        observeSession = ObserveSessionUseCase(authRepository),
+    private fun viewModel(scope: CoroutineScope) = SplashViewModel(
+        observeSession = ObserveSessionUseCase(authRepository, scope),
         deviceTokenRepository = deviceTokenRepository
     )
 
@@ -39,13 +40,13 @@ class SplashViewModelTest {
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `state is NavigateToHome when authenticated user has completed onboarding`() = runTest {
+    fun `state is NavigateToHome when authenticated user has completed onboarding`() = runTest(testDispatcher) {
         val user = aUser(onboardingComplete = true)
         val sessionFlow = MutableStateFlow<SessionAuthState>(SessionAuthState.Authenticated(user))
         every { authRepository.observeSessionStatus() } returns sessionFlow
         coEvery { deviceTokenRepository.upsertToken(any()) } returns Result.success(Unit)
 
-        viewModel().state.test {
+        viewModel(backgroundScope).state.test {
             val item = awaitItem()
             assertIs<SplashNavState.NavigateToHome>(item)
             assertEquals("user-1", item.userId)
@@ -54,13 +55,13 @@ class SplashViewModelTest {
     }
 
     @Test
-    fun `state is NavigateToOnboarding when authenticated user has not completed onboarding`() = runTest {
+    fun `state is NavigateToOnboarding when authenticated user has not completed onboarding`() = runTest(testDispatcher) {
         val user = aUser(onboardingComplete = false)
         val sessionFlow = MutableStateFlow<SessionAuthState>(SessionAuthState.Authenticated(user))
         every { authRepository.observeSessionStatus() } returns sessionFlow
         coEvery { deviceTokenRepository.upsertToken(any()) } returns Result.success(Unit)
 
-        viewModel().state.test {
+        viewModel(backgroundScope).state.test {
             val item = awaitItem()
             assertIs<SplashNavState.NavigateToOnboarding>(item)
             assertEquals("user-1", item.userId)
@@ -69,21 +70,21 @@ class SplashViewModelTest {
     }
 
     @Test
-    fun `state is NavigateToWelcome when not authenticated`() = runTest {
+    fun `state is NavigateToWelcome when not authenticated`() = runTest(testDispatcher) {
         val sessionFlow = MutableStateFlow<SessionAuthState>(SessionAuthState.NotAuthenticated)
         every { authRepository.observeSessionStatus() } returns sessionFlow
 
-        viewModel().state.test {
+        viewModel(backgroundScope).state.test {
             assertIs<SplashNavState.NavigateToWelcome>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `initial state is Loading`() = runTest {
+    fun `initial state is Loading`() = runTest(testDispatcher) {
         every { authRepository.observeSessionStatus() } returns flowOf()
 
-        viewModel().state.test {
+        viewModel(backgroundScope).state.test {
             assertIs<SplashNavState.Loading>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }

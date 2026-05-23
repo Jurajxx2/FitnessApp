@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook } from '@testing-library/react'
-import { useAuth } from './useAuth'
+import { renderHook, waitFor } from '@testing-library/react'
+import { useAuth, AuthProvider } from './useAuth'
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -20,13 +20,17 @@ describe('useAuth', () => {
   })
 
   it('starts in loading state', () => {
-    const { result } = renderHook(() => useAuth())
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: AuthProvider
+    })
     expect(result.current.isLoading).toBe(true)
   })
 
   it('returns no session when supabase returns null', async () => {
-    const { result } = renderHook(() => useAuth())
-    await vi.waitFor(() => expect(result.current.isLoading).toBe(false))
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: AuthProvider
+    })
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 2000 })
     expect(result.current.session).toBeNull()
     expect(result.current.isAdmin).toBe(false)
   })

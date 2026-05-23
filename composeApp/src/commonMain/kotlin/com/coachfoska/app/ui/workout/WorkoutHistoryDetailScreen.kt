@@ -42,6 +42,7 @@ import com.coachfoska.app.core.util.toDisplayDateTime
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WorkoutLog
+import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
@@ -246,7 +247,7 @@ private fun SetTableRow(set: SetLog) {
     Row {
         Text(set.sortOrder.toString(), modifier = Modifier.width(32.dp))
         Text(set.actualReps?.toString() ?: "-", modifier = Modifier.width(64.dp))
-        Text(set.actualWeightKg?.let { "$it kg" } ?: "-", modifier = Modifier.width(80.dp))
+        Text(set.actualWeightKg?.let { "${formatWeightKg(it)} kg" } ?: "-", modifier = Modifier.width(80.dp))
         Text(set.rpe?.toString() ?: "-", modifier = Modifier.width(48.dp))
     }
 }

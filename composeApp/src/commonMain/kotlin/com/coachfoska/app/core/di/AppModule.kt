@@ -143,7 +143,7 @@ val repositoryModule = module {
 
 val useCaseModule = module {
     // Auth
-    factory { ObserveSessionUseCase(get()) }
+    single { ObserveSessionUseCase(get()) }
     factory { SendOtpUseCase(get()) }
     factory { VerifyOtpUseCase(get()) }
     factory { SignInWithGoogleUseCase(get(), get()) }

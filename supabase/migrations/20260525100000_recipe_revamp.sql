@@ -24,7 +24,7 @@ CREATE POLICY "Authenticated users read recipe steps"
 CREATE POLICY "Admin manages recipe steps"
   ON recipe_steps FOR ALL
   TO authenticated
-  USING (is_admin());
+  USING (get_is_admin());
 
 CREATE INDEX IF NOT EXISTS idx_recipe_steps_recipe
   ON recipe_steps(recipe_id, step_number);

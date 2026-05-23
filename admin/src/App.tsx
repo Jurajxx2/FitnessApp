@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from './hooks/useTheme'
+import { AuthProvider } from './hooks/useAuth'
 import { queryClient } from './lib/queryClient'
 import { AdminRouteGuard } from './components/RouteGuard'
 import { AdminLayout } from './components/AdminLayout'
@@ -24,30 +25,32 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Login />} />
-            <Route path="/auth/verify" element={<Verify />} />
-            <Route path="/auth/callback" element={<Callback />} />
-            <Route path="/403" element={<NotAdmin />} />
-            <Route element={<AdminRouteGuard />}>
-              <Route element={<AdminLayout />}>
-                <Route path="/admin"           element={<Dashboard />} />
-                <Route path="/admin/users" element={<Users />}>
-                  <Route path=":id" element={<UserDetail />} />
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Login />} />
+              <Route path="/auth/verify" element={<Verify />} />
+              <Route path="/auth/callback" element={<Callback />} />
+              <Route path="/403" element={<NotAdmin />} />
+              <Route element={<AdminRouteGuard />}>
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin"           element={<Dashboard />} />
+                  <Route path="/admin/users" element={<Users />}>
+                    <Route path=":id" element={<UserDetail />} />
+                  </Route>
+                  <Route path="/admin/workouts"  element={<Workouts />} />
+                  <Route path="/admin/nutrition" element={<Nutrition />} />
+                  <Route path="/admin/nutrition/meal-plans/new" element={<MealPlanEditor />} />
+                  <Route path="/admin/nutrition/meal-plans/:id"  element={<MealPlanEditor />} />
+                  <Route path="/admin/quotes"     element={<Quotes />} />
+                  <Route path="/admin/exercises" element={<Exercises />} />
+                  <Route path="/admin/chat"      element={<Chat />} />
                 </Route>
-                <Route path="/admin/workouts"  element={<Workouts />} />
-                <Route path="/admin/nutrition" element={<Nutrition />} />
-                <Route path="/admin/nutrition/meal-plans/new" element={<MealPlanEditor />} />
-                <Route path="/admin/nutrition/meal-plans/:id"  element={<MealPlanEditor />} />
-                <Route path="/admin/quotes"     element={<Quotes />} />
-                <Route path="/admin/exercises" element={<Exercises />} />
-                <Route path="/admin/chat"      element={<Chat />} />
               </Route>
-            </Route>
-          </Routes>
-        </BrowserRouter>
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )

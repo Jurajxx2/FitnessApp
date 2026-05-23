@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import Verify from './Verify'
 
-const { mockVerifyOtp, mockSingle, mockEq, mockSelect, mockFrom } = vi.hoisted(() => {
+const { mockVerifyOtp, mockSingle, mockFrom } = vi.hoisted(() => {
   const mockSingle = vi.fn()
   const mockEq = vi.fn(() => ({ single: mockSingle }))
   const mockSelect = vi.fn(() => ({ eq: mockEq }))

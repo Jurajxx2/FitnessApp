@@ -18,6 +18,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.coachfoska.app.domain.model.ChatType
+import com.coachfoska.app.domain.model.SessionAuthState
+import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.navigation.*
 import com.coachfoska.app.theme.CoachFoskaTheme
 import com.coachfoska.app.ui.auth.EmailOtpRoute
@@ -66,7 +68,12 @@ fun App(openHumanChat: Boolean = false) {
 
     CoachFoskaTheme(darkTheme = isDarkTheme) {
         val navController = rememberNavController()
-        var currentUserId by remember { mutableStateOf("") }
+        // Derive the current user id from the singleton session observer so it survives
+        // Activity recreation (where `remember` would reset to "" but rememberNavController
+        // restores the back stack — previously leaving Home/Chat to query Postgres with id="").
+        val observeSession = koinInject<ObserveSessionUseCase>()
+        val sessionState by observeSession().collectAsState()
+        val currentUserId = (sessionState as? SessionAuthState.Authenticated)?.user?.id.orEmpty()
 
         LaunchedEffect(openHumanChat, currentUserId) {
             if (openHumanChat && currentUserId.isNotEmpty()) {
@@ -164,12 +171,10 @@ fun App(openHumanChat: Boolean = false) {
                 // ── Splash ────────────────────────────────────────────────
                 composable<Splash> {
                     SplashRoute(
-                        onNavigateToHome = { userId ->
-                            currentUserId = userId
+                        onNavigateToHome = {
                             navController.navigate(Home) { popUpTo<Splash> { inclusive = true } }
                         },
                         onNavigateToOnboarding = { userId ->
-                            currentUserId = userId
                             navController.navigate(Onboarding(userId)) { popUpTo<Splash> { inclusive = true } }
                         },
                         onNavigateToWelcome = {
@@ -182,12 +187,10 @@ fun App(openHumanChat: Boolean = false) {
                 composable<Welcome> {
                     WelcomeRoute(
                         onNavigateToEmailOtp = { navController.navigate(EmailOtp) },
-                        onNavigateToHome = { userId ->
-                            currentUserId = userId
+                        onNavigateToHome = {
                             navController.navigate(Home) { popUpTo(Welcome) { inclusive = true } }
                         },
                         onNavigateToOnboarding = { userId ->
-                            currentUserId = userId
                             navController.navigate(Onboarding(userId)) { popUpTo(Welcome) { inclusive = true } }
                         }
                     )
@@ -205,12 +208,10 @@ fun App(openHumanChat: Boolean = false) {
                     VerifyOtpRoute(
                         email = route.email,
                         onBackClick = { navController.popBackStack() },
-                        onNavigateToHome = { userId ->
-                            currentUserId = userId
+                        onNavigateToHome = {
                             navController.navigate(Home) { popUpTo(Welcome) { inclusive = true } }
                         },
                         onNavigateToOnboarding = { userId ->
-                            currentUserId = userId
                             navController.navigate(Onboarding(userId)) { popUpTo(Welcome) { inclusive = true } }
                         }
                     )
@@ -483,7 +484,6 @@ fun App(openHumanChat: Boolean = false) {
                         onAboutCoachClick = { navController.navigate(AboutCoach) },
                         onSettingsClick = { navController.navigate(Settings) },
                         onLogoutComplete = {
-                            currentUserId = ""
                             navController.navigate(Welcome) { popUpTo(Home) { inclusive = true } }
                         }
                     )
