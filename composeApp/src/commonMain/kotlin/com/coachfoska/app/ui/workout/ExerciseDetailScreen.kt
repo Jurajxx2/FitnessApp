@@ -5,13 +5,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.exercise.ExerciseIntent
 import com.coachfoska.app.presentation.exercise.ExerciseState
@@ -68,6 +71,26 @@ fun ExerciseDetailScreen(
                             style = MaterialTheme.typography.displayMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
+                    }
+
+                    if (exercise.imageUrl != null || exercise.imageUrl2 != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOfNotNull(exercise.imageUrl, exercise.imageUrl2).forEach { url ->
+                                AsyncImage(
+                                    model = url,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                                )
+                            }
+                        }
                     }
 
                     if (exercise.muscles.isNotEmpty() || exercise.musclesSecondary.isNotEmpty()) {
