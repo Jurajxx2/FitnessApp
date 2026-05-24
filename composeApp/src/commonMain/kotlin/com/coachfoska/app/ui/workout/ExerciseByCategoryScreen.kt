@@ -112,6 +112,7 @@ private fun ExerciseListItem(exercise: Exercise, onClick: () -> Unit) {
                 modifier = Modifier
                     .width(72.dp)
                     .height(64.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
             )
         }
         Row(
