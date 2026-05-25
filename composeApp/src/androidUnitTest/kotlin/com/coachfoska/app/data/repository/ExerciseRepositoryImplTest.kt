@@ -128,6 +128,77 @@ class ExerciseRepositoryImplTest {
         assertEquals(listOf("anterior deltoid"), exercise.musclesSecondary)
         assertEquals(listOf("barbell"), exercise.equipment)
     }
+
+    @Test
+    fun `getExercises with ids forwards ids to datasource`() = runTest {
+        val ids = listOf("ex-1", "ex-2")
+        coEvery { dataSource.getExercises(0, 25, null, null, null, false, ids) } returns listOf(anExerciseDto())
+
+        val result = repository.getExercises(offset = 0, limit = 25, ids = ids)
+
+        assertTrue(result.isSuccess)
+        coVerify { dataSource.getExercises(0, 25, null, null, null, false, ids) }
+    }
+
+    @Test
+    fun `getFavoriteIds returns set of ids from datasource`() = runTest {
+        coEvery { dataSource.getFavoriteIds("user-1") } returns listOf("ex-1", "ex-2")
+
+        val result = repository.getFavoriteIds("user-1")
+
+        assertTrue(result.isSuccess)
+        assertEquals(setOf("ex-1", "ex-2"), result.getOrNull())
+    }
+
+    @Test
+    fun `getFavoriteIds deduplicates via toSet`() = runTest {
+        coEvery { dataSource.getFavoriteIds("user-1") } returns listOf("ex-1", "ex-1")
+
+        val result = repository.getFavoriteIds("user-1")
+
+        assertTrue(result.isSuccess)
+        assertEquals(setOf("ex-1"), result.getOrNull())
+    }
+
+    @Test
+    fun `getFavoriteIds propagates exception`() = runTest {
+        coEvery { dataSource.getFavoriteIds(any()) } throws RuntimeException("network error")
+
+        val result = repository.getFavoriteIds("user-1")
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `setFavorite true calls addFavorite`() = runTest {
+        coEvery { dataSource.addFavorite("user-1", "ex-1") } returns Unit
+
+        val result = repository.setFavorite("user-1", "ex-1", true)
+
+        assertTrue(result.isSuccess)
+        coVerify { dataSource.addFavorite("user-1", "ex-1") }
+        coVerify(exactly = 0) { dataSource.removeFavorite(any(), any()) }
+    }
+
+    @Test
+    fun `setFavorite false calls removeFavorite`() = runTest {
+        coEvery { dataSource.removeFavorite("user-1", "ex-1") } returns Unit
+
+        val result = repository.setFavorite("user-1", "ex-1", false)
+
+        assertTrue(result.isSuccess)
+        coVerify { dataSource.removeFavorite("user-1", "ex-1") }
+        coVerify(exactly = 0) { dataSource.addFavorite(any(), any()) }
+    }
+
+    @Test
+    fun `setFavorite propagates exception`() = runTest {
+        coEvery { dataSource.addFavorite(any(), any()) } throws RuntimeException("insert error")
+
+        val result = repository.setFavorite("user-1", "ex-1", true)
+
+        assertTrue(result.isFailure)
+    }
 }
 
 private fun anExerciseDto(
