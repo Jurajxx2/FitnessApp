@@ -88,6 +88,30 @@ class ExerciseRepositoryImplTest {
     }
 
     @Test
+    fun `getExercises maps DTOs to domain models`() = runTest {
+        val dto = anExerciseDto(id = "uuid-1", nameEn = "Bench Press")
+        coEvery { dataSource.getExercises(0, 25, null, null, null, false, null) } returns listOf(dto)
+
+        val result = repository.getExercises(offset = 0, limit = 25)
+
+        assertTrue(result.isSuccess)
+        val exercises = result.getOrThrow()
+        assertEquals(1, exercises.size)
+        assertEquals("uuid-1", exercises[0].id)
+        assertEquals("Bench Press", exercises[0].name)
+    }
+
+    @Test
+    fun `getExercises propagates exception`() = runTest {
+        coEvery { dataSource.getExercises(any(), any(), any(), any(), any(), any(), any()) } throws RuntimeException("DB error")
+
+        val result = repository.getExercises(offset = 0, limit = 25)
+
+        assertTrue(result.isFailure)
+        assertEquals("DB error", result.exceptionOrNull()?.message)
+    }
+
+    @Test
     fun `getExercisesByCategory maps muscles and equipment`() = runTest {
         val dto = anExerciseDto(
             primaryMuscles = listOf("chest", "triceps"),
