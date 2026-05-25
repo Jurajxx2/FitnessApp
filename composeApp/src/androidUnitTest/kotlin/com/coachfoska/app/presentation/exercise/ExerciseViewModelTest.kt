@@ -5,8 +5,9 @@ import com.coachfoska.app.domain.model.ExerciseCategory
 import com.coachfoska.app.domain.repository.ExerciseRepository
 import com.coachfoska.app.domain.usecase.exercise.GetExerciseByIdUseCase
 import com.coachfoska.app.domain.usecase.exercise.GetExerciseCategoriesUseCase
-import com.coachfoska.app.domain.usecase.exercise.GetExercisesByCategoryUseCase
-import com.coachfoska.app.domain.usecase.exercise.SearchExercisesUseCase
+import com.coachfoska.app.domain.usecase.exercise.GetExercisesUseCase
+import com.coachfoska.app.domain.usecase.exercise.GetFavoriteExerciseIdsUseCase
+import com.coachfoska.app.domain.usecase.exercise.ToggleFavoriteExerciseUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -25,105 +26,107 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private const val TEST_USER = "user-test"
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class ExerciseViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val repo: ExerciseRepository = mockk()
 
-    private fun viewModel() = ExerciseViewModel(
-        searchExercisesUseCase = SearchExercisesUseCase(repo),
-        getExerciseByIdUseCase = GetExerciseByIdUseCase(repo),
-        getExerciseCategoriesUseCase = GetExerciseCategoriesUseCase(repo),
-        getExercisesByCategoryUseCase = GetExercisesByCategoryUseCase(repo)
-    )
+    private fun viewModel(
+        initialExercises: Result<List<Exercise>> = Result.success(emptyList()),
+        categoriesResult: Result<List<ExerciseCategory>> = Result.success(emptyList()),
+        favoritesResult: Result<Set<String>> = Result.success(emptySet())
+    ): ExerciseViewModel {
+        coEvery { repo.getCategories() } returns categoriesResult
+        coEvery { repo.getExercises(any(), any(), any(), any(), any(), any(), any()) } returns initialExercises
+        coEvery { repo.getFavoriteIds(TEST_USER) } returns favoritesResult
+        return ExerciseViewModel(
+            getExercisesUseCase = GetExercisesUseCase(repo),
+            getExerciseByIdUseCase = GetExerciseByIdUseCase(repo),
+            getExerciseCategoriesUseCase = GetExerciseCategoriesUseCase(repo),
+            getFavoriteExerciseIdsUseCase = GetFavoriteExerciseIdsUseCase(repo),
+            toggleFavoriteExerciseUseCase = ToggleFavoriteExerciseUseCase(repo),
+            userId = TEST_USER
+        )
+    }
 
     @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `initial state is empty`() {
-        val vm = viewModel()
-        assertEquals("", vm.state.value.searchQuery)
-        assertTrue(vm.state.value.searchResults.isEmpty())
-        assertNull(vm.state.value.selectedExercise)
-        assertNull(vm.state.value.error)
+    fun `initial state loads exercises from repo`() = runTest {
+        val exercises = listOf(anExercise())
+        val vm = viewModel(initialExercises = Result.success(exercises))
+
+        assertEquals(exercises, vm.state.value.exercises)
+        assertFalse(vm.state.value.isLoadingExercises)
     }
 
     @Test
-    fun `Search success populates searchResults`() = runTest {
-        val exercises = listOf(anExercise())
-        coEvery { repo.searchExercises("bench") } returns Result.success(exercises)
+    fun `initial state loads favorites from repo`() = runTest {
+        val vm = viewModel(favoritesResult = Result.success(setOf("ex-1", "ex-2")))
+
+        assertEquals(setOf("ex-1", "ex-2"), vm.state.value.favoriteIds)
+    }
+
+    @Test
+    fun `SearchQueryChanged reloads with new query`() = runTest {
+        val filtered = listOf(anExercise())
         val vm = viewModel()
+        coEvery { repo.getExercises(0, 25, null, "bench", null, false, null) } returns Result.success(filtered)
+
         vm.onIntent(ExerciseIntent.SearchQueryChanged("bench"))
 
-        vm.onIntent(ExerciseIntent.Search)
-
-        assertEquals(1, vm.state.value.searchResults.size)
-        assertEquals("ex-1", vm.state.value.searchResults[0].id)
-        assertFalse(vm.state.value.isSearching)
-        assertNull(vm.state.value.error)
+        assertEquals(filtered, vm.state.value.exercises)
+        assertEquals("bench", vm.state.value.searchQuery)
     }
 
     @Test
-    fun `Search failure sets error`() = runTest {
-        coEvery { repo.searchExercises(any()) } returns Result.failure(RuntimeException("Search failed"))
+    fun `SelectCategoryFilter toggles category off when same id tapped again`() = runTest {
         val vm = viewModel()
-        vm.onIntent(ExerciseIntent.SearchQueryChanged("bench"))
 
-        vm.onIntent(ExerciseIntent.Search)
+        vm.onIntent(ExerciseIntent.SelectCategoryFilter(1))
+        assertEquals(1, vm.state.value.selectedCategoryId)
 
-        assertEquals("Search failed", vm.state.value.error)
-        assertFalse(vm.state.value.isSearching)
-        assertTrue(vm.state.value.searchResults.isEmpty())
+        vm.onIntent(ExerciseIntent.SelectCategoryFilter(1))
+        assertNull(vm.state.value.selectedCategoryId)
     }
 
     @Test
-    fun `Search with blank query returns empty results without calling repository`() = runTest {
+    fun `SelectDifficultyFilter toggles difficulty off when same value tapped again`() = runTest {
         val vm = viewModel()
 
-        vm.onIntent(ExerciseIntent.Search)
+        vm.onIntent(ExerciseIntent.SelectDifficultyFilter("Beginner"))
+        assertEquals("Beginner", vm.state.value.selectedDifficulty)
 
-        assertTrue(vm.state.value.searchResults.isEmpty())
-        assertFalse(vm.state.value.isSearching)
-        coVerify(exactly = 0) { repo.searchExercises(any()) }
+        vm.onIntent(ExerciseIntent.SelectDifficultyFilter("Beginner"))
+        assertNull(vm.state.value.selectedDifficulty)
     }
 
     @Test
-    fun `LoadCategories success populates categories list`() = runTest {
-        val cats = listOf(ExerciseCategory(1, "Chest"), ExerciseCategory(2, "Back"))
-        coEvery { repo.getCategories() } returns Result.success(cats)
+    fun `SelectSortOrder updates sort order in state`() = runTest {
         val vm = viewModel()
 
-        vm.onIntent(ExerciseIntent.LoadCategories)
+        vm.onIntent(ExerciseIntent.SelectSortOrder(ExerciseSortOrder.NAME_DESC))
 
-        assertEquals(2, vm.state.value.categories.size)
-        assertFalse(vm.state.value.isCategoriesLoading)
+        assertEquals(ExerciseSortOrder.NAME_DESC, vm.state.value.sortOrder)
     }
 
     @Test
-    fun `LoadCategories skips network call when categories already loaded`() = runTest {
-        val cats = listOf(ExerciseCategory(1, "Chest"))
-        coEvery { repo.getCategories() } returns Result.success(cats)
-        val vm = viewModel()
-        vm.onIntent(ExerciseIntent.LoadCategories)
+    fun `LoadMoreExercises appends results and clears hasMore when page not full`() = runTest {
+        val page1 = List(25) { anExercise(id = "ex-$it") }
+        val page2 = listOf(anExercise(id = "ex-25"))
+        val vm = viewModel(initialExercises = Result.success(page1))
+        assertEquals(25, vm.state.value.exercises.size)
+        assertTrue(vm.state.value.hasMore)
+        coEvery { repo.getExercises(25, 25, null, null, null, false, null) } returns Result.success(page2)
 
-        vm.onIntent(ExerciseIntent.LoadCategories) // second call
+        vm.onIntent(ExerciseIntent.LoadMoreExercises)
 
-        coVerify(exactly = 1) { repo.getCategories() }
-    }
-
-    @Test
-    fun `LoadExercisesByCategory success populates categoryExercises`() = runTest {
-        val exercises = listOf(anExercise())
-        coEvery { repo.getExercisesByCategory(1) } returns Result.success(exercises)
-        val vm = viewModel()
-
-        vm.onIntent(ExerciseIntent.LoadExercisesByCategory(1))
-
-        assertEquals(1, vm.state.value.categoryExercises.size)
-        assertEquals("ex-1", vm.state.value.categoryExercises[0].id)
-        assertFalse(vm.state.value.isCategoryExercisesLoading)
+        assertEquals(26, vm.state.value.exercises.size)
+        assertFalse(vm.state.value.hasMore)
     }
 
     @Test
@@ -139,7 +142,7 @@ class ExerciseViewModelTest {
     }
 
     @Test
-    fun `ClearSelection sets selectedExercise to null`() = runTest {
+    fun `ClearSelection nulls selectedExercise`() = runTest {
         val exercise = anExercise()
         coEvery { repo.getExerciseById("ex-1") } returns Result.success(exercise)
         val vm = viewModel()
@@ -152,21 +155,62 @@ class ExerciseViewModelTest {
     }
 
     @Test
-    fun `DismissError clears error`() = runTest {
-        coEvery { repo.searchExercises(any()) } returns Result.failure(RuntimeException("err"))
-        val vm = viewModel()
-        vm.onIntent(ExerciseIntent.SearchQueryChanged("bench"))
-        vm.onIntent(ExerciseIntent.Search)
+    fun `DismissError clears error state`() = runTest {
+        val vm = viewModel(initialExercises = Result.failure(RuntimeException("err")))
         assertNotNull(vm.state.value.error)
 
         vm.onIntent(ExerciseIntent.DismissError)
 
         assertNull(vm.state.value.error)
     }
+
+    @Test
+    fun `ToggleFavorite adds exercise to favoriteIds optimistically`() = runTest {
+        val vm = viewModel(favoritesResult = Result.success(emptySet()))
+        coEvery { repo.setFavorite(TEST_USER, "ex-1", true) } returns Result.success(Unit)
+
+        vm.onIntent(ExerciseIntent.ToggleFavorite("ex-1"))
+
+        assertTrue("ex-1" in vm.state.value.favoriteIds)
+        coVerify { repo.setFavorite(TEST_USER, "ex-1", true) }
+    }
+
+    @Test
+    fun `ToggleFavorite removes exercise from favoriteIds optimistically`() = runTest {
+        val vm = viewModel(favoritesResult = Result.success(setOf("ex-1")))
+        coEvery { repo.setFavorite(TEST_USER, "ex-1", false) } returns Result.success(Unit)
+
+        vm.onIntent(ExerciseIntent.ToggleFavorite("ex-1"))
+
+        assertFalse("ex-1" in vm.state.value.favoriteIds)
+        coVerify { repo.setFavorite(TEST_USER, "ex-1", false) }
+    }
+
+    @Test
+    fun `ToggleFavoritesFilter flips showOnlyFavorites`() = runTest {
+        val vm = viewModel()
+        assertFalse(vm.state.value.showOnlyFavorites)
+
+        vm.onIntent(ExerciseIntent.ToggleFavoritesFilter)
+
+        assertTrue(vm.state.value.showOnlyFavorites)
+    }
+
+    @Test
+    fun `ToggleFavoritesFilter with empty favorites shows empty list without network call`() = runTest {
+        val vm = viewModel(favoritesResult = Result.success(emptySet()))
+
+        vm.onIntent(ExerciseIntent.ToggleFavoritesFilter)
+
+        assertTrue(vm.state.value.exercises.isEmpty())
+        assertFalse(vm.state.value.hasMore)
+        // repo.getExercises should only have been called once (initial load), not again
+        coVerify(exactly = 1) { repo.getExercises(any(), any(), any(), any(), any(), any(), null) }
+    }
 }
 
-private fun anExercise() = Exercise(
-    id = "ex-1",
+private fun anExercise(id: String = "ex-1") = Exercise(
+    id = id,
     name = "Bench Press",
     description = "Chest compound exercise",
     category = ExerciseCategory(1, "Chest"),
@@ -174,6 +218,7 @@ private fun anExercise() = Exercise(
     musclesSecondary = emptyList(),
     equipment = listOf("Barbell"),
     imageUrl = null,
+    imageUrl2 = null,
     videoUrl = null,
     difficulty = null
 )
