@@ -9,12 +9,7 @@ import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.Serializable
 
 private const val EXERCISE_COLUMNS = "*, exercise_categories(id, name)"
-
-@Serializable
-private data class FavoriteInsertDto(
-    val user_id: String,
-    val exercise_id: String
-)
+private const val FAVORITES_TABLE = "exercise_favorites"
 
 class ExerciseSupabaseDataSource(private val supabase: SupabaseClient) {
 
@@ -78,7 +73,7 @@ class ExerciseSupabaseDataSource(private val supabase: SupabaseClient) {
                         }
                     }
                     if (difficulty != null) eq("difficulty", difficulty)
-                    if (ids != null) isIn("id", ids)
+                    if (!ids.isNullOrEmpty()) isIn("id", ids)
                 }
                 order("name_en", if (sortDescending) Order.DESCENDING else Order.ASCENDING)
                 range(offset.toLong(), (offset + limit - 1).toLong())
@@ -86,7 +81,7 @@ class ExerciseSupabaseDataSource(private val supabase: SupabaseClient) {
             .decodeList()
 
     suspend fun getFavoriteIds(userId: String): List<String> =
-        supabase.postgrest["exercise_favorites"]
+        supabase.postgrest[FAVORITES_TABLE]
             .select(columns = Columns.raw("exercise_id")) {
                 filter { eq("user_id", userId) }
             }
@@ -94,12 +89,12 @@ class ExerciseSupabaseDataSource(private val supabase: SupabaseClient) {
             .map { it.exercise_id }
 
     suspend fun addFavorite(userId: String, exerciseId: String) {
-        supabase.postgrest["exercise_favorites"]
-            .insert(FavoriteInsertDto(user_id = userId, exercise_id = exerciseId))
+        supabase.postgrest[FAVORITES_TABLE]
+            .upsert(FavoriteInsertDto(user_id = userId, exercise_id = exerciseId))
     }
 
     suspend fun removeFavorite(userId: String, exerciseId: String) {
-        supabase.postgrest["exercise_favorites"]
+        supabase.postgrest[FAVORITES_TABLE]
             .delete {
                 filter {
                     eq("user_id", userId)
@@ -111,3 +106,9 @@ class ExerciseSupabaseDataSource(private val supabase: SupabaseClient) {
 
 @Serializable
 private data class FavoriteRow(val exercise_id: String)
+
+@Serializable
+private data class FavoriteInsertDto(
+    val user_id: String,
+    val exercise_id: String
+)
