@@ -1,0 +1,2 @@
+-- supabase/migrations/20260526000001_drop_exercise_favorites_redundant_idx.sql
+DROP INDEX IF EXISTS idx_exercise_favorites_user;

@@ -13,5 +13,3 @@ CREATE POLICY "Users manage own exercise favorites"
     ON exercise_favorites FOR ALL
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
-
-CREATE INDEX idx_exercise_favorites_user ON exercise_favorites(user_id);
