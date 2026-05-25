@@ -33,8 +33,9 @@ import com.coachfoska.app.domain.usecase.auth.SignOutUseCase
 import com.coachfoska.app.domain.usecase.auth.VerifyOtpUseCase
 import com.coachfoska.app.domain.usecase.exercise.GetExerciseByIdUseCase
 import com.coachfoska.app.domain.usecase.exercise.GetExerciseCategoriesUseCase
-import com.coachfoska.app.domain.usecase.exercise.GetExercisesByCategoryUseCase
-import com.coachfoska.app.domain.usecase.exercise.SearchExercisesUseCase
+import com.coachfoska.app.domain.usecase.exercise.GetExercisesUseCase
+import com.coachfoska.app.domain.usecase.exercise.GetFavoriteExerciseIdsUseCase
+import com.coachfoska.app.domain.usecase.exercise.ToggleFavoriteExerciseUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.recipe.ScaleRecipeUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
@@ -183,10 +184,11 @@ val useCaseModule = module {
     factory { GetAppLinksUseCase(get()) }
 
     // Exercise
-    factory { SearchExercisesUseCase(get()) }
+    factory { GetExercisesUseCase(get()) }
     factory { GetExerciseByIdUseCase(get()) }
     factory { GetExerciseCategoriesUseCase(get()) }
-    factory { GetExercisesByCategoryUseCase(get()) }
+    factory { GetFavoriteExerciseIdsUseCase(get()) }
+    factory { ToggleFavoriteExerciseUseCase(get()) }
 }
 
 val viewModelModule = module {
@@ -200,7 +202,7 @@ val viewModelModule = module {
     viewModel { (recipeId: String) -> RecipeDetailViewModel(get(), get(), recipeId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
-    viewModelOf(::ExerciseViewModel)
+    viewModel { (userId: String) -> ExerciseViewModel(get(), get(), get(), get(), get(), userId) }
 }
 
 val chatModule = module {
