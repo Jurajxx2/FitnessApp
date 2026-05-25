@@ -44,7 +44,6 @@ import com.coachfoska.app.ui.profile.ProfileRoute
 import com.coachfoska.app.ui.profile.ProgressRoute
 import com.coachfoska.app.ui.profile.SettingsRoute
 import com.coachfoska.app.ui.splash.SplashRoute
-import com.coachfoska.app.ui.workout.ExerciseByCategoryRoute
 import com.coachfoska.app.ui.workout.ExerciseDetailRoute
 import com.coachfoska.app.domain.model.ActivityType
 import com.coachfoska.app.navigation.ActivityTypeSelector
@@ -283,17 +282,8 @@ fun App(openHumanChat: Boolean = false) {
                 composable<ExerciseDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<ExerciseDetail>()
                     ExerciseDetailRoute(
+                        userId = currentUserId,
                         exerciseId = route.exerciseId,
-                        onBackClick = { navController.popBackStack() }
-                    )
-                }
-
-                composable<ExercisesByCategory> { backStackEntry ->
-                    val route = backStackEntry.toRoute<ExercisesByCategory>()
-                    ExerciseByCategoryRoute(
-                        categoryId = route.categoryId,
-                        categoryName = route.categoryName,
-                        onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
                         onBackClick = { navController.popBackStack() }
                     )
                 }
@@ -353,9 +343,8 @@ fun App(openHumanChat: Boolean = false) {
 
                 composable<ExerciseLibrary> {
                     ExerciseLibraryRoute(
-                        onCategoryClick = { categoryId, categoryName ->
-                            navController.navigate(ExercisesByCategory(categoryId, categoryName))
-                        },
+                        userId = currentUserId,
+                        onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
                         onBackClick = { navController.popBackStack() }
                     )
                 }
