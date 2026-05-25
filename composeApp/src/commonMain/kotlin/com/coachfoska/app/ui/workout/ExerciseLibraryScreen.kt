@@ -256,6 +256,7 @@ private fun ExerciseListItem(
                 modifier = Modifier
                     .width(72.dp)
                     .height(64.dp)
+                    .clip(RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
             )
         }
