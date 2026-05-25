@@ -3,6 +3,8 @@ package com.coachfoska.app.domain.usecase.exercise
 import com.coachfoska.app.domain.model.Exercise
 import com.coachfoska.app.domain.model.ExerciseCategory
 import com.coachfoska.app.domain.repository.ExerciseRepository
+import com.coachfoska.app.domain.usecase.exercise.GetFavoriteExerciseIdsUseCase
+import com.coachfoska.app.domain.usecase.exercise.ToggleFavoriteExerciseUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -37,47 +39,6 @@ class GetExerciseByIdUseCaseTest {
     }
 }
 
-class GetExercisesByCategoryUseCaseTest {
-    private val repo = mockk<ExerciseRepository>()
-    private val useCase = GetExercisesByCategoryUseCase(repo)
-
-    @Test
-    fun `delegates to repo with category id`() = runTest {
-        val exercises = listOf(anExercise(), anExercise(id = "uuid-2"))
-        coEvery { repo.getExercisesByCategory(3) } returns Result.success(exercises)
-
-        val result = useCase(3)
-
-        assertTrue(result.isSuccess)
-        assertEquals(2, result.getOrThrow().size)
-        coVerify { repo.getExercisesByCategory(3) }
-    }
-}
-
-class SearchExercisesUseCaseTest {
-    private val repo = mockk<ExerciseRepository>()
-    private val useCase = SearchExercisesUseCase(repo)
-
-    @Test
-    fun `blank query returns empty without calling repo`() = runTest {
-        val result = useCase("   ")
-
-        assertTrue(result.isSuccess)
-        assertEquals(emptyList(), result.getOrNull())
-        coVerify(exactly = 0) { repo.searchExercises(any()) }
-    }
-
-    @Test
-    fun `non-blank query delegates trimmed query to repo`() = runTest {
-        coEvery { repo.searchExercises("bench") } returns Result.success(listOf(anExercise()))
-
-        val result = useCase("  bench  ")
-
-        assertTrue(result.isSuccess)
-        coVerify { repo.searchExercises("bench") }
-    }
-}
-
 class GetExerciseCategoriesUseCaseTest {
     private val repo = mockk<ExerciseRepository>()
     private val useCase = GetExerciseCategoriesUseCase(repo)
@@ -94,8 +55,93 @@ class GetExerciseCategoriesUseCaseTest {
     }
 }
 
+class GetExercisesUseCaseTest {
+    private val repo = mockk<ExerciseRepository>()
+    private val useCase = GetExercisesUseCase(repo)
+
+    @Test
+    fun `delegates to repo with correct parameters`() = runTest {
+        val exercises = listOf(anExercise())
+        coEvery { repo.getExercises(0, 25, 1, "bench", "Beginner", false) } returns Result.success(exercises)
+
+        val result = useCase(offset = 0, categoryId = 1, query = "bench", difficulty = "Beginner")
+
+        assertTrue(result.isSuccess)
+        assertEquals(exercises, result.getOrNull())
+        coVerify { repo.getExercises(0, 25, 1, "bench", "Beginner", false) }
+    }
+
+    @Test
+    fun `delegates with default parameters`() = runTest {
+        coEvery { repo.getExercises(0, 25, null, null, null, false) } returns Result.success(emptyList())
+
+        val result = useCase(offset = 0)
+
+        assertTrue(result.isSuccess)
+        coVerify { repo.getExercises(0, 25, null, null, null, false) }
+    }
+
+    @Test
+    fun `propagates repo failure`() = runTest {
+        coEvery { repo.getExercises(any(), any(), any(), any(), any(), any()) } returns Result.failure(RuntimeException("error"))
+
+        val result = useCase(offset = 0)
+
+        assertTrue(result.isFailure)
+    }
+}
+
+class GetFavoriteExerciseIdsUseCaseTest {
+    private val repo = mockk<ExerciseRepository>()
+    private val useCase = GetFavoriteExerciseIdsUseCase(repo)
+
+    @Test
+    fun `returns set of favorite ids from repo`() = runTest {
+        coEvery { repo.getFavoriteIds("user-1") } returns Result.success(setOf("ex-1", "ex-2"))
+
+        val result = useCase("user-1")
+
+        assertTrue(result.isSuccess)
+        assertEquals(setOf("ex-1", "ex-2"), result.getOrNull())
+    }
+
+    @Test
+    fun `propagates repo failure`() = runTest {
+        coEvery { repo.getFavoriteIds(any()) } returns Result.failure(RuntimeException("error"))
+
+        val result = useCase("user-1")
+
+        assertTrue(result.isFailure)
+    }
+}
+
+class ToggleFavoriteExerciseUseCaseTest {
+    private val repo = mockk<ExerciseRepository>()
+    private val useCase = ToggleFavoriteExerciseUseCase(repo)
+
+    @Test
+    fun `calls setFavorite with isFavorite=true`() = runTest {
+        coEvery { repo.setFavorite("user-1", "ex-1", true) } returns Result.success(Unit)
+
+        val result = useCase("user-1", "ex-1", true)
+
+        assertTrue(result.isSuccess)
+        coVerify { repo.setFavorite("user-1", "ex-1", true) }
+    }
+
+    @Test
+    fun `calls setFavorite with isFavorite=false`() = runTest {
+        coEvery { repo.setFavorite("user-1", "ex-1", false) } returns Result.success(Unit)
+
+        val result = useCase("user-1", "ex-1", false)
+
+        assertTrue(result.isSuccess)
+        coVerify { repo.setFavorite("user-1", "ex-1", false) }
+    }
+}
+
 private fun anExercise(id: String = "uuid-1") = Exercise(
     id = id, name = "Bench Press", description = "", category = null,
-    muscles = emptyList<String>(), musclesSecondary = emptyList<String>(), equipment = emptyList<String>(),
-    imageUrl = null, videoUrl = null, difficulty = null
+    muscles = emptyList(), musclesSecondary = emptyList(), equipment = emptyList(),
+    imageUrl = null, imageUrl2 = null, videoUrl = null, difficulty = null
 )
