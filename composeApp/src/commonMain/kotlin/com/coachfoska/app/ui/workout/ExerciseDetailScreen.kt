@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,12 +21,14 @@ import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
 fun ExerciseDetailRoute(
+    userId: String,
     exerciseId: String,
     onBackClick: () -> Unit,
-    viewModel: ExerciseViewModel = koinViewModel()
+    viewModel: ExerciseViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -31,16 +36,37 @@ fun ExerciseDetailRoute(
         viewModel.onIntent(ExerciseIntent.SelectExercise(exerciseId))
     }
 
-    ExerciseDetailScreen(state = state, onBackClick = onBackClick)
+    ExerciseDetailScreen(
+        state = state,
+        onBackClick = onBackClick,
+        onToggleFavorite = { viewModel.onIntent(ExerciseIntent.ToggleFavorite(exerciseId)) }
+    )
 }
 
 @Composable
 fun ExerciseDetailScreen(
     state: ExerciseState,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onToggleFavorite: () -> Unit = {}
 ) {
+    val isFavorite = state.selectedExercise?.id?.let { it in state.favoriteIds } ?: false
+
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "EXERCISE", onBackClick = onBackClick)
+        CoachTopBar(
+            title = "EXERCISE",
+            onBackClick = onBackClick,
+            actions = {
+                if (state.selectedExercise != null) {
+                    IconButton(onClick = onToggleFavorite) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+        )
         if (state.isLoadingDetail) {
             CoachLoadingBox(Modifier.weight(1f))
         } else {
@@ -115,7 +141,7 @@ fun ExerciseDetailScreen(
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(32.dp))
                 }
             } ?: state.error?.let {
