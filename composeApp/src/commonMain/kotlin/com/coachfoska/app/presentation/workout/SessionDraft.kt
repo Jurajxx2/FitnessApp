@@ -15,6 +15,8 @@ data class ExerciseDraft(
     val exerciseName: String,
     val sets: List<SetDraft>,
     val videoUrl: String? = null,
+    val muscleGroup: String? = null,
+    val tips: String? = null,
     val initialSetsGoal: Int = 3,
     val initialRepsGoal: String = "10"
 )
@@ -44,13 +46,16 @@ fun WorkoutExercise.toDraft(): ExerciseDraft {
         exerciseName = name,
         initialSetsGoal = sets,
         initialRepsGoal = reps,
+        videoUrl = videoUrl,
+        muscleGroup = muscleGroup,
+        tips = tips,
         sets = (1..sets).map { order ->
             SetDraft(
                 sortOrder = order,
                 targetReps = repsGoal,
-                actualReps = null, // Fix: start null per plan
+                actualReps = null,
                 targetWeightKg = null,
-                actualWeightKg = null, // Fix: start null per plan
+                actualWeightKg = null,
                 rpe = null,
                 targetRestSeconds = restSeconds,
                 actualRestSeconds = null
