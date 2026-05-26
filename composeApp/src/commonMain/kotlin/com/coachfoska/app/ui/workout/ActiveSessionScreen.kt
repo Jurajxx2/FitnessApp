@@ -4,23 +4,33 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,6 +39,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +60,7 @@ import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -94,11 +106,46 @@ fun ActiveSessionScreen(
 ) {
     val draft = state.sessionDraft
     var notes by remember { mutableStateOf("") }
+    var menuExpanded by remember { mutableStateOf(false) }
+    val pagerState = rememberPagerState(pageCount = { draft?.exercises?.size ?: 0 })
+    val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CoachTopBar(
             title = draft?.workoutName?.uppercase() ?: "WORKOUT",
             onBackClick = onBackClick,
+            actions = {
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        val exerciseCount = draft?.exercises?.size ?: 1
+                        val isLastExercise = pagerState.currentPage == exerciseCount - 1
+                        if (!isLastExercise) {
+                            DropdownMenuItem(
+                                text = { Text("Skip exercise") },
+                                onClick = {
+                                    menuExpanded = false
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                    }
+                                },
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("Finish workout") },
+                            onClick = {
+                                menuExpanded = false
+                                onSubmit(notes.takeIf { it.isNotBlank() })
+                            },
+                        )
+                    }
+                }
+            },
         )
 
         if (draft == null || state.isLoading) {
@@ -108,112 +155,208 @@ fun ActiveSessionScreen(
             return@Column
         }
 
-        LazyColumn(
+        HorizontalPager(
+            state = pagerState,
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) { pageIndex ->
+            ExercisePage(
+                exerciseIndex = pageIndex,
+                draft = draft.exercises[pageIndex],
+                isLastExercise = pageIndex == draft.exercises.lastIndex,
+                notes = notes,
+                onNotesChange = { notes = it },
+                onIntent = onIntent,
+            )
+        }
+
+        ExerciseDotIndicator(
+            exercises = draft.exercises,
+            currentPage = pagerState.currentPage,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        )
+
+        val isLastPage = pagerState.currentPage == draft.exercises.lastIndex
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            itemsIndexed(draft.exercises) { exerciseIndex, exerciseDraft ->
-                ExerciseDraftCard(
-                    exerciseIndex = exerciseIndex,
-                    draft = exerciseDraft,
-                    onIntent = onIntent,
-                )
+            if (pagerState.currentPage > 0) {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                        }
+                    },
+                ) {
+                    Text("< PREV")
+                }
+            } else {
+                Spacer(Modifier.width(1.dp))
             }
-            item {
-                CoachTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = "Notes (optional)",
-                    singleLine = false,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp),
+            if (isLastPage) {
+                CoachButton(
+                    text = "FINISH WORKOUT",
+                    onClick = { onSubmit(notes.takeIf { it.isNotBlank() }) },
+                    isLoading = state.isLogging,
+                )
+            } else {
+                CoachButton(
+                    text = "NEXT >",
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                        }
+                    },
                 )
             }
         }
-
-        CoachButton(
-            text = "FINISH WORKOUT",
-            onClick = { onSubmit(notes.takeIf { it.isNotBlank() }) },
-            isLoading = state.isLogging,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-        )
     }
 }
 
 @Composable
-private fun ExerciseDraftCard(
+private fun ExercisePage(
     exerciseIndex: Int,
     draft: ExerciseDraft,
+    isLastExercise: Boolean,
+    notes: String,
+    onNotesChange: (String) -> Unit,
     onIntent: (WorkoutIntent) -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth(),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = draft.exerciseName.uppercase(),
-                style = MaterialTheme.typography.titleMedium,
+        ExerciseAnimatedImage(
+            startUrl = draft.videoUrl,
+            endUrl = null,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        draft.muscleGroup?.let { group ->
+            SuggestionChip(
+                onClick = {},
+                label = { Text(group) },
             )
+        }
+
+        Text(
+            text = draft.exerciseName.uppercase(),
+            style = MaterialTheme.typography.titleLarge,
+        )
+
+        Text(
+            text = "${draft.initialSetsGoal} × ${draft.initialRepsGoal}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        draft.tips?.let { tips ->
             Text(
-                text = "Target: ${draft.initialSetsGoal} x ${draft.initialRepsGoal}",
+                text = tips,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(8.dp))
+        }
 
-            draft.sets.forEachIndexed { setIndex, set ->
-                SetInputRow(
-                    setDraft = set,
-                    onActualReps = { reps ->
-                        onIntent(
-                            WorkoutIntent.UpdateSetActual(
-                                exerciseIndex = exerciseIndex,
-                                setIndex = setIndex,
-                                reps = reps,
-                                weight = set.actualWeightKg,
-                                rpe = set.rpe,
-                            )
-                        )
-                    },
-                    onActualWeight = { weight ->
-                        onIntent(
-                            WorkoutIntent.UpdateSetActual(
-                                exerciseIndex = exerciseIndex,
-                                setIndex = setIndex,
-                                reps = set.actualReps,
-                                weight = weight,
-                                rpe = set.rpe,
-                            )
-                        )
-                    },
-                    onRpe = { rpe ->
-                        onIntent(
-                            WorkoutIntent.UpdateSetActual(
-                                exerciseIndex = exerciseIndex,
-                                setIndex = setIndex,
-                                reps = set.actualReps,
-                                weight = set.actualWeightKg,
-                                rpe = rpe,
-                            )
-                        )
-                    },
-                    onCompleted = {
-                        onIntent(
-                            WorkoutIntent.MarkSetComplete(
-                                exerciseIndex = exerciseIndex,
-                                setIndex = setIndex,
-                                completed = !set.completed,
-                            )
-                        )
-                    },
-                )
-            }
+        HorizontalDivider()
 
-            TextButton(onClick = { onIntent(WorkoutIntent.AddExtraSet(exerciseIndex)) }) {
-                Text("+ ADD SET")
+        draft.sets.forEachIndexed { setIndex, set ->
+            SetInputRow(
+                setDraft = set,
+                onActualReps = { reps ->
+                    onIntent(
+                        WorkoutIntent.UpdateSetActual(
+                            exerciseIndex = exerciseIndex,
+                            setIndex = setIndex,
+                            reps = reps,
+                            weight = set.actualWeightKg,
+                            rpe = set.rpe,
+                        )
+                    )
+                },
+                onActualWeight = { weight ->
+                    onIntent(
+                        WorkoutIntent.UpdateSetActual(
+                            exerciseIndex = exerciseIndex,
+                            setIndex = setIndex,
+                            reps = set.actualReps,
+                            weight = weight,
+                            rpe = set.rpe,
+                        )
+                    )
+                },
+                onRpe = { rpe ->
+                    onIntent(
+                        WorkoutIntent.UpdateSetActual(
+                            exerciseIndex = exerciseIndex,
+                            setIndex = setIndex,
+                            reps = set.actualReps,
+                            weight = set.actualWeightKg,
+                            rpe = rpe,
+                        )
+                    )
+                },
+                onCompleted = {
+                    onIntent(
+                        WorkoutIntent.MarkSetComplete(
+                            exerciseIndex = exerciseIndex,
+                            setIndex = setIndex,
+                            completed = !set.completed,
+                        )
+                    )
+                },
+            )
+        }
+
+        TextButton(onClick = { onIntent(WorkoutIntent.AddExtraSet(exerciseIndex)) }) {
+            Text("+ ADD SET")
+        }
+
+        if (isLastExercise) {
+            CoachTextField(
+                value = notes,
+                onValueChange = onNotesChange,
+                label = "Notes (optional)",
+                singleLine = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 96.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExerciseDotIndicator(
+    exercises: List<ExerciseDraft>,
+    currentPage: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        exercises.forEachIndexed { index, exercise ->
+            val isCompleted = exercise.sets.all { it.completed }
+            val isCurrent = index == currentPage
+            val dotSize = if (isCurrent) 10.dp else 8.dp
+            val color = when {
+                isCompleted || isCurrent -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
             }
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 3.dp)
+                    .size(dotSize)
+                    .background(color, CircleShape),
+            )
         }
     }
 }
@@ -266,6 +409,8 @@ internal fun SetInputRow(
         Checkbox(checked = setDraft.completed, onCheckedChange = { onCompleted() })
     }
 }
+
+// ── Previews ──────────────────────────────────────────────────────────────────
 
 @Preview
 @Composable
@@ -360,8 +505,21 @@ private fun previewSessionDraft(sets: List<SetDraft>): SessionDraft {
                 exerciseName = workout.exercises[0].name,
                 initialSetsGoal = workout.exercises[0].sets,
                 initialRepsGoal = workout.exercises[0].reps,
+                muscleGroup = workout.exercises[0].muscleGroup,
+                tips = workout.exercises[0].tips,
+                videoUrl = workout.exercises[0].videoUrl,
                 sets = sets,
-            )
+            ),
+            ExerciseDraft(
+                exerciseName = "Incline Dumbbell Press",
+                initialSetsGoal = 3,
+                initialRepsGoal = "12",
+                muscleGroup = "Chest",
+                tips = "Control the descent.",
+                sets = (1..3).map {
+                    SetDraft(it, 12, null, null, null, null, 60, null, false)
+                },
+            ),
         ),
     )
 }
@@ -380,7 +538,8 @@ private fun previewWorkout() = Workout(
             sets = 3,
             reps = "10",
             restSeconds = 60,
-            tips = null,
+            tips = "Keep elbows at 45°.",
+            videoUrl = null,
             sortOrder = 0,
         )
     ),
