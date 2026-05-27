@@ -12,6 +12,55 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+class GetFavoriteRecipeIdsUseCaseTest {
+    private val repo = mockk<MealRepository>()
+    private val useCase = GetFavoriteRecipeIdsUseCase(repo)
+
+    @Test
+    fun `returns set of favorite recipe ids from repo`() = runTest {
+        coEvery { repo.getFavoriteRecipeIds("user-1") } returns Result.success(setOf("r-1", "r-2"))
+
+        val result = useCase("user-1")
+
+        assertTrue(result.isSuccess)
+        assertEquals(setOf("r-1", "r-2"), result.getOrNull())
+    }
+
+    @Test
+    fun `propagates repo failure`() = runTest {
+        coEvery { repo.getFavoriteRecipeIds(any()) } returns Result.failure(RuntimeException("error"))
+
+        val result = useCase("user-1")
+
+        assertTrue(result.isFailure)
+    }
+}
+
+class ToggleFavoriteRecipeUseCaseTest {
+    private val repo = mockk<MealRepository>()
+    private val useCase = ToggleFavoriteRecipeUseCase(repo)
+
+    @Test
+    fun `calls setRecipeFavorite with isFavorite=true`() = runTest {
+        coEvery { repo.setRecipeFavorite("user-1", "r-1", true) } returns Result.success(Unit)
+
+        val result = useCase("user-1", "r-1", true)
+
+        assertTrue(result.isSuccess)
+        coVerify { repo.setRecipeFavorite("user-1", "r-1", true) }
+    }
+
+    @Test
+    fun `calls setRecipeFavorite with isFavorite=false`() = runTest {
+        coEvery { repo.setRecipeFavorite("user-1", "r-1", false) } returns Result.success(Unit)
+
+        val result = useCase("user-1", "r-1", false)
+
+        assertTrue(result.isSuccess)
+        coVerify { repo.setRecipeFavorite("user-1", "r-1", false) }
+    }
+}
+
 class NutritionUseCasesTest {
 
     private val repo: MealRepository = mockk()

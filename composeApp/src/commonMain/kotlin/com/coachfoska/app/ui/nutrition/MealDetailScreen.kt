@@ -18,7 +18,6 @@ import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
-import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -49,7 +48,7 @@ fun MealDetailScreen(
     onBackClick: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = state.selectedMeal?.name ?: "Meal", onBackClick = onBackClick)
+        CoachTopBar(title = "MEAL", onBackClick = onBackClick)
 
         when {
             state.selectedMeal != null -> MealContent(meal = state.selectedMeal)
@@ -68,33 +67,61 @@ fun MealDetailScreen(
 @Composable
 private fun MealContent(meal: Meal) {
     LazyColumn(
-        contentPadding = PaddingValues(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier.background(MaterialTheme.colorScheme.background),
+        contentPadding = PaddingValues(bottom = 40.dp),
     ) {
-        item { MacroRow(meal) }
-        item { CoachSectionHeader(text = "FOODS") }
-        items(meal.foods) { food ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        item("title") {
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = meal.name.uppercase(),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    letterSpacing = 0.5.sp,
+                )
+                meal.timeOfDay?.let {
                     Text(
-                        text = food.name,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = "${food.amountGrams.toInt()}g",
+                        text = it.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                        fontSize = 12.sp
+                        letterSpacing = 1.sp,
                     )
                 }
+            }
+        }
+
+        item("macros") { MacrosBand(meal) }
+
+        item("ingredients-header") {
+            Text(
+                text = "INGREDIENTS",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                letterSpacing = 1.5.sp,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            )
+        }
+
+        items(meal.foods, key = { "food-${it.id}" }) { food ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
-                    text = "${food.calories.toInt()} kcal",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    fontSize = 13.sp
+                    text = food.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "${food.amountGrams.toInt()}g",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                 )
             }
         }
@@ -102,16 +129,17 @@ private fun MealContent(meal: Meal) {
 }
 
 @Composable
-private fun MacroRow(meal: Meal) {
+private fun MacrosBand(meal: Meal) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
             .background(
                 MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
                 RoundedCornerShape(12.dp)
             )
             .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
+        horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
         MacroItem("${meal.totalCalories.toInt()}", "kcal")
         MacroItem("${meal.totalProtein.toInt()}g", "protein")
@@ -125,14 +153,14 @@ private fun MacroItem(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
         Text(
             text = label,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            fontSize = 12.sp
         )
     }
 }

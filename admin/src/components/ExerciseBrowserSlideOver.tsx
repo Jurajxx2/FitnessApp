@@ -12,7 +12,7 @@ interface ExerciseBrowserSlideOverProps {
   open: boolean
   onClose: () => void
   addedNames: string[]
-  onAdd: (name: string, muscleGroup: string) => void
+  onAdd: (name: string, muscleGroup: string, exerciseId: string) => void
 }
 
 function useCategories() {
@@ -116,7 +116,7 @@ export function ExerciseBrowserSlideOver({ open, onClose, addedNames, onAdd }: E
                 <button
                   type="button"
                   aria-label={`Add ${ex.name_en}`}
-                  onClick={() => onAdd(ex.name_en, ex.primary_muscles?.[0] ?? '')}
+                  onClick={() => onAdd(ex.name_en, ex.primary_muscles?.[0] ?? '', ex.id)}
                   className="text-lg text-[var(--primary,#7c6af7)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer flex-shrink-0 leading-none"
                 >
                   ＋

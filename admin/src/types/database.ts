@@ -38,6 +38,7 @@ export interface Workout {
 export interface WorkoutExercise {
   id: string
   workout_id: string
+  exercise_id: string | null
   name: string
   muscle_group: string | null
   sets: number
@@ -184,6 +185,7 @@ export interface Exercise {
   description_cs: string | null
   category_id: number | null
   image_url: string | null
+  image_url_2: string | null
   video_url: string | null
   difficulty: Difficulty | null
   force: string | null

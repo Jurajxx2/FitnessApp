@@ -45,7 +45,7 @@ function useProfiles() {
 type ExerciseDraft = Omit<WorkoutExercise, 'id' | 'workout_id' | 'created_at'>
 
 const blankExercise = (): ExerciseDraft => ({
-  name: '', muscle_group: '', sets: 3, reps: '10', rest_seconds: 60, tips: '', sort_order: 0,
+  exercise_id: null, name: '', muscle_group: '', sets: 3, reps: '10', rest_seconds: 60, tips: '', sort_order: 0,
 })
 
 interface WorkoutFormState {
@@ -84,8 +84,8 @@ export default function Workouts() {
       .eq('workout_id', w.id)
       .order('sort_order')
     setExercises(data?.map(e => ({
-      name: e.name, muscle_group: e.muscle_group ?? '', sets: e.sets, reps: e.reps,
-      rest_seconds: e.rest_seconds, tips: e.tips ?? '', sort_order: e.sort_order,
+      exercise_id: e.exercise_id ?? null, name: e.name, muscle_group: e.muscle_group ?? '',
+      sets: e.sets, reps: e.reps, rest_seconds: e.rest_seconds, tips: e.tips ?? '', sort_order: e.sort_order,
     })) ?? [blankExercise()])
 
     const { data: assignments } = await supabase
@@ -165,9 +165,9 @@ export default function Workouts() {
     setExercises(ex => ex.map((e, idx) => idx === i ? { ...e, [field]: value } : e))
   }
 
-  function updateExerciseName(i: number, name: string, muscleGroup: string) {
+  function updateExerciseName(i: number, name: string, muscleGroup: string, exerciseId: string) {
     setExercises(ex => ex.map((e, idx) =>
-      idx === i ? { ...e, name, ...(muscleGroup ? { muscle_group: muscleGroup } : {}) } : e
+      idx === i ? { ...e, name, exercise_id: exerciseId || null, ...(muscleGroup ? { muscle_group: muscleGroup } : {}) } : e
     ))
   }
 
@@ -268,7 +268,7 @@ export default function Workouts() {
                       <div className="flex-1">
                         <ExerciseCombobox
                           value={ex.name}
-                          onChange={(name, muscleGroup) => updateExerciseName(i, name, muscleGroup)}
+                          onChange={(name, muscleGroup, exerciseId) => updateExerciseName(i, name, muscleGroup, exerciseId)}
                         />
                       </div>
                       <button
@@ -308,8 +308,8 @@ export default function Workouts() {
         open={slideOverOpen}
         onClose={() => setSlideOverOpen(false)}
         addedNames={exercises.map(e => e.name)}
-        onAdd={(name, muscleGroup) =>
-          setExercises(ex => [...ex, { ...blankExercise(), name, muscle_group: muscleGroup, sort_order: ex.length }])
+        onAdd={(name, muscleGroup, exerciseId) =>
+          setExercises(ex => [...ex, { ...blankExercise(), exercise_id: exerciseId || null, name, muscle_group: muscleGroup, sort_order: ex.length }])
         }
       />
 

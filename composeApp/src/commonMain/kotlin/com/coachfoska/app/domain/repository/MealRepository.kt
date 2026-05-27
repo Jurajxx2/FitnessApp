@@ -38,4 +38,10 @@ interface MealRepository {
         userId: String,
         date: LocalDate
     ): Result<DailyNutritionSummary>
+
+    /** Returns the set of recipe IDs the user has favorited. */
+    suspend fun getFavoriteRecipeIds(userId: String): Result<Set<String>>
+
+    /** Adds or removes a recipe from the user's favorites. */
+    suspend fun setRecipeFavorite(userId: String, recipeId: String, isFavorite: Boolean): Result<Unit>
 }

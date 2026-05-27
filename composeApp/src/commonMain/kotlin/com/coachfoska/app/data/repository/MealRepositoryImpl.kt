@@ -78,4 +78,13 @@ class MealRepositoryImpl(
             fatG = logs.sumOf { it.totalFat.toDouble() }.toFloat()
         )
     }
+
+    override suspend fun getFavoriteRecipeIds(userId: String): Result<Set<String>> = runCatching {
+        mealDataSource.getFavoriteRecipeIds(userId).toSet()
+    }
+
+    override suspend fun setRecipeFavorite(userId: String, recipeId: String, isFavorite: Boolean): Result<Unit> = runCatching {
+        if (isFavorite) mealDataSource.addFavoriteRecipe(userId, recipeId)
+        else mealDataSource.removeFavoriteRecipe(userId, recipeId)
+    }
 }

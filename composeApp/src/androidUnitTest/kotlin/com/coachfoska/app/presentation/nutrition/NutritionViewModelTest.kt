@@ -5,10 +5,13 @@ import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealPlan
 import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
+import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
+import com.coachfoska.app.fixtures.aRecipe
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +42,8 @@ class NutritionViewModelTest {
         getMealHistoryUseCase = GetMealHistoryUseCase(repo),
         getRecipesUseCase = GetRecipesUseCase(repo),
         searchFoodsUseCase = SearchFoodsUseCase(repo),
+        getFavoriteRecipeIdsUseCase = GetFavoriteRecipeIdsUseCase(repo),
+        toggleFavoriteRecipeUseCase = ToggleFavoriteRecipeUseCase(repo),
         userId = "user-1"
     )
 
@@ -143,6 +148,45 @@ class NutritionViewModelTest {
         vm.onIntent(NutritionIntent.SelectDay(2))
 
         assertEquals(2, vm.state.value.selectedDayOfWeek)
+    }
+
+    @Test
+    fun `LoadRecipes loads favorite ids alongside recipes`() = runTest {
+        coEvery { repo.getActiveMealPlan(any()) } returns Result.success(null)
+        coEvery { repo.getRecipes() } returns Result.success(listOf(aRecipe()))
+        coEvery { repo.getFavoriteRecipeIds("user-1") } returns Result.success(setOf("r-1"))
+
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LoadRecipes)
+
+        assertEquals(setOf("r-1"), vm.state.value.favoriteRecipeIds)
+        assertEquals(1, vm.state.value.recipes.size)
+    }
+
+    @Test
+    fun `ToggleFavoriteRecipe adds recipe to favorites optimistically`() = runTest {
+        coEvery { repo.getActiveMealPlan(any()) } returns Result.success(null)
+        coEvery { repo.getFavoriteRecipeIds("user-1") } returns Result.success(emptySet())
+        coEvery { repo.setRecipeFavorite("user-1", "r-1", true) } returns Result.success(Unit)
+
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.ToggleFavoriteRecipe("r-1"))
+
+        assertTrue("r-1" in vm.state.value.favoriteRecipeIds)
+    }
+
+    @Test
+    fun `ToggleFavoritesFilter shows only favorite recipes`() = runTest {
+        coEvery { repo.getActiveMealPlan(any()) } returns Result.success(null)
+        coEvery { repo.getRecipes() } returns Result.success(listOf(aRecipe("r-1"), aRecipe("r-2")))
+        coEvery { repo.getFavoriteRecipeIds("user-1") } returns Result.success(setOf("r-1"))
+
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LoadRecipes)
+        vm.onIntent(NutritionIntent.ToggleFavoritesFilter)
+
+        assertTrue(vm.state.value.showOnlyFavorites)
+        assertEquals(listOf("r-1"), vm.state.value.recipes.map { it.id })
     }
 }
 

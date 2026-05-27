@@ -13,6 +13,9 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import com.coachfoska.app.core.util.currentInstant
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
+
+private const val RECIPE_FAVORITES_TABLE = "recipe_favorites"
 
 class MealRemoteDataSource(private val supabase: SupabaseClient) {
 
@@ -91,4 +94,33 @@ class MealRemoteDataSource(private val supabase: SupabaseClient) {
                 }
             }
             .decodeList<MealLogDto>()
+
+    suspend fun getFavoriteRecipeIds(userId: String): List<String> =
+        supabase.postgrest[RECIPE_FAVORITES_TABLE]
+            .select(columns = Columns.raw("recipe_id")) {
+                filter { eq("user_id", userId) }
+            }
+            .decodeList<RecipeFavoriteRow>()
+            .map { it.recipe_id }
+
+    suspend fun addFavoriteRecipe(userId: String, recipeId: String) {
+        supabase.postgrest[RECIPE_FAVORITES_TABLE]
+            .upsert(RecipeFavoriteInsertDto(user_id = userId, recipe_id = recipeId))
+    }
+
+    suspend fun removeFavoriteRecipe(userId: String, recipeId: String) {
+        supabase.postgrest[RECIPE_FAVORITES_TABLE]
+            .delete {
+                filter {
+                    eq("user_id", userId)
+                    eq("recipe_id", recipeId)
+                }
+            }
+    }
 }
+
+@Serializable
+private data class RecipeFavoriteRow(val recipe_id: String)
+
+@Serializable
+private data class RecipeFavoriteInsertDto(val user_id: String, val recipe_id: String)

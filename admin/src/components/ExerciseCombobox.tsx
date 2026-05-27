@@ -26,7 +26,7 @@ function useExerciseSearch(term: string) {
 
 interface ExerciseComboboxProps {
   value: string
-  onChange: (name: string, muscleGroup: string) => void
+  onChange: (name: string, muscleGroup: string, exerciseId: string) => void
 }
 
 export function ExerciseCombobox({ value, onChange }: ExerciseComboboxProps) {
@@ -55,7 +55,7 @@ export function ExerciseCombobox({ value, onChange }: ExerciseComboboxProps) {
 
   function handleSelect(ex: ExerciseResult) {
     skipDebounce.current = true
-    onChange(ex.name_en, ex.primary_muscles?.[0] ?? '')
+    onChange(ex.name_en, ex.primary_muscles?.[0] ?? '', ex.id)
     setInputValue(ex.name_en)
     setOpen(false)
   }
@@ -71,7 +71,7 @@ export function ExerciseCombobox({ value, onChange }: ExerciseComboboxProps) {
         placeholder="e.g. Bench Press"
         onChange={e => {
           setInputValue(e.target.value)
-          onChange(e.target.value, '')
+          onChange(e.target.value, '', '')
           setOpen(true)
         }}
         onFocus={() => { if (inputValue.length >= 2) setOpen(true) }}

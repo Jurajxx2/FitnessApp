@@ -3,6 +3,8 @@ package com.coachfoska.app.presentation.recipe
 import com.coachfoska.app.domain.model.Recipe
 import com.coachfoska.app.domain.model.RecipeIngredient
 import com.coachfoska.app.domain.repository.MealRepository
+import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
+import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.recipe.ScaleRecipeUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -36,13 +38,23 @@ class RecipeDetailViewModelServingsTest {
     @BeforeTest fun setUp() {
         Dispatchers.setMain(testDispatcher)
         coEvery { repo.getRecipeById("r1") } returns Result.success(baseRecipe)
+        coEvery { repo.getFavoriteRecipeIds(any()) } returns Result.success(emptySet())
     }
 
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
+    private fun viewModel() = RecipeDetailViewModel(
+        repository = repo,
+        scaleRecipe = scale,
+        getFavoriteRecipeIdsUseCase = GetFavoriteRecipeIdsUseCase(repo),
+        toggleFavoriteRecipeUseCase = ToggleFavoriteRecipeUseCase(repo),
+        recipeId = "r1",
+        userId = "user-1",
+    )
+
     @Test
     fun `initial load uses base recipe servings`() = runTest {
-        val vm = RecipeDetailViewModel(repo, scale, recipeId = "r1")
+        val vm = viewModel()
         val state = vm.state.value
         assertEquals(2, state.selectedServings)
         assertEquals(600f, state.recipe?.calories)
@@ -50,7 +62,7 @@ class RecipeDetailViewModelServingsTest {
 
     @Test
     fun `adjust servings scales recipe`() = runTest {
-        val vm = RecipeDetailViewModel(repo, scale, recipeId = "r1")
+        val vm = viewModel()
         vm.onIntent(RecipeDetailIntent.AdjustRecipeServings(4))
         val state = vm.state.value
         assertEquals(4, state.selectedServings)

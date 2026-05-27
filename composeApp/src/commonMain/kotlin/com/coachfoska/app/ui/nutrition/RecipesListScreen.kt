@@ -6,10 +6,14 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,7 +39,9 @@ fun RecipesListRoute(
     RecipesListScreen(
         state = state,
         onRecipeClick = onRecipeClick,
-        onBackClick = onBackClick
+        onBackClick = onBackClick,
+        onToggleFavorite = { viewModel.onIntent(NutritionIntent.ToggleFavoriteRecipe(it)) },
+        onToggleFavoritesFilter = { viewModel.onIntent(NutritionIntent.ToggleFavoritesFilter) },
     )
 }
 
@@ -43,22 +49,47 @@ fun RecipesListRoute(
 fun RecipesListScreen(
     state: NutritionState,
     onRecipeClick: (String) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onToggleFavorite: (String) -> Unit = {},
+    onToggleFavoritesFilter: () -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CoachTopBar(title = "RECIPES", onBackClick = onBackClick)
+
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChip(
+                selected = state.showOnlyFavorites,
+                onClick = onToggleFavoritesFilter,
+                label = { Text("Favorites") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = if (state.showOnlyFavorites) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = null,
+                        modifier = Modifier.size(FilterChipDefaults.IconSize),
+                    )
+                },
+            )
+        }
 
         if (state.isRecipesLoading) {
             CoachLoadingBox()
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(24.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(state.recipes) { recipe ->
-                    RecipesListCard(recipe = recipe, onClick = { onRecipeClick(recipe.id) })
+                items(state.recipes, key = { it.id }) { recipe ->
+                    RecipesListCard(
+                        recipe = recipe,
+                        isFavorite = recipe.id in state.favoriteRecipeIds,
+                        onClick = { onRecipeClick(recipe.id) },
+                        onToggleFavorite = { onToggleFavorite(recipe.id) },
+                    )
                 }
             }
         }
@@ -66,7 +97,12 @@ fun RecipesListScreen(
 }
 
 @Composable
-private fun RecipesListCard(recipe: Recipe, onClick: () -> Unit) {
+private fun RecipesListCard(
+    recipe: Recipe,
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -79,20 +115,36 @@ private fun RecipesListCard(recipe: Recipe, onClick: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(
-                text = recipe.name.uppercase(),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                letterSpacing = 0.5.sp,
-                maxLines = 2
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Text(
+                    text = recipe.name.uppercase(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    letterSpacing = 0.5.sp,
+                    maxLines = 2,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                        tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
             Text(
                 text = "${recipe.calories.toInt()} kcal",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                modifier = Modifier.padding(end = 12.dp),
             )
         }
     }

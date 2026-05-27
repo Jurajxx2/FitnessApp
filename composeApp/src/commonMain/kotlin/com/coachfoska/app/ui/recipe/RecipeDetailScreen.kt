@@ -14,7 +14,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
@@ -48,13 +53,26 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun RecipeDetailRoute(
     recipeId: String,
+    userId: String,
     onBackClick: () -> Unit,
-    viewModel: RecipeDetailViewModel = koinViewModel { parametersOf(recipeId) },
+    viewModel: RecipeDetailViewModel = koinViewModel { parametersOf(recipeId, userId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "RECIPE", onBackClick = onBackClick)
+        CoachTopBar(
+            title = "RECIPE",
+            onBackClick = onBackClick,
+            actions = {
+                IconButton(onClick = { viewModel.onIntent(RecipeDetailIntent.ToggleFavorite) }) {
+                    Icon(
+                        imageVector = if (state.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = if (state.isFavorite) "Remove from favorites" else "Add to favorites",
+                        tint = if (state.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+            }
+        )
         when {
             state.isLoading -> CoachLoadingBox(Modifier.weight(1f))
             state.error != null -> Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {

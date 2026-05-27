@@ -3,12 +3,15 @@ package com.coachfoska.app.presentation.nutrition
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
+import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.core.util.todayDate
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,11 +26,15 @@ class NutritionViewModel(
     private val getMealHistoryUseCase: GetMealHistoryUseCase,
     private val getRecipesUseCase: GetRecipesUseCase,
     private val searchFoodsUseCase: SearchFoodsUseCase,
+    private val getFavoriteRecipeIdsUseCase: GetFavoriteRecipeIdsUseCase,
+    private val toggleFavoriteRecipeUseCase: ToggleFavoriteRecipeUseCase,
     private val userId: String
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(NutritionState(selectedDayOfWeek = todayDayOfWeek()))
     val state: StateFlow<NutritionState> = _state.asStateFlow()
+
+    private var loadFavoritesJob: Job? = null
 
     init {
         onIntent(NutritionIntent.LoadMealPlan)
@@ -46,6 +53,8 @@ class NutritionViewModel(
             NutritionIntent.MealLogged -> _state.update { it.copy(mealLoggedSuccess = false) }
             is NutritionIntent.SearchFoods -> searchFoods(intent.query)
             is NutritionIntent.SelectDay -> _state.update { it.copy(selectedDayOfWeek = intent.dayOfWeek) }
+            is NutritionIntent.ToggleFavoriteRecipe -> toggleFavoriteRecipe(intent.recipeId)
+            NutritionIntent.ToggleFavoritesFilter -> _state.update { it.copy(showOnlyFavorites = !it.showOnlyFavorites) }
         }
     }
 
@@ -85,11 +94,16 @@ class NutritionViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isRecipesLoading = true, error = null) }
             getRecipesUseCase()
-                .onSuccess { recipes -> _state.update { it.copy(isRecipesLoading = false, recipes = recipes) } }
+                .onSuccess { recipes -> _state.update { it.copy(isRecipesLoading = false, allRecipes = recipes) } }
                 .onFailure { e ->
                     Napier.e("loadRecipes failed", e, tag = TAG)
                     _state.update { it.copy(isRecipesLoading = false, error = e.message) }
                 }
+        }
+        loadFavoritesJob = viewModelScope.launch {
+            getFavoriteRecipeIdsUseCase(userId)
+                .onSuccess { ids -> _state.update { it.copy(favoriteRecipeIds = ids) } }
+                .onFailure { e -> Napier.e("loadFavoriteRecipes failed", e, tag = TAG) }
         }
     }
 
@@ -126,6 +140,24 @@ class NutritionViewModel(
                 .onFailure { e ->
                     Napier.e("logMeal failed", e, tag = TAG)
                     _state.update { it.copy(isLogging = false, error = e.message) }
+                }
+        }
+    }
+
+    private fun toggleFavoriteRecipe(recipeId: String) {
+        loadFavoritesJob?.cancel()
+        val current = _state.value.favoriteRecipeIds
+        val nowFavorite = recipeId !in current
+        _state.update {
+            it.copy(favoriteRecipeIds = if (nowFavorite) current + recipeId else current - recipeId)
+        }
+        viewModelScope.launch {
+            toggleFavoriteRecipeUseCase(userId, recipeId, nowFavorite)
+                .onFailure { e ->
+                    Napier.e("toggleFavoriteRecipe($recipeId) failed", e, tag = TAG)
+                    _state.update {
+                        it.copy(favoriteRecipeIds = if (nowFavorite) it.favoriteRecipeIds - recipeId else it.favoriteRecipeIds + recipeId)
+                    }
                 }
         }
     }

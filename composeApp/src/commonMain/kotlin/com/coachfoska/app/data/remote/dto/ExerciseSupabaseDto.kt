@@ -13,6 +13,7 @@ data class ExerciseDto(
     @SerialName("name_cs") val nameCsRaw: String? = null,
     @SerialName("description_cs") val descriptionCsRaw: String? = null,
     @SerialName("image_url") val imageUrl: String? = null,
+    @SerialName("image_url_2") val imageUrl2: String? = null,
     @SerialName("video_url") val videoUrl: String? = null,
     val difficulty: String? = null,
     @SerialName("is_active") val isActive: Boolean = true,
@@ -33,6 +34,7 @@ data class ExerciseDto(
             musclesSecondary = secondaryMuscles,
             equipment = equipmentNames,
             imageUrl = imageUrl,
+            imageUrl2 = imageUrl2,
             videoUrl = videoUrl,
             difficulty = difficulty
         )

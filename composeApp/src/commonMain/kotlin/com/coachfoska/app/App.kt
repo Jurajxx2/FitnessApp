@@ -419,6 +419,7 @@ fun App(openHumanChat: Boolean = false) {
                     val route = backStackEntry.toRoute<RecipeDetail>()
                     RecipeDetailRoute(
                         recipeId = route.recipeId,
+                        userId = currentUserId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }

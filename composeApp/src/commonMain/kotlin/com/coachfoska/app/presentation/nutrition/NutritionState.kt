@@ -4,6 +4,7 @@ import com.coachfoska.app.domain.model.Food
 import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealPlan
+import com.coachfoska.app.domain.model.Recipe
 
 data class NutritionState(
     val isLoading: Boolean = false,
@@ -13,11 +14,16 @@ data class NutritionState(
     val mealHistory: List<MealLog> = emptyList(),
     val selectedMealLog: MealLog? = null,
     val isHistoryLoading: Boolean = false,
-    val recipes: List<com.coachfoska.app.domain.model.Recipe> = emptyList(),
+    val allRecipes: List<Recipe> = emptyList(),
     val isRecipesLoading: Boolean = false,
+    val favoriteRecipeIds: Set<String> = emptySet(),
+    val showOnlyFavorites: Boolean = false,
     val searchResults: List<Food> = emptyList(),
     val isSearching: Boolean = false,
     val isLogging: Boolean = false,
     val mealLoggedSuccess: Boolean = false,
     val error: String? = null
-)
+) {
+    val recipes: List<Recipe>
+        get() = if (showOnlyFavorites) allRecipes.filter { it.id in favoriteRecipeIds } else allRecipes
+}

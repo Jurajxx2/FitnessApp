@@ -39,12 +39,14 @@ import com.coachfoska.app.domain.usecase.exercise.ToggleFavoriteExerciseUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.recipe.ScaleRecipeUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ScaleFoodToPortionUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
+import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.profile.CompleteOnboardingUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
@@ -172,6 +174,8 @@ val useCaseModule = module {
     factory { SearchFoodsUseCase(get()) }
     factory { ScaleFoodToPortionUseCase() }
     factory { ScaleRecipeUseCase() }
+    factory { GetFavoriteRecipeIdsUseCase(get()) }
+    factory { ToggleFavoriteRecipeUseCase(get()) }
 
     // Profile
     factory { GetUserProfileUseCase(get()) }
@@ -198,8 +202,8 @@ val viewModelModule = module {
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> ActivityLogViewModel(get(), get(), userId) }
-    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), userId) }
-    viewModel { (recipeId: String) -> RecipeDetailViewModel(get(), get(), recipeId) }
+    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), userId) }
+    viewModel { (recipeId: String, userId: String) -> RecipeDetailViewModel(get(), get(), get(), get(), recipeId, userId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
     viewModel { (userId: String) -> ExerciseViewModel(get(), get(), get(), get(), get(), userId) }

@@ -33,6 +33,8 @@ const normalize = (items: string[] | string | null): string[] => {
     .map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())
 }
 
+type SyncMode = 'full' | 'photos'
+
 export default function ImportExercisesModal({ open, onClose }: ImportExercisesModalProps) {
   const qc = useQueryClient()
   const [loading, setLoading] = useState(false)
@@ -40,6 +42,7 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
   const [progress, setProgress] = useState({ current: 0, total: 0 })
   const [uploadImages, setUploadImages] = useState(true)
   const [aiTranslate, setAiTranslate] = useState(false)
+  const [syncMode, setSyncMode] = useState<SyncMode>('full')
 
   async function translateText(text: string): Promise<string | null> {
     try {
@@ -148,35 +151,101 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
     }
   }
 
+  async function startPhotoSync() {
+    setLoading(true)
+    setStatus('Fetching source data...')
+    try {
+      const res = await fetch(JSON_URL)
+      if (!res.ok) throw new Error('Failed to fetch source data')
+      const exercises: any[] = await res.json()
+
+      const withSecondImage = exercises.filter(ex => ex.images?.[1])
+      setProgress({ current: 0, total: withSecondImage.length })
+      setStatus(`Found ${withSecondImage.length} exercises with a second photo`)
+
+      const batchSize = 5
+      for (let i = 0; i < withSecondImage.length; i += batchSize) {
+        const batch = withSecondImage.slice(i, i + batchSize)
+        setStatus(`Uploading photos ${i + 1}–${Math.min(i + batchSize, withSecondImage.length)} of ${withSecondImage.length}…`)
+
+        await Promise.all(batch.map(async (ex: any) => {
+          const githubUrl = `${IMAGE_BASE_URL}${ex.images[1]}`
+          const fileName = `${ex.id}_2.jpg`
+          const publicUrl = await uploadImageToSupabase(githubUrl, fileName)
+          if (!publicUrl) return
+
+          await supabase
+            .from('exercises')
+            .update({ image_url_2: publicUrl })
+            .eq('external_id', ex.id)
+            .eq('source_provider', 'yuhonas')
+        }))
+
+        setProgress(p => ({ ...p, current: Math.min(i + batchSize, withSecondImage.length) }))
+      }
+
+      setStatus('Done! Photos synced.')
+      qc.invalidateQueries({ queryKey: ['exercises-admin'] })
+      setTimeout(onClose, 1500)
+    } catch (err: any) {
+      setStatus(`Error: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Modal open={open} onClose={loading ? () => {} : onClose} title="Sync Exercises">
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-[var(--text-muted)]">
-          This will sync exercises from the <strong>free-exercise-db</strong> repository (~800 exercises).
-          Existing exercises are updated by external ID.
-        </p>
-
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 cursor-pointer p-2 bg-zinc-900/50 rounded-md border border-zinc-800">
-            <input 
-              type="checkbox" 
-              checked={uploadImages} 
-              onChange={e => setUploadImages(e.target.checked)}
+        <div className="flex gap-2">
+          {(['full', 'photos'] as SyncMode[]).map(mode => (
+            <button
+              key={mode}
+              type="button"
               disabled={loading}
-            />
-            <span className="text-sm font-medium">Upload images to Supabase Storage</span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer p-2 bg-zinc-900/50 rounded-md border border-zinc-800">
-            <input 
-              type="checkbox" 
-              checked={aiTranslate} 
-              onChange={e => setAiTranslate(e.target.checked)}
-              disabled={loading}
-            />
-            <span className="text-sm font-medium">Translate to Czech (AI) — much slower!</span>
-          </label>
+              onClick={() => setSyncMode(mode)}
+              className={`flex-1 text-sm py-2 px-3 rounded-md border cursor-pointer transition-colors ${
+                syncMode === mode
+                  ? 'bg-[var(--primary)] text-white border-transparent'
+                  : 'bg-transparent text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--text-muted)]'
+              }`}
+            >
+              {mode === 'full' ? 'Full sync' : 'Photos only'}
+            </button>
+          ))}
         </div>
+
+        {syncMode === 'full' ? (
+          <>
+            <p className="text-sm text-[var(--text-muted)]">
+              Sync all exercises from <strong>free-exercise-db</strong> (~800 exercises). Existing records are updated by external ID.
+            </p>
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 cursor-pointer p-2 bg-zinc-900/50 rounded-md border border-zinc-800">
+                <input
+                  type="checkbox"
+                  checked={uploadImages}
+                  onChange={e => setUploadImages(e.target.checked)}
+                  disabled={loading}
+                />
+                <span className="text-sm font-medium">Upload images to Supabase Storage</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer p-2 bg-zinc-900/50 rounded-md border border-zinc-800">
+                <input
+                  type="checkbox"
+                  checked={aiTranslate}
+                  onChange={e => setAiTranslate(e.target.checked)}
+                  disabled={loading}
+                />
+                <span className="text-sm font-medium">Translate to Czech (AI) — much slower!</span>
+              </label>
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-[var(--text-muted)]">
+            Downloads the <strong>second photo</strong> for each exercise that has one and saves it to <code>image_url_2</code>. Only touches photo fields — no metadata changes.
+          </p>
+        )}
 
         {status && (
           <div className="bg-zinc-900/50 p-3 rounded-md border border-zinc-800">
@@ -194,8 +263,12 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
 
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="ghost" onClick={onClose} disabled={loading}>Cancel</Button>
-          <Button variant="primary" onClick={startImport} loading={loading}>
-            Start Sync
+          <Button
+            variant="primary"
+            onClick={syncMode === 'full' ? startImport : startPhotoSync}
+            loading={loading}
+          >
+            {syncMode === 'full' ? 'Start Sync' : 'Sync Photos'}
           </Button>
         </div>
       </div>
