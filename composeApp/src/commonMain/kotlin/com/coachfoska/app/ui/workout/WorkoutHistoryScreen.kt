@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.core.util.toDisplayDateTime
 import com.coachfoska.app.domain.model.WorkoutLog
+import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
@@ -35,6 +36,7 @@ fun WorkoutHistoryRoute(
     userId: String,
     onBackClick: () -> Unit,
     onLogClick: (String) -> Unit,
+    onProgressClick: () -> Unit = {},
     viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -43,14 +45,15 @@ fun WorkoutHistoryRoute(
         viewModel.onIntent(WorkoutIntent.LoadHistory)
     }
 
-    WorkoutHistoryScreen(state = state, onBackClick = onBackClick, onLogClick = onLogClick)
+    WorkoutHistoryScreen(state = state, onBackClick = onBackClick, onLogClick = onLogClick, onProgressClick = onProgressClick)
 }
 
 @Composable
 fun WorkoutHistoryScreen(
     state: WorkoutState,
     onBackClick: () -> Unit,
-    onLogClick: (String) -> Unit
+    onLogClick: (String) -> Unit,
+    onProgressClick: () -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(title = "WORKOUT HISTORY", onBackClick = onBackClick)
@@ -62,6 +65,36 @@ fun WorkoutHistoryScreen(
                 contentPadding = PaddingValues(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Progress dashboard card
+                item {
+                    Card(
+                        onClick = onProgressClick,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text("📊", fontSize = 24.sp)
+                            Column {
+                                Text(
+                                    "Your Progress",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                                Text(
+                                    "View stats, streaks & records",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                                )
+                            }
+                        }
+                    }
+                }
+
                 items(state.workoutHistory) { log ->
                     WorkoutHistoryDetailCard(log = log, onClick = { onLogClick(log.id) })
                 }
@@ -106,7 +139,7 @@ private fun WorkoutHistoryDetailCard(log: WorkoutLog, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                 )
             }
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -121,6 +154,20 @@ private fun WorkoutHistoryDetailCard(log: WorkoutLog, onClick: () -> Unit) {
                     text = "${log.exerciseLogs.size} EXERCISES",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+            }
+
+            // Volume summary
+            val totalVolume = log.exerciseLogs.sumOf { ex ->
+                ex.sets.filter { it.completed }.sumOf { s ->
+                    ((s.actualWeightKg ?: 0f) * (s.actualReps ?: 0)).toDouble()
+                }
+            }.toFloat()
+            if (totalVolume > 0f) {
+                Text(
+                    text = "${formatWeightKg(totalVolume)} kg total volume",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                 )
             }
         }
