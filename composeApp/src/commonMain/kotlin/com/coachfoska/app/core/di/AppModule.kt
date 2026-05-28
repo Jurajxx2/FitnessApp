@@ -226,7 +226,7 @@ val viewModelModule = module {
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
     viewModel { (userId: String) -> ExerciseViewModel(get(), get(), get(), get(), get(), userId) }
-    viewModel { (userId: String, workoutId: String) ->
+    viewModel { (userId: String) ->
         ActiveSessionViewModel(get(), get(), get(), get(), userId)
     }
     viewModel { (userId: String) ->
