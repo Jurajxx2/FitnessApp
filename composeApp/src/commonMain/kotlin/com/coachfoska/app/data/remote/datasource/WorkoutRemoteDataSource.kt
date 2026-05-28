@@ -98,4 +98,89 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
                 order("sort_order", Order.ASCENDING)
             }.decodeList<SetLogDto>()
     }
+
+    suspend fun getLastExerciseLogs(
+        userId: String,
+        exerciseNames: List<String>
+    ): Map<String, List<SetLogDto>> {
+        if (exerciseNames.isEmpty()) return emptyMap()
+
+        val workoutLogs = getWorkoutLogs(userId)
+
+        if (workoutLogs.isEmpty()) return emptyMap()
+
+        val exerciseLogs = supabase.postgrest["exercise_logs"]
+            .select {
+                filter {
+                    filter("workout_log_id", FilterOperator.IN, workoutLogs.map { it.id })
+                    filter("exercise_name", FilterOperator.IN, exerciseNames)
+                }
+            }.decodeList<ExerciseLogDto>()
+
+        if (exerciseLogs.isEmpty()) return emptyMap()
+
+        val workoutLogOrder = workoutLogs.mapIndexed { index, wl -> wl.id to index }.toMap()
+
+        val mostRecentByExercise = exerciseLogs
+            .groupBy { it.exerciseName }
+            .mapValues { (_, logs) ->
+                logs.minByOrNull { workoutLogOrder[it.workoutLogId] ?: Int.MAX_VALUE }
+            }
+            .filterValues { it != null }
+            .mapValues { it.value!! }
+
+        val exerciseLogIds = mostRecentByExercise.values.map { it.id }
+        val setLogs = getSetLogsForExerciseLogs(exerciseLogIds)
+        val setsByExerciseLogId = setLogs.groupBy { it.exerciseLogId }
+
+        return mostRecentByExercise.mapValues { (_, exerciseLog) ->
+            setsByExerciseLogId[exerciseLog.id]
+                ?.sortedBy { it.sortOrder }
+                .orEmpty()
+        }
+    }
+
+    suspend fun getExerciseLogHistory(
+        userId: String,
+        exerciseName: String
+    ): List<Pair<ExerciseLogDto, String>> {
+        val workoutLogs = getWorkoutLogs(userId)
+
+        if (workoutLogs.isEmpty()) return emptyList()
+
+        val exerciseLogs = supabase.postgrest["exercise_logs"]
+            .select {
+                filter {
+                    filter("workout_log_id", FilterOperator.IN, workoutLogs.map { it.id })
+                    eq("exercise_name", exerciseName)
+                }
+            }.decodeList<ExerciseLogDto>()
+
+        if (exerciseLogs.isEmpty()) return emptyList()
+
+        val setLogs = getSetLogsForExerciseLogs(exerciseLogs.map { it.id })
+        val setsByExerciseLogId = setLogs.groupBy { it.exerciseLogId }
+
+        val logDates = workoutLogs.associate { it.id to it.loggedAt }
+
+        return exerciseLogs
+            .map { el ->
+                el.copy(setLogs = setsByExerciseLogId[el.id].orEmpty().sortedBy { it.sortOrder }) to
+                    (logDates[el.workoutLogId] ?: "")
+            }
+            .sortedByDescending { it.second }
+    }
+
+    suspend fun getWorkoutLogsSince(
+        userId: String,
+        sinceIso: String
+    ): List<WorkoutLogDto> =
+        supabase.postgrest["workout_logs"]
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    gte("logged_at", sinceIso)
+                }
+                order("logged_at", Order.ASCENDING)
+            }.decodeList<WorkoutLogDto>()
 }
