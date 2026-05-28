@@ -252,8 +252,10 @@ fun App(openHumanChat: Boolean = false) {
                 ) {
                     ActivityHubRoute(
                         userId = currentUserId,
+                        onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
                         onPlanClick = { navController.navigate(WorkoutPlan) },
                         onHistoryClick = { navController.navigate(WorkoutHistory) },
+                        onHistoryDetailClick = { logId -> navController.navigate(WorkoutHistoryDetail(logId)) },
                         onLibraryClick = { navController.navigate(ExerciseLibrary) },
                         onLogGeneralActivityClick = { navController.navigate(ActivityTypeSelector) }
                     )
@@ -275,7 +277,8 @@ fun App(openHumanChat: Boolean = false) {
                     ActiveSessionRoute(
                         workoutId = route.workoutId,
                         userId = currentUserId,
-                        onBackClick = { navController.popBackStack() }
+                        onBackClick = { navController.popBackStack() },
+                        onWorkoutComplete = { navController.popBackStack() },
                     )
                 }
 
@@ -359,6 +362,7 @@ fun App(openHumanChat: Boolean = false) {
                     NutritionHubRoute(
                         userId = currentUserId,
                         onPlanClick = { navController.navigate(MealPlanDetail) },
+                        onRecordMealClick = { navController.navigate(MealCapture) },
                         onHistoryClick = { navController.navigate(MealHistory) },
                         onRecipesClick = { navController.navigate(RecipesList) },
                         onWaterClick = { navController.navigate(Hydration) }
