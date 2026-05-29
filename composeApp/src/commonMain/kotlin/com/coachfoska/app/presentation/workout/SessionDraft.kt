@@ -17,6 +17,7 @@ data class ExerciseDraft(
     val videoUrl: String? = null,
     val muscleGroup: String? = null,
     val tips: String? = null,
+    val exerciseId: String? = null,
     val initialSetsGoal: Int = 3,
     val initialRepsGoal: String = "10"
 )
@@ -49,6 +50,7 @@ fun WorkoutExercise.toDraft(): ExerciseDraft {
         videoUrl = videoUrl,
         muscleGroup = muscleGroup,
         tips = tips,
+        exerciseId = exerciseId,
         sets = (1..sets).map { order ->
             SetDraft(
                 sortOrder = order,

@@ -58,6 +58,8 @@ import com.coachfoska.app.ui.workout.ActivityHubRoute
 import com.coachfoska.app.ui.workout.ExerciseLibraryRoute
 import com.coachfoska.app.ui.workout.WorkoutPlanRoute
 import com.coachfoska.app.ui.workout.ActiveSessionRoute
+import com.coachfoska.app.ui.workout.PostWorkoutSummaryRoute
+import com.coachfoska.app.ui.workout.ProgressDashboardRoute
 import com.coachfoska.app.ui.hydration.HydrationRoute
 
 @Composable
@@ -252,8 +254,10 @@ fun App(openHumanChat: Boolean = false) {
                 ) {
                     ActivityHubRoute(
                         userId = currentUserId,
+                        onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
                         onPlanClick = { navController.navigate(WorkoutPlan) },
                         onHistoryClick = { navController.navigate(WorkoutHistory) },
+                        onHistoryDetailClick = { logId -> navController.navigate(WorkoutHistoryDetail(logId)) },
                         onLibraryClick = { navController.navigate(ExerciseLibrary) },
                         onLogGeneralActivityClick = { navController.navigate(ActivityTypeSelector) }
                     )
@@ -275,7 +279,28 @@ fun App(openHumanChat: Boolean = false) {
                     ActiveSessionRoute(
                         workoutId = route.workoutId,
                         userId = currentUserId,
-                        onBackClick = { navController.popBackStack() }
+                        onBackClick = { navController.popBackStack() },
+                        onWorkoutComplete = { logId ->
+                            navController.navigate(PostWorkoutSummary(logId)) {
+                                popUpTo<WorkoutList>()
+                            }
+                        },
+                        onExerciseDetailClick = { exerciseId ->
+                            navController.navigate(ExerciseDetail(exerciseId))
+                        },
+                    )
+                }
+
+                composable<PostWorkoutSummary> { backStackEntry ->
+                    val route = backStackEntry.toRoute<PostWorkoutSummary>()
+                    PostWorkoutSummaryRoute(
+                        userId = currentUserId,
+                        logId = route.logId,
+                        onDone = {
+                            navController.navigate(WorkoutList) {
+                                popUpTo<WorkoutList> { inclusive = true }
+                            }
+                        },
                     )
                 }
 
@@ -319,7 +344,15 @@ fun App(openHumanChat: Boolean = false) {
                     WorkoutHistoryRoute(
                         userId = currentUserId,
                         onBackClick = { navController.popBackStack() },
-                        onLogClick = { logId -> navController.navigate(WorkoutHistoryDetail(logId)) }
+                        onLogClick = { logId -> navController.navigate(WorkoutHistoryDetail(logId)) },
+                        onProgressClick = { navController.navigate(ProgressDashboard) },
+                    )
+                }
+
+                composable<ProgressDashboard> {
+                    ProgressDashboardRoute(
+                        userId = currentUserId,
+                        onBackClick = { navController.popBackStack() },
                     )
                 }
 
@@ -359,6 +392,7 @@ fun App(openHumanChat: Boolean = false) {
                     NutritionHubRoute(
                         userId = currentUserId,
                         onPlanClick = { navController.navigate(MealPlanDetail) },
+                        onRecordMealClick = { navController.navigate(MealCapture) },
                         onHistoryClick = { navController.navigate(MealHistory) },
                         onRecipesClick = { navController.navigate(RecipesList) },
                         onWaterClick = { navController.navigate(Hydration) }

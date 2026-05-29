@@ -74,6 +74,16 @@ import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
+import com.coachfoska.app.domain.usecase.workout.CalculateEstimated1RMUseCase
+import com.coachfoska.app.domain.usecase.workout.GetPreviousExerciseLogsUseCase
+import com.coachfoska.app.domain.usecase.workout.CheckPersonalRecordUseCase
+import com.coachfoska.app.domain.usecase.workout.GetExerciseHistoryUseCase
+import com.coachfoska.app.domain.usecase.workout.GetExerciseRecordsUseCase
+import com.coachfoska.app.domain.usecase.workout.GetProgressDashboardUseCase
+import com.coachfoska.app.domain.usecase.workout.GetWorkoutsPerWeekUseCase
+import com.coachfoska.app.presentation.workout.ActiveSessionViewModel
+import com.coachfoska.app.presentation.workout.ProgressDashboardViewModel
+import com.coachfoska.app.presentation.workout.PostWorkoutSummaryViewModel
 import com.coachfoska.app.presentation.activity.ActivityLogViewModel
 import com.coachfoska.app.presentation.auth.AuthViewModel
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
@@ -160,6 +170,15 @@ val useCaseModule = module {
     factory { LogWorkoutUseCase(get()) }
     factory { GetWorkoutHistoryUseCase(get()) }
 
+    // Workout analytics
+    factory { CalculateEstimated1RMUseCase() }
+    factory { GetPreviousExerciseLogsUseCase(get()) }
+    factory { CheckPersonalRecordUseCase(get(), get()) }
+    factory { GetExerciseHistoryUseCase(get()) }
+    factory { GetExerciseRecordsUseCase(get()) }
+    factory { GetProgressDashboardUseCase(get()) }
+    factory { GetWorkoutsPerWeekUseCase(get()) }
+
     // Activity
     factory { LogGeneralActivityUseCase(get()) }
     factory { GetActivityHistoryUseCase(get()) }
@@ -207,6 +226,15 @@ val viewModelModule = module {
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
     viewModel { (userId: String) -> ExerciseViewModel(get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) ->
+        ActiveSessionViewModel(get(), get(), get(), get(), userId)
+    }
+    viewModel { (userId: String) ->
+        ProgressDashboardViewModel(get(), get(), userId)
+    }
+    viewModel { (userId: String, logId: String) ->
+        PostWorkoutSummaryViewModel(get(), userId, logId)
+    }
 }
 
 val chatModule = module {

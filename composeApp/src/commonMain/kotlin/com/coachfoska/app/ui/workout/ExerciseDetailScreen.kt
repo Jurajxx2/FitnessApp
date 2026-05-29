@@ -11,15 +11,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.ExerciseRecords
+import com.coachfoska.app.domain.model.RecordEntry
+import com.coachfoska.app.domain.model.formatWeightKg
+import com.coachfoska.app.domain.usecase.workout.GetExerciseHistoryUseCase
+import com.coachfoska.app.domain.usecase.workout.GetExerciseRecordsUseCase
 import com.coachfoska.app.presentation.exercise.ExerciseIntent
 import com.coachfoska.app.presentation.exercise.ExerciseState
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
-import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -28,7 +35,7 @@ fun ExerciseDetailRoute(
     userId: String,
     exerciseId: String,
     onBackClick: () -> Unit,
-    viewModel: ExerciseViewModel = koinViewModel { parametersOf(userId) }
+    viewModel: ExerciseViewModel = koinViewModel { parametersOf(userId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -38,115 +45,187 @@ fun ExerciseDetailRoute(
 
     ExerciseDetailScreen(
         state = state,
+        userId = userId,
         onBackClick = onBackClick,
-        onToggleFavorite = { viewModel.onIntent(ExerciseIntent.ToggleFavorite(exerciseId)) }
+        onToggleFavorite = { viewModel.onIntent(ExerciseIntent.ToggleFavorite(exerciseId)) },
     )
 }
 
 @Composable
 fun ExerciseDetailScreen(
     state: ExerciseState,
+    userId: String,
     onBackClick: () -> Unit,
-    onToggleFavorite: () -> Unit = {}
+    onToggleFavorite: () -> Unit = {},
 ) {
     val isFavorite = state.selectedExercise?.id?.let { it in state.favoriteIds } ?: false
+    val exercise = state.selectedExercise
 
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(
             title = "EXERCISE",
             onBackClick = onBackClick,
             actions = {
-                if (state.selectedExercise != null) {
+                if (exercise != null) {
                     IconButton(onClick = onToggleFavorite) {
                         Icon(
                             imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        )
+                    }
+                }
+            },
+        )
+
+        if (state.isLoadingDetail) {
+            CoachLoadingBox(Modifier.weight(1f))
+            return@Column
+        }
+
+        if (exercise == null) {
+            state.error?.let {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+            return@Column
+        }
+
+        // Exercise name header
+        Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
+            exercise.category?.let {
+                Text(
+                    text = it.name.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    letterSpacing = 1.sp,
+                )
+            }
+            Text(
+                text = exercise.name,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            )
+        }
+
+        // Tab row
+        var selectedTab by remember { mutableIntStateOf(0) }
+        val tabTitles = listOf("Guide", "History", "Charts", "Records")
+        TabRow(selectedTabIndex = selectedTab) {
+            tabTitles.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = { Text(title) },
+                )
+            }
+        }
+
+        // Tab content
+        when (selectedTab) {
+            0 -> GuideTab(exercise = exercise)
+            1 -> HistoryTab(userId = userId, exerciseName = exercise.name)
+            2 -> ChartsTab(userId = userId, exerciseName = exercise.name)
+            3 -> RecordsTab(userId = userId, exerciseName = exercise.name)
+        }
+    }
+}
+
+@Composable
+private fun GuideTab(exercise: com.coachfoska.app.domain.model.Exercise) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        ExerciseAnimatedImage(
+            startUrl = exercise.imageUrl,
+            endUrl = exercise.imageUrl2,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (exercise.muscles.isNotEmpty() || exercise.musclesSecondary.isNotEmpty()) {
+            InfoSection(title = "MUSCLES") {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (exercise.muscles.isNotEmpty()) {
+                        Text("Primary: ${exercise.muscles.joinToString(", ")}", style = MaterialTheme.typography.bodyLarge)
+                    }
+                    if (exercise.musclesSecondary.isNotEmpty()) {
+                        Text(
+                            "Secondary: ${exercise.musclesSecondary.joinToString(", ")}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                         )
                     }
                 }
             }
-        )
-        if (state.isLoadingDetail) {
-            CoachLoadingBox(Modifier.weight(1f))
-        } else {
-            state.selectedExercise?.let { exercise ->
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(32.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        exercise.category?.let {
-                            Text(
-                                text = it.name.uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                                letterSpacing = 1.sp
-                            )
-                        }
+        }
+
+        if (exercise.equipment.isNotEmpty()) {
+            InfoSection(title = "EQUIPMENT") {
+                Text(exercise.equipment.joinToString(", "), style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+
+        if (exercise.description.isNotBlank()) {
+            InfoSection(title = "INSTRUCTIONS") {
+                Text(
+                    exercise.description,
+                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryTab(userId: String, exerciseName: String) {
+    val getExerciseHistoryUseCase = koinInject<GetExerciseHistoryUseCase>()
+    var history by remember { mutableStateOf<List<ExerciseLog>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(exerciseName) {
+        isLoading = true
+        getExerciseHistoryUseCase(userId, exerciseName).onSuccess { history = it }
+        isLoading = false
+    }
+
+    if (isLoading) {
+        CoachLoadingBox(Modifier.fillMaxSize())
+        return
+    }
+
+    if (history.isEmpty()) {
+        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Text("No history for this exercise yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        return
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        history.forEach { exerciseLog ->
+            Card(shape = RoundedCornerShape(8.dp)) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "${exerciseLog.setsCompletedCount} sets completed",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    )
+                    if (exerciseLog.summaryLine.isNotBlank()) {
                         Text(
-                            text = exercise.name,
-                            style = MaterialTheme.typography.displayMedium,
-                            color = MaterialTheme.colorScheme.onBackground
+                            text = exerciseLog.summaryLine,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-
-                    ExerciseAnimatedImage(
-                        startUrl = exercise.imageUrl,
-                        endUrl = exercise.imageUrl2,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    if (exercise.muscles.isNotEmpty() || exercise.musclesSecondary.isNotEmpty()) {
-                        InfoSection(title = "MUSCLES") {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                if (exercise.muscles.isNotEmpty()) {
-                                    Text(
-                                        text = "Primary: " + exercise.muscles.joinToString(", "),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                }
-                                if (exercise.musclesSecondary.isNotEmpty()) {
-                                    Text(
-                                        text = "Secondary: " + exercise.musclesSecondary.joinToString(", "),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (exercise.equipment.isNotEmpty()) {
-                        InfoSection(title = "EQUIPMENT") {
-                            Text(
-                                text = exercise.equipment.joinToString(", "),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                    }
-
-                    if (exercise.description.isNotBlank()) {
-                        InfoSection(title = "INSTRUCTIONS") {
-                            Text(
-                                text = exercise.description,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                                lineHeight = 24.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
-                }
-            } ?: state.error?.let {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -154,25 +233,204 @@ fun ExerciseDetailScreen(
 }
 
 @Composable
-private fun InfoSection(title: String, content: @Composable () -> Unit) {
+private fun ChartsTab(userId: String, exerciseName: String) {
+    val getExerciseHistoryUseCase = koinInject<GetExerciseHistoryUseCase>()
+    var history by remember { mutableStateOf<List<ExerciseLog>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var selectedMetric by remember { mutableStateOf("Heaviest Weight") }
+    var selectedPeriod by remember { mutableStateOf("3M") }
+
+    LaunchedEffect(exerciseName) {
+        isLoading = true
+        getExerciseHistoryUseCase(userId, exerciseName).onSuccess { history = it }
+        isLoading = false
+    }
+
+    if (isLoading) {
+        CoachLoadingBox(Modifier.fillMaxSize())
+        return
+    }
+
+    if (history.isEmpty()) {
+        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Text("No data to chart yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        return
+    }
+
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // Time filter chips
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("1M", "3M", "6M", "1Y", "All").forEach { period ->
+                FilterChip(
+                    selected = period == selectedPeriod,
+                    onClick = { selectedPeriod = period },
+                    label = { Text(period) },
+                )
+            }
+        }
+
+        // Data points: extract metric per session
+        val dataPoints = history.mapNotNull { log ->
+            val completedSets = log.sets.filter { it.completed }
+            if (completedSets.isEmpty()) return@mapNotNull null
+            when (selectedMetric) {
+                "Heaviest Weight" -> completedSets.maxOfOrNull { it.actualWeightKg ?: 0f }
+                "Est. 1RM" -> completedSets.maxOfOrNull { s ->
+                    val w = s.actualWeightKg ?: return@maxOfOrNull 0f
+                    val r = s.actualReps ?: return@maxOfOrNull 0f
+                    if (r in 1..30) w * (1f + r / 30f) else w
+                }
+                "Best Volume" -> completedSets.sumOf { s ->
+                    ((s.actualWeightKg ?: 0f) * (s.actualReps ?: 0)).toDouble()
+                }.toFloat()
+                else -> completedSets.maxOfOrNull { (it.actualReps ?: 0).toFloat() }
+            } ?: 0f
+        }
+
+        // Simple Canvas line chart
+        if (dataPoints.isNotEmpty()) {
+            val primary = MaterialTheme.colorScheme.primary
+            val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+            val maxVal = dataPoints.max().coerceAtLeast(1f)
+            val minVal = dataPoints.min()
+
+            Text(selectedMetric, style = MaterialTheme.typography.titleSmall)
+            androidx.compose.foundation.Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
+            ) {
+                val w = size.width
+                val h = size.height
+                val padding = 8f
+                val chartW = w - padding * 2
+                val chartH = h - padding * 2
+                val range = (maxVal - minVal).coerceAtLeast(1f)
+
+                // Grid lines
+                for (i in 0..3) {
+                    val y = padding + chartH * (i / 3f)
+                    drawLine(
+                        surfaceVariant,
+                        start = androidx.compose.ui.geometry.Offset(padding, y),
+                        end = androidx.compose.ui.geometry.Offset(w - padding, y),
+                        strokeWidth = 1f,
+                    )
+                }
+
+                // Line
+                if (dataPoints.size > 1) {
+                    val step = chartW / (dataPoints.size - 1)
+                    val path = androidx.compose.ui.graphics.Path()
+                    dataPoints.forEachIndexed { i, value ->
+                        val x = padding + step * i
+                        val y = padding + chartH * (1f - (value - minVal) / range)
+                        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                    }
+                    drawPath(
+                        path,
+                        color = primary,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f),
+                    )
+
+                    // Dots
+                    dataPoints.forEachIndexed { i, value ->
+                        val x = padding + step * i
+                        val y = padding + chartH * (1f - (value - minVal) / range)
+                        drawCircle(primary, radius = 4f, center = androidx.compose.ui.geometry.Offset(x, y))
+                    }
+                }
+            }
+        }
+
+        // Metric toggle chips
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("Heaviest Weight", "Est. 1RM", "Best Volume", "# of Reps").forEach { metric ->
+                FilterChip(
+                    selected = metric == selectedMetric,
+                    onClick = { selectedMetric = metric },
+                    label = { Text(metric, style = MaterialTheme.typography.labelSmall) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecordsTab(userId: String, exerciseName: String) {
+    val getExerciseRecordsUseCase = koinInject<GetExerciseRecordsUseCase>()
+    var records by remember { mutableStateOf<ExerciseRecords?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(exerciseName) {
+        isLoading = true
+        getExerciseRecordsUseCase(userId, exerciseName).onSuccess { records = it }
+        isLoading = false
+    }
+
+    if (isLoading) {
+        CoachLoadingBox(Modifier.fillMaxSize())
+        return
+    }
+
+    val r = records
+    if (r == null || listOfNotNull(r.heaviestWeight, r.mostRepsAtWeight, r.highestEstimated1RM, r.highestVolume).isEmpty()) {
+        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Text("No records yet. Start logging!", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        return
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        r.heaviestWeight?.let { RecordCard("Heaviest Weight", it) }
+        r.mostRepsAtWeight?.let { RecordCard("Most Reps", it) }
+        r.highestEstimated1RM?.let { RecordCard("Best Est. 1RM", it) }
+        r.highestVolume?.let { RecordCard("Highest Volume", it) }
+    }
+}
+
+@Composable
+private fun RecordCard(title: String, entry: RecordEntry) {
+    Card(shape = RoundedCornerShape(12.dp)) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)) {
+            Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(entry.value, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+            Text(entry.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(entry.date.toString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun InfoSection(title: String, content: @Composable () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            text = title,
+            title,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-            letterSpacing = 1.5.sp
+            letterSpacing = 1.5.sp,
         )
         Surface(
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Box(modifier = Modifier.padding(20.dp)) {
-                content()
-            }
+            Box(modifier = Modifier.padding(20.dp)) { content() }
         }
     }
 }

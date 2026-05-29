@@ -125,23 +125,8 @@ fun ExerciseLibraryScreen(
             )
         )
 
-        if (state.categories.isNotEmpty()) {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(state.categories, key = { it.id }) { category ->
-                    FilterChip(
-                        selected = state.selectedCategoryId == category.id,
-                        onClick = { onIntent(ExerciseIntent.SelectCategoryFilter(category.id)) },
-                        label = { Text(category.name, fontSize = 13.sp) }
-                    )
-                }
-            }
-        }
-
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 4.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
@@ -155,9 +140,22 @@ fun ExerciseLibraryScreen(
                             modifier = Modifier.size(16.dp)
                         )
                     },
-                    label = { Text("Favorites", fontSize = 13.sp) }
+                    label = { Text("❤️ Favorites", fontSize = 13.sp) }
                 )
             }
+            items(state.categories, key = { it.id }) { category ->
+                FilterChip(
+                    selected = state.selectedCategoryId == category.id,
+                    onClick = { onIntent(ExerciseIntent.SelectCategoryFilter(category.id)) },
+                    label = { Text(category.name, fontSize = 13.sp) }
+                )
+            }
+        }
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             items(DIFFICULTIES) { difficulty ->
                 FilterChip(
                     selected = state.selectedDifficulty == difficulty,
@@ -277,6 +275,18 @@ private fun ExerciseListItem(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium
                 )
+                exercise.category?.let { cat ->
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                    ) {
+                        Text(
+                            text = cat.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
                 if (exercise.muscles.isNotEmpty()) {
                     Text(
                         text = exercise.muscles.joinToString(", "),
