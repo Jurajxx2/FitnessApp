@@ -19,6 +19,7 @@ import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
+import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.jetbrains.compose.resources.stringResource
@@ -58,13 +59,11 @@ fun MealDetailScreen(
         when {
             state.selectedMeal != null -> {
                 MealContent(meal = state.selectedMeal, modifier = Modifier.weight(1f))
-                Button(
+                CoachButton(
+                    text = stringResource(Res.string.log_this_meal),
                     onClick = onLogMeal,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(stringResource(Res.string.log_this_meal), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                }
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp)
+                )
             }
             state.isLoading || state.mealPlan == null -> CoachLoadingBox()
             else -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

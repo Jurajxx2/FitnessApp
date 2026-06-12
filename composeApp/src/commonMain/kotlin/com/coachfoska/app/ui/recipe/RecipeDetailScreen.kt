@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +43,7 @@ import com.coachfoska.app.domain.model.RecipeIngredient
 import com.coachfoska.app.domain.model.RecipeStep
 import com.coachfoska.app.presentation.recipe.RecipeDetailIntent
 import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
+import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.recipe.components.CookingStepCard
@@ -90,13 +90,11 @@ fun RecipeDetailRoute(
                     onIntent = viewModel::onIntent,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                CoachButton(
+                    text = stringResource(Res.string.log_this_meal),
                     onClick = onLogMeal,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(stringResource(Res.string.log_this_meal), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                }
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp)
+                )
             }
         }
     }
