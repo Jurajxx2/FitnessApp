@@ -285,7 +285,7 @@ fun App(openHumanChat: Boolean = false) {
                         onBackClick = { navController.popBackStack() },
                         onWorkoutComplete = { logId ->
                             navController.navigate(PostWorkoutSummary(logId)) {
-                                popUpTo<WorkoutList>()
+                                popUpTo<ActiveSession> { inclusive = true }
                             }
                         },
                         onExerciseDetailClick = { exerciseId ->
@@ -299,11 +299,7 @@ fun App(openHumanChat: Boolean = false) {
                     PostWorkoutSummaryRoute(
                         userId = currentUserId,
                         logId = route.logId,
-                        onDone = {
-                            navController.navigate(WorkoutList) {
-                                popUpTo<WorkoutList> { inclusive = true }
-                            }
-                        },
+                        onDone = { navController.popBackStack() },
                     )
                 }
 

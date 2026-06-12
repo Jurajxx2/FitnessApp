@@ -192,10 +192,10 @@ fun HomeScreen(
 @Composable
 private fun WorkoutHomeCard(workout: Workout, onClick: () -> Unit, onStart: () -> Unit) {
     Surface(
+        onClick = onClick,
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.onBackground,
         contentColor = MaterialTheme.colorScheme.background,
-        modifier = Modifier.clickable(onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
@@ -273,11 +273,12 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(Modifier.width(8.dp))
-            IconButton(onClick = onQuickAdd, modifier = Modifier.size(28.dp)) {
+            IconButton(onClick = onQuickAdd, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = stringResource(Res.string.quick_add_water),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -297,7 +298,7 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
 
 @Composable
 private fun MacroRow(summary: DailyNutritionSummary, targets: MacroTargets?) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(modifier = Modifier.fillMaxWidth()) {
         MacroItem(stringResource(Res.string.macro_kcal), summary.calories, targets?.calories, modifier = Modifier.weight(1f))
         MacroItem(stringResource(Res.string.macro_protein), summary.proteinG, targets?.proteinG, suffix = "g", modifier = Modifier.weight(1f))
         MacroItem(stringResource(Res.string.macro_carbs), summary.carbsG, targets?.carbsG, suffix = "g", modifier = Modifier.weight(1f))
