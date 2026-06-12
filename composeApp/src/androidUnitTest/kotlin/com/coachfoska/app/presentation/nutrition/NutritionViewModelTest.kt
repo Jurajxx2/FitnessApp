@@ -251,6 +251,20 @@ class NutritionViewModelTest {
         assertNull(vm.state.value.capturePrefill)
         assertNull(vm.state.value.error)
     }
+
+    @Test
+    fun `CapturePrefillConsumed nulls capturePrefill after successful LoadCapturePrefill`() = runTest {
+        coEvery { repo.getRecipeById("r1") } returns Result.success(
+            aRecipe(id = "r1", name = "Oats", ingredients = emptyList())
+        )
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LoadCapturePrefill(recipeId = "r1", mealId = null))
+        assertNotNull(vm.state.value.capturePrefill)
+
+        vm.onIntent(NutritionIntent.CapturePrefillConsumed)
+
+        assertNull(vm.state.value.capturePrefill)
+    }
 }
 
 private fun aMealPlan(meals: List<Meal> = emptyList()) = MealPlan(

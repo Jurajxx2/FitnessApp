@@ -58,6 +58,7 @@ class NutritionViewModel(
             is NutritionIntent.ToggleFavoriteRecipe -> toggleFavoriteRecipe(intent.recipeId)
             NutritionIntent.ToggleFavoritesFilter -> _state.update { it.copy(showOnlyFavorites = !it.showOnlyFavorites) }
             is NutritionIntent.LoadCapturePrefill -> loadCapturePrefill(intent.recipeId, intent.mealId)
+            NutritionIntent.CapturePrefillConsumed -> _state.update { it.copy(capturePrefill = null) }
         }
     }
 

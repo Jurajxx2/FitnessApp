@@ -403,7 +403,8 @@ fun App(openHumanChat: Boolean = false) {
                     MealDetailRoute(
                         mealId = route.mealId,
                         userId = currentUserId,
-                        onBackClick = { navController.popBackStack() }
+                        onBackClick = { navController.popBackStack() },
+                        onLogMeal = { navController.navigate(MealCapture(mealId = route.mealId)) }
                     )
                 }
 
@@ -456,7 +457,8 @@ fun App(openHumanChat: Boolean = false) {
                     RecipeDetailRoute(
                         recipeId = route.recipeId,
                         userId = currentUserId,
-                        onBackClick = { navController.popBackStack() }
+                        onBackClick = { navController.popBackStack() },
+                        onLogMeal = { navController.navigate(MealCapture(recipeId = route.recipeId)) }
                     )
                 }
 

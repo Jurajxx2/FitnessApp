@@ -13,12 +13,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.log_this_meal
 import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -27,6 +30,7 @@ fun MealDetailRoute(
     mealId: String,
     userId: String,
     onBackClick: () -> Unit,
+    onLogMeal: () -> Unit = {},
     viewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -39,19 +43,29 @@ fun MealDetailRoute(
         }
     }
 
-    MealDetailScreen(state = state, onBackClick = onBackClick)
+    MealDetailScreen(state = state, onBackClick = onBackClick, onLogMeal = onLogMeal)
 }
 
 @Composable
 fun MealDetailScreen(
     state: NutritionState,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onLogMeal: () -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CoachTopBar(title = "MEAL", onBackClick = onBackClick)
 
         when {
-            state.selectedMeal != null -> MealContent(meal = state.selectedMeal)
+            state.selectedMeal != null -> {
+                MealContent(meal = state.selectedMeal, modifier = Modifier.weight(1f))
+                Button(
+                    onClick = onLogMeal,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(stringResource(Res.string.log_this_meal), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                }
+            }
             state.isLoading || state.mealPlan == null -> CoachLoadingBox()
             else -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
@@ -65,9 +79,9 @@ fun MealDetailScreen(
 }
 
 @Composable
-private fun MealContent(meal: Meal) {
+private fun MealContent(meal: Meal, modifier: Modifier = Modifier) {
     LazyColumn(
-        modifier = Modifier.background(MaterialTheme.colorScheme.background),
+        modifier = modifier.background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(bottom = 40.dp),
     ) {
         item("title") {

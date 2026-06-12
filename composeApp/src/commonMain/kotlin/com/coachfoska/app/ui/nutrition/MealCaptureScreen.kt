@@ -107,7 +107,7 @@ fun MealCaptureScreen(
     LaunchedEffect(state.capturePrefill) {
         val prefill = state.capturePrefill ?: return@LaunchedEffect
         // Only seed untouched forms — never clobber user input.
-        if (mealName.isBlank() && foods.all { it.name.isBlank() }) {
+        if (mealName.isBlank() && foods == listOf(FoodEntry(""))) {
             mealName = prefill.mealName
             foods = prefill.foods.map { f ->
                 FoodEntry(
@@ -122,6 +122,7 @@ fun MealCaptureScreen(
                     baseServingUnit = f.unit,
                 )
             }
+            onIntent(NutritionIntent.CapturePrefillConsumed)
         }
     }
 

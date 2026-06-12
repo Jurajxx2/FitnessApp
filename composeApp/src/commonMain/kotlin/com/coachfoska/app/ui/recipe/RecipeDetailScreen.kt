@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +48,9 @@ import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.recipe.components.CookingStepCard
 import com.coachfoska.app.ui.recipe.components.ServingsAdjuster
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.log_this_meal
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -55,6 +59,7 @@ fun RecipeDetailRoute(
     recipeId: String,
     userId: String,
     onBackClick: () -> Unit,
+    onLogMeal: () -> Unit = {},
     viewModel: RecipeDetailViewModel = koinViewModel { parametersOf(recipeId, userId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -78,12 +83,21 @@ fun RecipeDetailRoute(
             state.error != null -> Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(state.error!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
             }
-            state.recipe != null -> RecipeDetailScreen(
-                recipe = state.recipe!!,
-                selectedServings = state.selectedServings,
-                onIntent = viewModel::onIntent,
-                modifier = Modifier.weight(1f),
-            )
+            state.recipe != null -> Column(modifier = Modifier.weight(1f)) {
+                RecipeDetailScreen(
+                    recipe = state.recipe!!,
+                    selectedServings = state.selectedServings,
+                    onIntent = viewModel::onIntent,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = onLogMeal,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(stringResource(Res.string.log_this_meal), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                }
+            }
         }
     }
 }
