@@ -35,7 +35,7 @@ describe('ExerciseCombobox', () => {
     const onChange = vi.fn()
     render(<ExerciseCombobox value="" onChange={onChange} />)
     fireEvent.change(screen.getByPlaceholderText('e.g. Bench Press'), { target: { value: 'squat' } })
-    expect(onChange).toHaveBeenCalledWith('squat', '')
+    expect(onChange).toHaveBeenCalledWith('squat', '', '')
   })
 
   it('shows dropdown results after typing 2+ characters', async () => {
@@ -52,7 +52,7 @@ describe('ExerciseCombobox', () => {
     fireEvent.change(screen.getByPlaceholderText('e.g. Bench Press'), { target: { value: 'bench' } })
     await waitFor(() => screen.getByText('Bench Press'))
     fireEvent.click(screen.getByText('Bench Press'))
-    expect(onChange).toHaveBeenCalledWith('Bench Press', 'Chest')
+    expect(onChange).toHaveBeenCalledWith('Bench Press', 'Chest', '1')
   })
 
   it('closes dropdown on Escape', async () => {

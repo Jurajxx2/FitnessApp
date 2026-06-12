@@ -51,7 +51,7 @@ describe('ExerciseBrowserSlideOver', () => {
     render(<ExerciseBrowserSlideOver open={true} onClose={vi.fn()} addedNames={[]} onAdd={onAdd} />)
     await waitFor(() => screen.getByText('Bench Press'))
     fireEvent.click(screen.getByLabelText('Add Bench Press'))
-    expect(onAdd).toHaveBeenCalledWith('Bench Press', 'Chest')
+    expect(onAdd).toHaveBeenCalledWith('Bench Press', 'Chest', '1')
   })
 
   it('shows ✓ added badge for exercises already in addedNames', async () => {
