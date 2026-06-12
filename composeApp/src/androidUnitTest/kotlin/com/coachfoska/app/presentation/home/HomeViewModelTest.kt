@@ -16,9 +16,13 @@ import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
+import com.coachfoska.app.domain.model.WaterContainer
+import com.coachfoska.app.domain.model.WaterLog
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.datetime.Instant
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -157,5 +161,58 @@ class HomeViewModelTest {
 
         assertNotNull(targets)
         assertEquals(135, targets.proteinG.toInt())
+    }
+
+    @Test
+    fun `quick add water uses favorite container volume`() = runTest {
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
+        coEvery { hydrationRepo.getContainers("user-1") } returns Result.success(
+            listOf(
+                WaterContainer(id = "c1", name = "Glass", volumeMl = 250),
+                WaterContainer(id = "c2", name = "Bottle", volumeMl = 500, isFavorite = true),
+            )
+        )
+        coEvery { hydrationRepo.logWater("user-1", 500) } returns
+            Result.success(WaterLog(id = "w1", amountMl = 500, loggedAt = Instant.parse("2026-06-12T10:00:00Z")))
+
+        val vm = viewModel()
+        val before = vm.state.value.waterConsumedMl
+        vm.onIntent(HomeIntent.QuickAddWater)
+
+        assertEquals(before + 500, vm.state.value.waterConsumedMl)
+        coVerify { hydrationRepo.logWater("user-1", 500) }
+    }
+
+    @Test
+    fun `quick add water falls back to 250ml without containers`() = runTest {
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
+        coEvery { hydrationRepo.getContainers("user-1") } returns Result.success(emptyList())
+        coEvery { hydrationRepo.logWater("user-1", 250) } returns
+            Result.success(WaterLog(id = "w1", amountMl = 250, loggedAt = Instant.parse("2026-06-12T10:00:00Z")))
+
+        val vm = viewModel()
+        vm.onIntent(HomeIntent.QuickAddWater)
+
+        coVerify { hydrationRepo.logWater("user-1", 250) }
+    }
+
+    @Test
+    fun `quick add water reverts on failure`() = runTest {
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
+        coEvery { hydrationRepo.getContainers("user-1") } returns Result.success(emptyList())
+        coEvery { hydrationRepo.logWater("user-1", 250) } returns Result.failure(RuntimeException("offline"))
+
+        val vm = viewModel()
+        val before = vm.state.value.waterConsumedMl
+        vm.onIntent(HomeIntent.QuickAddWater)
+
+        assertEquals(before, vm.state.value.waterConsumedMl)
+        assertNotNull(vm.state.value.error)
     }
 }

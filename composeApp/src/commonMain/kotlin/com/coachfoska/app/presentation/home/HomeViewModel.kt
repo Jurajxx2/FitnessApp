@@ -53,6 +53,23 @@ class HomeViewModel(
         when (intent) {
             HomeIntent.LoadData -> loadData(force = false)
             HomeIntent.Refresh -> loadData(force = true)
+            HomeIntent.QuickAddWater -> quickAddWater()
+        }
+    }
+
+    private fun quickAddWater() {
+        viewModelScope.launch {
+            val containers = getWaterContainersUseCase(userId).getOrDefault(emptyList())
+            val amountMl = (containers.firstOrNull { it.isFavorite } ?: containers.firstOrNull())
+                ?.volumeMl ?: 250
+
+            val previous = _state.value.waterConsumedMl
+            _state.update { it.copy(waterConsumedMl = previous + amountMl) }
+
+            hydrationRepository.logWater(userId, amountMl).onFailure { e ->
+                Napier.e("quickAddWater failed", e, tag = TAG)
+                _state.update { it.copy(waterConsumedMl = previous, error = e.message) }
+            }
         }
     }
 
