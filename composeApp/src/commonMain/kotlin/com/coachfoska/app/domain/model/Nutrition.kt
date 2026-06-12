@@ -119,3 +119,10 @@ data class Food(
     val isVerified: Boolean
 )
 
+data class MacroTargets(
+    val calories: Float,
+    val proteinG: Float,
+    val carbsG: Float,
+    val fatG: Float
+)
+

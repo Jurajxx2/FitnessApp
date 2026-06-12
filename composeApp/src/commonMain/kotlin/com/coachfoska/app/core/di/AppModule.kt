@@ -100,6 +100,7 @@ import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.usecase.config.GetAppLinksUseCase
 import com.coachfoska.app.presentation.settings.SettingsViewModel
 import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
+import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
 import com.coachfoska.app.domain.usecase.hydration.AddWaterContainerUseCase
 import com.coachfoska.app.domain.usecase.hydration.DeleteWaterContainerUseCase
@@ -267,6 +268,7 @@ val hydrationModule = module {
     single { HydrationRemoteDataSource(get()) }
     single<HydrationRepository> { HydrationRepositoryImpl(get()) }
     factory { CalculateWaterGoalUseCase() }
+    factory { CalculateMacroTargetsUseCase() }
     factory { GetWaterContainersUseCase(get()) }
     factory { AddWaterContainerUseCase(get()) }
     factory { DeleteWaterContainerUseCase(get()) }
