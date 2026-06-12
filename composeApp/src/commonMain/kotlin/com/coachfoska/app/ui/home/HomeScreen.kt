@@ -5,21 +5,24 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.draw.clip
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.DailyNutritionSummary
+import com.coachfoska.app.domain.model.MacroTargets
 import com.coachfoska.app.domain.model.MessageContent
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.presentation.home.HomeIntent
@@ -35,10 +38,21 @@ fun HomeRoute(
     userId: String,
     onChatClick: () -> Unit = {},
     onWaterClick: () -> Unit = {},
+    onWorkoutClick: (String) -> Unit = {},
+    onStartWorkout: (String) -> Unit = {},
+    onLogMealClick: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HomeScreen(state = state, onIntent = viewModel::onIntent, onChatClick = onChatClick, onWaterClick = onWaterClick)
+    HomeScreen(
+        state = state,
+        onIntent = viewModel::onIntent,
+        onChatClick = onChatClick,
+        onWaterClick = onWaterClick,
+        onWorkoutClick = onWorkoutClick,
+        onStartWorkout = onStartWorkout,
+        onLogMealClick = onLogMealClick
+    )
 }
 
 @Composable
@@ -46,7 +60,10 @@ fun HomeScreen(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
     onChatClick: () -> Unit = {},
-    onWaterClick: () -> Unit = {}
+    onWaterClick: () -> Unit = {},
+    onWorkoutClick: (String) -> Unit = {},
+    onStartWorkout: (String) -> Unit = {},
+    onLogMealClick: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -91,9 +108,13 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                         letterSpacing = 1.5.sp
                     )
-                    
+
                     state.todayWorkout?.let { workout ->
-                        WorkoutHomeCard(workout)
+                        WorkoutHomeCard(
+                            workout = workout,
+                            onClick = { onWorkoutClick(workout.id) },
+                            onStart = { onStartWorkout(workout.id) }
+                        )
                     } ?: Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surface,
@@ -123,7 +144,7 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                         letterSpacing = 1.5.sp
                     )
-                    
+
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f),
@@ -131,7 +152,7 @@ fun HomeScreen(
                     ) {
                         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                             state.nutritionSummary?.let { nutrition ->
-                                MacroRow(nutrition)
+                                MacroRow(nutrition, state.macroTargets)
                             } ?: Text(
                                 text = stringResource(Res.string.start_logging_meals),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -140,8 +161,20 @@ fun HomeScreen(
                             WaterProgressRow(
                                 consumedMl = state.waterConsumedMl,
                                 goalMl = state.waterGoalMl,
-                                onClick = onWaterClick
+                                onClick = onWaterClick,
+                                onQuickAdd = { onIntent(HomeIntent.QuickAddWater) }
                             )
+                            TextButton(
+                                onClick = onLogMealClick,
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.log_meal_button),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    letterSpacing = 1.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -150,18 +183,19 @@ fun HomeScreen(
             state.error?.let {
                 Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
 @Composable
-private fun WorkoutHomeCard(workout: Workout) {
+private fun WorkoutHomeCard(workout: Workout, onClick: () -> Unit, onStart: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.onBackground,
-        contentColor = MaterialTheme.colorScheme.background
+        contentColor = MaterialTheme.colorScheme.background,
+        modifier = Modifier.clickable(onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
@@ -170,7 +204,7 @@ private fun WorkoutHomeCard(workout: Workout) {
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = (-0.5).sp
             )
-            
+
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(Res.string.exercises_count, workout.exercises.size),
@@ -184,12 +218,29 @@ private fun WorkoutHomeCard(workout: Workout) {
                     color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f)
                 )
             }
+
+            Button(
+                onClick = onStart,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.onBackground
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.start_workout),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit) {
+private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, onQuickAdd: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -221,6 +272,14 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit) 
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
+            Spacer(Modifier.width(8.dp))
+            IconButton(onClick = onQuickAdd, modifier = Modifier.size(28.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(Res.string.quick_add_water),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         Spacer(Modifier.height(6.dp))
         val fraction = if (goalMl > 0) (consumedMl.toFloat() / goalMl).coerceIn(0f, 1f) else 0f
@@ -237,12 +296,12 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit) 
 }
 
 @Composable
-private fun MacroRow(summary: DailyNutritionSummary) {
+private fun MacroRow(summary: DailyNutritionSummary, targets: MacroTargets?) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        MacroItem(label = stringResource(Res.string.macro_kcal), value = "${summary.calories.toInt()}")
-        MacroItem(label = stringResource(Res.string.macro_protein), value = "${summary.proteinG.toInt()}g")
-        MacroItem(label = stringResource(Res.string.macro_carbs), value = "${summary.carbsG.toInt()}g")
-        MacroItem(label = stringResource(Res.string.macro_fat), value = "${summary.fatG.toInt()}g")
+        MacroItem(stringResource(Res.string.macro_kcal), summary.calories, targets?.calories, modifier = Modifier.weight(1f))
+        MacroItem(stringResource(Res.string.macro_protein), summary.proteinG, targets?.proteinG, suffix = "g", modifier = Modifier.weight(1f))
+        MacroItem(stringResource(Res.string.macro_carbs), summary.carbsG, targets?.carbsG, suffix = "g", modifier = Modifier.weight(1f))
+        MacroItem(stringResource(Res.string.macro_fat), summary.fatG, targets?.fatG, suffix = "g", modifier = Modifier.weight(1f))
     }
 }
 
@@ -288,13 +347,34 @@ private fun CoachMessagePreviewCard(message: ChatMessage, onClick: () -> Unit) {
 }
 
 @Composable
-private fun MacroItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun MacroItem(
+    label: String,
+    value: Float,
+    target: Float?,
+    suffix: String = "",
+    modifier: Modifier = Modifier
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier.padding(horizontal = 4.dp)) {
         Text(
-            text = value,
+            text = "${value.toInt()}$suffix",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
+        if (target != null && target > 0f) {
+            Text(
+                text = "/ ${target.toInt()}$suffix",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+            )
+            Spacer(Modifier.height(4.dp))
+            LinearProgressIndicator(
+                progress = { (value / target).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(50)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
+            )
+        }
+        Spacer(Modifier.height(2.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,

@@ -57,6 +57,9 @@
     <string name="welcome_back">WELCOME BACK,</string>
     <string name="default_athlete_name">ATHLETE</string>
     <string name="todays_focus">TODAY\'S FOCUS</string>
+    <string name="start_workout">START WORKOUT</string>
+    <string name="log_meal_button">LOG MEAL</string>
+    <string name="quick_add_water">Add water</string>
     <string name="recovery_day">RECOVERY DAY</string>
     <string name="recovery_day_desc">Focus on mobility and nutrition today.</string>
     <string name="daily_nutrition">DAILY NUTRITION</string>

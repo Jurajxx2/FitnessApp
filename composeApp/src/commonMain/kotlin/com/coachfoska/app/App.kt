@@ -241,7 +241,10 @@ fun App(openHumanChat: Boolean = false) {
                     HomeRoute(
                         userId = currentUserId,
                         onChatClick = { navController.navigate(HumanCoachChat) },
-                        onWaterClick = { navController.navigate(Hydration) }
+                        onWaterClick = { navController.navigate(Hydration) },
+                        onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
+                        onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
+                        onLogMealClick = { navController.navigate(MealCapture) }
                     )
                 }
 
