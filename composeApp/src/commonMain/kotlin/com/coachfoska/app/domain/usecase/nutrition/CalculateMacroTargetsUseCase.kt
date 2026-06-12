@@ -9,6 +9,8 @@ import com.coachfoska.app.domain.model.UserGoal
  * Daily calorie / macro targets from profile data.
  * BMR via Mifflin–St Jeor; the profile has no sex field yet, so the male
  * constant (+5) is used for everyone until onboarding collects it.
+ * Split: protein 1.8 g/kg bodyweight, fat 25% of calories, carbs the
+ * remainder (4/9/4 kcal per gram).
  */
 class CalculateMacroTargetsUseCase {
 

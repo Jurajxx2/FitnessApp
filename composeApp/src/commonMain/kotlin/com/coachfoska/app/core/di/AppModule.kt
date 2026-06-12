@@ -196,6 +196,7 @@ val useCaseModule = module {
     factory { ScaleRecipeUseCase() }
     factory { GetFavoriteRecipeIdsUseCase(get()) }
     factory { ToggleFavoriteRecipeUseCase(get()) }
+    factory { CalculateMacroTargetsUseCase() }
 
     // Profile
     factory { GetUserProfileUseCase(get()) }
@@ -268,7 +269,6 @@ val hydrationModule = module {
     single { HydrationRemoteDataSource(get()) }
     single<HydrationRepository> { HydrationRepositoryImpl(get()) }
     factory { CalculateWaterGoalUseCase() }
-    factory { CalculateMacroTargetsUseCase() }
     factory { GetWaterContainersUseCase(get()) }
     factory { AddWaterContainerUseCase(get()) }
     factory { DeleteWaterContainerUseCase(get()) }
