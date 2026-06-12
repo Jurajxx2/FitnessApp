@@ -15,5 +15,6 @@ data class HomeState(
     val lastCoachMessage: ChatMessage? = null,
     val waterConsumedMl: Int = 0,
     val waterGoalMl: Int = 2000,
+    val quickAddVolumeMl: Int = 250,
     val error: String? = null
 )

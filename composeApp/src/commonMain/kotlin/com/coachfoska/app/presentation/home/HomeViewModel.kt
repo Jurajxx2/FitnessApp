@@ -58,17 +58,12 @@ class HomeViewModel(
     }
 
     private fun quickAddWater() {
+        val amountMl = _state.value.quickAddVolumeMl
+        _state.update { it.copy(waterConsumedMl = it.waterConsumedMl + amountMl) }
         viewModelScope.launch {
-            val containers = getWaterContainersUseCase(userId).getOrDefault(emptyList())
-            val amountMl = (containers.firstOrNull { it.isFavorite } ?: containers.firstOrNull())
-                ?.volumeMl ?: 250
-
-            val previous = _state.value.waterConsumedMl
-            _state.update { it.copy(waterConsumedMl = previous + amountMl) }
-
             hydrationRepository.logWater(userId, amountMl).onFailure { e ->
                 Napier.e("quickAddWater failed", e, tag = TAG)
-                _state.update { it.copy(waterConsumedMl = previous, error = e.message) }
+                _state.update { it.copy(waterConsumedMl = (it.waterConsumedMl - amountMl).coerceAtLeast(0), error = e.message) }
             }
         }
     }
@@ -96,14 +91,17 @@ class HomeViewModel(
                 }.getOrNull()
             }
             val waterLogsDeferred = async { hydrationRepository.getTodayLogs(userId) }
+            val containersDeferred = async { getWaterContainersUseCase(userId) }
 
             val profileResult = profileDeferred.await()
             val workoutsResult = workoutsDeferred.await()
             val nutritionResult = nutritionDeferred.await()
             val lastCoachMessage = chatDeferred.await()
             val waterLogsResult = waterLogsDeferred.await()
+            val containers = containersDeferred.await().getOrDefault(emptyList())
             val waterConsumed = waterLogsResult.getOrDefault(emptyList()).sumOf { it.amountMl }
             val waterGoal = profileResult.getOrNull()?.let { calculateWaterGoalUseCase(it) } ?: 2000
+            val quickAddVolume = (containers.firstOrNull { it.isFavorite } ?: containers.firstOrNull())?.volumeMl ?: 250
 
             profileResult.onFailure { e -> Napier.e("loadProfile failed", e, tag = TAG) }
             workoutsResult.onFailure { e -> Napier.e("loadWorkouts failed", e, tag = TAG) }
@@ -128,6 +126,7 @@ class HomeViewModel(
                     lastCoachMessage = lastCoachMessage,
                     waterConsumedMl = waterConsumed,
                     waterGoalMl = waterGoal,
+                    quickAddVolumeMl = quickAddVolume,
                     error = error
                 )
             }

@@ -201,6 +201,26 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `quick add water uses first container when none is favorite`() = runTest {
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
+        coEvery { hydrationRepo.getContainers("user-1") } returns Result.success(
+            listOf(
+                WaterContainer(id = "c1", name = "Small", volumeMl = 300),
+                WaterContainer(id = "c2", name = "Large", volumeMl = 500),
+            )
+        )
+        coEvery { hydrationRepo.logWater("user-1", 300) } returns
+            Result.success(WaterLog(id = "w1", amountMl = 300, loggedAt = Instant.parse("2026-06-12T10:00:00Z")))
+
+        val vm = viewModel()
+        vm.onIntent(HomeIntent.QuickAddWater)
+
+        coVerify { hydrationRepo.logWater("user-1", 300) }
+    }
+
+    @Test
     fun `quick add water reverts on failure`() = runTest {
         coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
         coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
