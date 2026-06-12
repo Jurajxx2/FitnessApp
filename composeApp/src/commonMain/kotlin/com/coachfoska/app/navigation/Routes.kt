@@ -32,7 +32,7 @@ import kotlinx.serialization.Serializable
 // Nutrition
 @Serializable object MealPlan
 @Serializable data class MealDetail(val mealId: String)
-@Serializable object MealCapture
+@Serializable data class MealCapture(val recipeId: String? = null, val mealId: String? = null)
 @Serializable object MealHistory
 @Serializable data class MealHistoryDetail(val logId: String)
 @Serializable data class RecipeDetail(val recipeId: String)

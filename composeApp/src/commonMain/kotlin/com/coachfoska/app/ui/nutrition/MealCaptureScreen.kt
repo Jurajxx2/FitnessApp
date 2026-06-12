@@ -69,10 +69,16 @@ data class FoodEntry(
 @Composable
 fun MealCaptureRoute(
     userId: String,
+    recipeId: String? = null,
+    mealId: String? = null,
     onBackClick: () -> Unit,
     viewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(recipeId, mealId) {
+        viewModel.onIntent(NutritionIntent.LoadCapturePrefill(recipeId, mealId))
+    }
 
     LaunchedEffect(state.mealLoggedSuccess) {
         if (state.mealLoggedSuccess) {
@@ -97,6 +103,27 @@ fun MealCaptureScreen(
     var mediaUri by remember { mutableStateOf<String?>(null) }
     var showMediaSheet by remember { mutableStateOf(false) }
     var searchingIndex by remember { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(state.capturePrefill) {
+        val prefill = state.capturePrefill ?: return@LaunchedEffect
+        // Only seed untouched forms — never clobber user input.
+        if (mealName.isBlank() && foods.all { it.name.isBlank() }) {
+            mealName = prefill.mealName
+            foods = prefill.foods.map { f ->
+                FoodEntry(
+                    name = f.name,
+                    amount = f.amount.toString().trimEnd('0').trimEnd('.'),
+                    unit = f.unit,
+                    baseCalories = f.calories,
+                    basePro = f.proteinG,
+                    baseCarbs = f.carbsG,
+                    baseFat = f.fatG,
+                    baseServingSize = f.amount,
+                    baseServingUnit = f.unit,
+                )
+            }
+        }
+    }
 
     if (showMediaSheet) {
         MediaCaptureBottomSheet(

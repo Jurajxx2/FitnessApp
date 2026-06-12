@@ -1,12 +1,15 @@
 package com.coachfoska.app.presentation.nutrition
 
 import com.coachfoska.app.domain.model.Meal
+import com.coachfoska.app.domain.model.MealFood
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealPlan
+import com.coachfoska.app.domain.model.RecipeIngredient
 import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
@@ -44,10 +47,15 @@ class NutritionViewModelTest {
         searchFoodsUseCase = SearchFoodsUseCase(repo),
         getFavoriteRecipeIdsUseCase = GetFavoriteRecipeIdsUseCase(repo),
         toggleFavoriteRecipeUseCase = ToggleFavoriteRecipeUseCase(repo),
+        getRecipeByIdUseCase = GetRecipeByIdUseCase(repo),
         userId = "user-1"
     )
 
-    @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)
+    @BeforeTest fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        // Default stub — individual tests can override with coEvery
+        coEvery { repo.getActiveMealPlan(any()) } returns Result.success(null)
+    }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     @Test
@@ -188,6 +196,61 @@ class NutritionViewModelTest {
         assertTrue(vm.state.value.showOnlyFavorites)
         assertEquals(listOf("r-1"), vm.state.value.recipes.map { it.id })
     }
+
+    @Test
+    fun `prefill from recipe maps ingredients`() = runTest {
+        coEvery { repo.getRecipeById("r1") } returns Result.success(
+            aRecipe(
+                id = "r1",
+                name = "Avocado Toast",
+                ingredients = listOf(
+                    RecipeIngredient(name = "Avocado", quantity = 1f, unit = "x", calories = 160f, proteinG = 2f, carbsG = 8.5f, fatG = 14.7f),
+                    RecipeIngredient(name = "Bread", quantity = 2f, unit = "slice", calories = 180f, proteinG = 6f, carbsG = 34f, fatG = 2f),
+                )
+            )
+        )
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LoadCapturePrefill(recipeId = "r1", mealId = null))
+        val prefill = vm.state.value.capturePrefill
+        assertNotNull(prefill)
+        assertEquals("Avocado Toast", prefill.mealName)
+        assertEquals(2, prefill.foods.size)
+        assertEquals("Avocado", prefill.foods[0].name)
+        assertEquals(160f, prefill.foods[0].calories)
+    }
+
+    @Test
+    fun `prefill from meal maps meal foods`() = runTest {
+        coEvery { repo.getActiveMealPlan("user-1") } returns Result.success(
+            aMealPlan(
+                meals = listOf(
+                    aMeal(
+                        id = "m1",
+                        name = "Lunch",
+                        foods = listOf(
+                            MealFood(id = "mf-1", mealId = "m1", name = "Chicken", amountGrams = 150f, calories = 248f, proteinG = 46f, carbsG = 0f, fatG = 5f)
+                        )
+                    )
+                )
+            )
+        )
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LoadCapturePrefill(recipeId = null, mealId = "m1"))
+        val prefill = vm.state.value.capturePrefill
+        assertNotNull(prefill)
+        assertEquals("Lunch", prefill.mealName)
+        assertEquals("Chicken", prefill.foods[0].name)
+        assertEquals(150f, prefill.foods[0].amount)
+    }
+
+    @Test
+    fun `prefill failure leaves state blank and does not error`() = runTest {
+        coEvery { repo.getRecipeById("missing") } returns Result.failure(RuntimeException("offline"))
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LoadCapturePrefill(recipeId = "missing", mealId = null))
+        assertNull(vm.state.value.capturePrefill)
+        assertNull(vm.state.value.error)
+    }
 }
 
 private fun aMealPlan(meals: List<Meal> = emptyList()) = MealPlan(
@@ -195,9 +258,13 @@ private fun aMealPlan(meals: List<Meal> = emptyList()) = MealPlan(
     validFrom = null, validTo = null
 )
 
-private fun aMeal() = Meal(
-    id = "meal-1", mealPlanId = "mp-1", name = "Lunch",
-    timeOfDay = "12:00", sortOrder = 0, dayOfWeek = null, foods = emptyList()
+private fun aMeal(
+    id: String = "meal-1",
+    name: String = "Lunch",
+    foods: List<MealFood> = emptyList()
+) = Meal(
+    id = id, mealPlanId = "mp-1", name = name,
+    timeOfDay = "12:00", sortOrder = 0, dayOfWeek = null, foods = foods
 )
 
 private fun aMealLog() = MealLog(

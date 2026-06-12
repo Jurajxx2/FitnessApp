@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
@@ -28,6 +29,7 @@ class NutritionViewModel(
     private val searchFoodsUseCase: SearchFoodsUseCase,
     private val getFavoriteRecipeIdsUseCase: GetFavoriteRecipeIdsUseCase,
     private val toggleFavoriteRecipeUseCase: ToggleFavoriteRecipeUseCase,
+    private val getRecipeByIdUseCase: GetRecipeByIdUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -55,6 +57,7 @@ class NutritionViewModel(
             is NutritionIntent.SelectDay -> _state.update { it.copy(selectedDayOfWeek = intent.dayOfWeek) }
             is NutritionIntent.ToggleFavoriteRecipe -> toggleFavoriteRecipe(intent.recipeId)
             NutritionIntent.ToggleFavoritesFilter -> _state.update { it.copy(showOnlyFavorites = !it.showOnlyFavorites) }
+            is NutritionIntent.LoadCapturePrefill -> loadCapturePrefill(intent.recipeId, intent.mealId)
         }
     }
 
@@ -159,6 +162,58 @@ class NutritionViewModel(
                         it.copy(favoriteRecipeIds = if (nowFavorite) it.favoriteRecipeIds - recipeId else it.favoriteRecipeIds + recipeId)
                     }
                 }
+        }
+    }
+
+    private fun loadCapturePrefill(recipeId: String?, mealId: String?) {
+        if (recipeId == null && mealId == null) return
+        viewModelScope.launch {
+            if (recipeId != null) {
+                getRecipeByIdUseCase(recipeId)
+                    .onSuccess { recipe ->
+                        if (recipe == null) return@onSuccess
+                        _state.update {
+                            it.copy(capturePrefill = CapturePrefill(
+                                mealName = recipe.name,
+                                foods = recipe.ingredients.map { ing ->
+                                    CapturePrefillFood(
+                                        name = ing.name,
+                                        amount = ing.quantity ?: 1f,
+                                        unit = ing.unit ?: "x",
+                                        calories = ing.calories,
+                                        proteinG = ing.proteinG,
+                                        carbsG = ing.carbsG,
+                                        fatG = ing.fatG
+                                    )
+                                }
+                            ))
+                        }
+                    }
+                    // Prefill is best-effort: failure degrades to blank capture, never blocks logging.
+                    .onFailure { e -> Napier.e("prefill recipe $recipeId failed", e, tag = TAG) }
+            } else if (mealId != null) {
+                getActiveMealPlanUseCase(userId)
+                    .onSuccess { plan ->
+                        val meal = plan?.meals?.firstOrNull { it.id == mealId } ?: return@onSuccess
+                        _state.update {
+                            it.copy(capturePrefill = CapturePrefill(
+                                mealName = meal.name,
+                                foods = meal.foods.map { mf ->
+                                    CapturePrefillFood(
+                                        name = mf.name,
+                                        amount = mf.amountGrams,
+                                        unit = "g",
+                                        calories = mf.calories,
+                                        proteinG = mf.proteinG,
+                                        carbsG = mf.carbsG,
+                                        fatG = mf.fatG
+                                    )
+                                }
+                            ))
+                        }
+                    }
+                    .onFailure { e -> Napier.e("prefill meal $mealId failed", e, tag = TAG) }
+            }
         }
     }
 

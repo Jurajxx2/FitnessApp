@@ -244,7 +244,7 @@ fun App(openHumanChat: Boolean = false) {
                         onWaterClick = { navController.navigate(Hydration) },
                         onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
                         onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
-                        onLogMealClick = { navController.navigate(MealCapture) }
+                        onLogMealClick = { navController.navigate(MealCapture()) }
                     )
                 }
 
@@ -391,7 +391,7 @@ fun App(openHumanChat: Boolean = false) {
                     NutritionHubRoute(
                         userId = currentUserId,
                         onPlanClick = { navController.navigate(MealPlanDetail) },
-                        onRecordMealClick = { navController.navigate(MealCapture) },
+                        onRecordMealClick = { navController.navigate(MealCapture()) },
                         onHistoryClick = { navController.navigate(MealHistory) },
                         onRecipesClick = { navController.navigate(RecipesList) },
                         onWaterClick = { navController.navigate(Hydration) }
@@ -407,9 +407,12 @@ fun App(openHumanChat: Boolean = false) {
                     )
                 }
 
-                composable<MealCapture> {
+                composable<MealCapture> { backStackEntry ->
+                    val route = backStackEntry.toRoute<MealCapture>()
                     MealCaptureRoute(
                         userId = currentUserId,
+                        recipeId = route.recipeId,
+                        mealId = route.mealId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
@@ -426,7 +429,7 @@ fun App(openHumanChat: Boolean = false) {
                     MealPlanDetailRoute(
                         userId = currentUserId,
                         onMealClick = { mealId -> navController.navigate(MealDetail(mealId)) },
-                        onRecordMealClick = { navController.navigate(MealCapture) },
+                        onRecordMealClick = { navController.navigate(MealCapture()) },
                         onBackClick = { navController.popBackStack() }
                     )
                 }

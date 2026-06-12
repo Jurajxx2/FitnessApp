@@ -6,6 +6,21 @@ import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealPlan
 import com.coachfoska.app.domain.model.Recipe
 
+data class CapturePrefillFood(
+    val name: String,
+    val amount: Float,
+    val unit: String,
+    val calories: Float,
+    val proteinG: Float,
+    val carbsG: Float,
+    val fatG: Float
+)
+
+data class CapturePrefill(
+    val mealName: String,
+    val foods: List<CapturePrefillFood>
+)
+
 data class NutritionState(
     val isLoading: Boolean = false,
     val mealPlan: MealPlan? = null,
@@ -22,6 +37,7 @@ data class NutritionState(
     val isSearching: Boolean = false,
     val isLogging: Boolean = false,
     val mealLoggedSuccess: Boolean = false,
+    val capturePrefill: CapturePrefill? = null,
     val error: String? = null
 ) {
     val recipes: List<Recipe>
