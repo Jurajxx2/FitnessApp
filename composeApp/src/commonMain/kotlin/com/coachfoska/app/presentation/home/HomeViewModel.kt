@@ -8,6 +8,8 @@ import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
 import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
+import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
+import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
@@ -32,6 +34,8 @@ class HomeViewModel(
     private val observeChatMessagesUseCase: ObserveChatMessagesUseCase,
     private val hydrationRepository: HydrationRepository,
     private val calculateWaterGoalUseCase: CalculateWaterGoalUseCase,
+    private val calculateMacroTargetsUseCase: CalculateMacroTargetsUseCase,
+    private val getWaterContainersUseCase: GetWaterContainersUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -95,13 +99,15 @@ class HomeViewModel(
 
             val workouts = workoutsResult.getOrNull() ?: emptyList()
             val todayWorkout = workouts.firstOrNull { it.dayOfWeek?.index == todayDayOfWeek }
+            val loadedUser = profileResult.getOrNull()
 
             _state.update {
                 it.copy(
                     isLoading = false,
-                    user = profileResult.getOrNull(),
+                    user = loadedUser,
                     todayWorkout = todayWorkout,
                     nutritionSummary = nutritionResult.getOrNull(),
+                    macroTargets = loadedUser?.let { u -> calculateMacroTargetsUseCase(u) },
                     lastCoachMessage = lastCoachMessage,
                     waterConsumedMl = waterConsumed,
                     waterGoalMl = waterGoal,

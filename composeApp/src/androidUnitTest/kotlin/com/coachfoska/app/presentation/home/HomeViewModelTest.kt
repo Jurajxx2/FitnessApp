@@ -11,6 +11,8 @@ import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.usecase.auth.aUser
 import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
 import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
+import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
+import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
@@ -50,6 +52,8 @@ class HomeViewModelTest {
         observeChatMessagesUseCase = ObserveChatMessagesUseCase(chatRepo),
         hydrationRepository = hydrationRepo,
         calculateWaterGoalUseCase = CalculateWaterGoalUseCase(),
+        calculateMacroTargetsUseCase = CalculateMacroTargetsUseCase(),
+        getWaterContainersUseCase = GetWaterContainersUseCase(hydrationRepo),
         userId = "user-1"
     )
 
@@ -58,6 +62,7 @@ class HomeViewModelTest {
         Dispatchers.setMain(testDispatcher)
         every { chatRepo.observeMessages(any(), any()) } returns flowOf(emptyList())
         coEvery { hydrationRepo.getTodayLogs(any()) } returns Result.success(emptyList())
+        coEvery { hydrationRepo.getContainers(any()) } returns Result.success(emptyList())
     }
 
     @AfterTest fun tearDown() = Dispatchers.resetMain()
@@ -139,5 +144,18 @@ class HomeViewModelTest {
 
         assertNull(vm.state.value.error)
         assertFalse(vm.state.value.isLoading)
+    }
+
+    @Test
+    fun `loadData computes macro targets from profile`() = runTest {
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
+
+        val vm = viewModel()
+        val targets = vm.state.value.macroTargets
+
+        assertNotNull(targets)
+        assertEquals(135, targets.proteinG.toInt())
     }
 }
