@@ -1,36 +1,44 @@
 package com.coachfoska.app.data.ai
 
+import com.coachfoska.app.BuildKonfig
 import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.MessageContent
 import com.coachfoska.app.domain.model.SenderType
 import io.github.aakira.napier.Napier
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.request.headers
 import io.ktor.client.request.preparePost
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsChannel
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import io.ktor.utils.io.readUTF8Line
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 private const val TAG = "ClaudeAiProvider"
-private const val API_URL = "https://api.anthropic.com/v1/messages"
-private const val MODEL = "claude-sonnet-4-6"
-private const val MAX_TOKENS = 1024
-private const val ANTHROPIC_VERSION = "2023-06-01"
 
+/**
+ * Streams Claude responses through the `ai-proxy` Supabase Edge Function.
+ * The Anthropic API key lives server-side as a function secret; the client
+ * authenticates with the user's Supabase access token. Model and token limits
+ * are pinned in the edge function.
+ */
 class ClaudeAiProvider(
     private val httpClient: HttpClient,
-    private val apiKey: String
+    private val supabase: SupabaseClient
 ) : ChatAiProvider {
 
+    private val proxyUrl = "${BuildKonfig.SUPABASE_URL}/functions/v1/ai-proxy"
     private val json = Json { ignoreUnknownKeys = true }
 
     override fun streamResponse(
@@ -38,6 +46,9 @@ class ClaudeAiProvider(
         history: List<ChatMessage>,
         userMessage: String
     ): Flow<String> = channelFlow {
+        val accessToken = supabase.auth.currentAccessTokenOrNull()
+            ?: throw IllegalStateException("AI coach requires an authenticated session")
+
         val messages = history
             .filter { it.content is MessageContent.Text }
             .map { msg ->
@@ -47,24 +58,26 @@ class ClaudeAiProvider(
                 )
             } + ClaudeMessage(role = "user", content = userMessage)
 
-        val requestBody = ClaudeRequest(
-            model = MODEL,
-            maxTokens = MAX_TOKENS,
+        val requestBody = AiProxyRequest(
             system = systemPrompt,
-            messages = messages,
-            stream = true
+            messages = messages
         )
 
-        val bodyJson = json.encodeToString(ClaudeRequest.serializer(), requestBody)
+        val bodyJson = json.encodeToString(AiProxyRequest.serializer(), requestBody)
 
-        httpClient.preparePost(API_URL) {
+        httpClient.preparePost(proxyUrl) {
             headers {
-                append("x-api-key", apiKey)
-                append("anthropic-version", ANTHROPIC_VERSION)
+                append(HttpHeaders.Authorization, "Bearer $accessToken")
+                append("apikey", BuildKonfig.SUPABASE_ANON_KEY)
             }
             contentType(ContentType.Application.Json)
             setBody(bodyJson)
         }.execute { response ->
+            if (!response.status.isSuccess()) {
+                val error = response.bodyAsText()
+                Napier.e("ai-proxy returned ${response.status}: $error", tag = TAG)
+                throw IllegalStateException("AI request failed (${response.status})")
+            }
             val channel = response.bodyAsChannel()
             while (!channel.isClosedForRead) {
                 val line = channel.readUTF8Line() ?: break
@@ -87,12 +100,9 @@ class ClaudeAiProvider(
 }
 
 @Serializable
-private data class ClaudeRequest(
-    val model: String,
-    @SerialName("max_tokens") val maxTokens: Int,
+private data class AiProxyRequest(
     val system: String,
-    val messages: List<ClaudeMessage>,
-    val stream: Boolean
+    val messages: List<ClaudeMessage>
 )
 
 @Serializable

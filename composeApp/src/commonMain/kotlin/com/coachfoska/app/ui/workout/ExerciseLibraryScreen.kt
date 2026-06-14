@@ -150,12 +150,6 @@ fun ExerciseLibraryScreen(
                     label = { Text(category.name, fontSize = 13.sp) }
                 )
             }
-        }
-
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
             items(DIFFICULTIES) { difficulty ->
                 FilterChip(
                     selected = state.selectedDifficulty == difficulty,

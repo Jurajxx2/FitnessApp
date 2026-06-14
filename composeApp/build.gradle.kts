@@ -157,11 +157,9 @@ buildkonfig {
         )
 
         // Chat / AI Coach
-        // local.properties keys: anthropic.api.key, ai.coach.enabled, ai.coach.system.prompt
-        buildConfigField(
-            STRING, "ANTHROPIC_API_KEY",
-            localProperties.getProperty("anthropic.api.key") ?: ""
-        )
+        // local.properties keys: ai.coach.enabled, ai.coach.system.prompt
+        // The Anthropic API key is NOT compiled into the app — it lives as a
+        // secret on the ai-proxy Supabase Edge Function.
         buildConfigField(
             BOOLEAN, "AI_COACH_ENABLED",
             localProperties.getProperty("ai.coach.enabled") ?: "false"
