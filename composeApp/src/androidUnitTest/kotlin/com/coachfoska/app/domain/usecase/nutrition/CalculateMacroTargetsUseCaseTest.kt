@@ -13,10 +13,10 @@ class CalculateMacroTargetsUseCaseTest {
 
     private val useCase = CalculateMacroTargetsUseCase()
 
-    // aUser(): 30y, 175 cm, 75 kg, MUSCLE_GAIN, MODERATELY_ACTIVE
+    // aUser(): 30y, 175 cm, 75 kg, BUILD_MUSCLE, MODERATELY_ACTIVE
     // BMR  = 10*75 + 6.25*175 - 5*30 + 5 = 1698.75
     // TDEE = 1698.75 * 1.55 = 2633.06
-    // MUSCLE_GAIN +10% => 2896.37 -> 2896 kcal
+    // BUILD_MUSCLE +10% => 2896.37 -> 2896 kcal
     // protein = 75 * 1.8 = 135 g
     // fat = 2896.37 * 0.25 / 9 = 80.45 -> 80 g
     // carbs = (2896.37 - 135*4 - 80.45*9) / 4 = 408.06 -> 408 g
@@ -40,7 +40,7 @@ class CalculateMacroTargetsUseCaseTest {
     }
 
     @Test
-    fun `mental strength keeps tdee unchanged`() {
+    fun `stay fit keeps tdee unchanged`() {
         val user = aUser().copy(goal = FitnessGoal.STAY_FIT)
         val targets = useCase(user)
         assertNotNull(targets)
