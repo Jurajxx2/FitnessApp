@@ -185,4 +185,109 @@
     <string name="add_set">+ ADD SET</string>
     <string name="finish_workout">FINISH WORKOUT</string>
     <string name="log_this_meal">LOG THIS MEAL</string>
+
+    <!-- ===== Onboarding quiz ===== -->
+    <string name="ob_welcome_title">Připrav se na změnu.</string>
+    <string name="ob_welcome_subtitle">Coach Foška ti pomůže dosáhnout tvých cílů. Odpověz na pár otázek a přizpůsobíme ti tréninkový plán na míru.</string>
+    <string name="ob_welcome_cta">Začít</string>
+    <string name="ob_welcome_login">Už mám účet? Přihlásit se</string>
+    <string name="ob_back_cd">Zpět</string>
+
+    <string name="ob_gender_title">Jaké je tvoje pohlaví?</string>
+    <string name="ob_gender_subtitle">Pomůže nám přizpůsobit tréninkový plán tvému tělu.</string>
+    <string name="ob_gender_male">Muž</string>
+    <string name="ob_gender_female">Žena</string>
+
+    <string name="ob_goal_title">Jaký je tvůj hlavní cíl?</string>
+    <string name="ob_goal_subtitle">Vybereme správný typ tréninků.</string>
+    <string name="ob_goal_build_muscle">Nabrat svaly</string>
+    <string name="ob_goal_build_muscle_desc">Zvýšit svalovou hmotu a sílu</string>
+    <string name="ob_goal_lose_weight">Zhubnout</string>
+    <string name="ob_goal_lose_weight_desc">Spalovat tuky a zpevnit postavu</string>
+    <string name="ob_goal_stay_fit">Udržet kondici</string>
+    <string name="ob_goal_stay_fit_desc">Pravidelně cvičit a cítit se dobře</string>
+    <string name="ob_goal_get_stronger">Zvýšit sílu</string>
+    <string name="ob_goal_get_stronger_desc">Zlepšit výkon v hlavních cvicích</string>
+
+    <string name="ob_experience_title">Jaké máš zkušenosti s cvičením?</string>
+    <string name="ob_experience_subtitle">Přizpůsobíme intenzitu a složitost cviků.</string>
+    <string name="ob_experience_beginner">Začátečník</string>
+    <string name="ob_experience_beginner_desc">Teprve začínám nebo mám pauzu</string>
+    <string name="ob_experience_intermediate">Mírně pokročilý</string>
+    <string name="ob_experience_intermediate_desc">Cvičím nepravidelně pár měsíců</string>
+    <string name="ob_experience_advanced">Pokročilý</string>
+    <string name="ob_experience_advanced_desc">Cvičím pravidelně více než rok</string>
+    <string name="ob_experience_expert">Zkušený</string>
+    <string name="ob_experience_expert_desc">Cvičím intenzivně několik let</string>
+
+    <string name="ob_focus_title">Na co se chceš zaměřit?</string>
+    <string name="ob_focus_subtitle">Vyber oblasti, které chceš posílit. Můžeš vybrat více.</string>
+    <string name="ob_focus_chest">Hrudník</string>
+    <string name="ob_focus_back">Záda</string>
+    <string name="ob_focus_shoulders">Ramena</string>
+    <string name="ob_focus_arms">Paže</string>
+    <string name="ob_focus_abs">Břicho</string>
+    <string name="ob_focus_legs">Nohy</string>
+    <string name="ob_focus_glutes">Hýždě</string>
+    <string name="ob_focus_full_body">Celé tělo</string>
+
+    <string name="ob_valueprop1_title">Tvůj trenér. Tvůj plán.</string>
+    <string name="ob_valueprop1_subtitle">Coach Foška ti sestaví tréninkový plán přesně podle tvých cílů, zkušeností a dostupného vybavení. Žádné univerzální šablony.</string>
+    <string name="ob_valueprop2_title">Osobní přístup, který funguje.</string>
+    <string name="ob_valueprop2_subtitle">Rezervuj si tréninky s ověřenými trenéry. Sleduj svůj pokrok a nech se vést krok za krokem.</string>
+    <string name="ob_continue">Pokračovat</string>
+
+    <string name="ob_frequency_title">Kolikrát týdně chceš cvičit?</string>
+    <string name="ob_frequency_subtitle">Doporučíme ideální rozložení tréninků.</string>
+    <string name="ob_frequency_1">Dobrý začátek</string>
+    <string name="ob_frequency_2">Slibné</string>
+    <string name="ob_frequency_recommended">Doporučeno</string>
+    <string name="ob_frequency_5">Odhodlaný</string>
+    <string name="ob_frequency_6">Impozantní</string>
+    <string name="ob_frequency_7">Nezastavitelný</string>
+    <string name="ob_frequency_days">dní v týdnu</string>
+    <string name="ob_frequency_habit">Tvorba návyku</string>
+    <string name="ob_frequency_progress">Progres</string>
+
+    <string name="ob_equipment_title">Jaké máš vybavení?</string>
+    <string name="ob_equipment_subtitle">Cviky přizpůsobíme tomu, co máš k dispozici.</string>
+    <string name="ob_equipment_none">Bez vybavení</string>
+    <string name="ob_equipment_none_desc">Cvičení s vlastní vahou doma</string>
+    <string name="ob_equipment_dumbbells">Činky</string>
+    <string name="ob_equipment_dumbbells_desc">Jednoručky a vlastní váha</string>
+    <string name="ob_equipment_home_gym">Domácí posilovna</string>
+    <string name="ob_equipment_home_gym_desc">Činka, jednoručky, lavička</string>
+    <string name="ob_equipment_full_gym">Plná posilovna</string>
+    <string name="ob_equipment_full_gym_desc">Stroje, činky, vše k dispozici</string>
+
+    <string name="ob_body_title">Řekni nám o sobě</string>
+    <string name="ob_body_subtitle">Věk, výšku a váhu použijeme pro výpočet optimální zátěže.</string>
+    <string name="ob_body_age">Věk</string>
+    <string name="ob_body_age_suffix">let</string>
+    <string name="ob_body_height">Výška</string>
+    <string name="ob_body_weight">Váha</string>
+    <string name="ob_bmi_label">BMI</string>
+    <string name="ob_bmi_underweight">Podváha</string>
+    <string name="ob_bmi_normal">Normální</string>
+    <string name="ob_bmi_overweight">Nadváha</string>
+    <string name="ob_bmi_obese">Obezita</string>
+    <string name="ob_bmi_extremely_obese">Těžká obezita</string>
+
+    <string name="ob_training_title">Jak chceš trénovat?</string>
+    <string name="ob_training_subtitle">Můžeš kombinovat oba přístupy.</string>
+    <string name="ob_training_with_coach">S trenérem</string>
+    <string name="ob_training_with_coach_desc">Osobní vedení, zpětná vazba a motivace</string>
+    <string name="ob_training_self">Sám/sama</string>
+    <string name="ob_training_self_desc">Vlastní tempo podle vygenerovaného plánu</string>
+    <string name="ob_training_both">Kombinace</string>
+    <string name="ob_training_both_desc">Tréninky s trenérem i samostatně</string>
+
+    <string name="ob_name_title">Jak ti máme říkat?</string>
+    <string name="ob_name_placeholder">Křestní jméno</string>
+    <string name="ob_name_cta">Dokončit</string>
+
+    <string name="ob_loading_preparing">%1$s, tvůj plán se připravuje…</string>
+    <string name="ob_loading_done">Hotovo!</string>
+    <string name="ob_loading_retry">Zkusit znovu</string>
+    <string name="ob_loading_error">Něco se pokazilo. Zkus to prosím znovu.</string>
 </resources>
