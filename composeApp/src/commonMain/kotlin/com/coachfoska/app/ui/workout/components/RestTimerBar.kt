@@ -25,7 +25,7 @@ fun RestTimerBar(
 
     val minutes = timerState.remainingSeconds / 60
     val seconds = timerState.remainingSeconds % 60
-    val timeText = "%d:%02d".format(minutes, seconds)
+    val timeText = "$minutes:${seconds.toString().padStart(2, '0')}"
 
     Surface(
         shape = RoundedCornerShape(8.dp),

@@ -26,7 +26,7 @@ fun SessionHeaderBar(
     var menuExpanded by remember { mutableStateOf(false) }
     val minutes = elapsedSeconds / 60
     val seconds = elapsedSeconds % 60
-    val timerText = "%d:%02d".format(minutes, seconds)
+    val timerText = "$minutes:${seconds.toString().padStart(2, '0')}"
 
     val totalVolume = draft?.exercises?.sumOf { ex ->
         ex.sets.filter { it.completed }.sumOf { s ->
