@@ -2,7 +2,7 @@ package com.coachfoska.app.domain.usecase.hydration
 
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.User
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -13,7 +13,7 @@ class CalculateWaterGoalUseCaseTest {
     private fun user(weightKg: Float?, activityLevel: ActivityLevel?) = User(
         id = "u1", email = "a@b.com", fullName = null,
         age = null, heightCm = null,
-        weightKg = weightKg, goal = UserGoal.MUSCLE_GAIN,
+        weightKg = weightKg, goal = FitnessGoal.BUILD_MUSCLE,
         activityLevel = activityLevel
     )
 

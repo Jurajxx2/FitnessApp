@@ -1,62 +1,24 @@
 package com.coachfoska.app.ui.onboarding
 
-import androidx.compose.runtime.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.coachfoska.app.presentation.onboarding.OnboardingIntent
-import com.coachfoska.app.presentation.onboarding.OnboardingState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-enum class OnboardingStep { GOAL, BODY_STATS, ACTIVITY_LEVEL, COMPLETE }
-
+/**
+ * PLACEHOLDER onboarding host. The real HorizontalPager-driven quiz host is implemented in a
+ * follow-up task; this minimal version exists only so the UserGoal→FitnessGoal migration compiles.
+ * The [viewModel] default resolves the VM through Koin, exercising the DI wiring at runtime.
+ */
 @Composable
 fun OnboardingRoute(
     userId: String,
     onComplete: () -> Unit,
+    onLoginClick: () -> Unit,
     viewModel: OnboardingViewModel = koinViewModel { parametersOf(userId) }
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-
-    LaunchedEffect(state.onboardingComplete) {
-        if (state.onboardingComplete) {
-            viewModel.onIntent(OnboardingIntent.NavigatedToHome)
-            onComplete()
-        }
-    }
-
-    OnboardingFlow(state = state, onIntent = viewModel::onIntent)
-}
-
-@Composable
-fun OnboardingFlow(
-    state: OnboardingState,
-    onIntent: (OnboardingIntent) -> Unit
-) {
-    var step by remember { mutableStateOf(OnboardingStep.GOAL) }
-
-    when (step) {
-        OnboardingStep.GOAL -> GoalSelectionScreen(
-            state = state,
-            onIntent = onIntent,
-            onBackClick = {},
-            onNextClick = { step = OnboardingStep.BODY_STATS }
-        )
-        OnboardingStep.BODY_STATS -> BodyStatsScreen(
-            state = state,
-            onIntent = onIntent,
-            onBackClick = { step = OnboardingStep.GOAL },
-            onNextClick = { step = OnboardingStep.ACTIVITY_LEVEL }
-        )
-        OnboardingStep.ACTIVITY_LEVEL -> ActivityLevelScreen(
-            state = state,
-            onIntent = onIntent,
-            onBackClick = { step = OnboardingStep.BODY_STATS },
-            onNextClick = { step = OnboardingStep.COMPLETE }
-        )
-        OnboardingStep.COMPLETE -> OnboardingCompleteScreen(
-            state = state,
-            onIntent = onIntent
-        )
-    }
+    Box(Modifier.fillMaxSize())
 }

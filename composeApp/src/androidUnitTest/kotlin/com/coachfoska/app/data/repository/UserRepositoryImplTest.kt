@@ -4,7 +4,7 @@ import com.coachfoska.app.data.remote.datasource.UserRemoteDataSource
 import com.coachfoska.app.data.remote.dto.UserDto
 import com.coachfoska.app.data.remote.dto.WeightEntryDto
 import com.coachfoska.app.domain.model.ActivityLevel
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -23,7 +23,7 @@ class UserRepositoryImplTest {
     fun `getProfile maps UserDto to domain User`() = runTest {
         val dto = UserDto(
             id = "user-1", email = "test@example.com", fullName = "Alice",
-            goal = "muscle_gain", activityLevel = "moderately_active", onboardingComplete = true
+            goal = "build_muscle", activityLevel = "moderately_active", onboardingComplete = true
         )
         coEvery { dataSource.getProfile("user-1") } returns dto
 
@@ -33,7 +33,7 @@ class UserRepositoryImplTest {
         val user = result.getOrThrow()
         assertEquals("user-1", user.id)
         assertEquals("Alice", user.fullName)
-        assertEquals(UserGoal.MUSCLE_GAIN, user.goal)
+        assertEquals(FitnessGoal.BUILD_MUSCLE, user.goal)
         assertEquals(ActivityLevel.MODERATELY_ACTIVE, user.activityLevel)
         assertTrue(user.onboardingComplete)
     }

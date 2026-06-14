@@ -1,7 +1,7 @@
 package com.coachfoska.app.domain.usecase.profile
 
 import com.coachfoska.app.domain.model.ActivityLevel
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 import com.coachfoska.app.domain.model.WeightEntry
 import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.usecase.auth.aUser
@@ -37,12 +37,12 @@ class ProfileUseCasesTest {
             fullName = "Alice",
             heightCm = 170f,
             weightKg = 65f,
-            goal = UserGoal.WEIGHT_LOSS,
+            goal = FitnessGoal.LOSE_WEIGHT,
             activityLevel = ActivityLevel.LIGHTLY_ACTIVE
         )
 
         assertTrue(result.isSuccess)
-        coVerify { repo.updateProfile("user-1", "Alice", null, 170f, 65f, UserGoal.WEIGHT_LOSS, ActivityLevel.LIGHTLY_ACTIVE) }
+        coVerify { repo.updateProfile("user-1", "Alice", null, 170f, 65f, FitnessGoal.LOSE_WEIGHT, ActivityLevel.LIGHTLY_ACTIVE) }
     }
 
     @Test

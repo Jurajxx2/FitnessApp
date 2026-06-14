@@ -1,14 +1,20 @@
 package com.coachfoska.app.presentation.onboarding
 
-import com.coachfoska.app.domain.model.ActivityLevel
-import com.coachfoska.app.domain.model.UserGoal
-import com.coachfoska.app.domain.repository.UserRepository
-import com.coachfoska.app.domain.usecase.profile.CompleteOnboardingUseCase
+import com.coachfoska.app.domain.model.Equipment
+import com.coachfoska.app.domain.model.ExperienceLevel
+import com.coachfoska.app.domain.model.FitnessGoal
+import com.coachfoska.app.domain.model.Gender
+import com.coachfoska.app.domain.model.MuscleGroup
+import com.coachfoska.app.domain.model.OnboardingData
+import com.coachfoska.app.domain.model.TrainingPreference
+import com.coachfoska.app.domain.repository.OnboardingRepository
+import com.coachfoska.app.domain.usecase.onboarding.SaveOnboardingUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -17,171 +23,119 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
-    private val userRepository: UserRepository = mockk()
+    private val repository: OnboardingRepository = mockk()
 
-    private fun viewModel() = OnboardingViewModel(
-        completeOnboardingUseCase = CompleteOnboardingUseCase(userRepository),
-        userId = "user-1"
-    )
+    private fun viewModel() = OnboardingViewModel(SaveOnboardingUseCase(repository), "user-1")
 
     @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `initial state has all fields empty and flags false`() {
+    fun `initial state is step 0 with default data`() {
         val vm = viewModel()
-        assertNull(vm.state.value.selectedGoal)
-        assertEquals("", vm.state.value.heightInput)
-        assertEquals("", vm.state.value.weightInput)
-        assertEquals("", vm.state.value.ageInput)
-        assertNull(vm.state.value.selectedActivityLevel)
-        assertFalse(vm.state.value.isLoading)
-        assertNull(vm.state.value.error)
-        assertFalse(vm.state.value.onboardingComplete)
+        assertEquals(0, vm.state.value.currentStep)
+        assertEquals(OnboardingData(), vm.state.value.data)
+        assertFalse(vm.state.value.isCompleted)
     }
 
     @Test
-    fun `GoalSelected updates selectedGoal`() {
+    fun `selection intents update the matching field`() {
         val vm = viewModel()
-        vm.onIntent(OnboardingIntent.GoalSelected(UserGoal.WEIGHT_LOSS))
-        assertEquals(UserGoal.WEIGHT_LOSS, vm.state.value.selectedGoal)
+        vm.onIntent(OnboardingIntent.SelectGender(Gender.FEMALE))
+        vm.onIntent(OnboardingIntent.SelectGoal(FitnessGoal.GET_STRONGER))
+        vm.onIntent(OnboardingIntent.SelectExperience(ExperienceLevel.ADVANCED))
+        vm.onIntent(OnboardingIntent.SelectEquipment(Equipment.FULL_GYM))
+        vm.onIntent(OnboardingIntent.SetFrequency(5))
+        vm.onIntent(OnboardingIntent.SelectTrainingPreference(TrainingPreference.BOTH))
+        vm.onIntent(OnboardingIntent.SetName("Ada"))
+        val d = vm.state.value.data
+        assertEquals(Gender.FEMALE, d.gender)
+        assertEquals(FitnessGoal.GET_STRONGER, d.goal)
+        assertEquals(ExperienceLevel.ADVANCED, d.experienceLevel)
+        assertEquals(Equipment.FULL_GYM, d.equipment)
+        assertEquals(5, d.frequencyPerWeek)
+        assertEquals(TrainingPreference.BOTH, d.trainingPreference)
+        assertEquals("Ada", d.name)
     }
 
     @Test
-    fun `field input intents update height, weight, and age`() {
+    fun `onSingleSelectAndAdvance increments step after the delay`() = runTest {
         val vm = viewModel()
-        vm.onIntent(OnboardingIntent.HeightChanged("175"))
-        vm.onIntent(OnboardingIntent.WeightChanged("80"))
-        vm.onIntent(OnboardingIntent.AgeChanged("30"))
-        assertEquals("175", vm.state.value.heightInput)
-        assertEquals("80", vm.state.value.weightInput)
-        assertEquals("30", vm.state.value.ageInput)
+        vm.onSingleSelectAndAdvance(OnboardingIntent.SelectGender(Gender.MALE))
+        advanceTimeBy(350)
+        assertEquals(Gender.MALE, vm.state.value.data.gender)
+        assertEquals(1, vm.state.value.currentStep)
     }
 
     @Test
-    fun `CompleteOnboarding with invalid height sets error without calling repository`() = runTest {
+    fun `back navigation decrements and clamps at zero`() {
         val vm = viewModel()
-        vm.onIntent(OnboardingIntent.GoalSelected(UserGoal.MUSCLE_GAIN))
-        vm.onIntent(OnboardingIntent.ActivityLevelSelected(ActivityLevel.MODERATELY_ACTIVE))
-        vm.onIntent(OnboardingIntent.HeightChanged("not-a-number"))
-        vm.onIntent(OnboardingIntent.WeightChanged("80"))
-        vm.onIntent(OnboardingIntent.AgeChanged("30"))
+        vm.onIntent(OnboardingIntent.NextStep)
+        vm.onIntent(OnboardingIntent.NextStep)
+        assertEquals(2, vm.state.value.currentStep)
+        vm.onIntent(OnboardingIntent.PreviousStep)
+        assertEquals(1, vm.state.value.currentStep)
+        vm.onIntent(OnboardingIntent.PreviousStep)
+        vm.onIntent(OnboardingIntent.PreviousStep)
+        assertEquals(0, vm.state.value.currentStep)
+    }
 
+    @Test
+    fun `advance clamps at the last step`() {
+        val vm = viewModel()
+        repeat(50) { vm.onIntent(OnboardingIntent.NextStep) }
+        assertEquals(OnboardingStep.entries.size - 1, vm.state.value.currentStep)
+    }
+
+    @Test
+    fun `bmi is computed from height and weight`() {
+        val data = OnboardingData(heightCm = 180, weightKg = 81f)
+        assertEquals(25f, data.bmi, 0.01f)
+    }
+
+    @Test
+    fun `selecting FULL_BODY selects every muscle group`() {
+        val vm = viewModel()
+        vm.onIntent(OnboardingIntent.ToggleFocusArea(MuscleGroup.FULL_BODY))
+        assertEquals(MuscleGroup.entries.toSet(), vm.state.value.data.focusAreas)
+    }
+
+    @Test
+    fun `toggling FULL_BODY again clears the selection`() {
+        val vm = viewModel()
+        vm.onIntent(OnboardingIntent.ToggleFocusArea(MuscleGroup.FULL_BODY))
+        vm.onIntent(OnboardingIntent.ToggleFocusArea(MuscleGroup.FULL_BODY))
+        assertTrue(vm.state.value.data.focusAreas.isEmpty())
+    }
+
+    @Test
+    fun `selecting all individual areas implies FULL_BODY`() {
+        val vm = viewModel()
+        MuscleGroup.individual.forEach { vm.onIntent(OnboardingIntent.ToggleFocusArea(it)) }
+        assertTrue(vm.state.value.data.focusAreas.contains(MuscleGroup.FULL_BODY))
+    }
+
+    @Test
+    fun `complete onboarding saves and sets isCompleted`() = runTest {
+        coEvery { repository.saveResponses(any(), any()) } returns Result.success(Unit)
+        val vm = viewModel()
         vm.onIntent(OnboardingIntent.CompleteOnboarding)
-
-        assertEquals("Invalid height", vm.state.value.error)
-        assertFalse(vm.state.value.isLoading)
-        assertFalse(vm.state.value.onboardingComplete)
+        assertTrue(vm.state.value.isCompleted)
+        assertFalse(vm.state.value.isSaving)
     }
 
     @Test
-    fun `CompleteOnboarding with invalid age sets error`() = runTest {
+    fun `complete onboarding failure sets error and not completed`() = runTest {
+        coEvery { repository.saveResponses(any(), any()) } returns Result.failure(RuntimeException("net"))
         val vm = viewModel()
-        vm.onIntent(OnboardingIntent.GoalSelected(UserGoal.MUSCLE_GAIN))
-        vm.onIntent(OnboardingIntent.ActivityLevelSelected(ActivityLevel.MODERATELY_ACTIVE))
-        vm.onIntent(OnboardingIntent.HeightChanged("175"))
-        vm.onIntent(OnboardingIntent.WeightChanged("80"))
-        vm.onIntent(OnboardingIntent.AgeChanged("not-an-age"))
-
         vm.onIntent(OnboardingIntent.CompleteOnboarding)
-
-        assertEquals("Invalid age", vm.state.value.error)
-    }
-
-    @Test
-    fun `CompleteOnboarding with invalid weight sets error without calling repository`() = runTest {
-        val vm = viewModel()
-        vm.onIntent(OnboardingIntent.GoalSelected(UserGoal.MUSCLE_GAIN))
-        vm.onIntent(OnboardingIntent.ActivityLevelSelected(ActivityLevel.MODERATELY_ACTIVE))
-        vm.onIntent(OnboardingIntent.HeightChanged("175"))
-        vm.onIntent(OnboardingIntent.WeightChanged("not-a-number"))
-        vm.onIntent(OnboardingIntent.AgeChanged("30"))
-
-        vm.onIntent(OnboardingIntent.CompleteOnboarding)
-
-        assertEquals("Invalid weight", vm.state.value.error)
-        assertFalse(vm.state.value.isLoading)
-        assertFalse(vm.state.value.onboardingComplete)
-    }
-
-    @Test
-    fun `CompleteOnboarding success sets onboardingComplete true`() = runTest {
-        coEvery {
-            userRepository.completeOnboarding(any(), any(), any(), any(), any(), any())
-        } returns Result.success(Unit)
-        val vm = viewModel()
-        vm.onIntent(OnboardingIntent.GoalSelected(UserGoal.MUSCLE_GAIN))
-        vm.onIntent(OnboardingIntent.ActivityLevelSelected(ActivityLevel.MODERATELY_ACTIVE))
-        vm.onIntent(OnboardingIntent.HeightChanged("175"))
-        vm.onIntent(OnboardingIntent.WeightChanged("80"))
-        vm.onIntent(OnboardingIntent.AgeChanged("30"))
-
-        vm.onIntent(OnboardingIntent.CompleteOnboarding)
-
-        assertTrue(vm.state.value.onboardingComplete)
-        assertFalse(vm.state.value.isLoading)
-        assertNull(vm.state.value.error)
-    }
-
-    @Test
-    fun `CompleteOnboarding failure sets error message`() = runTest {
-        coEvery {
-            userRepository.completeOnboarding(any(), any(), any(), any(), any(), any())
-        } returns Result.failure(RuntimeException("Network error"))
-        val vm = viewModel()
-        vm.onIntent(OnboardingIntent.GoalSelected(UserGoal.MUSCLE_GAIN))
-        vm.onIntent(OnboardingIntent.ActivityLevelSelected(ActivityLevel.MODERATELY_ACTIVE))
-        vm.onIntent(OnboardingIntent.HeightChanged("175"))
-        vm.onIntent(OnboardingIntent.WeightChanged("80"))
-        vm.onIntent(OnboardingIntent.AgeChanged("30"))
-
-        vm.onIntent(OnboardingIntent.CompleteOnboarding)
-
-        assertEquals("Network error", vm.state.value.error)
-        assertFalse(vm.state.value.onboardingComplete)
-        assertFalse(vm.state.value.isLoading)
-    }
-
-    @Test
-    fun `NavigatedToHome resets onboardingComplete flag`() = runTest {
-        coEvery {
-            userRepository.completeOnboarding(any(), any(), any(), any(), any(), any())
-        } returns Result.success(Unit)
-        val vm = viewModel()
-        vm.onIntent(OnboardingIntent.GoalSelected(UserGoal.MUSCLE_GAIN))
-        vm.onIntent(OnboardingIntent.ActivityLevelSelected(ActivityLevel.MODERATELY_ACTIVE))
-        vm.onIntent(OnboardingIntent.HeightChanged("175"))
-        vm.onIntent(OnboardingIntent.WeightChanged("80"))
-        vm.onIntent(OnboardingIntent.AgeChanged("30"))
-        vm.onIntent(OnboardingIntent.CompleteOnboarding)
-        assertTrue(vm.state.value.onboardingComplete)
-
-        vm.onIntent(OnboardingIntent.NavigatedToHome)
-
-        assertFalse(vm.state.value.onboardingComplete)
-    }
-
-    @Test
-    fun `DismissError clears error`() = runTest {
-        val vm = viewModel()
-        vm.onIntent(OnboardingIntent.GoalSelected(UserGoal.MUSCLE_GAIN))
-        vm.onIntent(OnboardingIntent.ActivityLevelSelected(ActivityLevel.MODERATELY_ACTIVE))
-        vm.onIntent(OnboardingIntent.HeightChanged("bad"))
-        vm.onIntent(OnboardingIntent.WeightChanged("80"))
-        vm.onIntent(OnboardingIntent.AgeChanged("30"))
-        vm.onIntent(OnboardingIntent.CompleteOnboarding)
-        assertNotNull(vm.state.value.error)
-
-        vm.onIntent(OnboardingIntent.DismissError)
-
-        assertNull(vm.state.value.error)
+        assertEquals("net", vm.state.value.error)
+        assertFalse(vm.state.value.isCompleted)
     }
 }

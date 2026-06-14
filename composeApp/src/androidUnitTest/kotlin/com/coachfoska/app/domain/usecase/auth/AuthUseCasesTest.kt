@@ -129,7 +129,7 @@ fun aUser(
     age = 30,
     heightCm = 175f,
     weightKg = 75f,
-    goal = com.coachfoska.app.domain.model.UserGoal.MUSCLE_GAIN,
+    goal = com.coachfoska.app.domain.model.FitnessGoal.BUILD_MUSCLE,
     activityLevel = com.coachfoska.app.domain.model.ActivityLevel.MODERATELY_ACTIVE,
     onboardingComplete = onboardingComplete
 )

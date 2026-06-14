@@ -7,21 +7,10 @@ data class User(
     val age: Int?,
     val heightCm: Float?,
     val weightKg: Float?,
-    val goal: UserGoal?,
+    val goal: FitnessGoal?,
     val activityLevel: ActivityLevel?,
     val onboardingComplete: Boolean = false
 )
-
-enum class UserGoal(val displayName: String) {
-    WEIGHT_LOSS("Weight Loss"),
-    MUSCLE_GAIN("Muscle Gain"),
-    MENTAL_STRENGTH("Mental Strength");
-
-    companion object {
-        fun fromString(value: String?): UserGoal? =
-            entries.firstOrNull { it.name.lowercase() == value?.lowercase() }
-    }
-}
 
 enum class ActivityLevel(val displayName: String, val description: String) {
     SEDENTARY("Sedentary", "Little or no exercise"),

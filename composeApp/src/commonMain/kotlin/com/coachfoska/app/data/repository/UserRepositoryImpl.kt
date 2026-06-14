@@ -4,7 +4,7 @@ import com.coachfoska.app.data.remote.datasource.UserRemoteDataSource
 import com.coachfoska.app.data.remote.dto.UserDto
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.User
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 import com.coachfoska.app.domain.model.WeightEntry
 import com.coachfoska.app.domain.repository.UserRepository
 import kotlinx.datetime.LocalDate
@@ -23,7 +23,7 @@ class UserRepositoryImpl(
         age: Int?,
         heightCm: Float?,
         weightKg: Float?,
-        goal: UserGoal?,
+        goal: FitnessGoal?,
         activityLevel: ActivityLevel?
     ): Result<User> = runCatching {
         val existing = runCatching { userDataSource.getProfile(userId) }.getOrElse {
@@ -43,7 +43,7 @@ class UserRepositoryImpl(
 
     override suspend fun completeOnboarding(
         userId: String,
-        goal: UserGoal,
+        goal: FitnessGoal,
         heightCm: Float,
         weightKg: Float,
         age: Int,

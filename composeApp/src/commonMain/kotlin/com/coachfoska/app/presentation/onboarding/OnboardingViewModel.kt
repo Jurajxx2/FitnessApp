@@ -2,10 +2,11 @@ package com.coachfoska.app.presentation.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.coachfoska.app.domain.model.ActivityLevel
-import com.coachfoska.app.domain.model.UserGoal
-import com.coachfoska.app.domain.usecase.profile.CompleteOnboardingUseCase
+import com.coachfoska.app.domain.model.MuscleGroup
+import com.coachfoska.app.domain.model.OnboardingData
+import com.coachfoska.app.domain.usecase.onboarding.SaveOnboardingUseCase
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,9 +14,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val TAG = "OnboardingViewModel"
+private const val AUTO_ADVANCE_DELAY_MS = 300L
 
 class OnboardingViewModel(
-    private val completeOnboardingUseCase: CompleteOnboardingUseCase,
+    private val saveOnboardingUseCase: SaveOnboardingUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -23,43 +25,73 @@ class OnboardingViewModel(
     val state: StateFlow<OnboardingState> = _state.asStateFlow()
 
     fun onIntent(intent: OnboardingIntent) {
-        Napier.d("onIntent: $intent", tag = TAG)
         when (intent) {
-            is OnboardingIntent.GoalSelected -> _state.update { it.copy(selectedGoal = intent.goal) }
-            is OnboardingIntent.HeightChanged -> _state.update { it.copy(heightInput = intent.height) }
-            is OnboardingIntent.WeightChanged -> _state.update { it.copy(weightInput = intent.weight) }
-            is OnboardingIntent.AgeChanged -> _state.update { it.copy(ageInput = intent.age) }
-            is OnboardingIntent.ActivityLevelSelected -> _state.update { it.copy(selectedActivityLevel = intent.level) }
-            is OnboardingIntent.CompleteOnboarding -> completeOnboarding()
-            is OnboardingIntent.DismissError -> _state.update { it.copy(error = null) }
-            is OnboardingIntent.NavigatedToHome -> _state.update { it.copy(onboardingComplete = false) }
+            is OnboardingIntent.SelectGender -> updateData { copy(gender = intent.gender) }
+            is OnboardingIntent.SelectGoal -> updateData { copy(goal = intent.goal) }
+            is OnboardingIntent.SelectExperience -> updateData { copy(experienceLevel = intent.level) }
+            is OnboardingIntent.ToggleFocusArea -> updateData { toggleFocusArea(intent.area) }
+            is OnboardingIntent.SetFrequency -> updateData { copy(frequencyPerWeek = intent.days) }
+            is OnboardingIntent.SelectEquipment -> updateData { copy(equipment = intent.equipment) }
+            is OnboardingIntent.SetAge -> updateData { copy(age = intent.age) }
+            is OnboardingIntent.SetHeight -> updateData { copy(heightCm = intent.cm) }
+            is OnboardingIntent.SetWeight -> updateData { copy(weightKg = intent.kg) }
+            is OnboardingIntent.ToggleMetric -> updateData { copy(useMetric = intent.metric) }
+            is OnboardingIntent.SelectTrainingPreference -> updateData { copy(trainingPreference = intent.pref) }
+            is OnboardingIntent.SetName -> updateData { copy(name = intent.name) }
+            OnboardingIntent.NextStep -> advanceStep()
+            OnboardingIntent.PreviousStep -> goBack()
+            OnboardingIntent.CompleteOnboarding -> completeOnboarding()
         }
     }
 
-    private fun completeOnboarding() {
-        val s = _state.value
-        val goal = s.selectedGoal ?: return
-        val activityLevel = s.selectedActivityLevel ?: return
-        val height = s.heightInput.toFloatOrNull() ?: run {
-            _state.update { it.copy(error = "Invalid height") }; return
-        }
-        val weight = s.weightInput.toFloatOrNull() ?: run {
-            _state.update { it.copy(error = "Invalid weight") }; return
-        }
-        val age = s.ageInput.toIntOrNull() ?: run {
-            _state.update { it.copy(error = "Invalid age") }; return
-        }
-
+    /** Single-select screens: apply selection, brief pause for the animation, then advance. */
+    fun onSingleSelectAndAdvance(intent: OnboardingIntent) {
+        onIntent(intent)
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            completeOnboardingUseCase(userId, goal, height, weight, age, activityLevel)
+            delay(AUTO_ADVANCE_DELAY_MS)
+            advanceStep()
+        }
+    }
+
+    private fun OnboardingData.toggleFocusArea(area: MuscleGroup): OnboardingData {
+        val newAreas = if (area == MuscleGroup.FULL_BODY) {
+            if (focusAreas.contains(MuscleGroup.FULL_BODY)) emptySet()
+            else MuscleGroup.entries.toSet()
+        } else {
+            val updated = focusAreas.toMutableSet()
+            if (!updated.add(area)) updated.remove(area)
+            if (updated.containsAll(MuscleGroup.individual)) updated.add(MuscleGroup.FULL_BODY)
+            else updated.remove(MuscleGroup.FULL_BODY)
+            updated
+        }
+        return copy(focusAreas = newAreas)
+    }
+
+    private fun updateData(update: OnboardingData.() -> OnboardingData) {
+        _state.update { it.copy(data = it.data.update()) }
+    }
+
+    private fun advanceStep() {
+        _state.update {
+            it.copy(currentStep = (it.currentStep + 1).coerceAtMost(OnboardingStep.entries.size - 1))
+        }
+    }
+
+    private fun goBack() {
+        _state.update { it.copy(currentStep = (it.currentStep - 1).coerceAtLeast(0)) }
+    }
+
+    private fun completeOnboarding() {
+        viewModelScope.launch {
+            _state.update { it.copy(isSaving = true, error = null) }
+            saveOnboardingUseCase(userId, _state.value.data)
                 .onSuccess {
-                    Napier.i("Onboarding complete", tag = TAG)
-                    _state.update { it.copy(isLoading = false, onboardingComplete = true) }
+                    Napier.i("Onboarding saved", tag = TAG)
+                    _state.update { it.copy(isSaving = false, isCompleted = true) }
                 }
                 .onFailure { e ->
-                    Napier.e("completeOnboarding failed", e, tag = TAG)
-                    _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to save profile") }
+                    Napier.e("Onboarding save failed", e, tag = TAG)
+                    _state.update { it.copy(isSaving = false, error = e.message ?: "Save failed") }
                 }
         }
     }

@@ -227,6 +227,11 @@ fun App(openHumanChat: Boolean = false) {
                             navController.navigate(Home) {
                                 popUpTo(Onboarding(route.userId)) { inclusive = true }
                             }
+                        },
+                        onLoginClick = {
+                            navController.navigate(EmailOtp) {
+                                popUpTo(Onboarding(route.userId)) { inclusive = true }
+                            }
                         }
                     )
                 }

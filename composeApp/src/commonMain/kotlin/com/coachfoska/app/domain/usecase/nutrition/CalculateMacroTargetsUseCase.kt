@@ -3,7 +3,7 @@ package com.coachfoska.app.domain.usecase.nutrition
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.MacroTargets
 import com.coachfoska.app.domain.model.User
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 
 /**
  * Daily calorie / macro targets from profile data.
@@ -39,9 +39,10 @@ class CalculateMacroTargetsUseCase {
         ActivityLevel.VERY_ACTIVE -> 1.9f
     }
 
-    private fun UserGoal?.calorieAdjustment(): Float = when (this) {
-        UserGoal.WEIGHT_LOSS -> 0.85f
-        UserGoal.MUSCLE_GAIN -> 1.10f
-        UserGoal.MENTAL_STRENGTH, null -> 1.0f
+    private fun FitnessGoal?.calorieAdjustment(): Float = when (this) {
+        FitnessGoal.LOSE_WEIGHT -> 0.85f
+        FitnessGoal.BUILD_MUSCLE -> 1.10f
+        FitnessGoal.GET_STRONGER -> 1.05f
+        FitnessGoal.STAY_FIT, null -> 1.0f
     }
 }

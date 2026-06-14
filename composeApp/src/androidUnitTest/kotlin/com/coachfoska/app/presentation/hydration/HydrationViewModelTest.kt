@@ -4,7 +4,7 @@ import com.coachfoska.app.domain.hydration.WaterReminderScheduler
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.HydrationSettings
 import com.coachfoska.app.domain.model.User
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 import com.coachfoska.app.domain.model.WaterLog
 import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.repository.UserRepository
@@ -42,7 +42,7 @@ class HydrationViewModelTest {
     private val aUser = User(
         id = "u1", email = "a@b.com", fullName = null,
         age = null, heightCm = null,
-        weightKg = 80f, goal = UserGoal.MUSCLE_GAIN,
+        weightKg = 80f, goal = FitnessGoal.BUILD_MUSCLE,
         activityLevel = ActivityLevel.ACTIVE
     )
 

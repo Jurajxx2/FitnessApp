@@ -16,7 +16,7 @@ fun aUser(
     age = 30,
     heightCm = 175f,
     weightKg = 75f,
-    goal = UserGoal.MUSCLE_GAIN,
+    goal = FitnessGoal.BUILD_MUSCLE,
     activityLevel = ActivityLevel.MODERATELY_ACTIVE,
     onboardingComplete = onboardingComplete
 )

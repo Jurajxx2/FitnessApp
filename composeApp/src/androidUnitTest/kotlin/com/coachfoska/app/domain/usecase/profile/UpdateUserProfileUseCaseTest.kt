@@ -1,6 +1,6 @@
 package com.coachfoska.app.domain.usecase.profile
 
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.fixtures.aUser
 import io.mockk.coEvery
@@ -21,11 +21,11 @@ class UpdateUserProfileUseCaseTest {
         val updated = aUser()
         coEvery { userRepository.updateProfile(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(updated)
 
-        val result = useCase(userId = "user-1", fullName = "New Name", goal = UserGoal.WEIGHT_LOSS)
+        val result = useCase(userId = "user-1", fullName = "New Name", goal = FitnessGoal.LOSE_WEIGHT)
 
         assertTrue(result.isSuccess)
         assertEquals(updated, result.getOrNull())
-        coVerify { userRepository.updateProfile("user-1", "New Name", null, null, null, UserGoal.WEIGHT_LOSS, null) }
+        coVerify { userRepository.updateProfile("user-1", "New Name", null, null, null, FitnessGoal.LOSE_WEIGHT, null) }
     }
 
     @Test

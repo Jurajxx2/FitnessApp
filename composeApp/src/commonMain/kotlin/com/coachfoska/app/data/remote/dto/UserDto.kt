@@ -2,7 +2,7 @@ package com.coachfoska.app.data.remote.dto
 
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.User
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -25,7 +25,7 @@ data class UserDto(
         age = age,
         heightCm = heightCm,
         weightKg = weightKg,
-        goal = UserGoal.fromString(goal),
+        goal = FitnessGoal.fromString(goal),
         activityLevel = ActivityLevel.fromString(activityLevel),
         onboardingComplete = onboardingComplete
     )

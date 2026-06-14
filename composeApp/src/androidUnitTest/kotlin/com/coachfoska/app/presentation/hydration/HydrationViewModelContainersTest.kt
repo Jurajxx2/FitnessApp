@@ -14,7 +14,7 @@ import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.hydration.WaterReminderScheduler
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.User
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -57,7 +57,7 @@ class HydrationViewModelContainersTest {
     private val aUser = User(
         id = "u1", email = "a@b.com", fullName = null,
         age = null, heightCm = null,
-        weightKg = 70f, goal = UserGoal.WEIGHT_LOSS,
+        weightKg = 70f, goal = FitnessGoal.LOSE_WEIGHT,
         activityLevel = ActivityLevel.SEDENTARY,
     )
 

@@ -6,6 +6,7 @@ import com.coachfoska.app.data.remote.datasource.AppConfigRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.AuthRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.ExerciseSupabaseDataSource
 import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
+import com.coachfoska.app.data.remote.datasource.OnboardingRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.UserRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.WorkoutRemoteDataSource
 import com.coachfoska.app.data.repository.ActivityRepositoryImpl
@@ -13,6 +14,7 @@ import com.coachfoska.app.data.repository.AppConfigRepositoryImpl
 import com.coachfoska.app.data.repository.AuthRepositoryImpl
 import com.coachfoska.app.data.repository.ExerciseRepositoryImpl
 import com.coachfoska.app.data.repository.MealRepositoryImpl
+import com.coachfoska.app.data.repository.OnboardingRepositoryImpl
 import com.coachfoska.app.data.repository.UserRepositoryImpl
 import com.coachfoska.app.data.repository.WorkoutRepositoryImpl
 import com.coachfoska.app.domain.repository.ActivityRepository
@@ -20,6 +22,7 @@ import com.coachfoska.app.domain.repository.AppConfigRepository
 import com.coachfoska.app.domain.repository.AuthRepository
 import com.coachfoska.app.domain.repository.ExerciseRepository
 import com.coachfoska.app.domain.repository.MealRepository
+import com.coachfoska.app.domain.repository.OnboardingRepository
 import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.activity.GetActivityHistoryUseCase
@@ -47,12 +50,11 @@ import com.coachfoska.app.domain.usecase.nutrition.ScaleFoodToPortionUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
-import com.coachfoska.app.domain.usecase.profile.CompleteOnboardingUseCase
+import com.coachfoska.app.domain.usecase.onboarding.SaveOnboardingUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
 import com.coachfoska.app.domain.usecase.profile.LogWeightUseCase
 import com.coachfoska.app.domain.usecase.profile.UpdateUserProfileUseCase
-import com.coachfoska.app.BuildKonfig
 import com.coachfoska.app.core.theme.ThemeRepository
 import com.russhwolf.settings.Settings
 import com.coachfoska.app.data.ai.ChatAiProvider
@@ -143,6 +145,7 @@ val dataSourceModule = module {
     single { ExerciseSupabaseDataSource(get()) }
     single { MealRemoteDataSource(get()) }
     single { AppConfigRemoteDataSource(get()) }
+    single { OnboardingRemoteDataSource(get()) }
 }
 
 val repositoryModule = module {
@@ -153,6 +156,7 @@ val repositoryModule = module {
     single<ExerciseRepository> { ExerciseRepositoryImpl(get()) }
     single<MealRepository> { MealRepositoryImpl(get()) }
     single<AppConfigRepository> { AppConfigRepositoryImpl(get()) }
+    single<OnboardingRepository> { OnboardingRepositoryImpl(get(), get()) }
 }
 
 val useCaseModule = module {
@@ -201,7 +205,7 @@ val useCaseModule = module {
     // Profile
     factory { GetUserProfileUseCase(get()) }
     factory { UpdateUserProfileUseCase(get()) }
-    factory { CompleteOnboardingUseCase(get()) }
+    factory { SaveOnboardingUseCase(get()) }
     factory { GetWeightHistoryUseCase(get()) }
     factory { LogWeightUseCase(get()) }
 
@@ -240,8 +244,9 @@ val viewModelModule = module {
 }
 
 val chatModule = module {
-    // AI provider — swap ClaudeAiProvider for GeminiAiProvider here to change backends
-    single<ChatAiProvider> { ClaudeAiProvider(get(), BuildKonfig.ANTHROPIC_API_KEY) }
+    // AI provider — swap ClaudeAiProvider for GeminiAiProvider here to change backends.
+    // ClaudeAiProvider calls the ai-proxy edge function; no API key ships in the app.
+    single<ChatAiProvider> { ClaudeAiProvider(get(), get()) }
 
     single { ChatRemoteDataSource(get()) }
     single { ChatStorageDataSource(get()) }

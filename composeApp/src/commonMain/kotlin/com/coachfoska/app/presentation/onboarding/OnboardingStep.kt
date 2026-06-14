@@ -1,0 +1,21 @@
+package com.coachfoska.app.presentation.onboarding
+
+enum class OnboardingStep {
+    WELCOME,
+    GENDER,
+    GOAL,
+    EXPERIENCE,
+    FOCUS_AREAS,
+    VALUE_PROP_1,
+    FREQUENCY,
+    EQUIPMENT,
+    BODY_STATS,
+    VALUE_PROP_2,
+    TRAINING_PREFERENCE,
+    NAME,
+    PLAN_LOADING;
+
+    /** Chrome (progress bar + back arrow) is hidden on hero/value-prop/loading screens. */
+    val showChrome: Boolean
+        get() = this !in setOf(WELCOME, VALUE_PROP_1, VALUE_PROP_2, PLAN_LOADING)
+}

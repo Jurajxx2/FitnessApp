@@ -1,7 +1,7 @@
 package com.coachfoska.app.domain.usecase.nutrition
 
 import com.coachfoska.app.domain.model.ActivityLevel
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 import com.coachfoska.app.domain.usecase.auth.aUser
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -32,7 +32,7 @@ class CalculateMacroTargetsUseCaseTest {
 
     @Test
     fun `weight loss reduces calories by 15 percent`() {
-        val user = aUser().copy(goal = UserGoal.WEIGHT_LOSS)
+        val user = aUser().copy(goal = FitnessGoal.LOSE_WEIGHT)
         val targets = useCase(user)
         assertNotNull(targets)
         // 2633.06 * 0.85 = 2238.1
@@ -41,7 +41,7 @@ class CalculateMacroTargetsUseCaseTest {
 
     @Test
     fun `mental strength keeps tdee unchanged`() {
-        val user = aUser().copy(goal = UserGoal.MENTAL_STRENGTH)
+        val user = aUser().copy(goal = FitnessGoal.STAY_FIT)
         val targets = useCase(user)
         assertNotNull(targets)
         assertEquals(2633, targets.calories.roundToInt())
@@ -49,7 +49,7 @@ class CalculateMacroTargetsUseCaseTest {
 
     @Test
     fun `sedentary uses 1_2 multiplier`() {
-        val user = aUser().copy(goal = UserGoal.MENTAL_STRENGTH, activityLevel = ActivityLevel.SEDENTARY)
+        val user = aUser().copy(goal = FitnessGoal.STAY_FIT, activityLevel = ActivityLevel.SEDENTARY)
         val targets = useCase(user)
         assertNotNull(targets)
         // 1698.75 * 1.2 = 2038.5

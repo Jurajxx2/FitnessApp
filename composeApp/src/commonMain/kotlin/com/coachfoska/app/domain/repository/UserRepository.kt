@@ -2,7 +2,7 @@ package com.coachfoska.app.domain.repository
 
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.User
-import com.coachfoska.app.domain.model.UserGoal
+import com.coachfoska.app.domain.model.FitnessGoal
 import com.coachfoska.app.domain.model.WeightEntry
 import kotlinx.datetime.LocalDate
 
@@ -15,13 +15,13 @@ interface UserRepository {
         age: Int? = null,
         heightCm: Float? = null,
         weightKg: Float? = null,
-        goal: UserGoal? = null,
+        goal: FitnessGoal? = null,
         activityLevel: ActivityLevel? = null
     ): Result<User>
 
     suspend fun completeOnboarding(
         userId: String,
-        goal: UserGoal,
+        goal: FitnessGoal,
         heightCm: Float,
         weightKg: Float,
         age: Int,
