@@ -1,18 +1,21 @@
 package com.coachfoska.app.ui.onboarding
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.coachfoska.app.presentation.onboarding.OnboardingIntent
+import com.coachfoska.app.presentation.onboarding.OnboardingStep
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
+import com.coachfoska.app.ui.onboarding.components.OnboardingScaffold
+import com.coachfoska.app.ui.onboarding.screens.*
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-/**
- * PLACEHOLDER onboarding host. The real HorizontalPager-driven quiz host is implemented in a
- * follow-up task; this minimal version exists only so the UserGoal→FitnessGoal migration compiles.
- * The [viewModel] default resolves the VM through Koin, exercising the DI wiring at runtime.
- */
 @Composable
 fun OnboardingRoute(
     userId: String,
@@ -20,5 +23,47 @@ fun OnboardingRoute(
     onLoginClick: () -> Unit,
     viewModel: OnboardingViewModel = koinViewModel { parametersOf(userId) }
 ) {
-    Box(Modifier.fillMaxSize())
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    val pagerState = rememberPagerState(pageCount = { OnboardingStep.entries.size })
+    LaunchedEffect(state.currentStep) {
+        if (pagerState.currentPage != state.currentStep) pagerState.animateScrollToPage(state.currentStep)
+    }
+
+    OnboardingBackHandler(enabled = true) {
+        if (state.currentStep == 0) onLoginClick() else viewModel.onIntent(OnboardingIntent.PreviousStep)
+    }
+
+    HorizontalPager(
+        state = pagerState,
+        userScrollEnabled = false,
+        modifier = Modifier.fillMaxSize()
+    ) { page ->
+        val step = OnboardingStep.entries[page]
+        OnboardingScaffold(
+            showChrome = step.showChrome,
+            progress = state.progress,
+            onBack = { viewModel.onIntent(OnboardingIntent.PreviousStep) }
+        ) { bodyModifier ->
+            when (step) {
+                OnboardingStep.WELCOME -> WelcomeStep(
+                    onStart = { viewModel.onIntent(OnboardingIntent.NextStep) },
+                    onLogin = onLoginClick,
+                    modifier = bodyModifier
+                )
+                OnboardingStep.GENDER -> GenderStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)
+                OnboardingStep.GOAL -> GoalStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)
+                OnboardingStep.EXPERIENCE -> ExperienceStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)
+                OnboardingStep.FOCUS_AREAS -> FocusAreasStep(state, viewModel::onIntent, bodyModifier)
+                OnboardingStep.VALUE_PROP_1 -> ValueProp1Step(onContinue = { viewModel.onIntent(OnboardingIntent.NextStep) }, modifier = bodyModifier)
+                OnboardingStep.FREQUENCY -> FrequencyStep(state, viewModel::onIntent, bodyModifier)
+                OnboardingStep.EQUIPMENT -> EquipmentStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)
+                OnboardingStep.BODY_STATS -> BodyStatsStep(state, viewModel::onIntent, bodyModifier)
+                OnboardingStep.VALUE_PROP_2 -> ValueProp2Step(onContinue = { viewModel.onIntent(OnboardingIntent.NextStep) }, modifier = bodyModifier)
+                OnboardingStep.TRAINING_PREFERENCE -> TrainingPreferenceStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)
+                OnboardingStep.NAME -> NameStep(state, viewModel::onIntent, onDone = { viewModel.onIntent(OnboardingIntent.NextStep) }, modifier = bodyModifier)
+                OnboardingStep.PLAN_LOADING -> PlanLoadingStep(state, viewModel::onIntent, onDone = onComplete, modifier = bodyModifier)
+            }
+        }
+    }
 }
