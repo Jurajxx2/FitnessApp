@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { SlideOver, Button, Input, Badge } from '../../components/ui'
-import type { Profile, Workout, WeightEntry, MealPlan } from '../../types/database'
+import type { Profile, Workout, WeightEntry, MealPlan, OnboardingResponse } from '../../types/database'
 
 function useUser(id: string) {
   return useQuery<Profile>({
@@ -72,6 +72,30 @@ function useUserCompliance(userId: string) {
       }
     }
   })
+}
+
+function useOnboardingResponse(userId: string) {
+  return useQuery<OnboardingResponse | null>({
+    queryKey: ['onboarding-response', userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('onboarding_responses')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle()
+      return data
+    },
+  })
+}
+
+const EXPERIENCE_LABELS: Record<string, string> = {
+  beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced', expert: 'Expert',
+}
+const EQUIPMENT_LABELS: Record<string, string> = {
+  no_equipment: 'No equipment', dumbbells: 'Dumbbells', home_gym: 'Home gym', full_gym: 'Full gym',
+}
+const TRAINING_LABELS: Record<string, string> = {
+  with_coach: 'With coach', self_guided: 'Self-guided', both: 'Both',
 }
 
 function useMealPlans() {
@@ -143,6 +167,7 @@ export default function UserDetail() {
   const { data: userWorkoutPlanId } = useUserWorkoutPlan(id!)
   const { data: weightHistory = [] } = useWeightHistory(id!)
   const { data: compliance } = useUserCompliance(id!)
+  const { data: onboarding } = useOnboardingResponse(id!)
 
   const [adminNotes, setAdminNotes] = useState('')
 
@@ -247,6 +272,30 @@ export default function UserDetail() {
           <Field label="Joined"     value={new Date(user.created_at).toLocaleDateString()} />
           <Field label="Onboarding" value={user.onboarding_complete ? 'Complete' : 'Incomplete'} />
         </div>
+
+        {/* Onboarding quiz */}
+        {onboarding && (
+          <div>
+            <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Onboarding Quiz</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <Field label="Gender"     value={onboarding.gender} />
+              <Field label="Goal"       value={onboarding.goal ? GOAL_LABELS[onboarding.goal] : null} />
+              <Field label="Experience" value={onboarding.experience_level ? EXPERIENCE_LABELS[onboarding.experience_level] : null} />
+              <Field label="Equipment"  value={onboarding.equipment ? EQUIPMENT_LABELS[onboarding.equipment] : null} />
+              <Field label="Frequency"  value={onboarding.frequency_per_week ? `${onboarding.frequency_per_week}× / week` : null} />
+              <Field label="Training"   value={onboarding.training_preference ? TRAINING_LABELS[onboarding.training_preference] : null} />
+              <Field label="BMI"        value={onboarding.bmi ? onboarding.bmi.toFixed(1) : null} />
+              <Field label="Completed"  value={onboarding.completed_at ? new Date(onboarding.completed_at).toLocaleDateString() : null} />
+            </div>
+            {onboarding.focus_areas?.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {onboarding.focus_areas.map(a => (
+                  <span key={a} className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)]">{a}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Assign Meal Plan */}
         <div>
