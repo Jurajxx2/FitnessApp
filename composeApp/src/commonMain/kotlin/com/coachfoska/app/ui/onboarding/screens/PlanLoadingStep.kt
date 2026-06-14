@@ -54,7 +54,7 @@ fun PlanLoadingStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit
         Text(headline, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = 24.dp))
         if (state.error != null) {
             Text(stringResource(Res.string.ob_loading_error), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-            CoachButton(text = stringResource(Res.string.ob_loading_retry), onClick = { onIntent(OnboardingIntent.CompleteOnboarding) }, shape = RectangleShape, modifier = Modifier.padding(top = 16.dp))
+            CoachButton(text = stringResource(Res.string.ob_loading_retry), onClick = { animationDone = false; onIntent(OnboardingIntent.CompleteOnboarding) }, shape = RectangleShape, modifier = Modifier.padding(top = 16.dp))
         } else {
             PlanLoadingAnimation(rows = rows, onFinished = { animationDone = true })
         }
