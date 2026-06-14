@@ -1,6 +1,6 @@
 // admin/src/types/database.ts
 
-export type Goal = 'weight_loss' | 'muscle_gain' | 'mental_strength'
+export type Goal = 'build_muscle' | 'lose_weight' | 'stay_fit' | 'get_stronger'
 export type RecipeDifficulty = 'easy' | 'medium' | 'hard'
 export type ActivityLevel = 'sedentary' | 'lightly_active' | 'moderately_active' | 'active' | 'very_active'
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
@@ -18,6 +18,26 @@ export interface Profile {
   is_admin: boolean
   is_blocked: boolean
   admin_notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface OnboardingResponse {
+  user_id: string
+  gender: 'male' | 'female' | null
+  goal: Goal | null
+  experience_level: 'beginner' | 'intermediate' | 'advanced' | 'expert' | null
+  focus_areas: string[]
+  frequency_per_week: number | null
+  equipment: 'no_equipment' | 'dumbbells' | 'home_gym' | 'full_gym' | null
+  age: number | null
+  height_cm: number | null
+  weight_kg: number | null
+  use_metric: boolean
+  training_preference: 'with_coach' | 'self_guided' | 'both' | null
+  name: string | null
+  bmi: number | null
+  completed_at: string
   created_at: string
   updated_at: string
 }
