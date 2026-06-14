@@ -27,9 +27,10 @@ function deriveStatus(p: Profile): 'active' | 'inactive' | 'blocked' {
 }
 
 const GOAL_LABELS: Record<string, string> = {
-  weight_loss: 'Weight loss',
-  muscle_gain: 'Muscle gain',
-  mental_strength: 'Mental strength',
+  build_muscle: 'Build muscle',
+  lose_weight: 'Lose weight',
+  stay_fit: 'Stay fit',
+  get_stronger: 'Get stronger',
 }
 
 export default function Users() {

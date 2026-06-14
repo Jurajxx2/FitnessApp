@@ -115,7 +115,10 @@ function useUserWorkoutPlan(userId: string) {
 }
 
 const GOAL_LABELS: Record<string, string> = {
-  weight_loss: 'Weight loss', muscle_gain: 'Muscle gain', mental_strength: 'Mental strength',
+  build_muscle: 'Build muscle',
+  lose_weight: 'Lose weight',
+  stay_fit: 'Stay fit',
+  get_stronger: 'Get stronger',
 }
 const ACTIVITY_LABELS: Record<string, string> = {
   sedentary: 'Sedentary', lightly_active: 'Lightly active',
