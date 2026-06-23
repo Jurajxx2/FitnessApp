@@ -248,7 +248,7 @@ private fun DaySummaryBar(todayWorkout: Workout?, volumeKg: Double?) {
                 letterSpacing = 1.sp,
             )
             Text(
-                text = (todayWorkout?.name ?: "Recovery").uppercase(),
+                text = todayWorkout?.name?.uppercase() ?: "Recovery — no workout scheduled",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onBackground,
             )
