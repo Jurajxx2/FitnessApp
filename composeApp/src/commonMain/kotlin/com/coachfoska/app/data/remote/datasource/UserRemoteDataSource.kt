@@ -6,6 +6,8 @@ import com.coachfoska.app.data.remote.dto.WeightEntryInsertDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 class UserRemoteDataSource(private val supabase: SupabaseClient) {
 
@@ -19,6 +21,15 @@ class UserRemoteDataSource(private val supabase: SupabaseClient) {
     suspend fun upsertProfile(dto: UserDto) {
         supabase.postgrest["profiles"]
             .upsert(dto) { onConflict = "id" }
+    }
+
+    // Dedicated method to avoid the encodeDefaults issue — a full-object upsert would
+    // omit `onboarding_complete = false` when the Json serializer has encodeDefaults=false.
+    suspend fun setOnboardingComplete(userId: String, complete: Boolean) {
+        supabase.postgrest["profiles"]
+            .update(OnboardingCompleteUpdate(complete)) {
+                filter { eq("id", userId) }
+            }
     }
 
     suspend fun getWeightHistory(userId: String): List<WeightEntryDto> =
@@ -46,3 +57,8 @@ class UserRemoteDataSource(private val supabase: SupabaseClient) {
             .decodeSingle<WeightEntryDto>()
     }
 }
+
+@Serializable
+private data class OnboardingCompleteUpdate(
+    @SerialName("onboarding_complete") val onboardingComplete: Boolean
+)

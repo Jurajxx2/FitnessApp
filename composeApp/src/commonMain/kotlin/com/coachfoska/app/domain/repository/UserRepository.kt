@@ -28,6 +28,8 @@ interface UserRepository {
         activityLevel: ActivityLevel
     ): Result<Unit>
 
+    suspend fun resetOnboarding(userId: String): Result<Unit>
+
     suspend fun getWeightHistory(userId: String): Result<List<WeightEntry>>
 
     suspend fun logWeight(

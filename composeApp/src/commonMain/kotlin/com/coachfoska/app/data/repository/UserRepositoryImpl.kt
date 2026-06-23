@@ -64,6 +64,10 @@ class UserRepositoryImpl(
         Unit
     }
 
+    override suspend fun resetOnboarding(userId: String): Result<Unit> = runCatching {
+        userDataSource.setOnboardingComplete(userId, false)
+    }
+
     override suspend fun getWeightHistory(userId: String): Result<List<WeightEntry>> = runCatching {
         userDataSource.getWeightHistory(userId).map { it.toDomain() }
     }

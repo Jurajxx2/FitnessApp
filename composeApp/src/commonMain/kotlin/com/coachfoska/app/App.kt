@@ -227,11 +227,6 @@ fun App(openHumanChat: Boolean = false) {
                             navController.navigate(Home) {
                                 popUpTo(Onboarding(route.userId)) { inclusive = true }
                             }
-                        },
-                        onLoginClick = {
-                            navController.navigate(EmailOtp) {
-                                popUpTo(Onboarding(route.userId)) { inclusive = true }
-                            }
                         }
                     )
                 }
@@ -534,7 +529,14 @@ fun App(openHumanChat: Boolean = false) {
                 }
 
                 composable<Settings> {
-                    SettingsRoute(onBackClick = { navController.popBackStack() })
+                    SettingsRoute(
+                        onBackClick = { navController.popBackStack() },
+                        onLaunchOnboarding = {
+                            navController.navigate(Onboarding(currentUserId)) {
+                                popUpTo<Settings> { inclusive = true }
+                            }
+                        }
+                    )
                 }
             }
         }

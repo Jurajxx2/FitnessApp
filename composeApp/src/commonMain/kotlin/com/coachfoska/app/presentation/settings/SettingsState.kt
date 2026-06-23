@@ -5,5 +5,7 @@ data class SettingsState(
     val privacyPolicyUrl: String = "",
     val termsOfServiceUrl: String = "",
     val accountDeletionUrl: String = "",
-    val error: String? = null
+    val error: String? = null,
+    val debugResetOnboardingLoading: Boolean = false,
+    val debugResetOnboardingSuccess: Boolean = false
 )

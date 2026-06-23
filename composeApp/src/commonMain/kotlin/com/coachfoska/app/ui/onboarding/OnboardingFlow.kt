@@ -20,7 +20,6 @@ import org.koin.core.parameter.parametersOf
 fun OnboardingRoute(
     userId: String,
     onComplete: () -> Unit,
-    onLoginClick: () -> Unit,
     viewModel: OnboardingViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -31,7 +30,7 @@ fun OnboardingRoute(
     }
 
     OnboardingBackHandler(enabled = true) {
-        if (state.currentStep == 0) onLoginClick() else viewModel.onIntent(OnboardingIntent.PreviousStep)
+        if (state.currentStep > 0) viewModel.onIntent(OnboardingIntent.PreviousStep)
     }
 
     HorizontalPager(
@@ -46,11 +45,6 @@ fun OnboardingRoute(
             onBack = { viewModel.onIntent(OnboardingIntent.PreviousStep) }
         ) { bodyModifier ->
             when (step) {
-                OnboardingStep.WELCOME -> WelcomeStep(
-                    onStart = { viewModel.onIntent(OnboardingIntent.NextStep) },
-                    onLogin = onLoginClick,
-                    modifier = bodyModifier
-                )
                 OnboardingStep.GENDER -> GenderStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)
                 OnboardingStep.GOAL -> GoalStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)
                 OnboardingStep.EXPERIENCE -> ExperienceStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)

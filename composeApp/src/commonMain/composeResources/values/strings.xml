@@ -163,6 +163,14 @@
     <string name="configure_url_first">URL not configured — contact support</string>
     <string name="store_compliance_ready">Manage your account, privacy and preferences</string>
 
+    <!-- Debug -->
+    <string name="settings_debug">DEBUG</string>
+    <string name="debug_reset_onboarding">Reset Onboarding</string>
+    <string name="debug_reset_onboarding_desc">Mark onboarding as incomplete — triggers onboarding flow on next login</string>
+    <string name="debug_reset_onboarding_success">Onboarding reset. Restart the app to trigger the flow.</string>
+    <string name="debug_launch_onboarding">Launch Onboarding</string>
+    <string name="debug_launch_onboarding_desc">Open the onboarding flow directly without resetting the DB flag</string>
+
     <!-- Activity Logging -->
     <string name="log_activity_title">LOG ACTIVITY</string>
     <string name="activity_type_walking">Walking</string>

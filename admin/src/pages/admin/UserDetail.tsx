@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { SlideOver, Button, Input, Badge } from '../../components/ui'
+import { BodyFocusMap } from '../../components/BodyFocusMap'
 import type { Profile, Workout, WeightEntry, MealPlan, OnboardingResponse } from '../../types/database'
 
 function useUser(id: string) {
@@ -288,10 +289,14 @@ export default function UserDetail() {
               <Field label="Completed"  value={onboarding.completed_at ? new Date(onboarding.completed_at).toLocaleDateString() : null} />
             </div>
             {onboarding.focus_areas?.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {onboarding.focus_areas.map(a => (
-                  <span key={a} className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)]">{a}</span>
-                ))}
+              <div className="mt-3">
+                <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Focus Areas</p>
+                <BodyFocusMap focusAreas={onboarding.focus_areas} />
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {onboarding.focus_areas.map(a => (
+                    <span key={a} className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)]">{a}</span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
