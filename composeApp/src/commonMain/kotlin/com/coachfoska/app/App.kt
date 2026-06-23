@@ -260,8 +260,9 @@ fun App(openHumanChat: Boolean = false) {
                         onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
                         onPlanClick = { navController.navigate(WorkoutPlan) },
                         onHistoryClick = { navController.navigate(WorkoutHistory) },
-                        onHistoryDetailClick = { logId -> navController.navigate(WorkoutHistoryDetail(logId)) },
                         onLibraryClick = { navController.navigate(ExerciseLibrary) },
+                        onProgressClick = { navController.navigate(ProgressDashboard) },
+                        onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
                         onLogGeneralActivityClick = { navController.navigate(ActivityTypeSelector) }
                     )
                 }
