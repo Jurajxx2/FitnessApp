@@ -75,7 +75,7 @@ private fun WeekDayCell(day: WeekDayActivity, modifier: Modifier = Modifier) {
         )
         Icon(
             imageVector = iconFor(day.status),
-            contentDescription = day.status.name,
+            contentDescription = "${day.dayOfWeek.displayName}: ${day.status.name.lowercase()}",
             tint = accent,
             modifier = Modifier.size(20.dp),
         )

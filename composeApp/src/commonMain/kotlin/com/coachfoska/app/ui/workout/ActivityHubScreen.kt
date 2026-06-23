@@ -20,11 +20,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -33,6 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -104,9 +105,15 @@ fun ActivityHubScreen(
 ) {
     val today = todayDate()
     val zone = TimeZone.currentSystemDefault()
-    val todayWorkout = state.workouts.firstOrNull { it.dayOfWeek?.index == today.dayOfWeek.ordinal }
-    val weeklyDays = buildWeeklyActivity(state.workouts, state.workoutHistory, today, zone)
-    val volumeKg = deriveTodayVolumeKg(todayWorkout, state.workoutHistory)
+    val todayWorkout = remember(state.workouts, today) {
+        state.workouts.firstOrNull { it.dayOfWeek?.index == today.dayOfWeek.ordinal }
+    }
+    val weeklyDays = remember(state.workouts, state.workoutHistory, today, zone) {
+        buildWeeklyActivity(state.workouts, state.workoutHistory, today, zone)
+    }
+    val volumeKg = remember(todayWorkout, state.workoutHistory) {
+        deriveTodayVolumeKg(todayWorkout, state.workoutHistory)
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -167,9 +174,9 @@ fun ActivityHubScreen(
                 }
 
                 Column {
-                    QuickLinkRow(icon = Icons.Filled.MenuBook, label = "EXERCISE LIBRARY", onClick = onLibraryClick)
+                    QuickLinkRow(icon = Icons.AutoMirrored.Filled.MenuBook, label = "EXERCISE LIBRARY", onClick = onLibraryClick)
                     QuickLinkRow(icon = Icons.Filled.History, label = "WORKOUT HISTORY", onClick = onHistoryClick)
-                    QuickLinkRow(icon = Icons.Filled.TrendingUp, label = "PROGRESS ANALYTICS", onClick = onProgressClick)
+                    QuickLinkRow(icon = Icons.AutoMirrored.Filled.TrendingUp, label = "PROGRESS ANALYTICS", onClick = onProgressClick)
                     QuickLinkRow(icon = Icons.Filled.Add, label = "LOG ACTIVITY", onClick = onLogGeneralActivityClick)
                 }
 

@@ -130,6 +130,19 @@ class ActivityHubLogicTest {
     }
 
     @Test
+    fun `formatVolumeKg handles the 1000 boundary`() {
+        assertEquals("1k kg", formatVolumeKg(1000.0))
+        assertEquals("999 kg", formatVolumeKg(999.0))
+    }
+
+    @Test
+    fun `deriveCategoryLabel breaks ties by first-encountered muscle group`() {
+        // Back and Chest both appear once; Back is encountered first.
+        val workout = aWorkout(id = "w1", exercises = listOf(exercise("Back"), exercise("Chest")))
+        assertEquals("BACK", deriveCategoryLabel(workout))
+    }
+
+    @Test
     fun `deriveCategoryLabel returns dominant muscle group uppercased`() {
         val workout = aWorkout(id = "w1", exercises = listOf(
             exercise("Chest"), exercise("Chest"), exercise("Back"),
