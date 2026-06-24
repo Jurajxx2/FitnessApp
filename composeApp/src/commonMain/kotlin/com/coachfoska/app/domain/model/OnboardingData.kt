@@ -1,5 +1,7 @@
 package com.coachfoska.app.domain.model
 
+import kotlinx.datetime.DayOfWeek
+
 enum class Gender { MALE, FEMALE }
 
 /** Canonical fitness goal used app-wide (replaces the legacy UserGoal). */
@@ -64,7 +66,8 @@ data class OnboardingData(
     val goal: FitnessGoal? = null,
     val experienceLevel: ExperienceLevel? = null,
     val focusAreas: Set<MuscleGroup> = emptySet(),
-    val frequencyPerWeek: Int = 3,
+    val trainingDays: Set<DayOfWeek> = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+    val notificationsEnabled: Boolean = false,
     val equipment: Equipment? = null,
     val age: Int = 30,
     val heightCm: Int = 175,
@@ -73,6 +76,9 @@ data class OnboardingData(
     val trainingPreference: TrainingPreference? = null,
     val name: String = ""
 ) {
+    /** Weekly training frequency, derived from the selected days. */
+    val frequencyPerWeek: Int get() = trainingDays.size
+
     val bmi: Float
         get() {
             val heightM = heightCm / 100f

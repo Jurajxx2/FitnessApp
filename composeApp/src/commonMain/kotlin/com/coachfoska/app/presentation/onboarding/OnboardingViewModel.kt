@@ -30,7 +30,12 @@ class OnboardingViewModel(
             is OnboardingIntent.SelectGoal -> updateData { copy(goal = intent.goal) }
             is OnboardingIntent.SelectExperience -> updateData { copy(experienceLevel = intent.level) }
             is OnboardingIntent.ToggleFocusArea -> updateData { toggleFocusArea(intent.area) }
-            is OnboardingIntent.SetFrequency -> updateData { copy(frequencyPerWeek = intent.days) }
+            is OnboardingIntent.ToggleTrainingDay -> updateData {
+                val updated = trainingDays.toMutableSet()
+                if (!updated.add(intent.day)) updated.remove(intent.day)
+                copy(trainingDays = updated)
+            }
+            is OnboardingIntent.SetNotificationsEnabled -> updateData { copy(notificationsEnabled = intent.enabled) }
             is OnboardingIntent.SelectEquipment -> updateData { copy(equipment = intent.equipment) }
             is OnboardingIntent.SetAge -> updateData { copy(age = intent.age) }
             is OnboardingIntent.SetHeight -> updateData { copy(heightCm = intent.cm) }

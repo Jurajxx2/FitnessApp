@@ -245,17 +245,19 @@
     <string name="ob_valueprop2_subtitle">Rezervuj si tréninky s ověřenými trenéry. Sleduj svůj pokrok a nech se vést krok za krokem.</string>
     <string name="ob_continue">Pokračovat</string>
 
-    <string name="ob_frequency_title">Kolikrát týdně chceš cvičit?</string>
-    <string name="ob_frequency_subtitle">Doporučíme ideální rozložení tréninků.</string>
-    <string name="ob_frequency_1">Dobrý začátek</string>
-    <string name="ob_frequency_2">Slibné</string>
-    <string name="ob_frequency_recommended">Doporučeno</string>
-    <string name="ob_frequency_5">Odhodlaný</string>
-    <string name="ob_frequency_6">Impozantní</string>
-    <string name="ob_frequency_7">Nezastavitelný</string>
-    <string name="ob_frequency_days">dní v týdnu</string>
-    <string name="ob_frequency_habit">Tvorba návyku</string>
-    <string name="ob_frequency_progress">Progres</string>
+    <string name="ob_frequency_title">Které dny chceš trénovat?</string>
+    <string name="ob_frequency_subtitle">Vyber dny, kdy se ti hodí cvičit.</string>
+    <string name="ob_day_mon">Po</string>
+    <string name="ob_day_tue">Út</string>
+    <string name="ob_day_wed">St</string>
+    <string name="ob_day_thu">Čt</string>
+    <string name="ob_day_fri">Pá</string>
+    <string name="ob_day_sat">So</string>
+    <string name="ob_day_sun">Ne</string>
+    <string name="ob_days_count_one">%d den v týdnu</string>
+    <string name="ob_days_count_few">%d dny v týdnu</string>
+    <string name="ob_days_count_many">%d dní v týdnu</string>
+    <string name="ob_days_notify">Připomínat mi tréninkové dny</string>
 
     <string name="ob_equipment_title">Jaké máš vybavení?</string>
     <string name="ob_equipment_subtitle">Cviky přizpůsobíme tomu, co máš k dispozici.</string>

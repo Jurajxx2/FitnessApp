@@ -6,13 +6,15 @@ import com.coachfoska.app.domain.model.FitnessGoal
 import com.coachfoska.app.domain.model.Gender
 import com.coachfoska.app.domain.model.MuscleGroup
 import com.coachfoska.app.domain.model.TrainingPreference
+import kotlinx.datetime.DayOfWeek
 
 sealed interface OnboardingIntent {
     data class SelectGender(val gender: Gender) : OnboardingIntent
     data class SelectGoal(val goal: FitnessGoal) : OnboardingIntent
     data class SelectExperience(val level: ExperienceLevel) : OnboardingIntent
     data class ToggleFocusArea(val area: MuscleGroup) : OnboardingIntent
-    data class SetFrequency(val days: Int) : OnboardingIntent
+    data class ToggleTrainingDay(val day: DayOfWeek) : OnboardingIntent
+    data class SetNotificationsEnabled(val enabled: Boolean) : OnboardingIntent
     data class SelectEquipment(val equipment: Equipment) : OnboardingIntent
     data class SetAge(val age: Int) : OnboardingIntent
     data class SetHeight(val cm: Int) : OnboardingIntent

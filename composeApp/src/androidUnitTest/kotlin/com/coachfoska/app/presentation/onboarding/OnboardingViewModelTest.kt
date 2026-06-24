@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.DayOfWeek
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -51,7 +52,6 @@ class OnboardingViewModelTest {
         vm.onIntent(OnboardingIntent.SelectGoal(FitnessGoal.GET_STRONGER))
         vm.onIntent(OnboardingIntent.SelectExperience(ExperienceLevel.ADVANCED))
         vm.onIntent(OnboardingIntent.SelectEquipment(Equipment.FULL_GYM))
-        vm.onIntent(OnboardingIntent.SetFrequency(5))
         vm.onIntent(OnboardingIntent.SelectTrainingPreference(TrainingPreference.BOTH))
         vm.onIntent(OnboardingIntent.SetName("Ada"))
         val d = vm.state.value.data
@@ -59,7 +59,6 @@ class OnboardingViewModelTest {
         assertEquals(FitnessGoal.GET_STRONGER, d.goal)
         assertEquals(ExperienceLevel.ADVANCED, d.experienceLevel)
         assertEquals(Equipment.FULL_GYM, d.equipment)
-        assertEquals(5, d.frequencyPerWeek)
         assertEquals(TrainingPreference.BOTH, d.trainingPreference)
         assertEquals("Ada", d.name)
     }
@@ -119,6 +118,42 @@ class OnboardingViewModelTest {
         val vm = viewModel()
         MuscleGroup.individual.forEach { vm.onIntent(OnboardingIntent.ToggleFocusArea(it)) }
         assertTrue(vm.state.value.data.focusAreas.contains(MuscleGroup.FULL_BODY))
+    }
+
+    @Test
+    fun `default training days are Mon Wed Fri and frequency is three`() {
+        val d = OnboardingData()
+        assertEquals(setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY), d.trainingDays)
+        assertEquals(3, d.frequencyPerWeek)
+    }
+
+    @Test
+    fun `toggling a training day adds it then removes it and frequency tracks the count`() {
+        val vm = viewModel()
+        vm.onIntent(OnboardingIntent.ToggleTrainingDay(DayOfWeek.TUESDAY))
+        assertTrue(vm.state.value.data.trainingDays.contains(DayOfWeek.TUESDAY))
+        assertEquals(4, vm.state.value.data.frequencyPerWeek)
+        vm.onIntent(OnboardingIntent.ToggleTrainingDay(DayOfWeek.TUESDAY))
+        assertFalse(vm.state.value.data.trainingDays.contains(DayOfWeek.TUESDAY))
+        assertEquals(3, vm.state.value.data.frequencyPerWeek)
+    }
+
+    @Test
+    fun `deselecting a default day reduces frequency`() {
+        val vm = viewModel()
+        vm.onIntent(OnboardingIntent.ToggleTrainingDay(DayOfWeek.MONDAY))
+        assertFalse(vm.state.value.data.trainingDays.contains(DayOfWeek.MONDAY))
+        assertEquals(2, vm.state.value.data.frequencyPerWeek)
+    }
+
+    @Test
+    fun `setting notifications enabled updates the flag`() {
+        val vm = viewModel()
+        assertFalse(vm.state.value.data.notificationsEnabled)
+        vm.onIntent(OnboardingIntent.SetNotificationsEnabled(true))
+        assertTrue(vm.state.value.data.notificationsEnabled)
+        vm.onIntent(OnboardingIntent.SetNotificationsEnabled(false))
+        assertFalse(vm.state.value.data.notificationsEnabled)
     }
 
     @Test

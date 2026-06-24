@@ -11,6 +11,9 @@ data class OnboardingResponseDto(
     val goal: String? = null,
     @SerialName("experience_level") val experienceLevel: String? = null,
     @SerialName("focus_areas") val focusAreas: List<String> = emptyList(),
+    @SerialName("training_days") val trainingDays: List<String> = emptyList(),
+    @SerialName("notifications_enabled") val notificationsEnabled: Boolean = false,
+    // Derived from trainingDays.size; persisted for DB-side filtering convenience.
     @SerialName("frequency_per_week") val frequencyPerWeek: Int? = null,
     val equipment: String? = null,
     val age: Int? = null,
@@ -29,6 +32,8 @@ data class OnboardingResponseDto(
                 goal = data.goal?.name?.lowercase(),
                 experienceLevel = data.experienceLevel?.name?.lowercase(),
                 focusAreas = data.focusAreas.map { it.name.lowercase() },
+                trainingDays = data.trainingDays.map { it.name.lowercase() },
+                notificationsEnabled = data.notificationsEnabled,
                 frequencyPerWeek = data.frequencyPerWeek,
                 equipment = data.equipment?.name?.lowercase(),
                 age = data.age,
