@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "OnboardingViewModel"
 private const val AUTO_ADVANCE_DELAY_MS = 300L
+private const val NAV_LOCK_MS = 350L
 
 class OnboardingViewModel(
     private val saveOnboardingUseCase: SaveOnboardingUseCase,
@@ -23,6 +24,9 @@ class OnboardingViewModel(
 
     private val _state = MutableStateFlow(OnboardingState())
     val state: StateFlow<OnboardingState> = _state.asStateFlow()
+
+    /** Blocks a second advance/back while a transition is in flight (defeats double-tap skip). */
+    private var navLocked = false
 
     fun onIntent(intent: OnboardingIntent) {
         when (intent) {
@@ -77,13 +81,25 @@ class OnboardingViewModel(
     }
 
     private fun advanceStep() {
+        if (navLocked) return
+        navLocked = true
         _state.update {
             it.copy(currentStep = (it.currentStep + 1).coerceAtMost(OnboardingStep.entries.size - 1))
+        }
+        viewModelScope.launch {
+            delay(NAV_LOCK_MS)
+            navLocked = false
         }
     }
 
     private fun goBack() {
+        if (navLocked) return
+        navLocked = true
         _state.update { it.copy(currentStep = (it.currentStep - 1).coerceAtLeast(0)) }
+        viewModelScope.launch {
+            delay(NAV_LOCK_MS)
+            navLocked = false
+        }
     }
 
     private fun completeOnboarding() {

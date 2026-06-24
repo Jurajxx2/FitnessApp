@@ -73,23 +73,37 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `back navigation decrements and clamps at zero`() {
+    fun `back navigation decrements and clamps at zero`() = runTest {
         val vm = viewModel()
-        vm.onIntent(OnboardingIntent.NextStep)
-        vm.onIntent(OnboardingIntent.NextStep)
+        vm.onIntent(OnboardingIntent.NextStep); advanceTimeBy(400)
+        vm.onIntent(OnboardingIntent.NextStep); advanceTimeBy(400)
         assertEquals(2, vm.state.value.currentStep)
-        vm.onIntent(OnboardingIntent.PreviousStep)
+        vm.onIntent(OnboardingIntent.PreviousStep); advanceTimeBy(400)
         assertEquals(1, vm.state.value.currentStep)
-        vm.onIntent(OnboardingIntent.PreviousStep)
-        vm.onIntent(OnboardingIntent.PreviousStep)
+        vm.onIntent(OnboardingIntent.PreviousStep); advanceTimeBy(400)
+        vm.onIntent(OnboardingIntent.PreviousStep); advanceTimeBy(400)
         assertEquals(0, vm.state.value.currentStep)
     }
 
     @Test
-    fun `advance clamps at the last step`() {
+    fun `advance clamps at the last step`() = runTest {
         val vm = viewModel()
-        repeat(50) { vm.onIntent(OnboardingIntent.NextStep) }
+        repeat(OnboardingStep.entries.size + 3) {
+            vm.onIntent(OnboardingIntent.NextStep)
+            advanceTimeBy(400)
+        }
         assertEquals(OnboardingStep.entries.size - 1, vm.state.value.currentStep)
+    }
+
+    @Test
+    fun `rapid double NextStep advances only one step then lock releases`() = runTest {
+        val vm = viewModel()
+        vm.onIntent(OnboardingIntent.NextStep)   // 0 -> 1, lock engaged
+        vm.onIntent(OnboardingIntent.NextStep)   // ignored while locked
+        assertEquals(1, vm.state.value.currentStep)
+        advanceTimeBy(400)                        // lock releases
+        vm.onIntent(OnboardingIntent.NextStep)   // 1 -> 2
+        assertEquals(2, vm.state.value.currentStep)
     }
 
     @Test
