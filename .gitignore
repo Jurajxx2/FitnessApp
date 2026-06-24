@@ -31,6 +31,7 @@ out/
 # Android Studio / IntelliJ
 .idea/workspace.xml
 .idea/tasks.xml
+.idea/caches/
 .idea/dictionaries/
 .idea/shelf/
 .idea/aws.xml
@@ -55,3 +56,9 @@ DerivedData/
 # Compose Multiplatform generated
 composeApp/src/commonMain/composeResources/
 .worktrees/
+
+# Supabase CLI local state
+supabase/.temp/
+
+# Stray Kotlin compiler module output at repo root (root-anchored so nested resource META-INF dirs stay tracked)
+/META-INF/
