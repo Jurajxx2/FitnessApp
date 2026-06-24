@@ -27,7 +27,7 @@ import coachfoska.composeapp.generated.resources.*
 @Composable
 fun NameStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     Column(modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
         Text(stringResource(Res.string.ob_name_title), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
