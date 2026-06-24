@@ -187,4 +187,12 @@ class OnboardingViewModelTest {
         assertEquals("net", vm.state.value.error)
         assertFalse(vm.state.value.isCompleted)
     }
+
+    @Test
+    fun `showBack is true for every step except plan loading`() {
+        OnboardingStep.entries.forEach { step ->
+            val expected = step != OnboardingStep.PLAN_LOADING
+            assertEquals(expected, step.showBack, "showBack for $step")
+        }
+    }
 }
