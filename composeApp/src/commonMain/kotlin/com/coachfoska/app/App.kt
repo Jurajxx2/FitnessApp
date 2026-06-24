@@ -227,7 +227,8 @@ fun App(openHumanChat: Boolean = false) {
                             navController.navigate(Home) {
                                 popUpTo(Onboarding(route.userId)) { inclusive = true }
                             }
-                        }
+                        },
+                        onExit = { navController.popBackStack() }
                     )
                 }
 
@@ -533,9 +534,7 @@ fun App(openHumanChat: Boolean = false) {
                     SettingsRoute(
                         onBackClick = { navController.popBackStack() },
                         onLaunchOnboarding = {
-                            navController.navigate(Onboarding(currentUserId)) {
-                                popUpTo<Settings> { inclusive = true }
-                            }
+                            navController.navigate(Onboarding(currentUserId))
                         }
                     )
                 }
