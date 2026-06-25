@@ -42,4 +42,7 @@ data class NutritionState(
 ) {
     val recipes: List<Recipe>
         get() = if (showOnlyFavorites) allRecipes.filter { it.id in favoriteRecipeIds } else allRecipes
+
+    val featuredRecipes: List<Recipe>
+        get() = allRecipes.filter { it.isFeatured }.ifEmpty { allRecipes.take(10) }
 }
