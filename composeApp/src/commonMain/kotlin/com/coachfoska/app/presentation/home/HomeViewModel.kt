@@ -13,6 +13,7 @@ import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
+import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,7 @@ class HomeViewModel(
     private val calculateWaterGoalUseCase: CalculateWaterGoalUseCase,
     private val calculateMacroTargetsUseCase: CalculateMacroTargetsUseCase,
     private val getWaterContainersUseCase: GetWaterContainersUseCase,
+    private val getWorkoutHistoryUseCase: GetWorkoutHistoryUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -84,6 +86,7 @@ class HomeViewModel(
 
             val profileDeferred = async { getUserProfileUseCase(userId) }
             val workoutsDeferred = async { getAssignedWorkoutsUseCase(userId) }
+            val historyDeferred = async { getWorkoutHistoryUseCase(userId) }
             val nutritionDeferred = async { getDailyNutritionSummaryUseCase(userId, today) }
             val chatDeferred = async {
                 runCatching {
@@ -95,6 +98,7 @@ class HomeViewModel(
 
             val profileResult = profileDeferred.await()
             val workoutsResult = workoutsDeferred.await()
+            val historyResult = historyDeferred.await()
             val nutritionResult = nutritionDeferred.await()
             val lastCoachMessage = chatDeferred.await()
             val waterLogsResult = waterLogsDeferred.await()
@@ -107,6 +111,7 @@ class HomeViewModel(
             workoutsResult.onFailure { e -> Napier.e("loadWorkouts failed", e, tag = TAG) }
             nutritionResult.onFailure { e -> Napier.e("loadNutrition failed", e, tag = TAG) }
             waterLogsResult.onFailure { e -> Napier.e("loadWaterLogs failed", e, tag = TAG) }
+            historyResult.onFailure { e -> Napier.e("loadHistory failed", e, tag = TAG) }
 
             val error = profileResult.exceptionOrNull()?.message
                 ?: workoutsResult.exceptionOrNull()?.message
@@ -121,6 +126,8 @@ class HomeViewModel(
                     isLoading = false,
                     user = loadedUser,
                     todayWorkout = todayWorkout,
+                    workouts = workouts,
+                    workoutHistory = historyResult.getOrDefault(emptyList()),
                     nutritionSummary = nutritionResult.getOrNull(),
                     macroTargets = loadedUser?.let { u -> calculateMacroTargetsUseCase(u) },
                     lastCoachMessage = lastCoachMessage,

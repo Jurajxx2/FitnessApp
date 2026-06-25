@@ -16,7 +16,10 @@ import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
+import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
+import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.WaterContainer
+import kotlin.test.assertTrue
 import com.coachfoska.app.domain.model.WaterLog
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -58,6 +61,7 @@ class HomeViewModelTest {
         calculateWaterGoalUseCase = CalculateWaterGoalUseCase(),
         calculateMacroTargetsUseCase = CalculateMacroTargetsUseCase(),
         getWaterContainersUseCase = GetWaterContainersUseCase(hydrationRepo),
+        getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(workoutRepo),
         userId = "user-1"
     )
 
@@ -67,6 +71,7 @@ class HomeViewModelTest {
         every { chatRepo.observeMessages(any(), any()) } returns flowOf(emptyList())
         coEvery { hydrationRepo.getTodayLogs(any()) } returns Result.success(emptyList())
         coEvery { hydrationRepo.getContainers(any()) } returns Result.success(emptyList())
+        coEvery { workoutRepo.getWorkoutHistory(any()) } returns Result.success(emptyList())
     }
 
     @AfterTest fun tearDown() = Dispatchers.resetMain()
@@ -234,5 +239,37 @@ class HomeViewModelTest {
 
         assertEquals(before, vm.state.value.waterConsumedMl)
         assertNotNull(vm.state.value.error)
+    }
+
+    @Test
+    fun `loadData populates workouts and workout history for weekly activity`() = runTest {
+        val workout = Workout(id = "w1", name = "Push", dayOfWeek = null, durationMinutes = 45, exercises = emptyList())
+        val log = WorkoutLog(
+            id = "l1", userId = "user-1", workoutId = "w1", workoutName = "Push",
+            durationMinutes = 45, notes = null, exerciseLogs = emptyList(),
+            loggedAt = Instant.parse("2026-06-22T10:00:00Z"),
+        )
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(listOf(workout))
+        coEvery { workoutRepo.getWorkoutHistory(any()) } returns Result.success(listOf(log))
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
+
+        val vm = viewModel()
+
+        assertEquals(listOf(workout), vm.state.value.workouts)
+        assertEquals(listOf(log), vm.state.value.workoutHistory)
+    }
+
+    @Test
+    fun `loadData history failure degrades to empty list without breaking load`() = runTest {
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { workoutRepo.getWorkoutHistory(any()) } returns Result.failure(RuntimeException("history offline"))
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(0f, 0f, 0f, 0f))
+
+        val vm = viewModel()
+
+        assertTrue(vm.state.value.workoutHistory.isEmpty())
+        assertFalse(vm.state.value.isLoading)
     }
 }
