@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -140,7 +141,7 @@ fun NutritionHubScreen(
             }
 
             // Featured recipes slider
-            val featured = state.featuredRecipes
+            val featured = remember(state.allRecipes) { state.featuredRecipes }
             when {
                 state.isRecipesLoading && state.allRecipes.isEmpty() ->
                     CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(150.dp))
