@@ -24,7 +24,6 @@ import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.MacroTargets
 import com.coachfoska.app.domain.model.MessageContent
-import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.core.util.todayDate
 import com.coachfoska.app.domain.usecase.workout.buildWeeklyActivity
 import com.coachfoska.app.domain.usecase.workout.deriveTodayVolumeKg
@@ -32,7 +31,6 @@ import com.coachfoska.app.presentation.home.HomeIntent
 import com.coachfoska.app.presentation.home.HomeState
 import com.coachfoska.app.presentation.home.HomeViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
-import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.workout.components.WeeklyActivitySection
 import kotlinx.datetime.TimeZone
 import org.koin.compose.viewmodel.koinViewModel

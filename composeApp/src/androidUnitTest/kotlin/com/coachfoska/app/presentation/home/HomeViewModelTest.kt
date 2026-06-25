@@ -271,5 +271,6 @@ class HomeViewModelTest {
 
         assertTrue(vm.state.value.workoutHistory.isEmpty())
         assertFalse(vm.state.value.isLoading)
+        assertNull(vm.state.value.error)
     }
 }
