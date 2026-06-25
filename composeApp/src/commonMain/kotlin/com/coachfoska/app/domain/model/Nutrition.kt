@@ -69,7 +69,8 @@ data class Recipe(
     val difficulty: String? = null,
     val tags: List<String> = emptyList(),
     val steps: List<RecipeStep> = emptyList(),
-    val ingredients: List<RecipeIngredient> = emptyList()
+    val ingredients: List<RecipeIngredient> = emptyList(),
+    val isFeatured: Boolean = false
 )
 
 data class MealLog(

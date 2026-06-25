@@ -194,7 +194,8 @@ data class RecipeDto(
     @SerialName("cook_time_min") val cookTimeMin: Int? = null,
     val servings: Int = 1,
     val difficulty: String? = null,
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
+    val featured: Boolean = false
 ) {
     fun toDomain(): Recipe = Recipe(
         id = id,
@@ -211,7 +212,8 @@ data class RecipeDto(
         difficulty = difficulty,
         tags = tags,
         steps = emptyList(),
-        ingredients = emptyList()
+        ingredients = emptyList(),
+        isFeatured = featured
     )
 }
 
