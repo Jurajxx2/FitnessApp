@@ -14,7 +14,8 @@ class RecipeDtoTest {
 
     @Test fun `RecipeDto defaults featured to false`() {
         val dto = RecipeDto(id = "r2", name = "Toast")
-        assertFalse(dto.toDomain().isFeatured)
-        assertEquals("r2", dto.toDomain().id)
+        val domain = dto.toDomain()
+        assertFalse(domain.isFeatured)
+        assertEquals("r2", domain.id)
     }
 }
