@@ -1,7 +1,6 @@
 package com.coachfoska.app.ui.workout
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,18 +44,13 @@ import com.coachfoska.app.core.util.todayDate
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
-import com.coachfoska.app.domain.usecase.workout.buildWeeklyActivity
 import com.coachfoska.app.domain.usecase.workout.deriveCategoryLabel
-import com.coachfoska.app.domain.usecase.workout.deriveTodayVolumeKg
-import com.coachfoska.app.domain.usecase.workout.formatVolumeKg
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.workout.components.AssignedWorkoutCard
 import com.coachfoska.app.ui.workout.components.QuickLinkRow
-import com.coachfoska.app.ui.workout.components.WeeklyActivityGrid
-import kotlinx.datetime.TimeZone
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -104,15 +98,8 @@ fun ActivityHubScreen(
     onLogGeneralActivityClick: () -> Unit,
 ) {
     val today = todayDate()
-    val zone = TimeZone.currentSystemDefault()
     val todayWorkout = remember(state.workouts, today) {
         state.workouts.firstOrNull { it.dayOfWeek?.index == today.dayOfWeek.ordinal }
-    }
-    val weeklyDays = remember(state.workouts, state.workoutHistory, today, zone) {
-        buildWeeklyActivity(state.workouts, state.workoutHistory, today, zone)
-    }
-    val volumeKg = remember(todayWorkout, state.workoutHistory) {
-        deriveTodayVolumeKg(todayWorkout, state.workoutHistory)
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -131,12 +118,6 @@ fun ActivityHubScreen(
             } else {
                 StartWorkoutButton(todayWorkout = todayWorkout, onStartWorkout = onStartWorkout, onBrowse = onPlanClick)
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SectionLabel("WEEKLY ACTIVITY")
-                    WeeklyActivityGrid(days = weeklyDays)
-                    DaySummaryBar(todayWorkout = todayWorkout, volumeKg = volumeKg)
-                }
-
                 if (state.workouts.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(
@@ -146,10 +127,11 @@ fun ActivityHubScreen(
                         ) {
                             SectionLabel("ASSIGNED WORKOUTS")
                             Text(
-                                text = "SCROLL →",
+                                text = "SEE ALL",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MaterialTheme.colorScheme.primary,
                                 letterSpacing = 1.sp,
+                                modifier = Modifier.clickable(onClick = onPlanClick),
                             )
                         }
                         LazyRow(
@@ -235,48 +217,6 @@ private fun StartWorkoutButton(
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp,
         )
-    }
-}
-
-@Composable
-private fun DaySummaryBar(todayWorkout: Workout?, volumeKg: Double?) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), SquareShape)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = if (todayWorkout != null) "TODAY'S FOCUS" else "REST DAY",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 1.sp,
-            )
-            Text(
-                text = todayWorkout?.name?.uppercase() ?: "Recovery — no workout scheduled",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-        }
-        if (todayWorkout != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                SummaryMetric("DURATION", "${todayWorkout.durationMinutes}m")
-                SummaryMetric("EXERCISES", todayWorkout.exercises.size.toString())
-                if (volumeKg != null) {
-                    SummaryMetric("VOLUME", formatVolumeKg(volumeKg))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SummaryMetric(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.End) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
-        Text(value, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onBackground)
     }
 }
 
