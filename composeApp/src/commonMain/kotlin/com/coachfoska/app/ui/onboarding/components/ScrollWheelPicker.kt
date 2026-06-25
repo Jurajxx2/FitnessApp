@@ -50,8 +50,9 @@ fun <T> ScrollWheelPicker(
 
     // Data index whose row centre is nearest the viewport centre. Global list indices are offset
     // by [edgeSpacers] because of the leading blank rows, so subtract it.
-    val centeredIndex by remember(values) {
+    val centeredIndex by remember {
         derivedStateOf {
+            if (values.isEmpty()) return@derivedStateOf 0
             val info = listState.layoutInfo
             if (info.visibleItemsInfo.isEmpty()) return@derivedStateOf initialIndex
             val viewportCenter = (info.viewportStartOffset + info.viewportEndOffset) / 2
@@ -61,7 +62,7 @@ fun <T> ScrollWheelPicker(
         }
     }
 
-    LaunchedEffect(listState, values) {
+    LaunchedEffect(listState) {
         snapshotFlow { centeredIndex }
             .distinctUntilChanged()
             .collect { idx -> values.getOrNull(idx)?.let(onSelected) }
@@ -92,6 +93,7 @@ fun <T> ScrollWheelPicker(
                     Text(
                         text = label(value),
                         textAlign = TextAlign.Center,
+                        maxLines = 1,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Normal,
                         color = if (isCenter) MaterialTheme.colorScheme.onBackground
