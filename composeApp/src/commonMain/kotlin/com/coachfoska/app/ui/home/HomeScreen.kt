@@ -24,12 +24,15 @@ import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.MacroTargets
 import com.coachfoska.app.domain.model.MessageContent
-import com.coachfoska.app.domain.model.Workout
+import com.coachfoska.app.core.util.todayDate
+import com.coachfoska.app.domain.usecase.workout.buildWeeklyActivity
+import com.coachfoska.app.domain.usecase.workout.deriveTodayVolumeKg
 import com.coachfoska.app.presentation.home.HomeIntent
 import com.coachfoska.app.presentation.home.HomeState
 import com.coachfoska.app.presentation.home.HomeViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
-import com.coachfoska.app.ui.components.CoachSectionHeader
+import com.coachfoska.app.ui.workout.components.WeeklyActivitySection
+import kotlinx.datetime.TimeZone
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -100,40 +103,23 @@ fun HomeScreen(
             if (state.isLoading) {
                 CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
             } else {
-                // Today's Focus
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(
-                        text = stringResource(Res.string.todays_focus),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        letterSpacing = 1.5.sp
-                    )
-
-                    state.todayWorkout?.let { workout ->
-                        WorkoutHomeCard(
-                            workout = workout,
-                            onClick = { onWorkoutClick(workout.id) },
-                            onStart = { onStartWorkout(workout.id) }
-                        )
-                    } ?: Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
-                    ) {
-                        Column(modifier = Modifier.padding(24.dp)) {
-                            Text(
-                                text = stringResource(Res.string.recovery_day),
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = stringResource(Res.string.recovery_day_desc),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                            )
-                        }
+                // Weekly Activity (replaces Today's Focus)
+                run {
+                    val today = todayDate()
+                    val zone = TimeZone.currentSystemDefault()
+                    val weeklyDays = remember(state.workouts, state.workoutHistory, today, zone) {
+                        buildWeeklyActivity(state.workouts, state.workoutHistory, today, zone)
                     }
+                    val volumeKg = remember(state.todayWorkout, state.workoutHistory) {
+                        deriveTodayVolumeKg(state.todayWorkout, state.workoutHistory)
+                    }
+                    WeeklyActivitySection(
+                        days = weeklyDays,
+                        todayWorkout = state.todayWorkout,
+                        volumeKg = volumeKg,
+                        onTodayClick = state.todayWorkout?.let { w -> { onWorkoutClick(w.id) } },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
 
                 // Nutrition Summary
@@ -185,56 +171,6 @@ fun HomeScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-}
-
-@Composable
-private fun WorkoutHomeCard(workout: Workout, onClick: () -> Unit, onStart: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.onBackground,
-        contentColor = MaterialTheme.colorScheme.background,
-    ) {
-        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = workout.name.uppercase(),
-                style = MaterialTheme.typography.displaySmall.copy(fontSize = 24.sp),
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-0.5).sp
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(Res.string.exercises_count, workout.exercises.size),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f)
-                )
-                Box(modifier = Modifier.size(3.dp).background(MaterialTheme.colorScheme.background.copy(alpha = 0.4f), RoundedCornerShape(50)))
-                Text(
-                    text = stringResource(Res.string.duration_min, workout.durationMinutes),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f)
-                )
-            }
-
-            Button(
-                onClick = onStart,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    contentColor = MaterialTheme.colorScheme.onBackground
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = stringResource(Res.string.start_workout),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-            }
         }
     }
 }

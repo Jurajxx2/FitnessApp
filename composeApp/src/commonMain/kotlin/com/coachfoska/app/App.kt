@@ -396,6 +396,7 @@ fun App(openHumanChat: Boolean = false) {
                         onRecordMealClick = { navController.navigate(MealCapture()) },
                         onHistoryClick = { navController.navigate(MealHistory) },
                         onRecipesClick = { navController.navigate(RecipesList) },
+                        onRecipeClick = { recipeId -> navController.navigate(RecipeDetail(recipeId)) },
                         onWaterClick = { navController.navigate(Hydration) }
                     )
                 }

@@ -5,11 +5,14 @@ import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.MacroTargets
 import com.coachfoska.app.domain.model.User
 import com.coachfoska.app.domain.model.Workout
+import com.coachfoska.app.domain.model.WorkoutLog
 
 data class HomeState(
     val isLoading: Boolean = false,
     val user: User? = null,
     val todayWorkout: Workout? = null,
+    val workouts: List<Workout> = emptyList(),
+    val workoutHistory: List<WorkoutLog> = emptyList(),
     val nutritionSummary: DailyNutritionSummary? = null,
     val macroTargets: MacroTargets? = null,
     val lastCoachMessage: ChatMessage? = null,

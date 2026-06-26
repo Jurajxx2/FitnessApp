@@ -194,7 +194,8 @@ data class RecipeDto(
     @SerialName("cook_time_min") val cookTimeMin: Int? = null,
     val servings: Int = 1,
     val difficulty: String? = null,
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
+    val featured: Boolean = false
 ) {
     fun toDomain(): Recipe = Recipe(
         id = id,
@@ -211,7 +212,8 @@ data class RecipeDto(
         difficulty = difficulty,
         tags = tags,
         steps = emptyList(),
-        ingredients = emptyList()
+        ingredients = emptyList(),
+        isFeatured = featured
     )
 }
 
@@ -231,6 +233,7 @@ data class RecipeDetailDto(
     val servings: Int = 1,
     val difficulty: String? = null,
     val tags: List<String> = emptyList(),
+    val featured: Boolean = false,
     @SerialName("recipe_steps") val steps: List<RecipeStepDto> = emptyList(),
     @SerialName("recipe_ingredients") val ingredients: List<RecipeIngredientDto> = emptyList()
 ) {
@@ -251,7 +254,8 @@ data class RecipeDetailDto(
         steps = steps
             .sortedBy { it.stepNumber }
             .map { RecipeStep(id = it.id, stepNumber = it.stepNumber, instruction = it.instruction) },
-        ingredients = ingredients.sortedBy { it.sortOrder }.map { it.toDomain() }
+        ingredients = ingredients.sortedBy { it.sortOrder }.map { it.toDomain() },
+        isFeatured = featured
     )
 }
 
