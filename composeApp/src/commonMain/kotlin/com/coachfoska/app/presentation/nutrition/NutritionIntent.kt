@@ -12,8 +12,9 @@ sealed interface NutritionIntent {
         val mealName: String,
         val foods: List<MealLogFood>,
         val notes: String?,
-        val photoUri: String? = null
+        val imageBytes: ByteArray? = null
     ) : NutritionIntent
+    data class AnalyzePhoto(val imageBytes: ByteArray) : NutritionIntent
     data object DismissError : NutritionIntent
     data object MealLogged : NutritionIntent
     data class SearchFoods(val query: String) : NutritionIntent

@@ -13,6 +13,9 @@ interface WorkoutRepository {
     /** Returns workouts assigned to the user by the coach. */
     suspend fun getAssignedWorkouts(userId: String): Result<List<Workout>>
 
+    /** Returns the full catalog of active workouts, regardless of assignment. */
+    suspend fun getAllWorkouts(): Result<List<Workout>>
+
     /** Returns a single workout with its exercises. */
     suspend fun getWorkoutById(workoutId: String): Result<Workout>
 

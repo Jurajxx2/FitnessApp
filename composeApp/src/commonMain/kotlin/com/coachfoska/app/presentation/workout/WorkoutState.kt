@@ -6,6 +6,7 @@ import com.coachfoska.app.domain.model.WorkoutLog
 
 data class WorkoutState(
     val workouts: List<Workout> = emptyList(),
+    val allWorkouts: List<Workout> = emptyList(),
     val workoutHistory: List<WorkoutLog> = emptyList(),
     val selectedWorkout: Workout? = null,
     val selectedWorkoutLog: WorkoutLog? = null,

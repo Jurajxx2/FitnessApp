@@ -36,6 +36,7 @@ data class NutritionState(
     val searchResults: List<Food> = emptyList(),
     val isSearching: Boolean = false,
     val isLogging: Boolean = false,
+    val isAnalyzing: Boolean = false,
     val mealLoggedSuccess: Boolean = false,
     val capturePrefill: CapturePrefill? = null,
     val error: String? = null

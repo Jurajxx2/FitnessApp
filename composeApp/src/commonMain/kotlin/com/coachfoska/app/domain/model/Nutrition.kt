@@ -127,3 +127,18 @@ data class MacroTargets(
     val fatG: Float
 )
 
+data class MealPhotoAnalysis(
+    val mealName: String,
+    val foods: List<MealPhotoAnalysisFood>
+)
+
+data class MealPhotoAnalysisFood(
+    val name: String,
+    val amount: Float,
+    val unit: String,
+    val calories: Float,
+    val proteinG: Float,
+    val carbsG: Float,
+    val fatG: Float
+)
+

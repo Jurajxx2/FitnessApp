@@ -4,6 +4,7 @@ import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.repository.WorkoutRepository
+import com.coachfoska.app.domain.usecase.workout.GetAllWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
@@ -27,13 +28,17 @@ class WorkoutViewModelTest {
 
     private fun viewModel() = WorkoutViewModel(
         getAssignedWorkoutsUseCase = GetAssignedWorkoutsUseCase(repo),
+        getAllWorkoutsUseCase = GetAllWorkoutsUseCase(repo),
         getWorkoutByIdUseCase = GetWorkoutByIdUseCase(repo),
         logWorkoutUseCase = LogWorkoutUseCase(repo),
         getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(repo),
         userId = "user-1"
     )
 
-    @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)
+    @BeforeTest fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        coEvery { repo.getAllWorkouts() } returns Result.success(emptyList())
+    }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     @Test

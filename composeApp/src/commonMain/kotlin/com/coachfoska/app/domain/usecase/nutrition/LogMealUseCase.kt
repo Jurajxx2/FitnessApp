@@ -9,6 +9,7 @@ class LogMealUseCase(private val mealRepository: MealRepository) {
         userId: String,
         mealName: String,
         foods: List<MealLogFood>,
-        notes: String?
-    ): Result<MealLog> = mealRepository.logMeal(userId, mealName, foods, notes)
+        notes: String?,
+        imageBytes: ByteArray? = null
+    ): Result<MealLog> = mealRepository.logMeal(userId, mealName, foods, notes, imageBytes)
 }

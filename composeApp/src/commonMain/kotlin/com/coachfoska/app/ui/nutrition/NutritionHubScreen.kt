@@ -29,7 +29,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -52,7 +54,8 @@ import org.koin.core.parameter.parametersOf
 fun NutritionHubRoute(
     userId: String,
     onPlanClick: () -> Unit,
-    onRecordMealClick: () -> Unit,
+    onManualLog: () -> Unit,
+    onPhotoLog: (String) -> Unit,
     onHistoryClick: () -> Unit,
     onRecipesClick: () -> Unit,
     onRecipeClick: (recipeId: String) -> Unit,
@@ -64,7 +67,8 @@ fun NutritionHubRoute(
     NutritionHubScreen(
         state = state,
         onPlanClick = onPlanClick,
-        onRecordMealClick = onRecordMealClick,
+        onManualLog = onManualLog,
+        onPhotoLog = onPhotoLog,
         onHistoryClick = onHistoryClick,
         onRecipesClick = onRecipesClick,
         onRecipeClick = onRecipeClick,
@@ -76,12 +80,21 @@ fun NutritionHubRoute(
 fun NutritionHubScreen(
     state: NutritionState,
     onPlanClick: () -> Unit,
-    onRecordMealClick: () -> Unit,
+    onManualLog: () -> Unit,
+    onPhotoLog: (String) -> Unit,
     onHistoryClick: () -> Unit,
     onRecipesClick: () -> Unit,
     onRecipeClick: (recipeId: String) -> Unit,
     onWaterClick: () -> Unit
 ) {
+    var showLogSheet by remember { mutableStateOf(false) }
+    if (showLogSheet) {
+        com.coachfoska.app.ui.nutrition.components.LogMealOptionsSheet(
+            onDismiss = { showLogSheet = false },
+            onManual = onManualLog,
+            onPhotoPicked = onPhotoLog
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -101,7 +114,7 @@ fun NutritionHubScreen(
         ) {
             // Log meal — primary entry point
             Button(
-                onClick = onRecordMealClick,
+                onClick = { showLogSheet = true },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(

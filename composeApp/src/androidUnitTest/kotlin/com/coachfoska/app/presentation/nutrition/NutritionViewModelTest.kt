@@ -6,6 +6,7 @@ import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealPlan
 import com.coachfoska.app.domain.model.RecipeIngredient
 import com.coachfoska.app.domain.repository.MealRepository
+import com.coachfoska.app.domain.usecase.nutrition.AnalyzeMealPhotoUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
@@ -41,6 +42,7 @@ class NutritionViewModelTest {
 
     private fun viewModel() = NutritionViewModel(
         getActiveMealPlanUseCase = GetActiveMealPlanUseCase(repo),
+        analyzeMealPhotoUseCase = AnalyzeMealPhotoUseCase(repo),
         logMealUseCase = LogMealUseCase(repo),
         getMealHistoryUseCase = GetMealHistoryUseCase(repo),
         getRecipesUseCase = GetRecipesUseCase(repo),
@@ -57,6 +59,41 @@ class NutritionViewModelTest {
         coEvery { repo.getActiveMealPlan(any()) } returns Result.success(null)
     }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
+
+    @Test
+    fun `AnalyzePhoto success populates capturePrefill and clears analyzing`() = runTest {
+        coEvery { repo.analyzeMealPhoto(any()) } returns Result.success(
+            com.coachfoska.app.domain.model.MealPhotoAnalysis(
+                mealName = "Salad",
+                foods = listOf(
+                    com.coachfoska.app.domain.model.MealPhotoAnalysisFood(
+                        "Lettuce", 100f, "g", 15f, 1f, 3f, 0f
+                    )
+                )
+            )
+        )
+
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.AnalyzePhoto(byteArrayOf(1, 2, 3)))
+
+        assertFalse(vm.state.value.isAnalyzing)
+        val prefill = vm.state.value.capturePrefill
+        assertNotNull(prefill)
+        assertEquals("Salad", prefill.mealName)
+        assertEquals("Lettuce", prefill.foods[0].name)
+    }
+
+    @Test
+    fun `AnalyzePhoto failure sets error and clears analyzing`() = runTest {
+        coEvery { repo.analyzeMealPhoto(any()) } returns Result.failure(RuntimeException("boom"))
+
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.AnalyzePhoto(byteArrayOf(9)))
+
+        assertFalse(vm.state.value.isAnalyzing)
+        assertNotNull(vm.state.value.error)
+        assertNull(vm.state.value.capturePrefill)
+    }
 
     @Test
     fun `loadMealPlan success populates mealPlan`() = runTest {

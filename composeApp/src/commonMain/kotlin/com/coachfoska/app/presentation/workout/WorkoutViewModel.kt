@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.SetLog
+import com.coachfoska.app.domain.usecase.workout.GetAllWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
@@ -20,6 +21,7 @@ private const val TAG = "WorkoutViewModel"
 
 class WorkoutViewModel(
     private val getAssignedWorkoutsUseCase: GetAssignedWorkoutsUseCase,
+    private val getAllWorkoutsUseCase: GetAllWorkoutsUseCase,
     private val getWorkoutByIdUseCase: GetWorkoutByIdUseCase,
     private val logWorkoutUseCase: LogWorkoutUseCase,
     private val getWorkoutHistoryUseCase: GetWorkoutHistoryUseCase,
@@ -31,12 +33,14 @@ class WorkoutViewModel(
 
     init {
         onIntent(WorkoutIntent.LoadWorkouts)
+        onIntent(WorkoutIntent.LoadAllWorkouts)
     }
 
     fun onIntent(intent: WorkoutIntent) {
         Napier.d("onIntent: $intent", tag = TAG)
         when (intent) {
             WorkoutIntent.LoadWorkouts -> loadWorkouts()
+            WorkoutIntent.LoadAllWorkouts -> loadAllWorkouts()
             is WorkoutIntent.SelectWorkout -> selectWorkout(intent.workoutId)
             WorkoutIntent.LoadHistory -> loadHistory()
             is WorkoutIntent.LogWorkout -> logWorkout(intent)
@@ -60,6 +64,14 @@ class WorkoutViewModel(
             getAssignedWorkoutsUseCase(userId)
                 .onSuccess { workouts -> _state.update { it.copy(workouts = workouts, isLoading = false) } }
                 .onFailure { e -> _state.update { it.copy(error = e.message, isLoading = false) } }
+        }
+    }
+
+    private fun loadAllWorkouts() {
+        viewModelScope.launch {
+            getAllWorkoutsUseCase()
+                .onSuccess { workouts -> _state.update { it.copy(allWorkouts = workouts) } }
+                .onFailure { e -> _state.update { it.copy(error = e.message) } }
         }
     }
 

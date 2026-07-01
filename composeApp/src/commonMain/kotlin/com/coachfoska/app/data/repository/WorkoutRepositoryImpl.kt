@@ -28,6 +28,10 @@ class WorkoutRepositoryImpl(
         workoutDataSource.getAssignedWorkouts(userId).map { it.toDomain() }
     }
 
+    override suspend fun getAllWorkouts(): Result<List<Workout>> = runCatching {
+        workoutDataSource.getAllWorkouts().map { it.toDomain() }
+    }
+
     override suspend fun getWorkoutById(workoutId: String): Result<Workout> = runCatching {
         workoutDataSource.getWorkoutById(workoutId).toDomain()
     }

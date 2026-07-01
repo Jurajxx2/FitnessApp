@@ -1,18 +1,21 @@
 package com.coachfoska.app.data.repository
 
+import com.coachfoska.app.data.remote.datasource.MealPhotoDataSource
 import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
 import com.coachfoska.app.data.remote.dto.MealLogFoodInsertDto
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.Food
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealLogFood
+import com.coachfoska.app.domain.model.MealPhotoAnalysis
 import com.coachfoska.app.domain.model.MealPlan
 import com.coachfoska.app.domain.model.Recipe
 import com.coachfoska.app.domain.repository.MealRepository
 import kotlinx.datetime.LocalDate
 
 class MealRepositoryImpl(
-    private val mealDataSource: MealRemoteDataSource
+    private val mealDataSource: MealRemoteDataSource,
+    private val mealPhotoDataSource: MealPhotoDataSource
 ) : MealRepository {
 
     override suspend fun getRecipes(): Result<List<Recipe>> = runCatching {
@@ -34,8 +37,10 @@ class MealRepositoryImpl(
         notes: String?,
         imageBytes: ByteArray?
     ): Result<MealLog> = runCatching {
-        // Prepare data layer for image upload (to be implemented)
-        val imageUrl: String? = null 
+        // Best-effort upload — a failed upload must never block logging the meal.
+        val imageUrl: String? = imageBytes?.let { bytes ->
+            runCatching { mealPhotoDataSource.uploadMealPhoto(userId, bytes) }.getOrNull()
+        }
 
         val logDto = mealDataSource.insertMealLog(userId, mealName, notes, imageUrl)
         val foodPayloads = foods.map { food ->
@@ -56,6 +61,10 @@ class MealRepositoryImpl(
         } else emptyList()
 
         logDto.copy(foods = insertedFoods).toDomain()
+    }
+
+    override suspend fun analyzeMealPhoto(imageBytes: ByteArray): Result<MealPhotoAnalysis> = runCatching {
+        mealPhotoDataSource.analyzeMealPhoto(imageBytes).toDomain()
     }
 
     override suspend fun getMealHistory(userId: String): Result<List<MealLog>> = runCatching {

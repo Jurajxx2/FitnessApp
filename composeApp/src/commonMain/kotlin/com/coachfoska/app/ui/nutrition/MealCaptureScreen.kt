@@ -71,13 +71,25 @@ fun MealCaptureRoute(
     userId: String,
     recipeId: String? = null,
     mealId: String? = null,
+    photoUri: String? = null,
+    analyze: Boolean = false,
     onBackClick: () -> Unit,
     viewModel: NutritionViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val readBytes = com.coachfoska.app.core.util.rememberUriBytesReader()
 
     LaunchedEffect(recipeId, mealId) {
         viewModel.onIntent(NutritionIntent.LoadCapturePrefill(recipeId, mealId))
+    }
+
+    LaunchedEffect(photoUri, analyze) {
+        if (analyze && photoUri != null) {
+            val bytes = readBytes(photoUri)
+            if (bytes != null) {
+                viewModel.onIntent(NutritionIntent.AnalyzePhoto(bytes))
+            }
+        }
     }
 
     LaunchedEffect(state.mealLoggedSuccess) {
@@ -87,7 +99,12 @@ fun MealCaptureRoute(
         }
     }
 
-    MealCaptureScreen(state = state, onIntent = viewModel::onIntent, onBackClick = onBackClick)
+    MealCaptureScreen(
+        state = state,
+        onIntent = viewModel::onIntent,
+        onBackClick = onBackClick,
+        initialPhotoUri = photoUri
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,14 +112,16 @@ fun MealCaptureRoute(
 fun MealCaptureScreen(
     state: NutritionState,
     onIntent: (NutritionIntent) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    initialPhotoUri: String? = null
 ) {
     var mealName by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var foods by remember { mutableStateOf(listOf(FoodEntry(""))) }
-    var mediaUri by remember { mutableStateOf<String?>(null) }
+    var mediaUri by remember { mutableStateOf(initialPhotoUri) }
     var showMediaSheet by remember { mutableStateOf(false) }
     var searchingIndex by remember { mutableStateOf<Int?>(null) }
+    val readBytes = com.coachfoska.app.core.util.rememberUriBytesReader()
 
     LaunchedEffect(state.capturePrefill) {
         val prefill = state.capturePrefill ?: return@LaunchedEffect
@@ -160,6 +179,7 @@ fun MealCaptureScreen(
         )
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(title = "RECORD MEAL", onBackClick = onBackClick)
         Column(
@@ -289,7 +309,7 @@ fun MealCaptureScreen(
                         mealName = mealName,
                         foods = mealLogFoods,
                         notes = notes.ifBlank { null },
-                        photoUri = mediaUri
+                        imageBytes = mediaUri?.let { readBytes(it) }
                     )
                 )
             },
@@ -298,6 +318,29 @@ fun MealCaptureScreen(
         )
 
         Spacer(modifier = Modifier.height(48.dp))
+        }
+    }
+
+        if (state.isAnalyzing) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "ANALYZING PHOTO…",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        letterSpacing = 1.sp
+                    )
+                }
+            }
         }
     }
 }

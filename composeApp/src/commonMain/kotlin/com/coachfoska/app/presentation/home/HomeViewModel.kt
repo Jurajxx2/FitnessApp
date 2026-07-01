@@ -45,6 +45,7 @@ class HomeViewModel(
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
     private var initialLoadStarted = false
+    private var clearedCoachMessage: Any? = null
 
     init {
         onIntent(HomeIntent.LoadData)
@@ -56,7 +57,10 @@ class HomeViewModel(
             HomeIntent.LoadData -> loadData(force = false)
             HomeIntent.Refresh -> loadData(force = true)
             HomeIntent.QuickAddWater -> quickAddWater()
-            HomeIntent.MarkCoachMessageRead -> _state.update { it.copy(hasUnreadCoachMessage = false) }
+            HomeIntent.MarkCoachMessageRead -> {
+                clearedCoachMessage = _state.value.lastCoachMessage
+                _state.update { it.copy(hasUnreadCoachMessage = false) }
+            }
         }
     }
 
@@ -132,7 +136,7 @@ class HomeViewModel(
                     nutritionSummary = nutritionResult.getOrNull(),
                     macroTargets = loadedUser?.let { u -> calculateMacroTargetsUseCase(u) },
                     lastCoachMessage = lastCoachMessage,
-                    hasUnreadCoachMessage = lastCoachMessage != null,
+                    hasUnreadCoachMessage = lastCoachMessage != null && lastCoachMessage != clearedCoachMessage,
                     waterConsumedMl = waterConsumed,
                     waterGoalMl = waterGoal,
                     quickAddVolumeMl = quickAddVolume,

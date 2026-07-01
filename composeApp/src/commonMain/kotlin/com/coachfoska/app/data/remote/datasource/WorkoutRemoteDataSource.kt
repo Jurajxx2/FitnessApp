@@ -41,6 +41,13 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
         return (global + legacyUserSpecific + viaJoinTable).distinctBy { it.id }
     }
 
+    suspend fun getAllWorkouts(): List<WorkoutDto> =
+        supabase.postgrest["workouts"]
+            .select(columns = Columns.raw("*, workout_exercises(*)")) {
+                filter { eq("is_active", true) }
+                order("day_of_week", Order.ASCENDING)
+            }.decodeList<WorkoutDto>()
+
     suspend fun getWorkoutById(workoutId: String): WorkoutDto =
         supabase.postgrest["workouts"]
             .select(columns = Columns.raw("*, workout_exercises(*)")) {

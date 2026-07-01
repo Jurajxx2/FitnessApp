@@ -2,6 +2,7 @@ package com.coachfoska.app.presentation.nutrition
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.coachfoska.app.domain.usecase.nutrition.AnalyzeMealPhotoUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
@@ -23,6 +24,7 @@ private const val TAG = "NutritionViewModel"
 
 class NutritionViewModel(
     private val getActiveMealPlanUseCase: GetActiveMealPlanUseCase,
+    private val analyzeMealPhotoUseCase: AnalyzeMealPhotoUseCase,
     private val logMealUseCase: LogMealUseCase,
     private val getMealHistoryUseCase: GetMealHistoryUseCase,
     private val getRecipesUseCase: GetRecipesUseCase,
@@ -51,6 +53,7 @@ class NutritionViewModel(
             is NutritionIntent.SelectMeal -> selectMeal(intent.mealId)
             is NutritionIntent.SelectMealLog -> selectMealLog(intent.logId)
             is NutritionIntent.LogMeal -> logMeal(intent)
+            is NutritionIntent.AnalyzePhoto -> analyzePhoto(intent.imageBytes)
             NutritionIntent.DismissError -> _state.update { it.copy(error = null) }
             NutritionIntent.MealLogged -> _state.update { it.copy(mealLoggedSuccess = false) }
             is NutritionIntent.SearchFoods -> searchFoods(intent.query)
@@ -136,7 +139,7 @@ class NutritionViewModel(
     private fun logMeal(intent: NutritionIntent.LogMeal) {
         viewModelScope.launch {
             _state.update { it.copy(isLogging = true, error = null) }
-            logMealUseCase(userId, intent.mealName, intent.foods, intent.notes)
+            logMealUseCase(userId, intent.mealName, intent.foods, intent.notes, intent.imageBytes)
                 .onSuccess {
                     Napier.i("Meal logged: ${intent.mealName}", tag = TAG)
                     _state.update { it.copy(isLogging = false, mealLoggedSuccess = true) }
@@ -144,6 +147,38 @@ class NutritionViewModel(
                 .onFailure { e ->
                     Napier.e("logMeal failed", e, tag = TAG)
                     _state.update { it.copy(isLogging = false, error = e.message) }
+                }
+        }
+    }
+
+    private fun analyzePhoto(imageBytes: ByteArray) {
+        viewModelScope.launch {
+            _state.update { it.copy(isAnalyzing = true, error = null) }
+            analyzeMealPhotoUseCase(imageBytes)
+                .onSuccess { analysis ->
+                    _state.update {
+                        it.copy(
+                            isAnalyzing = false,
+                            capturePrefill = CapturePrefill(
+                                mealName = analysis.mealName,
+                                foods = analysis.foods.map { f ->
+                                    CapturePrefillFood(
+                                        name = f.name,
+                                        amount = f.amount,
+                                        unit = f.unit,
+                                        calories = f.calories,
+                                        proteinG = f.proteinG,
+                                        carbsG = f.carbsG,
+                                        fatG = f.fatG
+                                    )
+                                }
+                            )
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    Napier.e("analyzePhoto failed", e, tag = TAG)
+                    _state.update { it.copy(isAnalyzing = false, error = "Couldn't analyze photo — enter details manually.") }
                 }
         }
     }

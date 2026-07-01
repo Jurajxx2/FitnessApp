@@ -23,7 +23,8 @@ import kotlin.test.assertTrue
 class MealRepositoryImplTest {
 
     private val dataSource: MealRemoteDataSource = mockk()
-    private val repository = MealRepositoryImpl(dataSource)
+    private val photoDataSource: com.coachfoska.app.data.remote.datasource.MealPhotoDataSource = mockk()
+    private val repository = MealRepositoryImpl(dataSource, photoDataSource)
 
     @Test
     fun `getActiveMealPlan returns null when data source returns null`() = runTest {
@@ -68,6 +69,49 @@ class MealRepositoryImplTest {
         repository.logMeal("user-1", "Lunch", emptyList(), null)
 
         coVerify(exactly = 0) { dataSource.insertMealLogFoods(any()) }
+    }
+
+    @Test
+    fun `analyzeMealPhoto maps DTO to domain`() = runTest {
+        coEvery { photoDataSource.analyzeMealPhoto(any(), any()) } returns
+            com.coachfoska.app.data.remote.dto.MealPhotoAnalysisDto(
+                mealName = "Rice bowl",
+                foods = listOf(
+                    com.coachfoska.app.data.remote.dto.MealPhotoAnalysisFoodDto(
+                        name = "Rice", amount = 150f, unit = "g",
+                        calories = 200f, proteinG = 4f, carbsG = 45f, fatG = 1f
+                    )
+                )
+            )
+
+        val result = repository.analyzeMealPhoto(byteArrayOf(1, 2, 3))
+
+        assertTrue(result.isSuccess)
+        assertEquals("Rice bowl", result.getOrThrow().mealName)
+        assertEquals("Rice", result.getOrThrow().foods[0].name)
+        assertEquals(150f, result.getOrThrow().foods[0].amount)
+    }
+
+    @Test
+    fun `logMeal uploads image and stores returned url`() = runTest {
+        coEvery { photoDataSource.uploadMealPhoto("user-1", any()) } returns "https://cdn/meal.jpg"
+        coEvery { dataSource.insertMealLog("user-1", "Lunch", null, "https://cdn/meal.jpg") } returns aMealLogDto()
+
+        val result = repository.logMeal("user-1", "Lunch", emptyList(), null, byteArrayOf(7, 8))
+
+        assertTrue(result.isSuccess)
+        coVerify(exactly = 1) { dataSource.insertMealLog("user-1", "Lunch", null, "https://cdn/meal.jpg") }
+    }
+
+    @Test
+    fun `logMeal still succeeds when image upload fails`() = runTest {
+        coEvery { photoDataSource.uploadMealPhoto(any(), any()) } throws RuntimeException("network down")
+        coEvery { dataSource.insertMealLog("user-1", "Lunch", null, null) } returns aMealLogDto()
+
+        val result = repository.logMeal("user-1", "Lunch", emptyList(), null, byteArrayOf(7, 8))
+
+        assertTrue(result.isSuccess)
+        coVerify(exactly = 1) { dataSource.insertMealLog("user-1", "Lunch", null, null) }
     }
 
     @Test

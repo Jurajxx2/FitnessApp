@@ -5,6 +5,7 @@ import com.coachfoska.app.data.remote.datasource.ActivityRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.AppConfigRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.AuthRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.ExerciseSupabaseDataSource
+import com.coachfoska.app.data.remote.datasource.MealPhotoDataSource
 import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.OnboardingRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.UserRemoteDataSource
@@ -48,6 +49,7 @@ import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ScaleFoodToPortionUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
+import com.coachfoska.app.domain.usecase.nutrition.AnalyzeMealPhotoUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.onboarding.SaveOnboardingUseCase
@@ -72,6 +74,7 @@ import com.coachfoska.app.domain.usecase.chat.SendHumanChatMessageUseCase
 import com.coachfoska.app.domain.usecase.chat.UploadChatImageUseCase
 import com.coachfoska.app.presentation.chat.ChatHubViewModel
 import com.coachfoska.app.presentation.chat.ChatViewModel
+import com.coachfoska.app.domain.usecase.workout.GetAllWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
@@ -145,6 +148,7 @@ val dataSourceModule = module {
     single { WorkoutRemoteDataSource(get()) }
     single { ExerciseSupabaseDataSource(get()) }
     single { MealRemoteDataSource(get()) }
+    single { MealPhotoDataSource(get(), get()) }
     single { AppConfigRemoteDataSource(get()) }
     single { OnboardingRemoteDataSource(get()) }
 }
@@ -155,7 +159,7 @@ val repositoryModule = module {
     single<ActivityRepository> { ActivityRepositoryImpl(get()) }
     single<WorkoutRepository> { WorkoutRepositoryImpl(get()) }
     single<ExerciseRepository> { ExerciseRepositoryImpl(get()) }
-    single<MealRepository> { MealRepositoryImpl(get()) }
+    single<MealRepository> { MealRepositoryImpl(get(), get()) }
     single<AppConfigRepository> { AppConfigRepositoryImpl(get()) }
     single<OnboardingRepository> { OnboardingRepositoryImpl(get(), get()) }
 }
@@ -172,6 +176,7 @@ val useCaseModule = module {
 
     // Workout
     factory { GetAssignedWorkoutsUseCase(get()) }
+    factory { GetAllWorkoutsUseCase(get()) }
     factory { GetWorkoutByIdUseCase(get()) }
     factory { LogWorkoutUseCase(get()) }
     factory { GetWorkoutHistoryUseCase(get()) }
@@ -191,6 +196,7 @@ val useCaseModule = module {
 
     // Nutrition
     factory { GetActiveMealPlanUseCase(get()) }
+    factory { AnalyzeMealPhotoUseCase(get()) }
     factory { LogMealUseCase(get()) }
     factory { GetMealHistoryUseCase(get()) }
     factory { GetDailyNutritionSummaryUseCase(get()) }
@@ -229,9 +235,9 @@ val viewModelModule = module {
     viewModelOf(::AuthViewModel)
     viewModelOf(::SettingsViewModel)
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
-    viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> ActivityLogViewModel(get(), get(), userId) }
-    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (recipeId: String, userId: String) -> RecipeDetailViewModel(get(), get(), get(), get(), recipeId, userId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }

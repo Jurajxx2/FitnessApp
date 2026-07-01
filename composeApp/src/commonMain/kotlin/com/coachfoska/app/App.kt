@@ -264,6 +264,7 @@ fun App(openHumanChat: Boolean = false) {
                         onLibraryClick = { navController.navigate(ExerciseLibrary) },
                         onProgressClick = { navController.navigate(ProgressDashboard) },
                         onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
+                        onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
                         onLogGeneralActivityClick = { navController.navigate(ActivityTypeSelector) }
                     )
                 }
@@ -393,7 +394,8 @@ fun App(openHumanChat: Boolean = false) {
                     NutritionHubRoute(
                         userId = currentUserId,
                         onPlanClick = { navController.navigate(MealPlanDetail) },
-                        onRecordMealClick = { navController.navigate(MealCapture()) },
+                        onManualLog = { navController.navigate(MealCapture()) },
+                        onPhotoLog = { uri -> navController.navigate(MealCapture(photoUri = uri, analyze = true)) },
                         onHistoryClick = { navController.navigate(MealHistory) },
                         onRecipesClick = { navController.navigate(RecipesList) },
                         onRecipeClick = { recipeId -> navController.navigate(RecipeDetail(recipeId)) },
@@ -417,6 +419,8 @@ fun App(openHumanChat: Boolean = false) {
                         userId = currentUserId,
                         recipeId = route.recipeId,
                         mealId = route.mealId,
+                        photoUri = route.photoUri,
+                        analyze = route.analyze,
                         onBackClick = { navController.popBackStack() }
                     )
                 }

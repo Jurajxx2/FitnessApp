@@ -26,6 +26,16 @@ class LogMealUseCaseTest {
     }
 
     @Test
+    fun `invoke forwards imageBytes to repository`() = runTest {
+        val bytes = byteArrayOf(1, 2, 3)
+        coEvery { mealRepository.logMeal(any(), any(), any(), any(), bytes) } returns Result.success(aMealLog())
+
+        useCase("user-1", "Lunch", emptyList(), null, bytes)
+
+        coVerify { mealRepository.logMeal("user-1", "Lunch", emptyList(), null, bytes) }
+    }
+
+    @Test
     fun `repo failure is propagated`() = runTest {
         coEvery { mealRepository.logMeal(any(), any(), any(), any()) } returns Result.failure(RuntimeException("db error"))
 

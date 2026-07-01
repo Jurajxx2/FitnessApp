@@ -4,6 +4,7 @@ import com.coachfoska.app.domain.model.ExerciseLog
 
 sealed interface WorkoutIntent {
     data object LoadWorkouts : WorkoutIntent
+    data object LoadAllWorkouts : WorkoutIntent
     data class SelectWorkout(val workoutId: String) : WorkoutIntent
     data object LoadHistory : WorkoutIntent
     data class LogWorkout(
