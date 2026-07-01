@@ -10,42 +10,44 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.roundToInt
 
-/**
- * Builds the 7-day (Mon–Sun) activity model for the Activity Hub weekly grid.
- *
- * Status precedence per weekday:
- *  - COMPLETED: a workout was logged on that weekday during the current week.
- *  - TODAY: the weekday is today (and not already completed).
- *  - MISSED / SCHEDULED: a workout is assigned to that weekday (past -> MISSED, today/future -> SCHEDULED).
- *  - REST: nothing assigned and nothing logged.
- */
 fun buildWeeklyActivity(
     workouts: List<Workout>,
     history: List<WorkoutLog>,
     today: LocalDate,
     zone: TimeZone,
 ): List<WeekDayActivity> {
-    val todayDow = today.dayOfWeek.ordinal // 0 = Monday … 6 = Sunday
+    val todayDow = today.dayOfWeek.ordinal
     val todayEpoch = today.toEpochDays()
     val weekStartEpoch = todayEpoch - todayDow
 
-    val completedDows = history
-        .map { it.loggedAt.toLocalDateTime(zone).date }
-        .filter { it.toEpochDays() in weekStartEpoch..todayEpoch }
-        .map { it.dayOfWeek.ordinal }
-        .toSet()
+    // Map day-of-week index → the log for that day this week (latest if multiple)
+    val logsByDow: Map<Int, WorkoutLog> = history
+        .map { log -> log to log.loggedAt.toLocalDateTime(zone).date }
+        .filter { (_, date) -> date.toEpochDays() in weekStartEpoch..todayEpoch }
+        .groupBy { (_, date) -> date.dayOfWeek.ordinal }
+        .mapValues { (_, entries) -> entries.maxBy { (log, _) -> log.loggedAt }.first }
 
-    val assignedDows = workouts.mapNotNull { it.dayOfWeek?.index }.toSet()
+    val completedDows = logsByDow.keys
+
+    // Map day-of-week index → assigned workout
+    val workoutByDow: Map<Int, Workout> = workouts
+        .mapNotNull { w -> w.dayOfWeek?.index?.let { it to w } }
+        .toMap()
 
     return DayOfWeek.entries.map { day ->
         val status = when {
             day.index in completedDows -> DayActivityStatus.COMPLETED
             day.index == todayDow -> DayActivityStatus.TODAY
-            day.index in assignedDows && day.index < todayDow -> DayActivityStatus.MISSED
-            day.index in assignedDows -> DayActivityStatus.SCHEDULED
+            day.index in workoutByDow && day.index < todayDow -> DayActivityStatus.MISSED
+            day.index in workoutByDow -> DayActivityStatus.SCHEDULED
             else -> DayActivityStatus.REST
         }
-        WeekDayActivity(dayOfWeek = day, status = status)
+        WeekDayActivity(
+            dayOfWeek = day,
+            status = status,
+            plannedWorkout = workoutByDow[day.index],
+            completedLog = logsByDow[day.index],
+        )
     }
 }
 
