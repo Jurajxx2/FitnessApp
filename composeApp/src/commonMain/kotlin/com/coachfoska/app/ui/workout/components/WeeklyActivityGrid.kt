@@ -3,6 +3,7 @@ package com.coachfoska.app.ui.workout.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,7 @@ private val SquareShape = RoundedCornerShape(0.dp)
 @Composable
 fun WeeklyActivityGrid(
     days: List<WeekDayActivity>,
+    onDayClick: (WeekDayActivity) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -39,13 +41,13 @@ fun WeeklyActivityGrid(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         days.forEach { day ->
-            WeekDayCell(day = day, modifier = Modifier.weight(1f))
+            WeekDayCell(day = day, onClick = { onDayClick(day) }, modifier = Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun WeekDayCell(day: WeekDayActivity, modifier: Modifier = Modifier) {
+private fun WeekDayCell(day: WeekDayActivity, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val isToday = day.status == DayActivityStatus.TODAY
     val dimmed = day.status == DayActivityStatus.REST || day.status == DayActivityStatus.MISSED
     val border = if (isToday) {
@@ -63,6 +65,7 @@ private fun WeekDayCell(day: WeekDayActivity, modifier: Modifier = Modifier) {
         modifier = modifier
             .border(border, SquareShape)
             .background(bg)
+            .clickable(onClick = onClick)
             .padding(vertical = 12.dp)
             .alpha(if (dimmed) 0.5f else 1f),
         horizontalAlignment = Alignment.CenterHorizontally,

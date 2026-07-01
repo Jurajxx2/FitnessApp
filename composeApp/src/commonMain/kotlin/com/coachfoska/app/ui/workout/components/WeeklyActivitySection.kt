@@ -28,6 +28,7 @@ fun WeeklyActivitySection(
     todayWorkout: Workout?,
     volumeKg: Double?,
     onTodayClick: (() -> Unit)? = null,
+    onDayClick: (WeekDayActivity) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -37,7 +38,7 @@ fun WeeklyActivitySection(
             color = MaterialTheme.colorScheme.onBackground,
             letterSpacing = 1.5.sp,
         )
-        WeeklyActivityGrid(days = days)
+        WeeklyActivityGrid(days = days, onDayClick = onDayClick)
         DaySummaryBar(todayWorkout = todayWorkout, volumeKg = volumeKg, onClick = onTodayClick)
     }
 }
