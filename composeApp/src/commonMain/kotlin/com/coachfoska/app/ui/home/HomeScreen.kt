@@ -3,15 +3,18 @@ package com.coachfoska.app.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,10 +23,9 @@ import androidx.compose.foundation.clickable
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.MacroTargets
-import com.coachfoska.app.domain.model.MessageContent
+import com.coachfoska.app.domain.model.WeekDayActivity
 import com.coachfoska.app.core.util.todayDate
 import com.coachfoska.app.domain.usecase.workout.buildWeeklyActivity
 import com.coachfoska.app.domain.usecase.workout.deriveTodayVolumeKg
@@ -50,7 +52,10 @@ fun HomeRoute(
     HomeScreen(
         state = state,
         onIntent = viewModel::onIntent,
-        onChatClick = onChatClick,
+        onChatClick = {
+            viewModel.onIntent(HomeIntent.MarkCoachMessageRead)
+            onChatClick()
+        },
         onWaterClick = onWaterClick,
         onWorkoutClick = onWorkoutClick,
         onStartWorkout = onStartWorkout,
@@ -68,6 +73,8 @@ fun HomeScreen(
     onStartWorkout: (String) -> Unit = {},
     onLogMealClick: () -> Unit = {}
 ) {
+    var selectedDay by remember { mutableStateOf<WeekDayActivity?>(null) }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -79,31 +86,37 @@ fun HomeScreen(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
-            // Coach message preview card
-            state.lastCoachMessage?.let { msg ->
-                CoachMessagePreviewCard(message = msg, onClick = onChatClick)
-            }
-
-            // Header
-            Column {
-                Text(
-                    text = stringResource(Res.string.welcome_back),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = (state.user?.fullName?.split(" ")?.firstOrNull() ?: stringResource(Res.string.default_athlete_name)).uppercase(),
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    letterSpacing = (-0.5).sp
+            // Header with notification bell
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(Res.string.welcome_back),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = (state.user?.fullName?.split(" ")?.firstOrNull()
+                            ?: stringResource(Res.string.default_athlete_name)).uppercase(),
+                        style = MaterialTheme.typography.displayMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        letterSpacing = (-0.5).sp
+                    )
+                }
+                NotificationBell(
+                    hasUnread = state.hasUnreadCoachMessage,
+                    onClick = onChatClick,
                 )
             }
 
             if (state.isLoading) {
                 CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
             } else {
-                // Weekly Activity (replaces Today's Focus)
+                // Weekly Activity
                 run {
                     val today = todayDate()
                     val zone = TimeZone.currentSystemDefault()
@@ -118,6 +131,7 @@ fun HomeScreen(
                         todayWorkout = state.todayWorkout,
                         volumeKg = volumeKg,
                         onTodayClick = state.todayWorkout?.let { w -> { onWorkoutClick(w.id) } },
+                        onDayClick = { selectedDay = it },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -173,6 +187,32 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+
+    selectedDay?.let { day ->
+        DayDetailBottomSheet(day = day, onDismiss = { selectedDay = null })
+    }
+}
+
+@Composable
+private fun NotificationBell(hasUnread: Boolean, onClick: () -> Unit) {
+    Box(contentAlignment = Alignment.TopEnd) {
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.Outlined.Notifications,
+                contentDescription = "Notifications",
+                tint = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        if (hasUnread) {
+            Box(
+                modifier = Modifier
+                    .padding(top = 10.dp, end = 10.dp)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(Color.Red)
+            )
+        }
+    }
 }
 
 @Composable
@@ -190,10 +230,7 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "💧",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Text(text = "💧", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.width(6.dp))
             Text(
                 text = "WATER",
@@ -239,47 +276,6 @@ private fun MacroRow(summary: DailyNutritionSummary, targets: MacroTargets?) {
         MacroItem(stringResource(Res.string.macro_protein), summary.proteinG, targets?.proteinG, suffix = "g", modifier = Modifier.weight(1f))
         MacroItem(stringResource(Res.string.macro_carbs), summary.carbsG, targets?.carbsG, suffix = "g", modifier = Modifier.weight(1f))
         MacroItem(stringResource(Res.string.macro_fat), summary.fatG, targets?.fatG, suffix = "g", modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun CoachMessagePreviewCard(message: ChatMessage, onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = stringResource(Res.string.coach_label),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = when (val c = message.content) {
-                        is MessageContent.Text -> c.text
-                        is MessageContent.Image -> stringResource(Res.string.sent_an_image)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-            }
-            Text(
-                text = stringResource(Res.string.reply_button),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
     }
 }
 
