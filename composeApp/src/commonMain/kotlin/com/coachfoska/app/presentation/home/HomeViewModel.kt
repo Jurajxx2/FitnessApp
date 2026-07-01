@@ -56,6 +56,7 @@ class HomeViewModel(
             HomeIntent.LoadData -> loadData(force = false)
             HomeIntent.Refresh -> loadData(force = true)
             HomeIntent.QuickAddWater -> quickAddWater()
+            HomeIntent.MarkCoachMessageRead -> _state.update { it.copy(hasUnreadCoachMessage = false) }
         }
     }
 
@@ -131,6 +132,7 @@ class HomeViewModel(
                     nutritionSummary = nutritionResult.getOrNull(),
                     macroTargets = loadedUser?.let { u -> calculateMacroTargetsUseCase(u) },
                     lastCoachMessage = lastCoachMessage,
+                    hasUnreadCoachMessage = lastCoachMessage != null,
                     waterConsumedMl = waterConsumed,
                     waterGoalMl = waterGoal,
                     quickAddVolumeMl = quickAddVolume,

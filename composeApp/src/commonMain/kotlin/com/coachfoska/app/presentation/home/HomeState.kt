@@ -16,6 +16,7 @@ data class HomeState(
     val nutritionSummary: DailyNutritionSummary? = null,
     val macroTargets: MacroTargets? = null,
     val lastCoachMessage: ChatMessage? = null,
+    val hasUnreadCoachMessage: Boolean = false,
     val waterConsumedMl: Int = 0,
     val waterGoalMl: Int = 2000,
     val quickAddVolumeMl: Int = 250,
