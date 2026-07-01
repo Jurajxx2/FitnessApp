@@ -10,6 +10,15 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.roundToInt
 
+/**
+ * Builds the 7-day (Mon–Sun) activity model for the Activity Hub weekly grid.
+ *
+ * Status precedence per weekday:
+ *  - COMPLETED: a workout was logged on that weekday during the current week.
+ *  - TODAY: the weekday is today (and not already completed).
+ *  - MISSED / SCHEDULED: a workout is assigned to that weekday (past -> MISSED, today/future -> SCHEDULED).
+ *  - REST: nothing assigned and nothing logged.
+ */
 fun buildWeeklyActivity(
     workouts: List<Workout>,
     history: List<WorkoutLog>,
