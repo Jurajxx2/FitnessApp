@@ -21,7 +21,9 @@ class ActivityLogViewModel(
     val state: StateFlow<ActivityLogState> = _state.asStateFlow()
 
     init {
-        onIntent(ActivityLogIntent.LoadHistory)
+        if (userId.isNotBlank()) {
+            onIntent(ActivityLogIntent.LoadHistory)
+        }
     }
 
     fun onIntent(intent: ActivityLogIntent) {
@@ -55,6 +57,7 @@ class ActivityLogViewModel(
     }
 
     private fun loadHistory() {
+        if (userId.isBlank()) return
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             historyUseCase(userId)
@@ -64,6 +67,7 @@ class ActivityLogViewModel(
     }
 
     private fun submit() {
+        if (userId.isBlank()) return
         val s = _state.value
         if (!s.canSubmit) return
         
