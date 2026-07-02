@@ -1,5 +1,9 @@
 package com.coachfoska.app.core.util
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import platform.UIKit.UIAccessibilityIsReduceMotionEnabled
 
-actual fun platformReduceMotionEnabled(): Boolean = UIAccessibilityIsReduceMotionEnabled()
+@Composable
+actual fun rememberPlatformReduceMotion(): Boolean =
+    remember { UIAccessibilityIsReduceMotionEnabled() }
