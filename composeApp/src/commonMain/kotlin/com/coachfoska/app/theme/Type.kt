@@ -92,3 +92,28 @@ val CoachFoskaTypography = Typography(
         letterSpacing = 0.5.sp
     )
 )
+
+// Metric styles (spec §2.2): stat readouts are the app's visual signature —
+// oversized, extra-bold, tight tracking, tabular feel. Body stays neutral/legible
+// (system sans); display numerals carry the personality, mirroring the PP Mori
+// black/white brand on coachfoska.com.
+val MetricLarge = TextStyle(
+    fontWeight = FontWeight.ExtraBold,
+    fontSize = 44.sp,
+    lineHeight = 48.sp,
+    letterSpacing = (-1.5).sp
+)
+
+val MetricMedium = TextStyle(
+    fontWeight = FontWeight.ExtraBold,
+    fontSize = 28.sp,
+    lineHeight = 32.sp,
+    letterSpacing = (-0.5).sp
+)
+
+val MetricSmall = TextStyle(
+    fontWeight = FontWeight.Bold,
+    fontSize = 18.sp,
+    lineHeight = 22.sp,
+    letterSpacing = 0.sp
+)
