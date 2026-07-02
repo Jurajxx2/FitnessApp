@@ -21,6 +21,9 @@ import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.SessionAuthState
 import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.navigation.*
+import androidx.compose.runtime.CompositionLocalProvider
+import com.coachfoska.app.core.util.LocalReduceMotion
+import com.coachfoska.app.core.util.platformReduceMotionEnabled
 import com.coachfoska.app.theme.CoachFoskaTheme
 import com.coachfoska.app.ui.auth.EmailOtpRoute
 import com.coachfoska.app.ui.auth.VerifyOtpRoute
@@ -68,6 +71,7 @@ fun App(openHumanChat: Boolean = false) {
     val isDarkTheme by themeRepository.isDarkTheme.collectAsState()
 
     CoachFoskaTheme(darkTheme = isDarkTheme) {
+        CompositionLocalProvider(LocalReduceMotion provides remember { platformReduceMotionEnabled() }) {
         val navController = rememberNavController()
         // Derive the current user id from the singleton session observer so it survives
         // Activity recreation (where `remember` would reset to "" but rememberNavController
@@ -545,5 +549,6 @@ fun App(openHumanChat: Boolean = false) {
                 }
             }
         }
+        } // CompositionLocalProvider
     }
 }
