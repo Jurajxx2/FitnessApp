@@ -35,6 +35,7 @@ import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.meal_history_detail_food_items
 import coachfoska.composeapp.generated.resources.meal_history_detail_not_found
+import coachfoska.composeapp.generated.resources.meal_history_detail_screen_title
 import coachfoska.composeapp.generated.resources.meal_kcal_format
 import coachfoska.composeapp.generated.resources.meal_macro_label_carbs
 import coachfoska.composeapp.generated.resources.meal_macro_label_fat
@@ -70,7 +71,7 @@ fun MealHistoryDetailRoute(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "MEAL DETAIL", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.meal_history_detail_screen_title), onBackClick = onBackClick)
         when {
             state.isHistoryLoading -> CoachLoadingBox(Modifier.weight(1f))
             state.selectedMealLog != null -> MealHistoryDetailScreen(

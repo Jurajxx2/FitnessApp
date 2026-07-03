@@ -19,7 +19,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.chat_remove_image_cd
+import coachfoska.composeapp.generated.resources.chat_selected_image_cd
 import coil3.compose.AsyncImage
+import com.coachfoska.app.theme.Sizes
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ImageMessagePreview(
@@ -33,7 +38,7 @@ fun ImageMessagePreview(
     Box(modifier = modifier.padding(8.dp)) {
         AsyncImage(
             model = model,
-            contentDescription = "Selected image",
+            contentDescription = stringResource(Res.string.chat_selected_image_cd),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(72.dp)
@@ -43,7 +48,7 @@ fun ImageMessagePreview(
             onClick = onRemove,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .size(20.dp)
+                .size(Sizes.touchTarget)
                 .background(
                     color = MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
                     shape = CircleShape
@@ -51,7 +56,7 @@ fun ImageMessagePreview(
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
-                contentDescription = "Remove image",
+                contentDescription = stringResource(Res.string.chat_remove_image_cd),
                 tint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(12.dp)
             )

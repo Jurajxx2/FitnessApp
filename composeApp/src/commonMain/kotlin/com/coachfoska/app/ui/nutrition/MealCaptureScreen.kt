@@ -35,6 +35,7 @@ import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
+import com.coachfoska.app.theme.Sizes
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import coachfoska.composeapp.generated.resources.common_search_cd
@@ -188,7 +189,7 @@ fun MealCaptureScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "RECORD MEAL", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.meal_capture_screen_title), onBackClick = onBackClick)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -453,7 +454,7 @@ private fun FoodEntryRow(
                     letterSpacing = 1.sp,
                 )
                 if (onRemove != null) {
-                    IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
+                    IconButton(onClick = onRemove, modifier = Modifier.size(Sizes.touchTarget)) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = stringResource(Res.string.remove_cd),

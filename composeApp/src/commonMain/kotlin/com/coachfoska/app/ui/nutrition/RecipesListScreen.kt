@@ -39,6 +39,7 @@ import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.EmptyState
 import com.coachfoska.app.ui.components.FoskaFilterChip
 import com.coachfoska.app.ui.components.ShimmerBox
+import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -213,7 +214,7 @@ private fun RecipesListCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(Sizes.touchTarget)) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = if (isFavorite) {

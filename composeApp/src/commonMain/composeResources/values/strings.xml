@@ -5,202 +5,202 @@
 
     <!-- Auth — WelcomeScreen -->
     <string name="welcome_title">FOSKA</string>
-    <string name="welcome_tagline">High performance fitness.\nMinimalist approach.</string>
-    <string name="continue_with_email">CONTINUE WITH EMAIL</string>
-    <string name="continue_with_google">CONTINUE WITH GOOGLE</string>
+    <string name="welcome_tagline">Výkonnostní fitness.\nMinimalistický přístup.</string>
+    <string name="continue_with_email">POKRAČOVAT E-MAILEM</string>
+    <string name="continue_with_google">POKRAČOVAT PŘES GOOGLE</string>
 
     <!-- Auth — EmailOtpScreen -->
-    <string name="enter_email_title">ENTER EMAIL</string>
-    <string name="enter_email_desc">We\'ll send you a one-time code to sign in to your account.</string>
-    <string name="email_address_label">Email address</string>
-    <string name="back_cd">Back</string>
+    <string name="enter_email_title">ZADEJ E-MAIL</string>
+    <string name="enter_email_desc">Pošleme ti jednorázový kód pro přihlášení k účtu.</string>
+    <string name="email_address_label">E-mailová adresa</string>
+    <string name="back_cd">Zpět</string>
 
     <!-- Auth — VerifyOtpScreen -->
-    <string name="verify_code_title">VERIFY CODE</string>
-    <string name="verify_otp_desc">Enter the 6-digit code sent to\n%s</string>
-    <string name="verification_code_label">Verification code</string>
-    <string name="verify_button">VERIFY</string>
-    <string name="resend_code">RESEND CODE</string>
+    <string name="verify_code_title">OVĚŘ KÓD</string>
+    <string name="verify_otp_desc">Zadej 6místný kód odeslaný na\n%s</string>
+    <string name="verification_code_label">Ověřovací kód</string>
+    <string name="verify_button">OVĚŘIT</string>
+    <string name="resend_code">POSLAT KÓD ZNOVU</string>
 
     <!-- Shared buttons -->
-    <string name="continue_button">CONTINUE</string>
+    <string name="continue_button">POKRAČOVAT</string>
 
     <!-- Onboarding — GoalSelectionScreen -->
-    <string name="onboarding_step_1_of_3">STEP 1 OF 3</string>
-    <string name="goal_screen_title">WHAT IS YOUR\nPRIMARY GOAL?</string>
-    <string name="goal_screen_desc">This helps us personalize your program.</string>
+    <string name="onboarding_step_1_of_3">KROK 1 ZE 3</string>
+    <string name="goal_screen_title">JAKÝ JE TVŮJ\nHLAVNÍ CÍL?</string>
+    <string name="goal_screen_desc">Pomůže nám to přizpůsobit tvůj program.</string>
 
     <!-- Onboarding — BodyStatsScreen -->
-    <string name="onboarding_step_2_of_3">STEP 2 OF 3</string>
-    <string name="body_stats_title">TELL US ABOUT\nYOURSELF</string>
-    <string name="body_stats_desc">This allows us to calculate your baseline nutrition and training volume accurately.</string>
-    <string name="height_label">Height (cm)</string>
-    <string name="current_weight_label">Current Weight (kg)</string>
-    <string name="age_label">Age</string>
+    <string name="onboarding_step_2_of_3">KROK 2 ZE 3</string>
+    <string name="body_stats_title">ŘEKNI NÁM\nO SOBĚ</string>
+    <string name="body_stats_desc">Díky tomu přesně spočítáme tvůj výchozí příjem a tréninkový objem.</string>
+    <string name="height_label">Výška (cm)</string>
+    <string name="current_weight_label">Aktuální váha (kg)</string>
+    <string name="age_label">Věk</string>
 
     <!-- Onboarding — ActivityLevelScreen -->
-    <string name="onboarding_step_3_of_3">STEP 3 OF 3</string>
-    <string name="activity_title">HOW ACTIVE\nARE YOU?</string>
-    <string name="activity_desc">Be honest — this sets your calorie baseline and recovery needs.</string>
-    <string name="finish_setup">FINISH SETUP</string>
+    <string name="onboarding_step_3_of_3">KROK 3 ZE 3</string>
+    <string name="activity_title">JAK AKTIVNÍ\nJSI?</string>
+    <string name="activity_desc">Buď upřímný — podle toho nastavíme kalorie a regeneraci.</string>
+    <string name="finish_setup">DOKONČIT NASTAVENÍ</string>
 
     <!-- Onboarding — OnboardingCompleteScreen -->
-    <string name="youre_all_set">YOU\'RE ALL SET!</string>
-    <string name="onboarding_complete_desc">Your personalized performance\nprogram is ready for action.</string>
-    <string name="summary_goal">GOAL</string>
-    <string name="summary_height">HEIGHT</string>
-    <string name="summary_weight">WEIGHT</string>
-    <string name="summary_activity">ACTIVITY</string>
-    <string name="start_training">START TRAINING</string>
+    <string name="youre_all_set">MÁŠ HOTOVO!</string>
+    <string name="onboarding_complete_desc">Tvůj osobní výkonnostní\nprogram je připravený.</string>
+    <string name="summary_goal">CÍL</string>
+    <string name="summary_height">VÝŠKA</string>
+    <string name="summary_weight">VÁHA</string>
+    <string name="summary_activity">AKTIVITA</string>
+    <string name="start_training">ZAČÍT TRÉNOVAT</string>
 
     <!-- Home -->
-    <string name="home_metric_week_workouts">This week</string>
-    <string name="home_metric_weight">Weight</string>
-    <string name="home_metric_streak">Week streak</string>
-    <string name="home_first_run_title">Start your first workout</string>
-    <string name="home_first_run_message">Your coach plan is waiting — or build your own.</string>
-    <string name="home_first_run_action">Go to workouts</string>
-    <string name="home_metrics_retry">Retry</string>
-    <string name="welcome_back">WELCOME BACK,</string>
-    <string name="default_athlete_name">ATHLETE</string>
-    <string name="todays_focus">TODAY\'S FOCUS</string>
-    <string name="start_workout">START WORKOUT</string>
-    <string name="log_meal_button">LOG MEAL</string>
-    <string name="quick_add_water">Add water</string>
-    <string name="recovery_day">RECOVERY DAY</string>
-    <string name="recovery_day_desc">Focus on mobility and nutrition today.</string>
-    <string name="daily_nutrition">DAILY NUTRITION</string>
-    <string name="exercises_count">%d EXERCISES</string>
+    <string name="home_metric_week_workouts">Tento týden</string>
+    <string name="home_metric_weight">Váha</string>
+    <string name="home_metric_streak">Týdenní série</string>
+    <string name="home_first_run_title">Začni první trénink</string>
+    <string name="home_first_run_message">Tvůj plán od trenéra čeká — nebo si vytvoř vlastní.</string>
+    <string name="home_first_run_action">Přejít na tréninky</string>
+    <string name="home_metrics_retry">Zkusit znovu</string>
+    <string name="welcome_back">VÍTEJ ZPĚT,</string>
+    <string name="default_athlete_name">ATLETE</string>
+    <string name="todays_focus">DNEŠNÍ FOKUS</string>
+    <string name="start_workout">ZAČÍT TRÉNINK</string>
+    <string name="log_meal_button">ZAPSAT JÍDLO</string>
+    <string name="quick_add_water">Přidat vodu</string>
+    <string name="recovery_day">DEN REGENERACE</string>
+    <string name="recovery_day_desc">Dnes se zaměř na mobilitu a výživu.</string>
+    <string name="daily_nutrition">DENNÍ VÝŽIVA</string>
+    <string name="exercises_count">%d CVIKŮ</string>
     <string name="duration_min">%d MIN</string>
-    <string name="start_logging_meals">Start logging your meals to track progress.</string>
+    <string name="start_logging_meals">Začni zapisovat jídla a sleduj pokrok.</string>
     <string name="macro_kcal">KCAL</string>
-    <string name="macro_protein">PRO</string>
-    <string name="macro_carbs">CHO</string>
-    <string name="macro_fat">FAT</string>
-    <string name="coach_label">COACH</string>
-    <string name="reply_button">Reply</string>
-    <string name="sent_an_image">Sent an image</string>
+    <string name="macro_protein">BÍL</string>
+    <string name="macro_carbs">SAC</string>
+    <string name="macro_fat">TUK</string>
+    <string name="coach_label">TRENÉR</string>
+    <string name="reply_button">Odpovědět</string>
+    <string name="sent_an_image">Odeslal obrázek</string>
 
     <!-- Bottom Nav -->
-    <string name="nav_home">Home</string>
-    <string name="nav_workout">Workout</string>
-    <string name="nav_activity">Activity</string>
+    <string name="nav_home">Domů</string>
+    <string name="nav_workout">Trénink</string>
+    <string name="nav_activity">Aktivita</string>
     <string name="nav_chat">Chat</string>
-    <string name="nav_nutrition">Nutrition</string>
-    <string name="nav_profile">Profile</string>
+    <string name="nav_nutrition">Výživa</string>
+    <string name="nav_profile">Profil</string>
 
     <!-- Profile -->
-    <string name="profile_label">PROFILE</string>
-    <string name="stat_goal">GOAL</string>
-    <string name="stat_weight">WEIGHT</string>
-    <string name="my_progress">MY PROGRESS</string>
-    <string name="about_foska">ABOUT FOSKA</string>
-    <string name="log_out">LOG OUT</string>
+    <string name="profile_label">PROFIL</string>
+    <string name="stat_goal">CÍL</string>
+    <string name="stat_weight">VÁHA</string>
+    <string name="my_progress">MŮJ POKROK</string>
+    <string name="about_foska">O FOSCE</string>
+    <string name="log_out">ODHLÁSIT SE</string>
 
     <!-- Progress -->
-    <string name="weight_evolution">WEIGHT EVOLUTION</string>
+    <string name="weight_evolution">VÝVOJ VÁHY</string>
     <string name="progress_start">START</string>
-    <string name="progress_current">CURRENT</string>
-    <string name="progress_change">CHANGE</string>
-    <string name="body_composition">BODY COMPOSITION</string>
-    <string name="stat_height">HEIGHT</string>
-    <string name="stat_last_weight">LAST WEIGHT</string>
-    <string name="stat_target_goal">TARGET GOAL</string>
-    <string name="stat_activity">ACTIVITY</string>
+    <string name="progress_current">AKTUÁLNĚ</string>
+    <string name="progress_change">ZMĚNA</string>
+    <string name="body_composition">TĚLESNÉ ÚDAJE</string>
+    <string name="stat_height">VÝŠKA</string>
+    <string name="stat_last_weight">POSLEDNÍ VÁHA</string>
+    <string name="stat_target_goal">CÍLOVÁ VÁHA</string>
+    <string name="stat_activity">AKTIVITA</string>
     <string name="weight_kg_format">%skg</string>
     <string name="height_cm_format">%d CM</string>
     <string name="weight_kg_upper_format">%s KG</string>
 
     <!-- About Coach -->
-    <string name="certifications_section">CERTIFICATIONS</string>
-    <string name="connect_section">CONNECT</string>
+    <string name="certifications_section">CERTIFIKACE</string>
+    <string name="connect_section">KONTAKT</string>
     <string name="instagram_label">INSTAGRAM</string>
-    <string name="website_label">WEBSITE</string>
+    <string name="website_label">WEB</string>
 
     <!-- Workout -->
-    <string name="workout_name_label">Workout Name (e.g. Upper Body A)</string>
-    <string name="duration_minutes_label">Duration (minutes)</string>
-    <string name="exercises_section">EXERCISES</string>
-    <string name="add_exercise">ADD EXERCISE</string>
-    <string name="notes_optional">Notes (optional)</string>
-    <string name="save_session">SAVE SESSION</string>
-    <string name="exercise_label">EXERCISE #%d</string>
-    <string name="add_video_cd">Add Video</string>
-    <string name="remove_cd">Remove</string>
-    <string name="exercise_name_label">Exercise Name</string>
-    <string name="sets_label">Sets</string>
-    <string name="weight_kg_label">Weight (kg)</string>
+    <string name="workout_name_label">Název tréninku (např. Horní část A)</string>
+    <string name="duration_minutes_label">Délka (minuty)</string>
+    <string name="exercises_section">CVIKY</string>
+    <string name="add_exercise">PŘIDAT CVIK</string>
+    <string name="notes_optional">Poznámky (volitelné)</string>
+    <string name="save_session">ULOŽIT TRÉNINK</string>
+    <string name="exercise_label">CVIK #%d</string>
+    <string name="add_video_cd">Přidat video</string>
+    <string name="remove_cd">Odebrat</string>
+    <string name="exercise_name_label">Název cviku</string>
+    <string name="sets_label">Série</string>
+    <string name="weight_kg_label">Váha (kg)</string>
 
     <!-- Nutrition -->
-    <string name="meal_name_label">Meal Name (e.g. Breakfast)</string>
-    <string name="photo_attached">PHOTO ATTACHED</string>
-    <string name="add_meal_photo">ADD MEAL PHOTO</string>
-    <string name="food_items_section">FOOD ITEMS</string>
-    <string name="add_food">ADD FOOD</string>
-    <string name="save_meal">SAVE MEAL</string>
-    <string name="food_label">FOOD #%d</string>
-    <string name="food_name_label">Food Name</string>
+    <string name="meal_name_label">Název jídla (např. Snídaně)</string>
+    <string name="photo_attached">FOTKA PŘILOŽENA</string>
+    <string name="add_meal_photo">PŘIDAT FOTKU JÍDLA</string>
+    <string name="food_items_section">POTRAVINY</string>
+    <string name="add_food">PŘIDAT POTRAVINU</string>
+    <string name="save_meal">ULOŽIT JÍDLO</string>
+    <string name="food_label">POTRAVINA #%d</string>
+    <string name="food_name_label">Název potraviny</string>
     <string name="kcal_label">kcal</string>
-    <string name="protein_label">protein (g)</string>
+    <string name="protein_label">bílkoviny (g)</string>
 
     <!-- Chat -->
-    <string name="attach_image_cd">Attach image</string>
-    <string name="message_placeholder">Message...</string>
-    <string name="send_cd">Send</string>
+    <string name="attach_image_cd">Přiložit obrázek</string>
+    <string name="message_placeholder">Zpráva...</string>
+    <string name="send_cd">Odeslat</string>
 
     <!-- Settings screen -->
-    <string name="settings_title">SETTINGS</string>
-    <string name="settings_profile">Profile</string>
-    <string name="settings_profile_desc">Edit name, avatar and body stats</string>
-    <string name="settings_units">Units</string>
-    <string name="settings_units_desc">kg / lbs, cm / ft, km / miles</string>
-    <string name="settings_notifications">Notifications</string>
-    <string name="settings_notifications_desc">Workout, meal and hydration reminders</string>
-    <string name="settings_appearance">Appearance</string>
-    <string name="settings_appearance_desc">System, light or dark theme</string>
-    <string name="settings_privacy_data">PRIVACY &amp; DATA</string>
-    <string name="privacy_policy">Privacy Policy</string>
-    <string name="terms_of_service">Terms of Service</string>
-    <string name="export_my_data">Export My Data</string>
-    <string name="export_my_data_desc">Download a copy of your data as JSON</string>
-    <string name="delete_account">Delete Account</string>
-    <string name="delete_account_desc">Permanently delete your account and all data</string>
-    <string name="settings_about">About</string>
-    <string name="settings_about_desc">Version, rate the app, contact support</string>
-    <string name="configure_url_first">URL not configured — contact support</string>
-    <string name="store_compliance_ready">Manage your account, privacy and preferences</string>
+    <string name="settings_title">NASTAVENÍ</string>
+    <string name="settings_profile">Profil</string>
+    <string name="settings_profile_desc">Uprav jméno, avatar a tělesné údaje</string>
+    <string name="settings_units">Jednotky</string>
+    <string name="settings_units_desc">kg / lbs, cm / ft, km / míle</string>
+    <string name="settings_notifications">Notifikace</string>
+    <string name="settings_notifications_desc">Připomínky tréninku, jídel a hydratace</string>
+    <string name="settings_appearance">Vzhled</string>
+    <string name="settings_appearance_desc">Systém, světlý nebo tmavý režim</string>
+    <string name="settings_privacy_data">SOUKROMÍ &amp; DATA</string>
+    <string name="privacy_policy">Zásady ochrany soukromí</string>
+    <string name="terms_of_service">Podmínky služby</string>
+    <string name="export_my_data">Exportovat moje data</string>
+    <string name="export_my_data_desc">Stáhni si kopii svých dat jako JSON</string>
+    <string name="delete_account">Smazat účet</string>
+    <string name="delete_account_desc">Trvale smaž účet a všechna data</string>
+    <string name="settings_about">O aplikaci</string>
+    <string name="settings_about_desc">Verze, hodnocení aplikace, kontakt na podporu</string>
+    <string name="configure_url_first">URL není nastavená — kontaktuj podporu</string>
+    <string name="store_compliance_ready">Spravuj účet, soukromí a předvolby</string>
 
     <!-- Debug -->
     <string name="settings_debug">DEBUG</string>
-    <string name="debug_reset_onboarding">Reset Onboarding</string>
-    <string name="debug_reset_onboarding_desc">Mark onboarding as incomplete — triggers onboarding flow on next login</string>
-    <string name="debug_reset_onboarding_success">Onboarding reset. Restart the app to trigger the flow.</string>
-    <string name="debug_launch_onboarding">Launch Onboarding</string>
-    <string name="debug_launch_onboarding_desc">Open the onboarding flow directly without resetting the DB flag</string>
+    <string name="debug_reset_onboarding">Resetovat onboarding</string>
+    <string name="debug_reset_onboarding_desc">Označí onboarding jako nedokončený — po dalším přihlášení se spustí znovu</string>
+    <string name="debug_reset_onboarding_success">Onboarding resetován. Restartuj aplikaci, aby se spustil znovu.</string>
+    <string name="debug_launch_onboarding">Spustit onboarding</string>
+    <string name="debug_launch_onboarding_desc">Otevře onboarding přímo bez resetu příznaku v databázi</string>
 
     <!-- Activity Logging -->
-    <string name="log_activity_title">LOG ACTIVITY</string>
-    <string name="activity_type_walking">Walking</string>
-    <string name="activity_type_running">Running</string>
-    <string name="activity_type_cycling">Cycling</string>
-    <string name="activity_type_yoga">Yoga</string>
-    <string name="activity_type_swimming">Swimming</string>
-    <string name="activity_type_other">Other</string>
-    <string name="activity_duration_label">Duration (minutes)</string>
-    <string name="activity_distance_label">Distance (km)</string>
-    <string name="activity_rpe_label">Effort (1-10)</string>
-    <string name="activity_notes_label">Notes</string>
-    <string name="activity_save">SAVE ACTIVITY</string>
-    <string name="hub_log_activity_eyebrow">Log</string>
-    <string name="hub_log_activity_title">Log Activity</string>
-    <string name="hub_log_activity_subtitle">Walk, run, swim...</string>
-    <string name="actual_reps_label">Reps</string>
+    <string name="log_activity_title">ZAPSAT AKTIVITU</string>
+    <string name="activity_type_walking">Chůze</string>
+    <string name="activity_type_running">Běh</string>
+    <string name="activity_type_cycling">Kolo</string>
+    <string name="activity_type_yoga">Jóga</string>
+    <string name="activity_type_swimming">Plavání</string>
+    <string name="activity_type_other">Ostatní</string>
+    <string name="activity_duration_label">Délka (minuty)</string>
+    <string name="activity_distance_label">Vzdálenost (km)</string>
+    <string name="activity_rpe_label">Náročnost (1-10)</string>
+    <string name="activity_notes_label">Poznámky</string>
+    <string name="activity_save">ULOŽIT AKTIVITU</string>
+    <string name="hub_log_activity_eyebrow">Zápis</string>
+    <string name="hub_log_activity_title">Zapsat aktivitu</string>
+    <string name="hub_log_activity_subtitle">Chůze, běh, plavání...</string>
+    <string name="actual_reps_label">Opakování</string>
     <string name="actual_weight_label">kg</string>
-    <string name="set_number_format">SET %d</string>
-    <string name="add_set">+ ADD SET</string>
-    <string name="finish_workout">FINISH WORKOUT</string>
-    <string name="exercise_form_guide_cta">Tap to view form guide</string>
-    <string name="log_this_meal">LOG THIS MEAL</string>
+    <string name="set_number_format">SÉRIE %d</string>
+    <string name="add_set">+ PŘIDAT SÉRII</string>
+    <string name="finish_workout">DOKONČIT TRÉNINK</string>
+    <string name="exercise_form_guide_cta">Klepni pro techniku cviku</string>
+    <string name="log_this_meal">ZAPSAT TOHLE JÍDLO</string>
 
     <!-- ===== Onboarding quiz ===== -->
     <string name="ob_welcome_title">Připrav se na změnu.</string>
@@ -310,329 +310,354 @@
     <string name="ob_loading_error">Něco se pokazilo. Zkus to prosím znovu.</string>
 
     <!-- Plans (Task 6) -->
-    <string name="plan_title">Plan</string>
-    <string name="plan_coach_badge">Coach</string>
-    <string name="plan_mine_badge">Mine</string>
-    <string name="plan_exercise_count">%1$d exercises</string>
-    <string name="plan_last_performed">Last: %1$s</string>
-    <string name="plan_never_performed">Not performed yet</string>
-    <string name="plan_create_first_title">Create your first workout</string>
-    <string name="plan_create_first_message">No plan assigned yet. Build your own in a minute.</string>
-    <string name="plan_create_action">Create workout</string>
-    <string name="plan_delete_confirm">Delete this workout?</string>
-    <string name="plan_log_session">LOG SESSION</string>
-    <string name="common_edit">Edit</string>
-    <string name="common_delete">Delete</string>
-    <string name="common_cancel">Cancel</string>
-    <string name="detail_title">WORKOUT</string>
-    <string name="detail_start_workout">Start workout</string>
-    <string name="detail_coach_readonly">Coach plan — start it or substitute an exercise for your own copy.</string>
+    <string name="plan_title">Plán</string>
+    <string name="plan_coach_badge">Trenér</string>
+    <string name="plan_mine_badge">Moje</string>
+    <string name="plan_exercise_count">%1$d cviků</string>
+    <string name="plan_last_performed">Naposledy: %1$s</string>
+    <string name="plan_never_performed">Zatím neodcvičeno</string>
+    <string name="plan_create_first_title">Vytvoř první trénink</string>
+    <string name="plan_create_first_message">Zatím nemáš přiřazený plán. Vlastní si vytvoříš za minutu.</string>
+    <string name="plan_create_action">Vytvořit trénink</string>
+    <string name="plan_delete_confirm">Smazat tento trénink?</string>
+    <string name="plan_log_session">ZAPSAT TRÉNINK</string>
+    <string name="common_edit">Upravit</string>
+    <string name="common_delete">Smazat</string>
+    <string name="common_cancel">Zrušit</string>
+    <string name="detail_title">TRÉNINK</string>
+    <string name="detail_start_workout">Začít trénink</string>
+    <string name="detail_coach_readonly">Plán od trenéra — začni ho nebo si nahraď cvik ve vlastní kopii.</string>
 
     <!-- Workout Editor (Task 7) -->
-    <string name="editor_title_new">New workout</string>
-    <string name="editor_title_edit">Edit workout</string>
-    <string name="editor_name_label">Workout name</string>
-    <string name="editor_name_error">Give it a name</string>
-    <string name="editor_exercises_error">Add at least one exercise</string>
-    <string name="editor_add_exercise">Add exercise</string>
-    <string name="editor_day_label">Day (optional)</string>
-    <string name="editor_sets">Sets</string>
-    <string name="editor_reps">Reps</string>
-    <string name="editor_rest">Rest (s)</string>
-    <string name="editor_save">Save workout</string>
-    <string name="editor_search_exercises">Search exercises…</string>
-    <string name="editor_picker_done">Done</string>
-    <string name="editor_picker_title">Add exercises</string>
-    <string name="editor_picker_search_prompt">Type to search the exercise library</string>
-    <string name="editor_picker_no_results">No exercises found</string>
-    <string name="editor_move_up_cd">Move up</string>
-    <string name="editor_move_down_cd">Move down</string>
-    <string name="editor_remove_cd">Remove exercise</string>
+    <string name="editor_title_new">Nový trénink</string>
+    <string name="editor_title_edit">Upravit trénink</string>
+    <string name="editor_name_label">Název tréninku</string>
+    <string name="editor_name_error">Dej mu název</string>
+    <string name="editor_exercises_error">Přidej aspoň jeden cvik</string>
+    <string name="editor_add_exercise">Přidat cvik</string>
+    <string name="editor_day_label">Den (volitelné)</string>
+    <string name="editor_sets">Série</string>
+    <string name="editor_reps">Opakování</string>
+    <string name="editor_rest">Pauza (s)</string>
+    <string name="editor_save">Uložit trénink</string>
+    <string name="editor_search_exercises">Hledat cviky…</string>
+    <string name="editor_picker_done">Hotovo</string>
+    <string name="editor_picker_title">Přidat cviky</string>
+    <string name="editor_picker_search_prompt">Začni psát a hledej v knihovně cviků</string>
+    <string name="editor_picker_no_results">Žádné cviky nenalezeny</string>
+    <string name="editor_move_up_cd">Posunout nahoru</string>
+    <string name="editor_move_down_cd">Posunout dolů</string>
+    <string name="editor_remove_cd">Odebrat cvik</string>
     <!-- Exercise substitution -->
-    <string name="substitute_title">Substitute exercise</string>
-    <string name="substitute_cant_do">Can\'t do this one</string>
-    <string name="substitute_suggested">Same muscle group</string>
-    <string name="substitute_search_hint">Search exercises</string>
-    <string name="substitute_scope_session">Just this session</string>
-    <string name="substitute_scope_plan">For this plan going forward</string>
-    <string name="substitute_applied">Swapped %1$s → %2$s</string>
-    <string name="substitute_swap_icon_cd">Substitute exercise</string>
-    <string name="session_saved">Saved</string>
-    <string name="session_saving">Saving…</string>
-    <string name="session_save_failed">Not saved — tap to retry</string>
-    <string name="session_resume_title">Workout in progress</string>
-    <string name="session_resume_action">Resume</string>
-    <string name="session_discard">Discard workout</string>
-    <string name="session_discard_confirm">Discard this session? Logged sets will be removed from history.</string>
-    <string name="session_volume">Volume</string>
-    <string name="session_save_degraded">Live save is unavailable. Finish workout will retry the full log.</string>
-    <string name="common_keep_working">Keep working</string>
-    <string name="recipes_title">RECIPES</string>
-    <string name="recipes_search_label">Search recipes</string>
-    <string name="recipes_favorites_filter">Favorites</string>
-    <string name="recipes_count">%1$d recipes</string>
-    <string name="recipes_empty_title">No recipes yet</string>
-    <string name="recipes_empty_message">Your coach is cooking something up. Check back soon.</string>
-    <string name="recipes_remove_favorite_cd">Remove from favorites</string>
-    <string name="recipes_add_favorite_cd">Add to favorites</string>
-    <string name="recipes_fallback_description">Coach recipe</string>
-    <string name="recipe_tab_ingredients">Ingredients</string>
-    <string name="recipe_tab_directions">Directions</string>
-    <string name="recipe_no_ingredients">No ingredients listed.</string>
-    <string name="recipe_no_steps">No directions provided.</string>
-    <string name="progress_empty_title">Track your first weight</string>
-    <string name="progress_empty_message">Log your weight to see your trend here.</string>
-    <string name="progress_empty_action">Add weight</string>
-    <string name="progress_weight_dialog_title">Add weight</string>
-    <string name="progress_weight_dialog_save">Save weight</string>
+    <string name="substitute_title">Nahradit cvik</string>
+    <string name="substitute_cant_do">Tenhle dnes nejde</string>
+    <string name="substitute_suggested">Stejná svalová partie</string>
+    <string name="substitute_search_hint">Hledat cviky</string>
+    <string name="substitute_scope_session">Jen pro tento trénink</string>
+    <string name="substitute_scope_plan">Pro tento plán do budoucna</string>
+    <string name="substitute_applied">Vyměněno %1$s → %2$s</string>
+    <string name="substitute_swap_icon_cd">Nahradit cvik</string>
+    <string name="session_saved">Uloženo</string>
+    <string name="session_saving">Ukládám…</string>
+    <string name="session_save_failed">Neuloženo — klepni pro opakování</string>
+    <string name="session_resume_title">Rozpracovaný trénink</string>
+    <string name="session_resume_action">Pokračovat</string>
+    <string name="session_discard">Zahodit trénink</string>
+    <string name="session_discard_confirm">Zahodit tento trénink? Zapsané série budou odebrány z historie.</string>
+    <string name="session_volume">Objem</string>
+    <string name="session_save_degraded">Živé ukládání není dostupné. Dokončení tréninku zkusí uložit celý zápis znovu.</string>
+    <string name="common_keep_working">Pokračovat</string>
+    <string name="recipes_title">RECEPTY</string>
+    <string name="recipes_search_label">Hledat recepty</string>
+    <string name="recipes_favorites_filter">Oblíbené</string>
+    <string name="recipes_count">%1$d receptů</string>
+    <string name="recipes_empty_title">Zatím žádné recepty</string>
+    <string name="recipes_empty_message">Tvůj trenér něco chystá. Mrkni sem později.</string>
+    <string name="recipes_remove_favorite_cd">Odebrat z oblíbených</string>
+    <string name="recipes_add_favorite_cd">Přidat do oblíbených</string>
+    <string name="recipes_fallback_description">Recept od trenéra</string>
+    <string name="recipe_tab_ingredients">Ingredience</string>
+    <string name="recipe_tab_directions">Postup</string>
+    <string name="recipe_no_ingredients">Ingredience nejsou uvedené.</string>
+    <string name="recipe_no_steps">Postup není uvedený.</string>
+    <string name="progress_empty_title">Zapiš první váhu</string>
+    <string name="progress_empty_message">Zapiš váhu a uvidíš tady svůj trend.</string>
+    <string name="progress_empty_action">Přidat váhu</string>
+    <string name="progress_screen_title">MŮJ POKROK</string>
+    <string name="progress_weight_dialog_title">Přidat váhu</string>
+    <string name="progress_weight_dialog_save">Uložit váhu</string>
 
     <!-- Common (shared across screens) -->
-    <string name="common_see_all">SEE ALL</string>
+    <string name="common_see_all">ZOBRAZIT VŠE</string>
     <string name="common_ok">OK</string>
-    <string name="common_favorite_cd">Favorite</string>
-    <string name="common_more_options_cd">More options</string>
-    <string name="common_clear_cd">Clear</string>
-    <string name="common_search_cd">Search</string>
-    <string name="common_save_workout">SAVE WORKOUT</string>
+    <string name="common_favorite_cd">Oblíbené</string>
+    <string name="common_more_options_cd">Další možnosti</string>
+    <string name="common_clear_cd">Vymazat</string>
+    <string name="common_search_cd">Hledat</string>
+    <string name="common_save_workout">ULOŽIT TRÉNINK</string>
 
     <!-- Splash -->
     <string name="splash_coach">COACH</string>
     <string name="splash_foska">FOŠKA</string>
 
     <!-- Home -->
-    <string name="home_water_label">WATER</string>
+    <string name="home_water_label">VODA</string>
     <string name="home_water_amount">%1$d / %2$d ml</string>
-    <string name="home_notifications_cd">Notifications</string>
+    <string name="home_notifications_cd">Notifikace</string>
 
     <!-- Day Detail Sheet -->
-    <string name="day_sheet_rest_day">Rest day — no workout scheduled</string>
-    <string name="day_sheet_workout_completed">Workout completed</string>
-    <string name="day_sheet_planned">PLANNED</string>
-    <string name="day_sheet_done">DONE</string>
+    <string name="day_sheet_rest_day">Den volna — žádný trénink v plánu</string>
+    <string name="day_sheet_workout_completed">Trénink dokončen</string>
+    <string name="day_sheet_planned">V PLÁNU</string>
+    <string name="day_sheet_done">HOTOVO</string>
 
     <!-- Hydration -->
-    <string name="hydration_todays_log">TODAY\'S LOG</string>
-    <string name="hydration_reminders">REMINDERS</string>
-    <string name="hydration_quick_add">QUICK ADD</string>
-    <string name="hydration_manage">Manage</string>
-    <string name="hydration_custom">custom</string>
-    <string name="hydration_custom_amount_title">Custom amount</string>
-    <string name="hydration_add">Add</string>
-    <string name="hydration_enable_reminders">Enable reminders</string>
-    <string name="hydration_remind_every">Remind every</string>
-    <string name="hydration_active_from">Active from</string>
-    <string name="hydration_active_until">Active until</string>
-    <string name="hydration_smart_suppress">Smart suppress</string>
-    <string name="hydration_smart_suppress_subtitle">Skip if goal reached or recently logged</string>
-    <string name="hydration_my_containers">MY CONTAINERS</string>
-    <string name="hydration_add_new">ADD NEW</string>
-    <string name="hydration_add_container">Add container</string>
-    <string name="hydration_container_name_label">Name (e.g. Gym Bottle)</string>
-    <string name="hydration_container_volume_label">Volume (ml)</string>
+    <string name="hydration_todays_log">DNEŠNÍ ZÁPIS</string>
+    <string name="hydration_reminders">PŘIPOMÍNKY</string>
+    <string name="hydration_quick_add">RYCHLE PŘIDAT</string>
+    <string name="hydration_manage">Spravovat</string>
+    <string name="hydration_custom">vlastní</string>
+    <string name="hydration_custom_amount_title">Vlastní množství</string>
+    <string name="hydration_add">Přidat</string>
+    <string name="hydration_enable_reminders">Zapnout připomínky</string>
+    <string name="hydration_remind_every">Připomenout každých</string>
+    <string name="hydration_active_from">Aktivní od</string>
+    <string name="hydration_active_until">Aktivní do</string>
+    <string name="hydration_smart_suppress">Chytré potlačení</string>
+    <string name="hydration_smart_suppress_subtitle">Přeskočit, když je cíl splněný nebo jsi nedávno zapisoval</string>
+    <string name="hydration_my_containers">MOJE LAHVE</string>
+    <string name="hydration_add_new">PŘIDAT NOVOU</string>
+    <string name="hydration_add_container">Přidat láhev</string>
+    <string name="hydration_container_name_label">Název (např. lahev do fitka)</string>
+    <string name="hydration_container_volume_label">Objem (ml)</string>
     <string name="hydration_ml">ml</string>
     <string name="hydration_goal_format">/ %1$d ml</string>
 
     <!-- Activity Selector / Form -->
-    <string name="activity_what_did_you_do">What did you do?</string>
-    <string name="activity_effort_section">EFFORT (1-10)</string>
-    <string name="activity_when_section">WHEN</string>
-    <string name="activity_easy">Easy</string>
-    <string name="activity_hard">Hard</string>
+    <string name="activity_what_did_you_do">Co jsi dělal?</string>
+    <string name="activity_log_type_title">ZAPSAT %1$s</string>
+    <string name="activity_effort_section">NÁROČNOST (1-10)</string>
+    <string name="activity_when_section">KDY</string>
+    <string name="activity_easy">Lehké</string>
+    <string name="activity_hard">Těžké</string>
     <string name="activity_rpe_format">RPE %1$s</string>
 
     <!-- Nutrition Hub -->
-    <string name="nutrition_hub_title">NUTRITION</string>
-    <string name="nutrition_hub_featured_recipes">FEATURED RECIPES</string>
-    <string name="nutrition_hub_no_recipes">No recipes yet.</string>
+    <string name="nutrition_hub_title">VÝŽIVA</string>
+    <string name="nutrition_hub_featured_recipes">DOPORUČENÉ RECEPTY</string>
+    <string name="nutrition_hub_no_recipes">Zatím žádné recepty.</string>
+    <string name="nutrition_hub_plan_eyebrow">Plán</string>
+    <string name="nutrition_hub_plan_title">Týdenní plán</string>
+    <string name="nutrition_hub_plan_subtitle">Tvoje jídla</string>
+    <string name="nutrition_hub_log_eyebrow">Zápis</string>
+    <string name="nutrition_hub_history_title">Historie</string>
+    <string name="nutrition_hub_history_subtitle">Minulá jídla</string>
+    <string name="nutrition_hub_track_eyebrow">Sledovat</string>
+    <string name="nutrition_hub_water_title">Voda</string>
+    <string name="nutrition_hub_water_subtitle">Denní příjem</string>
 
     <!-- Meal Capture / Search -->
-    <string name="meal_search_food_title">SEARCH FOOD</string>
-    <string name="meal_search_type_food_label">Type food name…</string>
-    <string name="meal_photo_cd">Meal photo</string>
-    <string name="meal_analyzing_photo">ANALYZING PHOTO…</string>
+    <string name="meal_capture_screen_title">ZAPSAT JÍDLO</string>
+    <string name="meal_search_food_title">HLEDAT POTRAVINU</string>
+    <string name="meal_search_type_food_label">Napiš název potraviny…</string>
+    <string name="meal_photo_cd">Fotka jídla</string>
+    <string name="meal_analyzing_photo">ANALYZUJI FOTKU…</string>
     <string name="meal_kcal_format">%1$d kcal</string>
-    <string name="meal_macro_summary">P %1$dg · C %2$dg · F %3$dg</string>
+    <string name="meal_macro_summary">B %1$dg · S %2$dg · T %3$dg</string>
 
     <!-- Meal Detail -->
-    <string name="meal_not_found">Meal not found.</string>
-    <string name="meal_ingredients_section">INGREDIENTS</string>
+    <string name="meal_detail_screen_title">JÍDLO</string>
+    <string name="meal_not_found">Jídlo nenalezeno.</string>
+    <string name="meal_ingredients_section">INGREDIENCE</string>
 
     <!-- Meal History -->
-    <string name="meal_history_your_logs">YOUR LOGS</string>
-    <string name="meal_history_no_meals">No meals logged yet.</string>
+    <string name="meal_history_screen_title">HISTORIE JÍDEL</string>
+    <string name="meal_history_your_logs">TVOJE ZÁPISY</string>
+    <string name="meal_history_no_meals">Zatím nemáš zapsaná žádná jídla.</string>
     <string name="meal_history_kcal_format">%1$d KCAL</string>
-    <string name="meal_history_protein_format">%1$dG PROTEIN</string>
+    <string name="meal_history_protein_format">%1$dG BÍLKOVIN</string>
 
     <!-- Meal History Detail -->
-    <string name="meal_history_detail_not_found">Meal log not found.</string>
-    <string name="meal_history_detail_food_items">FOOD ITEMS</string>
+    <string name="meal_history_detail_screen_title">DETAIL JÍDLA</string>
+    <string name="meal_history_detail_not_found">Zápis jídla nenalezen.</string>
+    <string name="meal_history_detail_food_items">POTRAVINY</string>
     <string name="meal_macro_label_kcal">kcal</string>
-    <string name="meal_macro_label_protein">protein</string>
-    <string name="meal_macro_label_carbs">carbs</string>
-    <string name="meal_macro_label_fat">fat</string>
+    <string name="meal_macro_label_protein">bílkoviny</string>
+    <string name="meal_macro_label_carbs">sacharidy</string>
+    <string name="meal_macro_label_fat">tuky</string>
 
     <!-- Meal Plan Detail -->
-    <string name="meal_plan_record_meal">RECORD MEAL</string>
-    <string name="meal_plan_daily_plan">DAILY PLAN</string>
-    <string name="meal_plan_count_planned">%1$d planned</string>
-    <string name="meal_plan_no_plan">No meal plan assigned yet.</string>
-    <string name="meal_plan_no_meals_for_day">No meals for this day.</string>
-    <string name="meal_plan_assigned_meals">Assigned meals</string>
+    <string name="meal_plan_screen_title">JÍDELNÍČEK</string>
+    <string name="meal_plan_record_meal">ZAPSAT JÍDLO</string>
+    <string name="meal_plan_daily_plan">DENNÍ PLÁN</string>
+    <string name="meal_plan_count_planned">%1$d v plánu</string>
+    <string name="meal_plan_no_plan">Zatím nemáš přiřazený jídelníček.</string>
+    <string name="meal_plan_no_meals_for_day">Na tento den nejsou žádná jídla.</string>
+    <string name="meal_plan_assigned_meals">Přiřazená jídla</string>
     <string name="meal_plan_macro_kcal">KCAL</string>
-    <string name="meal_plan_macro_protein">PROTEIN</string>
-    <string name="meal_plan_macro_carbs">CARBS</string>
-    <string name="meal_plan_macro_fat">FAT</string>
+    <string name="meal_plan_macro_protein">BÍLKOVINY</string>
+    <string name="meal_plan_macro_carbs">SACHARIDY</string>
+    <string name="meal_plan_macro_fat">TUKY</string>
 
     <!-- Log Meal Options Sheet -->
-    <string name="meal_log_take_photo">Take Photo</string>
-    <string name="meal_log_choose_photo">Choose Photo</string>
-    <string name="meal_log_enter_manually">Enter Manually</string>
+    <string name="meal_log_take_photo">Vyfotit</string>
+    <string name="meal_log_choose_photo">Vybrat fotku</string>
+    <string name="meal_log_enter_manually">Zadat ručně</string>
 
     <!-- Macro Ring Summary -->
-    <string name="macro_ring_carbs">Carbs</string>
-    <string name="macro_ring_protein">Protein</string>
-    <string name="macro_ring_fat">Fat</string>
+    <string name="macro_ring_carbs">Sacharidy</string>
+    <string name="macro_ring_protein">Bílkoviny</string>
+    <string name="macro_ring_fat">Tuky</string>
 
     <!-- Recipe Detail -->
-    <string name="recipe_detail_prep_label">PREP</string>
-    <string name="recipe_detail_cook_label">COOK</string>
-    <string name="recipe_detail_serves_label">SERVES</string>
-    <string name="recipe_detail_level_label">LEVEL</string>
+    <string name="recipe_title">RECEPT</string>
+    <string name="recipe_detail_prep_label">PŘÍPRAVA</string>
+    <string name="recipe_detail_cook_label">VAŘENÍ</string>
+    <string name="recipe_detail_serves_label">PORCE</string>
+    <string name="recipe_detail_level_label">ÚROVEŇ</string>
     <string name="recipe_macro_label_kcal">kcal</string>
-    <string name="recipe_macro_label_protein">protein</string>
-    <string name="recipe_macro_label_carbs">carbs</string>
-    <string name="recipe_macro_label_fat">fat</string>
+    <string name="recipe_macro_label_protein">bílkoviny</string>
+    <string name="recipe_macro_label_carbs">sacharidy</string>
+    <string name="recipe_macro_label_fat">tuky</string>
 
     <!-- Servings Adjuster -->
-    <string name="recipe_servings_label">SERVINGS</string>
-    <string name="recipe_fewer_servings_cd">Fewer servings</string>
-    <string name="recipe_more_servings_cd">More servings</string>
+    <string name="recipe_servings_label">PORCE</string>
+    <string name="recipe_fewer_servings_cd">Méně porcí</string>
+    <string name="recipe_more_servings_cd">Více porcí</string>
 
     <!-- Media Capture Sheet -->
-    <string name="media_add_photo_title">ADD PHOTO</string>
-    <string name="media_add_video_title">ADD VIDEO</string>
-    <string name="media_take_photo">Take Photo</string>
-    <string name="media_upload_gallery">Upload from Gallery</string>
-    <string name="media_record_video">Record Video</string>
+    <string name="media_add_photo_title">PŘIDAT FOTKU</string>
+    <string name="media_add_video_title">PŘIDAT VIDEO</string>
+    <string name="media_take_photo">Vyfotit</string>
+    <string name="media_upload_gallery">Nahrát z galerie</string>
+    <string name="media_record_video">Nahrát video</string>
 
     <!-- Chat -->
-    <string name="chat_image_message_cd">Image message</string>
+    <string name="chat_image_message_cd">Obrázková zpráva</string>
+    <string name="chat_coach_title">Trenér</string>
+    <string name="chat_ai_coach_title">AI trenér</string>
+    <string name="chat_image_preview">📷 Obrázek</string>
+    <string name="chat_no_messages_yet">Zatím žádné zprávy</string>
+    <string name="chat_ask_ai_coach">Zeptej se AI trenéra na cokoliv</string>
+    <string name="chat_selected_image_cd">Vybraný obrázek</string>
+    <string name="chat_remove_image_cd">Odebrat obrázek</string>
 
     <!-- Activity Hub -->
-    <string name="activity_hub_title">Activity</string>
-    <string name="activity_hub_your_workouts">YOUR WORKOUTS</string>
-    <string name="activity_hub_all_workouts">ALL WORKOUTS</string>
-    <string name="activity_hub_exercises">EXERCISES</string>
-    <string name="activity_hub_no_workouts">No workouts assigned yet.</string>
-    <string name="activity_hub_workout_history">WORKOUT HISTORY</string>
-    <string name="activity_hub_progress_analytics">PROGRESS ANALYTICS</string>
-    <string name="activity_hub_browse_workouts">BROWSE WORKOUTS</string>
+    <string name="activity_hub_title">Aktivita</string>
+    <string name="activity_hub_your_workouts">TVOJE TRÉNINKY</string>
+    <string name="activity_hub_all_workouts">VŠECHNY TRÉNINKY</string>
+    <string name="activity_hub_exercises">CVIKY</string>
+    <string name="activity_hub_no_workouts">Zatím nemáš přiřazené žádné tréninky.</string>
+    <string name="activity_hub_workout_history">HISTORIE TRÉNINKŮ</string>
+    <string name="activity_hub_progress_analytics">ANALYTIKA POKROKU</string>
+    <string name="activity_hub_browse_workouts">PROCHÁZET TRÉNINKY</string>
 
     <!-- Workout History -->
-    <string name="workout_history_detail_title">SESSION DETAIL</string>
-    <string name="workout_history_your_progress">Your Progress</string>
-    <string name="workout_history_progress_desc">View stats, streaks &amp; records</string>
-    <string name="workout_history_no_workouts">No workouts logged yet.</string>
-    <string name="workout_history_log_not_found">Log not found</string>
-    <string name="workout_history_sets_format">%1$d SETS</string>
-    <string name="workout_history_volume_format">%1$s kg total volume</string>
-    <string name="workout_history_capture_video_cd">Capture Video</string>
-    <string name="workout_history_reps_header">Reps</string>
-    <string name="workout_history_weight_header">Weight</string>
+    <string name="workout_history_detail_title">DETAIL TRÉNINKU</string>
+    <string name="workout_history_your_progress">Tvůj pokrok</string>
+    <string name="workout_history_progress_desc">Sleduj statistiky, série a rekordy</string>
+    <string name="workout_history_no_workouts">Zatím nemáš zapsané žádné tréninky.</string>
+    <string name="workout_history_log_not_found">Zápis nenalezen</string>
+    <string name="workout_history_sets_format">%1$d SÉRIÍ</string>
+    <string name="workout_history_volume_format">%1$s kg celkový objem</string>
+    <string name="workout_history_capture_video_cd">Nahrát video</string>
+    <string name="workout_history_reps_header">Opak.</string>
+    <string name="workout_history_weight_header">Váha</string>
     <string name="workout_history_rpe_header">RPE</string>
 
     <!-- Set Row headers -->
-    <string name="set_row_set_header">SET</string>
-    <string name="set_row_prev_header">PREV</string>
+    <string name="set_row_set_header">SÉRIE</string>
+    <string name="set_row_prev_header">MINULE</string>
     <string name="set_row_kg_header">KG</string>
-    <string name="set_row_reps_header">REPS</string>
-    <string name="set_row_save_header">SAVE</string>
+    <string name="set_row_reps_header">OPAK.</string>
+    <string name="set_row_save_header">ULOŽIT</string>
 
     <!-- Rest Timer -->
-    <string name="rest_timer_label">REST TIME</string>
-    <string name="rest_timer_minus30">-30s</string>
-    <string name="rest_timer_plus30">+30s</string>
-    <string name="rest_timer_skip">Skip</string>
+    <string name="rest_timer_label">PAUZA</string>
+    <string name="rest_timer_minus30">-30 s</string>
+    <string name="rest_timer_plus30">+30 s</string>
+    <string name="rest_timer_skip">Přeskočit</string>
 
     <!-- Session Header Bar -->
-    <string name="session_menu_finish_workout">Finish workout</string>
+    <string name="session_menu_finish_workout">Dokončit trénink</string>
 
     <!-- PR Banner -->
-    <string name="pr_banner_title">Personal Record!</string>
+    <string name="pr_banner_title">Osobní rekord!</string>
     <string name="pr_banner_record_format">%1$s — %2$s</string>
 
     <!-- Progress Dashboard -->
-    <string name="progress_your_progress">YOUR PROGRESS</string>
-    <string name="progress_kg_this_week">kg this week</string>
-    <string name="progress_week_streak">week streak</string>
-    <string name="progress_recent_prs_title">🏆 Recent PRs</string>
-    <string name="progress_personal_records_format">🏆 %1$d Personal Records</string>
+    <string name="progress_your_progress">TVŮJ POKROK</string>
+    <string name="progress_kg_this_week">kg tento týden</string>
+    <string name="progress_week_streak">týdnů v sérii</string>
+    <string name="progress_recent_prs_title">🏆 Nedávné rekordy</string>
+    <string name="progress_personal_records_format">🏆 %1$d osobních rekordů</string>
 
     <!-- Post Workout Summary -->
-    <string name="post_workout_complete_title">Workout Complete!</string>
-    <string name="post_workout_done">DONE</string>
+    <string name="post_workout_complete_title">Trénink dokončen!</string>
+    <string name="post_workout_done">HOTOVO</string>
 
     <!-- Exercise Detail -->
-    <string name="exercise_detail_title">EXERCISE</string>
-    <string name="exercise_detail_tab_guide">Guide</string>
-    <string name="exercise_detail_tab_history">History</string>
-    <string name="exercise_detail_tab_charts">Charts</string>
-    <string name="exercise_detail_tab_records">Records</string>
-    <string name="exercise_detail_no_history">No history for this exercise yet.</string>
-    <string name="exercise_detail_no_chart_data">No data to chart yet.</string>
-    <string name="exercise_detail_no_records">No records yet. Start logging!</string>
-    <string name="exercise_detail_primary_muscles">Primary: %1$s</string>
-    <string name="exercise_detail_secondary_muscles">Secondary: %1$s</string>
-    <string name="exercise_detail_section_muscles">MUSCLES</string>
-    <string name="exercise_detail_section_equipment">EQUIPMENT</string>
-    <string name="exercise_detail_section_instructions">INSTRUCTIONS</string>
-    <string name="exercise_detail_sets_completed_format">%1$d sets completed</string>
-    <string name="exercise_records_heaviest">Heaviest Weight</string>
-    <string name="exercise_records_most_reps">Most Reps</string>
-    <string name="exercise_records_est_1rm">Best Est. 1RM</string>
-    <string name="exercise_records_highest_volume">Highest Volume</string>
+    <string name="exercise_detail_title">CVIK</string>
+    <string name="exercise_detail_tab_guide">Technika</string>
+    <string name="exercise_detail_tab_history">Historie</string>
+    <string name="exercise_detail_tab_charts">Grafy</string>
+    <string name="exercise_detail_tab_records">Rekordy</string>
+    <string name="exercise_detail_no_history">Pro tento cvik zatím není historie.</string>
+    <string name="exercise_detail_no_chart_data">Zatím není co vykreslit.</string>
+    <string name="exercise_detail_no_records">Zatím žádné rekordy. Začni zapisovat!</string>
+    <string name="exercise_detail_primary_muscles">Primární: %1$s</string>
+    <string name="exercise_detail_secondary_muscles">Sekundární: %1$s</string>
+    <string name="exercise_detail_section_muscles">SVALY</string>
+    <string name="exercise_detail_section_equipment">VYBAVENÍ</string>
+    <string name="exercise_detail_section_instructions">INSTRUKCE</string>
+    <string name="exercise_detail_sets_completed_format">%1$d dokončených sérií</string>
+    <string name="exercise_records_heaviest">Nejvyšší váha</string>
+    <string name="exercise_records_most_reps">Nejvíc opakování</string>
+    <string name="exercise_records_est_1rm">Nejlepší odhad 1RM</string>
+    <string name="exercise_records_highest_volume">Nejvyšší objem</string>
 
     <!-- Exercise Library -->
-    <string name="exercise_library_title">LIBRARY</string>
-    <string name="exercise_library_favorites_filter">❤️ Favorites</string>
-    <string name="exercise_library_search_placeholder">Search exercises...</string>
-    <string name="exercise_library_no_favorites">No favorites yet</string>
-    <string name="exercise_library_no_exercises">No exercises found</string>
+    <string name="exercise_library_title">KNIHOVNA</string>
+    <string name="exercise_library_favorites_filter">❤️ Oblíbené</string>
+    <string name="exercise_library_search_placeholder">Hledat cviky...</string>
+    <string name="exercise_library_no_favorites">Zatím žádné oblíbené</string>
+    <string name="exercise_library_no_exercises">Žádné cviky nenalezeny</string>
 
     <!-- Muscle Distribution Chart -->
-    <string name="progress_volume_by_muscle">Volume by Muscle Group</string>
+    <string name="progress_volume_by_muscle">Objem podle svalové partie</string>
 
     <!-- Workouts Per Week Chart -->
-    <string name="progress_workouts_per_week">Workouts Per Week</string>
+    <string name="progress_workouts_per_week">Tréninky za týden</string>
 
     <!-- Weekly Calendar Strip -->
-    <string name="progress_this_week">This Week</string>
-    <string name="progress_workouts_count">%1$d/%2$d workouts</string>
+    <string name="progress_this_week">Tento týden</string>
+    <string name="progress_workouts_count">%1$d/%2$d tréninků</string>
 
     <!-- Weekly Activity Section -->
-    <string name="weekly_activity_title">WEEKLY ACTIVITY</string>
-    <string name="weekly_activity_rest_day">REST DAY</string>
-    <string name="weekly_activity_no_workout">Recovery — no workout scheduled</string>
-    <string name="weekly_activity_duration_label">DURATION</string>
-    <string name="weekly_activity_exercises_label">EXERCISES</string>
-    <string name="weekly_activity_volume_label">VOLUME</string>
+    <string name="weekly_activity_title">TÝDENNÍ AKTIVITA</string>
+    <string name="weekly_activity_day_status_cd">%1$s: %2$s</string>
+    <string name="weekly_activity_rest_day">DEN VOLNA</string>
+    <string name="weekly_activity_no_workout">Regenerace — žádný trénink v plánu</string>
+    <string name="weekly_activity_duration_label">DÉLKA</string>
+    <string name="weekly_activity_exercises_label">CVIKY</string>
+    <string name="weekly_activity_volume_label">OBJEM</string>
 
     <!-- Log Session (manual log) -->
-    <string name="log_session_title">LOG SESSION</string>
-    <string name="log_session_notes">NOTES</string>
-    <string name="log_session_save_workout">SAVE WORKOUT</string>
-    <string name="log_session_workout_name">WORKOUT NAME</string>
-    <string name="log_session_duration_mins">DURATION (MINS)</string>
-    <string name="log_session_exercise_name">EXERCISE NAME</string>
-    <string name="log_session_notes_label">Workout notes (optional)</string>
+    <string name="log_session_title">ZAPSAT TRÉNINK</string>
+    <string name="log_session_notes">POZNÁMKY</string>
+    <string name="log_session_save_workout">ULOŽIT TRÉNINK</string>
+    <string name="log_session_workout_name">NÁZEV TRÉNINKU</string>
+    <string name="log_session_duration_mins">DÉLKA (MIN)</string>
+    <string name="log_session_exercise_name">NÁZEV CVIKU</string>
+    <string name="log_session_notes_label">Poznámky k tréninku (volitelné)</string>
 
     <!-- Set Input Row -->
     <string name="set_input_rpe_format">RPE %1$s</string>
 
     <!-- Assigned Workout Card / Plan -->
-    <string name="workout_card_exercises_count">%1$d exercises</string>
+    <string name="workout_card_exercises_count">%1$d cviků</string>
     <string name="workout_card_duration_format">%1$d min</string>
 
     <!-- Exercise Tab Strip -->
-    <string name="exercise_tab_completed_cd">Completed</string>
+    <string name="exercise_tab_completed_cd">Dokončeno</string>
 </resources>

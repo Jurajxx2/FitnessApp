@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.log_this_meal
+import coachfoska.composeapp.generated.resources.meal_detail_screen_title
 import coachfoska.composeapp.generated.resources.meal_ingredients_section
 import coachfoska.composeapp.generated.resources.meal_macro_label_carbs
 import coachfoska.composeapp.generated.resources.meal_macro_label_fat
@@ -60,7 +61,7 @@ fun MealDetailScreen(
     onLogMeal: () -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = "MEAL", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.meal_detail_screen_title), onBackClick = onBackClick)
 
         when {
             state.selectedMeal != null -> {

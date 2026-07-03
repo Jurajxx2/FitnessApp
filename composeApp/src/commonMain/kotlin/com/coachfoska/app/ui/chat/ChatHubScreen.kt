@@ -30,11 +30,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.chat_ai_coach_title
+import coachfoska.composeapp.generated.resources.chat_ask_ai_coach
+import coachfoska.composeapp.generated.resources.chat_coach_title
+import coachfoska.composeapp.generated.resources.chat_image_preview
+import coachfoska.composeapp.generated.resources.chat_no_messages_yet
 import com.coachfoska.app.BuildKonfig
 import com.coachfoska.app.domain.model.ChatConversationSummary
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.MessageContent
 import com.coachfoska.app.presentation.chat.ChatHubViewModel
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -62,13 +69,13 @@ fun ChatHubScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         val humanSummary = summaries.firstOrNull { it.chatType == ChatType.Human }
         ConversationRow(
-            title = "Coach",
+            title = stringResource(Res.string.chat_coach_title),
             subtitle = humanSummary?.lastMessage?.let { msg ->
                 when (val c = msg.content) {
                     is MessageContent.Text -> c.text
-                    is MessageContent.Image -> "📷 Image"
+                    is MessageContent.Image -> stringResource(Res.string.chat_image_preview)
                 }
-            } ?: "No messages yet",
+            } ?: stringResource(Res.string.chat_no_messages_yet),
             unreadCount = humanSummary?.unreadCount ?: 0,
             icon = { Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(28.dp)) },
             onClick = onHumanCoachClick
@@ -78,13 +85,13 @@ fun ChatHubScreen(
         if (BuildKonfig.AI_COACH_ENABLED) {
             val aiSummary = summaries.firstOrNull { it.chatType == ChatType.Ai }
             ConversationRow(
-                title = "AI Coach",
+                title = stringResource(Res.string.chat_ai_coach_title),
                 subtitle = aiSummary?.lastMessage?.let { msg ->
                     when (val c = msg.content) {
                         is MessageContent.Text -> c.text
-                        is MessageContent.Image -> "📷 Image"
+                        is MessageContent.Image -> stringResource(Res.string.chat_image_preview)
                     }
-                } ?: "Ask your AI coach anything",
+                } ?: stringResource(Res.string.chat_ask_ai_coach),
                 unreadCount = aiSummary?.unreadCount ?: 0,
                 icon = { Icon(Icons.Default.SmartToy, contentDescription = null, modifier = Modifier.size(28.dp)) },
                 onClick = onAiCoachClick

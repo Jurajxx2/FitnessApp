@@ -43,6 +43,7 @@ import coachfoska.composeapp.generated.resources.activity_duration_label
 import coachfoska.composeapp.generated.resources.activity_easy
 import coachfoska.composeapp.generated.resources.activity_effort_section
 import coachfoska.composeapp.generated.resources.activity_hard
+import coachfoska.composeapp.generated.resources.activity_log_type_title
 import coachfoska.composeapp.generated.resources.activity_notes_label
 import coachfoska.composeapp.generated.resources.activity_rpe_format
 import coachfoska.composeapp.generated.resources.activity_save
@@ -103,7 +104,7 @@ fun LogActivityFormScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CoachTopBar(
-            title = "LOG ${state.selectedType.displayName.uppercase()}",
+            title = stringResource(Res.string.activity_log_type_title, state.selectedType.displayName.uppercase()),
             onBackClick = onBackClick,
         )
 

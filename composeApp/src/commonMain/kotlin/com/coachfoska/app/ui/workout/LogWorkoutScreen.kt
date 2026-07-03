@@ -62,6 +62,7 @@ import com.coachfoska.app.presentation.workout.SetDraft
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
+import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTextField
@@ -264,7 +265,7 @@ private fun ManualExerciseCard(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     IconButton(
                         onClick = onAddVideo,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(Sizes.touchTarget),
                         colors = IconButtonDefaults.iconButtonColors(
                             containerColor = if (exercise.videoUrl != null) {
                                 MaterialTheme.colorScheme.onBackground
@@ -285,7 +286,7 @@ private fun ManualExerciseCard(
                         )
                     }
                     if (onRemove != null) {
-                        IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
+                        IconButton(onClick = onRemove, modifier = Modifier.size(Sizes.touchTarget)) {
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = stringResource(Res.string.remove_cd),

@@ -62,6 +62,7 @@ import coachfoska.composeapp.generated.resources.recipe_no_ingredients
 import coachfoska.composeapp.generated.resources.recipe_no_steps
 import coachfoska.composeapp.generated.resources.recipe_tab_directions
 import coachfoska.composeapp.generated.resources.recipe_tab_ingredients
+import coachfoska.composeapp.generated.resources.recipe_title
 import coachfoska.composeapp.generated.resources.recipes_add_favorite_cd
 import coachfoska.composeapp.generated.resources.recipes_remove_favorite_cd
 import org.jetbrains.compose.resources.stringResource
@@ -80,7 +81,7 @@ fun RecipeDetailRoute(
 
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(
-            title = "RECIPE",
+            title = stringResource(Res.string.recipe_title),
             onBackClick = onBackClick,
             actions = {
                 IconButton(onClick = { viewModel.onIntent(RecipeDetailIntent.ToggleFavorite) }) {

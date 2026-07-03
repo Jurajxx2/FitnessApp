@@ -25,8 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.weekly_activity_day_status_cd
 import com.coachfoska.app.domain.model.DayActivityStatus
 import com.coachfoska.app.domain.model.WeekDayActivity
+import org.jetbrains.compose.resources.stringResource
 
 private val SquareShape = RoundedCornerShape(0.dp)
 
@@ -78,7 +81,11 @@ private fun WeekDayCell(day: WeekDayActivity, onClick: () -> Unit, modifier: Mod
         )
         Icon(
             imageVector = iconFor(day.status),
-            contentDescription = "${day.dayOfWeek.displayName}: ${day.status.name.lowercase()}",
+            contentDescription = stringResource(
+                Res.string.weekly_activity_day_status_cd,
+                day.dayOfWeek.displayName,
+                day.status.name.lowercase(),
+            ),
             tint = accent,
             modifier = Modifier.size(20.dp),
         )

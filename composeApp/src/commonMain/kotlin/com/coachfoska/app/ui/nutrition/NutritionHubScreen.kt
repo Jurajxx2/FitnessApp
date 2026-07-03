@@ -44,8 +44,17 @@ import coachfoska.composeapp.generated.resources.img_nutrition_history
 import coachfoska.composeapp.generated.resources.img_nutrition_plan
 import coachfoska.composeapp.generated.resources.log_meal_button
 import coachfoska.composeapp.generated.resources.nutrition_hub_featured_recipes
+import coachfoska.composeapp.generated.resources.nutrition_hub_history_subtitle
+import coachfoska.composeapp.generated.resources.nutrition_hub_history_title
+import coachfoska.composeapp.generated.resources.nutrition_hub_log_eyebrow
 import coachfoska.composeapp.generated.resources.nutrition_hub_no_recipes
+import coachfoska.composeapp.generated.resources.nutrition_hub_plan_eyebrow
+import coachfoska.composeapp.generated.resources.nutrition_hub_plan_subtitle
+import coachfoska.composeapp.generated.resources.nutrition_hub_plan_title
+import coachfoska.composeapp.generated.resources.nutrition_hub_track_eyebrow
 import coachfoska.composeapp.generated.resources.nutrition_hub_title
+import coachfoska.composeapp.generated.resources.nutrition_hub_water_subtitle
+import coachfoska.composeapp.generated.resources.nutrition_hub_water_title
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.presentation.nutrition.NutritionState
@@ -185,25 +194,25 @@ fun NutritionHubScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 HubImageCard(
                     imageRes = Res.drawable.img_nutrition_plan,
-                    eyebrow = "Plan",
-                    title = "Weekly Plan",
-                    subtitle = "Your meals",
+                    eyebrow = stringResource(Res.string.nutrition_hub_plan_eyebrow),
+                    title = stringResource(Res.string.nutrition_hub_plan_title),
+                    subtitle = stringResource(Res.string.nutrition_hub_plan_subtitle),
                     onClick = onPlanClick,
                     modifier = Modifier.weight(1f).aspectRatio(1f),
                 )
                 HubImageCard(
                     imageRes = Res.drawable.img_nutrition_history,
-                    eyebrow = "Log",
-                    title = "History",
-                    subtitle = "Past meals",
+                    eyebrow = stringResource(Res.string.nutrition_hub_log_eyebrow),
+                    title = stringResource(Res.string.nutrition_hub_history_title),
+                    subtitle = stringResource(Res.string.nutrition_hub_history_subtitle),
                     onClick = onHistoryClick,
                     modifier = Modifier.weight(1f).aspectRatio(1f),
                 )
                 HubImageCard(
                     imageRes = Res.drawable.img_nutrition_history,
-                    eyebrow = "Track",
-                    title = "Water",
-                    subtitle = "Daily intake",
+                    eyebrow = stringResource(Res.string.nutrition_hub_track_eyebrow),
+                    title = stringResource(Res.string.nutrition_hub_water_title),
+                    subtitle = stringResource(Res.string.nutrition_hub_water_subtitle),
                     onClick = onWaterClick,
                     modifier = Modifier.weight(1f).aspectRatio(1f),
                 )

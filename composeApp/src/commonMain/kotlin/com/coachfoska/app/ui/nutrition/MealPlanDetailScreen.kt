@@ -48,6 +48,7 @@ import coachfoska.composeapp.generated.resources.meal_plan_macro_protein
 import coachfoska.composeapp.generated.resources.meal_plan_no_meals_for_day
 import coachfoska.composeapp.generated.resources.meal_plan_no_plan
 import coachfoska.composeapp.generated.resources.meal_plan_record_meal
+import coachfoska.composeapp.generated.resources.meal_plan_screen_title
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
@@ -84,7 +85,7 @@ fun MealPlanDetailScreen(
     onSelectDay: (Int) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = "MEAL PLAN", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.meal_plan_screen_title), onBackClick = onBackClick)
 
         if (state.isLoading) {
             CoachLoadingBox()

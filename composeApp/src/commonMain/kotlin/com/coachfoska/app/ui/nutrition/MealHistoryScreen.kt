@@ -22,6 +22,7 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.meal_history_kcal_format
 import coachfoska.composeapp.generated.resources.meal_history_no_meals
 import coachfoska.composeapp.generated.resources.meal_history_protein_format
+import coachfoska.composeapp.generated.resources.meal_history_screen_title
 import coachfoska.composeapp.generated.resources.meal_history_your_logs
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
@@ -52,7 +53,7 @@ fun MealHistoryScreen(
     onLogClick: (String) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "MEAL HISTORY", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.meal_history_screen_title), onBackClick = onBackClick)
         if (state.isHistoryLoading) {
             CoachLoadingBox(Modifier.weight(1f))
         } else {

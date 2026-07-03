@@ -94,7 +94,7 @@ fun ProgressScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "MY PROGRESS", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.progress_screen_title), onBackClick = onBackClick)
         if (state.isWeightHistoryLoading) {
             CoachLoadingBox(Modifier.weight(1f))
         } else {
