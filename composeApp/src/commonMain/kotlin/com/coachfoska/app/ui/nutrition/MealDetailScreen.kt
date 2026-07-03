@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.common_grams_format
 import coachfoska.composeapp.generated.resources.log_this_meal
 import coachfoska.composeapp.generated.resources.meal_detail_screen_title
 import coachfoska.composeapp.generated.resources.meal_ingredients_section
@@ -139,7 +140,7 @@ private fun MealContent(meal: Meal, modifier: Modifier = Modifier) {
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = "${food.amountGrams.toInt()}g",
+                    text = stringResource(Res.string.common_grams_format, food.amountGrams.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                 )

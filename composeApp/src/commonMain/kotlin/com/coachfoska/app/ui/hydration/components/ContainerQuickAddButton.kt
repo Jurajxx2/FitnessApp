@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.common_favorite_cd
+import coachfoska.composeapp.generated.resources.hydration_amount_ml_format
 import com.coachfoska.app.domain.model.WaterContainer
 import org.jetbrains.compose.resources.stringResource
 
@@ -64,7 +65,7 @@ fun ContainerQuickAddButton(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "${container.volumeMl} ml",
+                text = stringResource(Res.string.hydration_amount_ml_format, container.volumeMl),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             )

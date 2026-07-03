@@ -31,6 +31,7 @@ import coachfoska.composeapp.generated.resources.day_sheet_rest_day
 import coachfoska.composeapp.generated.resources.day_sheet_workout_completed
 import com.coachfoska.app.domain.model.DayActivityStatus
 import com.coachfoska.app.domain.model.WeekDayActivity
+import com.coachfoska.app.ui.components.localizedName
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,7 +60,7 @@ fun DayDetailBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = day.dayOfWeek.displayName.uppercase(),
+                    text = day.dayOfWeek.localizedName().uppercase(),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     letterSpacing = 1.5.sp,

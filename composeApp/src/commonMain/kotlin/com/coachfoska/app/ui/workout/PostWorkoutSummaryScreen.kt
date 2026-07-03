@@ -16,6 +16,10 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.post_workout_complete_title
 import coachfoska.composeapp.generated.resources.post_workout_done
 import coachfoska.composeapp.generated.resources.progress_personal_records_format
+import coachfoska.composeapp.generated.resources.summary_duration_format
+import coachfoska.composeapp.generated.resources.summary_exercises_format
+import coachfoska.composeapp.generated.resources.summary_sets_format
+import coachfoska.composeapp.generated.resources.summary_volume_format
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.PostWorkoutSummaryState
 import com.coachfoska.app.presentation.workout.PostWorkoutSummaryViewModel
@@ -78,10 +82,10 @@ fun PostWorkoutSummaryScreen(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                SummaryStatRow("⏱", "${state.durationMinutes} min")
-                SummaryStatRow("📊", "${formatWeightKg(state.totalVolumeKg)} kg volume")
-                SummaryStatRow("✅", "${state.setsCompleted}/${state.setsTotal} sets")
-                SummaryStatRow("💪", "${state.exerciseCount} exercises")
+                SummaryStatRow("⏱", stringResource(Res.string.summary_duration_format, state.durationMinutes))
+                SummaryStatRow("📊", stringResource(Res.string.summary_volume_format, formatWeightKg(state.totalVolumeKg)))
+                SummaryStatRow("✅", stringResource(Res.string.summary_sets_format, state.setsCompleted, state.setsTotal))
+                SummaryStatRow("💪", stringResource(Res.string.summary_exercises_format, state.exerciseCount))
 
                 if (state.personalRecords.isNotEmpty()) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

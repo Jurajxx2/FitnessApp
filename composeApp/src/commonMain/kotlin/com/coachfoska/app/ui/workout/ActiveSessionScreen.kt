@@ -20,7 +20,7 @@ import coachfoska.composeapp.generated.resources.common_keep_working
 import coachfoska.composeapp.generated.resources.session_discard
 import coachfoska.composeapp.generated.resources.session_discard_confirm
 import coachfoska.composeapp.generated.resources.session_save_degraded
-import coachfoska.composeapp.generated.resources.session_volume
+import coachfoska.composeapp.generated.resources.session_volume_format
 import coachfoska.composeapp.generated.resources.substitute_applied
 import coachfoska.composeapp.generated.resources.substitute_cant_do
 import com.coachfoska.app.core.util.LocalReduceMotion
@@ -177,7 +177,7 @@ fun ActiveSessionScreen(
             )
             val displayedVolume = if (LocalReduceMotion.current) volume else animatedVolume
             Text(
-                text = "${stringResource(Res.string.session_volume)} $displayedVolume kg",
+                text = stringResource(Res.string.session_volume_format, displayedVolume),
                 style = MetricSmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),

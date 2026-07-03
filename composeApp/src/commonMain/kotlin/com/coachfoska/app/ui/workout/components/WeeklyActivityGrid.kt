@@ -29,6 +29,7 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.weekly_activity_day_status_cd
 import com.coachfoska.app.domain.model.DayActivityStatus
 import com.coachfoska.app.domain.model.WeekDayActivity
+import com.coachfoska.app.ui.components.localizedName
 import org.jetbrains.compose.resources.stringResource
 
 private val SquareShape = RoundedCornerShape(0.dp)
@@ -75,7 +76,7 @@ private fun WeekDayCell(day: WeekDayActivity, onClick: () -> Unit, modifier: Mod
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = day.dayOfWeek.displayName.first().toString(),
+            text = day.dayOfWeek.localizedName().first().toString(),
             style = MaterialTheme.typography.labelSmall,
             color = accent,
         )
@@ -83,7 +84,7 @@ private fun WeekDayCell(day: WeekDayActivity, onClick: () -> Unit, modifier: Mod
             imageVector = iconFor(day.status),
             contentDescription = stringResource(
                 Res.string.weekly_activity_day_status_cd,
-                day.dayOfWeek.displayName,
+                day.dayOfWeek.localizedName(),
                 day.status.name.lowercase(),
             ),
             tint = accent,

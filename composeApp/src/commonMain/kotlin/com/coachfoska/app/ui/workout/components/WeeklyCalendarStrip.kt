@@ -17,6 +17,7 @@ import coachfoska.composeapp.generated.resources.progress_this_week
 import coachfoska.composeapp.generated.resources.progress_workouts_count
 import com.coachfoska.app.domain.model.CompletionStatus
 import com.coachfoska.app.domain.model.DayCompletion
+import com.coachfoska.app.ui.components.localizedShortName
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -52,7 +53,7 @@ fun WeeklyCalendarStrip(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             completions.forEach { day ->
-                val label = day.dayOfWeek.displayName.take(2)
+                val label = day.dayOfWeek.localizedShortName()
                 val bgColor = when (day.status) {
                     CompletionStatus.COMPLETED -> MaterialTheme.colorScheme.primary
                     CompletionStatus.TODAY -> MaterialTheme.colorScheme.primaryContainer

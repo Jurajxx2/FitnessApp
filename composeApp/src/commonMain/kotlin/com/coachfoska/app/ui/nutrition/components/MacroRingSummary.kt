@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.common_grams_format
 import coachfoska.composeapp.generated.resources.macro_ring_carbs
 import coachfoska.composeapp.generated.resources.macro_ring_fat
 import coachfoska.composeapp.generated.resources.macro_ring_protein
@@ -86,7 +87,7 @@ private fun MacroLine(label: String, grams: Float) {
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
         )
         Text(
-            text = "${animated.toInt()}g",
+            text = stringResource(Res.string.common_grams_format, animated.toInt()),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.SemiBold,

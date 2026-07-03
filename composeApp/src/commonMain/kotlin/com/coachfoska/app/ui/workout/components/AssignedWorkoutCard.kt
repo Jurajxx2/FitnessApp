@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.workout_card_duration_format
 import coachfoska.composeapp.generated.resources.workout_card_exercises_count
 import com.coachfoska.app.domain.model.Workout
 import org.jetbrains.compose.resources.stringResource
@@ -80,7 +81,7 @@ fun AssignedWorkoutCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MetaItem(Icons.Filled.Schedule, "${workout.durationMinutes} Min")
+                MetaItem(Icons.Filled.Schedule, stringResource(Res.string.workout_card_duration_format, workout.durationMinutes))
                 Text(
                     text = stringResource(Res.string.workout_card_exercises_count, workout.exercises.size),
                     style = MaterialTheme.typography.labelSmall,

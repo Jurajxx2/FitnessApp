@@ -71,6 +71,7 @@ import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.FoskaFilterChip
+import com.coachfoska.app.ui.components.localizedShortName
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -204,7 +205,7 @@ fun WorkoutEditorScreen(
                             val day = DAY_ORDER[idx]
                             FoskaFilterChip(
                                 selected = state.dayOfWeek == day,
-                                label = day.displayName.take(3).uppercase(),
+                                label = day.localizedShortName().uppercase(),
                                 onClick = {
                                     // Tap again to clear
                                     onIntent(WorkoutEditorIntent.UpdateDay(

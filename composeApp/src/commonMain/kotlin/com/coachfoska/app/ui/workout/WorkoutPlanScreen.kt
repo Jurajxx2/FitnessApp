@@ -45,6 +45,7 @@ import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.EmptyState
 import com.coachfoska.app.ui.components.FoskaFilterChip
 import com.coachfoska.app.ui.components.SectionHeader
+import com.coachfoska.app.ui.components.localizedName
 import kotlinx.datetime.Instant
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -267,7 +268,7 @@ private fun WorkoutPlanCard(
 
             workout.dayOfWeek?.let {
                 Text(
-                    text = it.displayName.uppercase(),
+                    text = it.localizedName().uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                     letterSpacing = 1.sp

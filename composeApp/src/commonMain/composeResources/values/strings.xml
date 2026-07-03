@@ -365,6 +365,7 @@
     <string name="session_discard">Zahodit trénink</string>
     <string name="session_discard_confirm">Zahodit tento trénink? Zapsané série budou odebrány z historie.</string>
     <string name="session_volume">Objem</string>
+    <string name="session_volume_format">Objem %1$s kg</string>
     <string name="session_save_degraded">Živé ukládání není dostupné. Dokončení tréninku zkusí uložit celý zápis znovu.</string>
     <string name="common_keep_working">Pokračovat</string>
     <string name="recipes_title">RECEPTY</string>
@@ -394,7 +395,7 @@
     <string name="common_more_options_cd">Další možnosti</string>
     <string name="common_clear_cd">Vymazat</string>
     <string name="common_search_cd">Hledat</string>
-    <string name="common_save_workout">ULOŽIT TRÉNINK</string>
+    <string name="common_grams_format">%1$dg</string>
 
     <!-- Splash -->
     <string name="splash_coach">COACH</string>
@@ -431,6 +432,7 @@
     <string name="hydration_container_name_label">Název (např. lahev do fitka)</string>
     <string name="hydration_container_volume_label">Objem (ml)</string>
     <string name="hydration_ml">ml</string>
+    <string name="hydration_amount_ml_format">%1$d ml</string>
     <string name="hydration_goal_format">/ %1$d ml</string>
 
     <!-- Activity Selector / Form -->
@@ -595,6 +597,10 @@
     <!-- Post Workout Summary -->
     <string name="post_workout_complete_title">Trénink dokončen!</string>
     <string name="post_workout_done">HOTOVO</string>
+    <string name="summary_duration_format">%1$d min</string>
+    <string name="summary_volume_format">%1$s kg objem</string>
+    <string name="summary_sets_format">%1$d/%2$d sérií</string>
+    <string name="summary_exercises_format">%1$d cviků</string>
 
     <!-- Exercise Detail -->
     <string name="exercise_detail_title">CVIK</string>
@@ -660,4 +666,20 @@
 
     <!-- Exercise Tab Strip -->
     <string name="exercise_tab_completed_cd">Dokončeno</string>
+
+    <!-- Day Names -->
+    <string name="day_monday">Pondělí</string>
+    <string name="day_tuesday">Úterý</string>
+    <string name="day_wednesday">Středa</string>
+    <string name="day_thursday">Čtvrtek</string>
+    <string name="day_friday">Pátek</string>
+    <string name="day_saturday">Sobota</string>
+    <string name="day_sunday">Neděle</string>
+    <string name="day_short_monday">Po</string>
+    <string name="day_short_tuesday">Út</string>
+    <string name="day_short_wednesday">St</string>
+    <string name="day_short_thursday">Čt</string>
+    <string name="day_short_friday">Pá</string>
+    <string name="day_short_saturday">So</string>
+    <string name="day_short_sunday">Ne</string>
 </resources>

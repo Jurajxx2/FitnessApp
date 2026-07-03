@@ -29,6 +29,7 @@ import coachfoska.composeapp.generated.resources.hydration_custom
 import coachfoska.composeapp.generated.resources.hydration_custom_amount_title
 import coachfoska.composeapp.generated.resources.hydration_enable_reminders
 import coachfoska.composeapp.generated.resources.hydration_manage
+import coachfoska.composeapp.generated.resources.hydration_amount_ml_format
 import coachfoska.composeapp.generated.resources.hydration_ml
 import coachfoska.composeapp.generated.resources.hydration_quick_add
 import coachfoska.composeapp.generated.resources.hydration_remind_every
@@ -139,7 +140,7 @@ private fun TodayLogSection(logs: List<WaterLog>, onDelete: (String) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${log.amountMl} ml",
+                        text = stringResource(Res.string.hydration_amount_ml_format, log.amountMl),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f)
