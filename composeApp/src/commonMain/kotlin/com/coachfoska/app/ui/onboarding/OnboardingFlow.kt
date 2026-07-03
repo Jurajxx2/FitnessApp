@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingStep
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
+import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.ui.onboarding.components.OnboardingTopBar
 import com.coachfoska.app.ui.onboarding.screens.*
 import org.koin.compose.viewmodel.koinViewModel
@@ -66,7 +66,7 @@ fun OnboardingRoute(
             label = "ob-step"
         ) { current ->
             Box(Modifier.fillMaxSize()) {
-                val bodyModifier = Modifier.padding(horizontal = 24.dp)
+                val bodyModifier = Modifier.padding(horizontal = Spacing.xl)
                 when (current) {
                     OnboardingStep.GENDER -> GenderStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)
                     OnboardingStep.GOAL -> GoalStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)

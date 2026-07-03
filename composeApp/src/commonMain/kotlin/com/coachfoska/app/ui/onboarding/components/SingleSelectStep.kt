@@ -14,7 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.coachfoska.app.theme.Spacing
 
 /**
  * A title/subtitle + a vertical list of selectable option rows. [rowContent] is `RowScope`-scoped so
@@ -30,17 +30,17 @@ fun <T> SingleSelectStep(
     modifier: Modifier = Modifier,
     rowContent: @Composable RowScope.(T) -> Unit
 ) {
-    Column(modifier.fillMaxSize().padding(top = 16.dp, bottom = 24.dp)) {
+    Column(modifier.fillMaxSize().padding(top = Spacing.lg, bottom = Spacing.xl)) {
         Text(title, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
         Text(
             subtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+            modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.xl)
         )
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             options.forEach { option ->
                 SelectableCard(selected = option == selected, onClick = { onSelect(option) }) {

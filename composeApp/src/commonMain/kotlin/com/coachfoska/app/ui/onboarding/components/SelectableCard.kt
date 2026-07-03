@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import com.coachfoska.app.theme.Sizes
+import com.coachfoska.app.theme.Spacing
 
 /** Sharp-edged selectable surface. White border + slight scale when selected. */
 @Composable
@@ -44,6 +47,7 @@ fun SelectableCard(
             .background(MaterialTheme.colorScheme.surface, RectangleShape)
             .border(BorderStroke(if (selected) 2.dp else 1.dp, border), RectangleShape)
             .clickable(onClick = onClick)
-            .padding(20.dp)
+            .heightIn(min = Sizes.touchTarget)
+            .padding(Spacing.lg + Spacing.xs)
     ) { content() }
 }
