@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
+import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.onboarding.components.PlanLoadingAnimation
 import kotlinx.coroutines.delay
@@ -45,16 +46,16 @@ fun PlanLoadingStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit
         "${state.data.frequencyPerWeek}× / week"
     ).filterNotNull()
 
-    Column(modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier.fillMaxSize().padding(Spacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
         val headline = if (state.isCompleted && animationDone)
             stringResource(Res.string.ob_loading_done)
         else
             stringResource(Res.string.ob_loading_preparing, state.data.name)
-        Text(headline, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = 24.dp))
+        Text(headline, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = Spacing.xl))
         if (state.error != null) {
             Text(stringResource(Res.string.ob_loading_error), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-            CoachButton(text = stringResource(Res.string.ob_loading_retry), onClick = { animationDone = false; onIntent(OnboardingIntent.CompleteOnboarding) }, shape = RectangleShape, modifier = Modifier.padding(top = 16.dp))
+            CoachButton(text = stringResource(Res.string.ob_loading_retry), onClick = { animationDone = false; onIntent(OnboardingIntent.CompleteOnboarding) }, shape = RectangleShape, modifier = Modifier.padding(top = Spacing.lg))
         } else {
             PlanLoadingAnimation(rows = rows, onFinished = { animationDone = true })
         }

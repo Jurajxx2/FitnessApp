@@ -15,6 +15,7 @@ import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
 import com.coachfoska.app.theme.BrandRed
 import com.coachfoska.app.theme.Error
+import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.theme.Success
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.onboarding.components.ScrollWheelPicker
@@ -38,10 +39,10 @@ fun BodyStatsStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
     }
     val bmiText = ((d.bmi * 10).toInt() / 10f).toString()
 
-    Column(modifier.fillMaxSize().padding(top = 16.dp, bottom = 24.dp)) {
+    Column(modifier.fillMaxSize().padding(top = Spacing.lg, bottom = Spacing.xl)) {
         Text(stringResource(Res.string.ob_body_title), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
-        Text(stringResource(Res.string.ob_body_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp, bottom = 16.dp))
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(Res.string.ob_body_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.lg))
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(stringResource(Res.string.ob_body_age), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 ScrollWheelPicker(values = (14..100).toList(), selected = d.age, onSelected = { onIntent(OnboardingIntent.SetAge(it)) }, label = { "$it" })
@@ -55,7 +56,7 @@ fun BodyStatsStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
                 ScrollWheelPicker(values = (40..200).toList(), selected = d.weightKg.toInt(), onSelected = { onIntent(OnboardingIntent.SetWeight(it.toFloat())) }, label = { "$it kg" })
             }
         }
-        Row(Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(vertical = Spacing.lg), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(10.dp).clip(RectangleShape).background(dotColor))
             Text(
                 "  ${stringResource(Res.string.ob_bmi_label)}: $bmiText — $bmiCategoryLabel",

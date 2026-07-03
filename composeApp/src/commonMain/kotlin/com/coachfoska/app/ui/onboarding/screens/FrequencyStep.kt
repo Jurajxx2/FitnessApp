@@ -13,6 +13,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
+import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.onboarding.components.WeekdayPicker
 import com.coachfoska.app.ui.onboarding.rememberNotificationPermissionRequester
@@ -40,7 +41,7 @@ fun FrequencyStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
     }
     val permissionRequester = rememberNotificationPermissionRequester()
 
-    Column(modifier.fillMaxSize().padding(top = 16.dp, bottom = 24.dp)) {
+    Column(modifier.fillMaxSize().padding(top = Spacing.lg, bottom = Spacing.xl)) {
         Text(
             stringResource(Res.string.ob_frequency_title),
             style = MaterialTheme.typography.headlineMedium,
@@ -50,7 +51,7 @@ fun FrequencyStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
             stringResource(Res.string.ob_frequency_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+            modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.xl)
         )
         WeekdayPicker(
             selected = state.data.trainingDays,
@@ -62,9 +63,9 @@ fun FrequencyStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg)
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(Spacing.xl))
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -88,7 +89,7 @@ fun FrequencyStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
                 stringResource(Res.string.ob_days_notify),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = Spacing.sm)
             )
         }
         Spacer(Modifier.weight(1f))

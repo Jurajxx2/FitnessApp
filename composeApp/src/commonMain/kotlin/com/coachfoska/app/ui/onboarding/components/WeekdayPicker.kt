@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.coachfoska.app.theme.Sizes
 import kotlinx.datetime.DayOfWeek
 
 /**
@@ -41,7 +42,7 @@ fun WeekdayPicker(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .weight(1f)
-                    .defaultMinSize(minHeight = 48.dp)
+                    .defaultMinSize(minHeight = Sizes.touchTarget)
                     .background(bg, RectangleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
                     .toggleable(
