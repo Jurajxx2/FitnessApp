@@ -101,6 +101,7 @@ import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
 import com.coachfoska.app.presentation.profile.ProfileViewModel
+import com.coachfoska.app.presentation.workout.WorkoutEditorViewModel
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.data.remote.datasource.HydrationRemoteDataSource
 import com.coachfoska.app.data.repository.HydrationRepositoryImpl
@@ -256,6 +257,9 @@ val viewModelModule = module {
     }
     viewModel { (userId: String, logId: String) ->
         PostWorkoutSummaryViewModel(get(), userId, logId)
+    }
+    viewModel { (userId: String) ->
+        WorkoutEditorViewModel(get(), get(), get(), userId)
     }
 }
 

@@ -326,4 +326,23 @@
     <string name="detail_title">WORKOUT</string>
     <string name="detail_start_workout">Start workout</string>
     <string name="detail_coach_readonly">Coach plan — start it or substitute an exercise for your own copy.</string>
+
+    <!-- Workout Editor (Task 7) -->
+    <string name="editor_title_new">New workout</string>
+    <string name="editor_title_edit">Edit workout</string>
+    <string name="editor_name_label">Workout name</string>
+    <string name="editor_name_error">Give it a name</string>
+    <string name="editor_exercises_error">Add at least one exercise</string>
+    <string name="editor_add_exercise">Add exercise</string>
+    <string name="editor_day_label">Day (optional)</string>
+    <string name="editor_sets">Sets</string>
+    <string name="editor_reps">Reps</string>
+    <string name="editor_rest">Rest (s)</string>
+    <string name="editor_save">Save workout</string>
+    <string name="editor_search_exercises">Search exercises…</string>
+    <string name="editor_picker_done">Done</string>
+    <string name="editor_picker_title">Add exercises</string>
+    <string name="editor_move_up_cd">Move up</string>
+    <string name="editor_move_down_cd">Move down</string>
+    <string name="editor_remove_cd">Remove exercise</string>
 </resources>

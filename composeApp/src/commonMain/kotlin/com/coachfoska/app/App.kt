@@ -64,6 +64,7 @@ import com.coachfoska.app.ui.workout.WorkoutPlanRoute
 import com.coachfoska.app.ui.workout.ActiveSessionRoute
 import com.coachfoska.app.ui.workout.PostWorkoutSummaryRoute
 import com.coachfoska.app.ui.workout.ProgressDashboardRoute
+import com.coachfoska.app.ui.workout.WorkoutEditorRoute
 import com.coachfoska.app.ui.hydration.HydrationRoute
 
 @Composable
@@ -391,7 +392,14 @@ fun App(openHumanChat: Boolean = false) {
                     )
                 }
 
-                composable<WorkoutEditor> { /* Task 7 screen */ Box {} }
+                composable<WorkoutEditor> { backStackEntry ->
+                    val route = backStackEntry.toRoute<WorkoutEditor>()
+                    WorkoutEditorRoute(
+                        userId = currentUserId,
+                        workoutId = route.workoutId,
+                        onDone = { navController.popBackStack() },
+                    )
+                }
 
                 composable<ExerciseLibrary> {
                     ExerciseLibraryRoute(
