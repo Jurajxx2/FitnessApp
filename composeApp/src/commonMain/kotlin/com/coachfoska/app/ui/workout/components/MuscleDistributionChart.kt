@@ -9,8 +9,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.progress_volume_by_muscle
 import com.coachfoska.app.domain.model.MuscleVolumeEntry
 import com.coachfoska.app.theme.muscleGroupColor
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun MuscleDistributionChart(
@@ -19,7 +22,7 @@ fun MuscleDistributionChart(
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Volume by Muscle Group",
+            text = stringResource(Res.string.progress_volume_by_muscle),
             style = MaterialTheme.typography.titleSmall,
         )
         entries.forEachIndexed { index, entry ->

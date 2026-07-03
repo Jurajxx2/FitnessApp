@@ -23,9 +23,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.log_meal_button
+import coachfoska.composeapp.generated.resources.meal_log_choose_photo
+import coachfoska.composeapp.generated.resources.meal_log_enter_manually
+import coachfoska.composeapp.generated.resources.meal_log_take_photo
 import com.coachfoska.app.core.util.MediaCaptureMode
 import com.coachfoska.app.core.util.rememberGalleryPickerLauncher
 import com.coachfoska.app.core.util.rememberPhotoCaptureLauncher
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,16 +50,16 @@ fun LogMealOptionsSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
             Text(
-                text = "LOG MEAL",
+                text = stringResource(Res.string.log_meal_button),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                 letterSpacing = 1.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
-            LogMealOption(Icons.Default.CameraAlt, "Take Photo") { takePhoto() }
-            LogMealOption(Icons.Default.Image, "Choose Photo") { pickPhoto() }
-            LogMealOption(Icons.Default.Edit, "Enter Manually") { onDismiss(); onManual() }
+            LogMealOption(Icons.Default.CameraAlt, stringResource(Res.string.meal_log_take_photo)) { takePhoto() }
+            LogMealOption(Icons.Default.Image, stringResource(Res.string.meal_log_choose_photo)) { pickPhoto() }
+            LogMealOption(Icons.Default.Edit, stringResource(Res.string.meal_log_enter_manually)) { onDismiss(); onManual() }
         }
     }
 }

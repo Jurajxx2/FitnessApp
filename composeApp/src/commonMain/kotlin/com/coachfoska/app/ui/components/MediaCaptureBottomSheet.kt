@@ -11,10 +11,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.media_add_photo_title
+import coachfoska.composeapp.generated.resources.media_add_video_title
+import coachfoska.composeapp.generated.resources.media_record_video
+import coachfoska.composeapp.generated.resources.media_take_photo
+import coachfoska.composeapp.generated.resources.media_upload_gallery
 import com.coachfoska.app.core.util.MediaCaptureMode
 import com.coachfoska.app.core.util.rememberGalleryPickerLauncher
 import com.coachfoska.app.core.util.rememberPhotoCaptureLauncher
 import com.coachfoska.app.core.util.rememberVideoCaptureLauncher
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +43,7 @@ fun MediaCaptureBottomSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = if (mode == MediaCaptureMode.PHOTO) "ADD PHOTO" else "ADD VIDEO",
+                text = if (mode == MediaCaptureMode.PHOTO) stringResource(Res.string.media_add_photo_title) else stringResource(Res.string.media_add_video_title),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
@@ -44,23 +51,23 @@ fun MediaCaptureBottomSheet(
             if (mode == MediaCaptureMode.PHOTO) {
                 MediaSheetOption(
                     icon = Icons.Default.CameraAlt,
-                    label = "Take Photo",
+                    label = stringResource(Res.string.media_take_photo),
                     onClick = { capturePhoto() }
                 )
                 MediaSheetOption(
                     icon = Icons.Default.Image,
-                    label = "Upload from Gallery",
+                    label = stringResource(Res.string.media_upload_gallery),
                     onClick = { pickFromGallery() }
                 )
             } else {
                 MediaSheetOption(
                     icon = Icons.Default.Videocam,
-                    label = "Record Video",
+                    label = stringResource(Res.string.media_record_video),
                     onClick = { captureVideo() }
                 )
                 MediaSheetOption(
                     icon = Icons.Default.Image,
-                    label = "Upload from Gallery",
+                    label = stringResource(Res.string.media_upload_gallery),
                     onClick = { pickFromGallery() }
                 )
             }

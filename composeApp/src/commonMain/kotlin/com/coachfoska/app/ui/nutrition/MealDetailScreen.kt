@@ -15,6 +15,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.log_this_meal
+import coachfoska.composeapp.generated.resources.meal_ingredients_section
+import coachfoska.composeapp.generated.resources.meal_macro_label_carbs
+import coachfoska.composeapp.generated.resources.meal_macro_label_fat
+import coachfoska.composeapp.generated.resources.meal_macro_label_kcal
+import coachfoska.composeapp.generated.resources.meal_macro_label_protein
+import coachfoska.composeapp.generated.resources.meal_not_found
 import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
@@ -68,7 +74,7 @@ fun MealDetailScreen(
             state.isLoading || state.mealPlan == null -> CoachLoadingBox()
             else -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "Meal not found.",
+                    text = stringResource(Res.string.meal_not_found),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
@@ -109,7 +115,7 @@ private fun MealContent(meal: Meal, modifier: Modifier = Modifier) {
 
         item("ingredients-header") {
             Text(
-                text = "INGREDIENTS",
+                text = stringResource(Res.string.meal_ingredients_section),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                 letterSpacing = 1.5.sp,
@@ -154,10 +160,10 @@ private fun MacrosBand(meal: Meal) {
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
-        MacroItem("${meal.totalCalories.toInt()}", "kcal")
-        MacroItem("${meal.totalProtein.toInt()}g", "protein")
-        MacroItem("${meal.totalCarbs.toInt()}g", "carbs")
-        MacroItem("${meal.totalFat.toInt()}g", "fat")
+        MacroItem("${meal.totalCalories.toInt()}", stringResource(Res.string.meal_macro_label_kcal))
+        MacroItem("${meal.totalProtein.toInt()}g", stringResource(Res.string.meal_macro_label_protein))
+        MacroItem("${meal.totalCarbs.toInt()}g", stringResource(Res.string.meal_macro_label_carbs))
+        MacroItem("${meal.totalFat.toInt()}g", stringResource(Res.string.meal_macro_label_fat))
     }
 }
 

@@ -18,8 +18,14 @@ import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.meal_history_kcal_format
+import coachfoska.composeapp.generated.resources.meal_history_no_meals
+import coachfoska.composeapp.generated.resources.meal_history_protein_format
+import coachfoska.composeapp.generated.resources.meal_history_your_logs
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -57,7 +63,7 @@ fun MealHistoryScreen(
             ) {
                 item {
                     Text(
-                        text = "YOUR LOGS",
+                        text = stringResource(Res.string.meal_history_your_logs),
                         style = MaterialTheme.typography.displayMedium,
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -70,7 +76,7 @@ fun MealHistoryScreen(
                 if (state.mealHistory.isEmpty()) {
                     item {
                         Text(
-                            text = "No meals logged yet.",
+                            text = stringResource(Res.string.meal_history_no_meals),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                         )
@@ -112,14 +118,14 @@ private fun MealLogCard(log: MealLog, onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${log.totalCalories.toInt()} KCAL",
+                    text = stringResource(Res.string.meal_history_kcal_format, log.totalCalories.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
                 Box(modifier = Modifier.size(3.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)))
                 Text(
-                    text = "${log.totalProtein.toInt()}G PROTEIN",
+                    text = stringResource(Res.string.meal_history_protein_format, log.totalProtein.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )

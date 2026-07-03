@@ -16,8 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.actual_reps_label
+import coachfoska.composeapp.generated.resources.actual_weight_label
+import coachfoska.composeapp.generated.resources.set_input_rpe_format
+import coachfoska.composeapp.generated.resources.set_number_format
 import com.coachfoska.app.presentation.workout.SetDraft
 import com.coachfoska.app.ui.components.CoachTextField
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun SetInputRow(
@@ -32,14 +38,14 @@ internal fun SetInputRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "SET ${setDraft.sortOrder}",
+            text = stringResource(Res.string.set_number_format, setDraft.sortOrder),
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.width(56.dp),
         )
         CoachTextField(
             value = setDraft.actualReps?.toString() ?: "",
             onValueChange = { onActualReps(it.toIntOrNull()) },
-            label = "Reps",
+            label = stringResource(Res.string.actual_reps_label),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.width(72.dp),
         )
@@ -47,7 +53,7 @@ internal fun SetInputRow(
         CoachTextField(
             value = setDraft.actualWeightKg?.toString() ?: "",
             onValueChange = { onActualWeight(it.toFloatOrNull()) },
-            label = "kg",
+            label = stringResource(Res.string.actual_weight_label),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.width(80.dp),
         )
@@ -60,7 +66,7 @@ internal fun SetInputRow(
                 steps = 8,
             )
             Text(
-                text = "RPE ${setDraft.rpe ?: "-"}",
+                text = stringResource(Res.string.set_input_rpe_format, setDraft.rpe?.toString() ?: "-"),
                 style = MaterialTheme.typography.labelSmall,
             )
         }

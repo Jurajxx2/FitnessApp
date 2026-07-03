@@ -385,4 +385,254 @@
     <string name="progress_empty_action">Add weight</string>
     <string name="progress_weight_dialog_title">Add weight</string>
     <string name="progress_weight_dialog_save">Save weight</string>
+
+    <!-- Common (shared across screens) -->
+    <string name="common_see_all">SEE ALL</string>
+    <string name="common_ok">OK</string>
+    <string name="common_favorite_cd">Favorite</string>
+    <string name="common_more_options_cd">More options</string>
+    <string name="common_clear_cd">Clear</string>
+    <string name="common_search_cd">Search</string>
+    <string name="common_save_workout">SAVE WORKOUT</string>
+
+    <!-- Splash -->
+    <string name="splash_coach">COACH</string>
+    <string name="splash_foska">FOŠKA</string>
+
+    <!-- Home -->
+    <string name="home_water_label">WATER</string>
+    <string name="home_water_amount">%1$d / %2$d ml</string>
+    <string name="home_notifications_cd">Notifications</string>
+
+    <!-- Day Detail Sheet -->
+    <string name="day_sheet_rest_day">Rest day — no workout scheduled</string>
+    <string name="day_sheet_workout_completed">Workout completed</string>
+    <string name="day_sheet_planned">PLANNED</string>
+    <string name="day_sheet_done">DONE</string>
+
+    <!-- Hydration -->
+    <string name="hydration_todays_log">TODAY\'S LOG</string>
+    <string name="hydration_reminders">REMINDERS</string>
+    <string name="hydration_quick_add">QUICK ADD</string>
+    <string name="hydration_manage">Manage</string>
+    <string name="hydration_custom">custom</string>
+    <string name="hydration_custom_amount_title">Custom amount</string>
+    <string name="hydration_add">Add</string>
+    <string name="hydration_enable_reminders">Enable reminders</string>
+    <string name="hydration_remind_every">Remind every</string>
+    <string name="hydration_active_from">Active from</string>
+    <string name="hydration_active_until">Active until</string>
+    <string name="hydration_smart_suppress">Smart suppress</string>
+    <string name="hydration_smart_suppress_subtitle">Skip if goal reached or recently logged</string>
+    <string name="hydration_my_containers">MY CONTAINERS</string>
+    <string name="hydration_add_new">ADD NEW</string>
+    <string name="hydration_add_container">Add container</string>
+    <string name="hydration_container_name_label">Name (e.g. Gym Bottle)</string>
+    <string name="hydration_container_volume_label">Volume (ml)</string>
+    <string name="hydration_ml">ml</string>
+    <string name="hydration_goal_format">/ %1$d ml</string>
+
+    <!-- Activity Selector / Form -->
+    <string name="activity_what_did_you_do">What did you do?</string>
+    <string name="activity_effort_section">EFFORT (1-10)</string>
+    <string name="activity_when_section">WHEN</string>
+    <string name="activity_easy">Easy</string>
+    <string name="activity_hard">Hard</string>
+    <string name="activity_rpe_format">RPE %1$s</string>
+
+    <!-- Nutrition Hub -->
+    <string name="nutrition_hub_title">NUTRITION</string>
+    <string name="nutrition_hub_featured_recipes">FEATURED RECIPES</string>
+    <string name="nutrition_hub_no_recipes">No recipes yet.</string>
+
+    <!-- Meal Capture / Search -->
+    <string name="meal_search_food_title">SEARCH FOOD</string>
+    <string name="meal_search_type_food_label">Type food name…</string>
+    <string name="meal_photo_cd">Meal photo</string>
+    <string name="meal_analyzing_photo">ANALYZING PHOTO…</string>
+    <string name="meal_kcal_format">%1$d kcal</string>
+    <string name="meal_macro_summary">P %1$dg · C %2$dg · F %3$dg</string>
+
+    <!-- Meal Detail -->
+    <string name="meal_not_found">Meal not found.</string>
+    <string name="meal_ingredients_section">INGREDIENTS</string>
+
+    <!-- Meal History -->
+    <string name="meal_history_your_logs">YOUR LOGS</string>
+    <string name="meal_history_no_meals">No meals logged yet.</string>
+    <string name="meal_history_kcal_format">%1$d KCAL</string>
+    <string name="meal_history_protein_format">%1$dG PROTEIN</string>
+
+    <!-- Meal History Detail -->
+    <string name="meal_history_detail_not_found">Meal log not found.</string>
+    <string name="meal_history_detail_food_items">FOOD ITEMS</string>
+    <string name="meal_macro_label_kcal">kcal</string>
+    <string name="meal_macro_label_protein">protein</string>
+    <string name="meal_macro_label_carbs">carbs</string>
+    <string name="meal_macro_label_fat">fat</string>
+
+    <!-- Meal Plan Detail -->
+    <string name="meal_plan_record_meal">RECORD MEAL</string>
+    <string name="meal_plan_daily_plan">DAILY PLAN</string>
+    <string name="meal_plan_count_planned">%1$d planned</string>
+    <string name="meal_plan_no_plan">No meal plan assigned yet.</string>
+    <string name="meal_plan_no_meals_for_day">No meals for this day.</string>
+    <string name="meal_plan_assigned_meals">Assigned meals</string>
+    <string name="meal_plan_macro_kcal">KCAL</string>
+    <string name="meal_plan_macro_protein">PROTEIN</string>
+    <string name="meal_plan_macro_carbs">CARBS</string>
+    <string name="meal_plan_macro_fat">FAT</string>
+
+    <!-- Log Meal Options Sheet -->
+    <string name="meal_log_take_photo">Take Photo</string>
+    <string name="meal_log_choose_photo">Choose Photo</string>
+    <string name="meal_log_enter_manually">Enter Manually</string>
+
+    <!-- Macro Ring Summary -->
+    <string name="macro_ring_carbs">Carbs</string>
+    <string name="macro_ring_protein">Protein</string>
+    <string name="macro_ring_fat">Fat</string>
+
+    <!-- Recipe Detail -->
+    <string name="recipe_detail_prep_label">PREP</string>
+    <string name="recipe_detail_cook_label">COOK</string>
+    <string name="recipe_detail_serves_label">SERVES</string>
+    <string name="recipe_detail_level_label">LEVEL</string>
+    <string name="recipe_macro_label_kcal">kcal</string>
+    <string name="recipe_macro_label_protein">protein</string>
+    <string name="recipe_macro_label_carbs">carbs</string>
+    <string name="recipe_macro_label_fat">fat</string>
+
+    <!-- Servings Adjuster -->
+    <string name="recipe_servings_label">SERVINGS</string>
+    <string name="recipe_fewer_servings_cd">Fewer servings</string>
+    <string name="recipe_more_servings_cd">More servings</string>
+
+    <!-- Media Capture Sheet -->
+    <string name="media_add_photo_title">ADD PHOTO</string>
+    <string name="media_add_video_title">ADD VIDEO</string>
+    <string name="media_take_photo">Take Photo</string>
+    <string name="media_upload_gallery">Upload from Gallery</string>
+    <string name="media_record_video">Record Video</string>
+
+    <!-- Chat -->
+    <string name="chat_image_message_cd">Image message</string>
+
+    <!-- Activity Hub -->
+    <string name="activity_hub_title">Activity</string>
+    <string name="activity_hub_your_workouts">YOUR WORKOUTS</string>
+    <string name="activity_hub_all_workouts">ALL WORKOUTS</string>
+    <string name="activity_hub_exercises">EXERCISES</string>
+    <string name="activity_hub_no_workouts">No workouts assigned yet.</string>
+    <string name="activity_hub_workout_history">WORKOUT HISTORY</string>
+    <string name="activity_hub_progress_analytics">PROGRESS ANALYTICS</string>
+    <string name="activity_hub_browse_workouts">BROWSE WORKOUTS</string>
+
+    <!-- Workout History -->
+    <string name="workout_history_detail_title">SESSION DETAIL</string>
+    <string name="workout_history_your_progress">Your Progress</string>
+    <string name="workout_history_progress_desc">View stats, streaks &amp; records</string>
+    <string name="workout_history_no_workouts">No workouts logged yet.</string>
+    <string name="workout_history_log_not_found">Log not found</string>
+    <string name="workout_history_sets_format">%1$d SETS</string>
+    <string name="workout_history_volume_format">%1$s kg total volume</string>
+    <string name="workout_history_capture_video_cd">Capture Video</string>
+    <string name="workout_history_reps_header">Reps</string>
+    <string name="workout_history_weight_header">Weight</string>
+    <string name="workout_history_rpe_header">RPE</string>
+
+    <!-- Set Row headers -->
+    <string name="set_row_set_header">SET</string>
+    <string name="set_row_prev_header">PREV</string>
+    <string name="set_row_kg_header">KG</string>
+    <string name="set_row_reps_header">REPS</string>
+    <string name="set_row_save_header">SAVE</string>
+
+    <!-- Rest Timer -->
+    <string name="rest_timer_label">REST TIME</string>
+    <string name="rest_timer_minus30">-30s</string>
+    <string name="rest_timer_plus30">+30s</string>
+    <string name="rest_timer_skip">Skip</string>
+
+    <!-- Session Header Bar -->
+    <string name="session_menu_finish_workout">Finish workout</string>
+
+    <!-- PR Banner -->
+    <string name="pr_banner_title">Personal Record!</string>
+    <string name="pr_banner_record_format">%1$s — %2$s</string>
+
+    <!-- Progress Dashboard -->
+    <string name="progress_your_progress">YOUR PROGRESS</string>
+    <string name="progress_kg_this_week">kg this week</string>
+    <string name="progress_week_streak">week streak</string>
+    <string name="progress_recent_prs_title">🏆 Recent PRs</string>
+    <string name="progress_personal_records_format">🏆 %1$d Personal Records</string>
+
+    <!-- Post Workout Summary -->
+    <string name="post_workout_complete_title">Workout Complete!</string>
+    <string name="post_workout_done">DONE</string>
+
+    <!-- Exercise Detail -->
+    <string name="exercise_detail_title">EXERCISE</string>
+    <string name="exercise_detail_tab_guide">Guide</string>
+    <string name="exercise_detail_tab_history">History</string>
+    <string name="exercise_detail_tab_charts">Charts</string>
+    <string name="exercise_detail_tab_records">Records</string>
+    <string name="exercise_detail_no_history">No history for this exercise yet.</string>
+    <string name="exercise_detail_no_chart_data">No data to chart yet.</string>
+    <string name="exercise_detail_no_records">No records yet. Start logging!</string>
+    <string name="exercise_detail_primary_muscles">Primary: %1$s</string>
+    <string name="exercise_detail_secondary_muscles">Secondary: %1$s</string>
+    <string name="exercise_detail_section_muscles">MUSCLES</string>
+    <string name="exercise_detail_section_equipment">EQUIPMENT</string>
+    <string name="exercise_detail_section_instructions">INSTRUCTIONS</string>
+    <string name="exercise_detail_sets_completed_format">%1$d sets completed</string>
+    <string name="exercise_records_heaviest">Heaviest Weight</string>
+    <string name="exercise_records_most_reps">Most Reps</string>
+    <string name="exercise_records_est_1rm">Best Est. 1RM</string>
+    <string name="exercise_records_highest_volume">Highest Volume</string>
+
+    <!-- Exercise Library -->
+    <string name="exercise_library_title">LIBRARY</string>
+    <string name="exercise_library_favorites_filter">❤️ Favorites</string>
+    <string name="exercise_library_search_placeholder">Search exercises...</string>
+    <string name="exercise_library_no_favorites">No favorites yet</string>
+    <string name="exercise_library_no_exercises">No exercises found</string>
+
+    <!-- Muscle Distribution Chart -->
+    <string name="progress_volume_by_muscle">Volume by Muscle Group</string>
+
+    <!-- Workouts Per Week Chart -->
+    <string name="progress_workouts_per_week">Workouts Per Week</string>
+
+    <!-- Weekly Calendar Strip -->
+    <string name="progress_this_week">This Week</string>
+    <string name="progress_workouts_count">%1$d/%2$d workouts</string>
+
+    <!-- Weekly Activity Section -->
+    <string name="weekly_activity_title">WEEKLY ACTIVITY</string>
+    <string name="weekly_activity_rest_day">REST DAY</string>
+    <string name="weekly_activity_no_workout">Recovery — no workout scheduled</string>
+    <string name="weekly_activity_duration_label">DURATION</string>
+    <string name="weekly_activity_exercises_label">EXERCISES</string>
+    <string name="weekly_activity_volume_label">VOLUME</string>
+
+    <!-- Log Session (manual log) -->
+    <string name="log_session_title">LOG SESSION</string>
+    <string name="log_session_notes">NOTES</string>
+    <string name="log_session_save_workout">SAVE WORKOUT</string>
+    <string name="log_session_workout_name">WORKOUT NAME</string>
+    <string name="log_session_duration_mins">DURATION (MINS)</string>
+    <string name="log_session_exercise_name">EXERCISE NAME</string>
+    <string name="log_session_notes_label">Workout notes (optional)</string>
+
+    <!-- Set Input Row -->
+    <string name="set_input_rpe_format">RPE %1$s</string>
+
+    <!-- Assigned Workout Card / Plan -->
+    <string name="workout_card_exercises_count">%1$d exercises</string>
+    <string name="workout_card_duration_format">%1$d min</string>
+
+    <!-- Exercise Tab Strip -->
+    <string name="exercise_tab_completed_cd">Completed</string>
 </resources>

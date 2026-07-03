@@ -31,6 +31,7 @@ import coachfoska.composeapp.generated.resources.plan_log_session
 import coachfoska.composeapp.generated.resources.plan_mine_badge
 import coachfoska.composeapp.generated.resources.plan_never_performed
 import coachfoska.composeapp.generated.resources.plan_title
+import coachfoska.composeapp.generated.resources.workout_card_duration_format
 import com.coachfoska.app.core.util.toDisplayDate
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutSource
@@ -298,7 +299,7 @@ private fun WorkoutPlanCard(
                             )
                     )
                     Text(
-                        text = "${workout.durationMinutes} min",
+                        text = stringResource(Res.string.workout_card_duration_format, workout.durationMinutes),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                     )

@@ -25,7 +25,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.workout_card_exercises_count
 import com.coachfoska.app.domain.model.Workout
+import org.jetbrains.compose.resources.stringResource
 
 private val SquareShape = RoundedCornerShape(0.dp)
 
@@ -79,7 +82,7 @@ fun AssignedWorkoutCard(
             ) {
                 MetaItem(Icons.Filled.Schedule, "${workout.durationMinutes} Min")
                 Text(
-                    text = "${workout.exercises.size} exercises",
+                    text = stringResource(Res.string.workout_card_exercises_count, workout.exercises.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

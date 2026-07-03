@@ -24,8 +24,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.day_sheet_done
+import coachfoska.composeapp.generated.resources.day_sheet_planned
+import coachfoska.composeapp.generated.resources.day_sheet_rest_day
+import coachfoska.composeapp.generated.resources.day_sheet_workout_completed
 import com.coachfoska.app.domain.model.DayActivityStatus
 import com.coachfoska.app.domain.model.WeekDayActivity
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +70,7 @@ fun DayDetailBottomSheet(
             // Planned section
             if (day.plannedWorkout != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SheetSectionHeader("PLANNED")
+                    SheetSectionHeader(stringResource(Res.string.day_sheet_planned))
                     Text(
                         text = day.plannedWorkout.name.uppercase(),
                         style = MaterialTheme.typography.labelLarge,
@@ -79,7 +85,7 @@ fun DayDetailBottomSheet(
                 }
             } else {
                 Text(
-                    text = "Rest day — no workout scheduled",
+                    text = stringResource(Res.string.day_sheet_rest_day),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                 )
@@ -89,7 +95,7 @@ fun DayDetailBottomSheet(
             if (day.completedLog != null) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SheetSectionHeader("DONE")
+                    SheetSectionHeader(stringResource(Res.string.day_sheet_done))
                     Text(
                         text = day.completedLog.workoutName.uppercase(),
                         style = MaterialTheme.typography.labelLarge,
@@ -105,9 +111,9 @@ fun DayDetailBottomSheet(
             } else if (day.status == DayActivityStatus.COMPLETED) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SheetSectionHeader("DONE")
+                    SheetSectionHeader(stringResource(Res.string.day_sheet_done))
                     Text(
-                        text = "Workout completed",
+                        text = stringResource(Res.string.day_sheet_workout_completed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     )

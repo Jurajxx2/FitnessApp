@@ -1,6 +1,5 @@
 package com.coachfoska.app.ui.workout
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,11 +37,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.activity_hub_all_workouts
+import coachfoska.composeapp.generated.resources.activity_hub_browse_workouts
+import coachfoska.composeapp.generated.resources.activity_hub_exercises
+import coachfoska.composeapp.generated.resources.activity_hub_no_workouts
+import coachfoska.composeapp.generated.resources.activity_hub_progress_analytics
+import coachfoska.composeapp.generated.resources.activity_hub_title
+import coachfoska.composeapp.generated.resources.activity_hub_workout_history
+import coachfoska.composeapp.generated.resources.activity_hub_your_workouts
+import coachfoska.composeapp.generated.resources.common_see_all
+import coachfoska.composeapp.generated.resources.log_activity_title
 import coachfoska.composeapp.generated.resources.session_resume_action
 import coachfoska.composeapp.generated.resources.session_resume_title
+import coachfoska.composeapp.generated.resources.start_workout
 import com.coachfoska.app.core.util.todayDate
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.Exercise
@@ -55,6 +64,7 @@ import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.SectionHeader
 import com.coachfoska.app.ui.workout.components.AssignedWorkoutCard
 import com.coachfoska.app.ui.workout.components.ExercisePreviewCard
 import com.coachfoska.app.ui.workout.components.QuickLinkRow
@@ -141,12 +151,16 @@ fun ActivityHubScreen(
 
                 if (state.workouts.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SectionHeader(title = "YOUR WORKOUTS", onSeeAll = onPlanClick)
+                        SectionHeader(
+                            title = stringResource(Res.string.activity_hub_your_workouts),
+                            actionLabel = stringResource(Res.string.common_see_all),
+                            onAction = onPlanClick,
+                        )
                         WorkoutCardRow(workouts = state.workouts, onWorkoutClick = onWorkoutClick)
                     }
                 } else {
                     Text(
-                        text = "No workouts assigned yet.",
+                        text = stringResource(Res.string.activity_hub_no_workouts),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -154,14 +168,22 @@ fun ActivityHubScreen(
 
                 if (state.allWorkouts.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SectionHeader(title = "ALL WORKOUTS", onSeeAll = onPlanClick)
+                        SectionHeader(
+                            title = stringResource(Res.string.activity_hub_all_workouts),
+                            actionLabel = stringResource(Res.string.common_see_all),
+                            onAction = onPlanClick,
+                        )
                         WorkoutCardRow(workouts = state.allWorkouts, onWorkoutClick = onWorkoutClick)
                     }
                 }
 
                 if (exercises.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SectionHeader(title = "EXERCISES", onSeeAll = onLibraryClick)
+                        SectionHeader(
+                            title = stringResource(Res.string.activity_hub_exercises),
+                            actionLabel = stringResource(Res.string.common_see_all),
+                            onAction = onLibraryClick,
+                        )
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(end = 16.dp),
@@ -177,9 +199,9 @@ fun ActivityHubScreen(
                 }
 
                 Column {
-                    QuickLinkRow(icon = Icons.Filled.History, label = "WORKOUT HISTORY", onClick = onHistoryClick)
-                    QuickLinkRow(icon = Icons.AutoMirrored.Filled.TrendingUp, label = "PROGRESS ANALYTICS", onClick = onProgressClick)
-                    QuickLinkRow(icon = Icons.Filled.Add, label = "LOG ACTIVITY", onClick = onLogGeneralActivityClick)
+                    QuickLinkRow(icon = Icons.Filled.History, label = stringResource(Res.string.activity_hub_workout_history), onClick = onHistoryClick)
+                    QuickLinkRow(icon = Icons.AutoMirrored.Filled.TrendingUp, label = stringResource(Res.string.activity_hub_progress_analytics), onClick = onProgressClick)
+                    QuickLinkRow(icon = Icons.Filled.Add, label = stringResource(Res.string.log_activity_title), onClick = onLogGeneralActivityClick)
                 }
 
                 state.error?.let {
@@ -233,28 +255,10 @@ private fun ResumeSessionBanner(
 private fun BrandHeader() {
     Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text(
-            text = "Activity",
+            text = stringResource(Res.string.activity_hub_title),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.onBackground,
-        )
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String, onSeeAll: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SectionLabel(title)
-        Text(
-            text = "SEE ALL",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.clickable(onClick = onSeeAll),
         )
     }
 }
@@ -276,17 +280,6 @@ private fun WorkoutCardRow(workouts: List<Workout>, onWorkoutClick: (String) -> 
 }
 
 @Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground,
-        letterSpacing = 1.5.sp,
-    )
-}
-
-@Composable
 private fun StartWorkoutButton(
     todayWorkout: Workout?,
     onStartWorkout: (String) -> Unit,
@@ -304,10 +297,9 @@ private fun StartWorkoutButton(
         Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(8.dp))
         Text(
-            text = if (todayWorkout != null) "START WORKOUT" else "BROWSE WORKOUTS",
+            text = if (todayWorkout != null) stringResource(Res.string.start_workout) else stringResource(Res.string.activity_hub_browse_workouts),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
         )
     }
 }

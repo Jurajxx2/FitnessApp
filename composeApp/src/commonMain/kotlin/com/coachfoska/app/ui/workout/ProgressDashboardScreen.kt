@@ -16,10 +16,16 @@ import com.coachfoska.app.domain.model.TimePeriod
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.ProgressDashboardState
 import com.coachfoska.app.presentation.workout.ProgressDashboardViewModel
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.progress_kg_this_week
+import coachfoska.composeapp.generated.resources.progress_recent_prs_title
+import coachfoska.composeapp.generated.resources.progress_week_streak
+import coachfoska.composeapp.generated.resources.progress_your_progress
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.workout.components.MuscleDistributionChart
 import com.coachfoska.app.ui.workout.components.WeeklyCalendarStrip
 import com.coachfoska.app.ui.workout.components.WorkoutsPerWeekChart
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -44,7 +50,7 @@ fun ProgressDashboardScreen(
     onTimePeriodSelected: (TimePeriod) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "YOUR PROGRESS", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.progress_your_progress), onBackClick = onBackClick)
 
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -78,7 +84,7 @@ fun ProgressDashboardScreen(
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.primary,
                         )
-                        Text("kg this week", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(Res.string.progress_kg_this_week), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
@@ -90,7 +96,7 @@ fun ProgressDashboardScreen(
                             text = "🔥 ${state.currentStreak}",
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         )
-                        Text("week streak", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(Res.string.progress_week_streak), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -108,7 +114,7 @@ fun ProgressDashboardScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "🏆 Recent PRs",
+                            text = stringResource(Res.string.progress_recent_prs_title),
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )

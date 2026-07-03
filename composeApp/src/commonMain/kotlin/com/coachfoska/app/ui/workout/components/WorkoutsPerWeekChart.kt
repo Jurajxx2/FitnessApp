@@ -9,8 +9,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.progress_workouts_per_week
 import com.coachfoska.app.domain.model.WeeklyCount
 import com.coachfoska.app.theme.ChartLine
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun WorkoutsPerWeekChart(
@@ -23,7 +26,7 @@ fun WorkoutsPerWeekChart(
 
     Column(modifier = modifier) {
         Text(
-            text = "Workouts Per Week",
+            text = stringResource(Res.string.progress_workouts_per_week),
             style = MaterialTheme.typography.titleSmall,
         )
         Spacer(Modifier.height(8.dp))

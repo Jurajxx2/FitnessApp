@@ -24,6 +24,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.common_clear_cd
+import coachfoska.composeapp.generated.resources.exercise_library_favorites_filter
+import coachfoska.composeapp.generated.resources.exercise_library_no_exercises
+import coachfoska.composeapp.generated.resources.exercise_library_no_favorites
+import coachfoska.composeapp.generated.resources.exercise_library_search_placeholder
+import coachfoska.composeapp.generated.resources.exercise_library_title
+import coachfoska.composeapp.generated.resources.recipes_add_favorite_cd
+import coachfoska.composeapp.generated.resources.recipes_remove_favorite_cd
 import com.coachfoska.app.domain.model.Exercise
 import com.coachfoska.app.presentation.exercise.ExerciseIntent
 import com.coachfoska.app.presentation.exercise.ExerciseSortOrder
@@ -32,6 +41,7 @@ import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -81,7 +91,7 @@ fun ExerciseLibraryScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = "LIBRARY", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.exercise_library_title), onBackClick = onBackClick)
 
         OutlinedTextField(
             value = searchText,
@@ -92,7 +102,7 @@ fun ExerciseLibraryScreen(
                 .padding(top = 16.dp, bottom = 4.dp),
             placeholder = {
                 Text(
-                    "Search exercises...",
+                    stringResource(Res.string.exercise_library_search_placeholder),
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                     fontSize = 14.sp
                 )
@@ -109,7 +119,7 @@ fun ExerciseLibraryScreen(
                     IconButton(onClick = { searchText = "" }) {
                         Icon(
                             Icons.Default.Close,
-                            contentDescription = "Clear",
+                            contentDescription = stringResource(Res.string.common_clear_cd),
                             tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )
                     }
@@ -140,7 +150,7 @@ fun ExerciseLibraryScreen(
                             modifier = Modifier.size(16.dp)
                         )
                     },
-                    label = { Text("❤️ Favorites", fontSize = 13.sp) }
+                    label = { Text(stringResource(Res.string.exercise_library_favorites_filter), fontSize = 13.sp) }
                 )
             }
             items(state.categories, key = { it.id }) { category ->
@@ -212,7 +222,7 @@ fun ExerciseLibraryScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = if (state.showOnlyFavorites) "No favorites yet" else "No exercises found",
+                                    text = if (state.showOnlyFavorites) stringResource(Res.string.exercise_library_no_favorites) else stringResource(Res.string.exercise_library_no_exercises),
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                                     fontSize = 14.sp
                                 )
@@ -292,7 +302,7 @@ private fun ExerciseListItem(
             IconButton(onClick = onToggleFavorite) {
                 Icon(
                     imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                    contentDescription = if (isFavorite) stringResource(Res.string.recipes_remove_favorite_cd) else stringResource(Res.string.recipes_add_favorite_cd),
                     tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
                     modifier = Modifier.size(20.dp)
                 )

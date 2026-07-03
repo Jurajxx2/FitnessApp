@@ -32,8 +32,18 @@ import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.meal_history_detail_food_items
+import coachfoska.composeapp.generated.resources.meal_history_detail_not_found
+import coachfoska.composeapp.generated.resources.meal_kcal_format
+import coachfoska.composeapp.generated.resources.meal_macro_label_carbs
+import coachfoska.composeapp.generated.resources.meal_macro_label_fat
+import coachfoska.composeapp.generated.resources.meal_macro_label_kcal
+import coachfoska.composeapp.generated.resources.meal_macro_label_protein
+import coachfoska.composeapp.generated.resources.meal_macro_summary
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -69,7 +79,7 @@ fun MealHistoryDetailRoute(
             )
             else -> Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "Meal log not found.",
+                    text = stringResource(Res.string.meal_history_detail_not_found),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
@@ -147,10 +157,10 @@ private fun MealHistoryDetailScreen(log: MealLog, modifier: Modifier = Modifier)
                         modifier = Modifier.padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        MacroItem(value = "${log.totalCalories.toInt()}", label = "kcal")
-                        MacroItem(value = "${log.totalProtein.toInt()}g", label = "protein")
-                        MacroItem(value = "${log.totalCarbs.toInt()}g", label = "carbs")
-                        MacroItem(value = "${log.totalFat.toInt()}g", label = "fat")
+                        MacroItem(value = "${log.totalCalories.toInt()}", label = stringResource(Res.string.meal_macro_label_kcal))
+                        MacroItem(value = "${log.totalProtein.toInt()}g", label = stringResource(Res.string.meal_macro_label_protein))
+                        MacroItem(value = "${log.totalCarbs.toInt()}g", label = stringResource(Res.string.meal_macro_label_carbs))
+                        MacroItem(value = "${log.totalFat.toInt()}g", label = stringResource(Res.string.meal_macro_label_fat))
                     }
                 }
             }
@@ -160,7 +170,7 @@ private fun MealHistoryDetailScreen(log: MealLog, modifier: Modifier = Modifier)
         if (log.foods.isNotEmpty()) {
             item {
                 Text(
-                    text = "FOOD ITEMS",
+                    text = stringResource(Res.string.meal_history_detail_food_items),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     letterSpacing = 2.sp,
@@ -209,13 +219,13 @@ private fun FoodDetailRow(food: MealLogFood) {
             )
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "${food.calories.toInt()} kcal",
+                    text = stringResource(Res.string.meal_kcal_format, food.calories.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "P ${food.proteinG.toInt()}g · C ${food.carbsG.toInt()}g · F ${food.fatG.toInt()}g",
+                    text = stringResource(Res.string.meal_macro_summary, food.proteinG.toInt(), food.carbsG.toInt(), food.fatG.toInt()),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
                 )

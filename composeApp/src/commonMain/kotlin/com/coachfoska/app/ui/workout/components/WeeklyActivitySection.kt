@@ -16,9 +16,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.todays_focus
+import coachfoska.composeapp.generated.resources.weekly_activity_duration_label
+import coachfoska.composeapp.generated.resources.weekly_activity_exercises_label
+import coachfoska.composeapp.generated.resources.weekly_activity_no_workout
+import coachfoska.composeapp.generated.resources.weekly_activity_rest_day
+import coachfoska.composeapp.generated.resources.weekly_activity_title
+import coachfoska.composeapp.generated.resources.weekly_activity_volume_label
 import com.coachfoska.app.domain.model.WeekDayActivity
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.usecase.workout.formatVolumeKg
+import org.jetbrains.compose.resources.stringResource
 
 private val SquareShape = RoundedCornerShape(0.dp)
 
@@ -33,7 +42,7 @@ fun WeeklyActivitySection(
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            text = "WEEKLY ACTIVITY",
+            text = stringResource(Res.string.weekly_activity_title),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onBackground,
             letterSpacing = 1.5.sp,
@@ -55,23 +64,23 @@ private fun DaySummaryBar(todayWorkout: Workout?, volumeKg: Double?, onClick: ((
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = if (todayWorkout != null) "TODAY'S FOCUS" else "REST DAY",
+                text = if (todayWorkout != null) stringResource(Res.string.todays_focus) else stringResource(Res.string.weekly_activity_rest_day),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp,
             )
             Text(
-                text = todayWorkout?.name?.uppercase() ?: "Recovery — no workout scheduled",
+                text = todayWorkout?.name?.uppercase() ?: stringResource(Res.string.weekly_activity_no_workout),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onBackground,
             )
         }
         if (todayWorkout != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                SummaryMetric("DURATION", "${todayWorkout.durationMinutes}m")
-                SummaryMetric("EXERCISES", todayWorkout.exercises.size.toString())
+                SummaryMetric(stringResource(Res.string.weekly_activity_duration_label), "${todayWorkout.durationMinutes}m")
+                SummaryMetric(stringResource(Res.string.weekly_activity_exercises_label), todayWorkout.exercises.size.toString())
                 if (volumeKg != null) {
-                    SummaryMetric("VOLUME", formatVolumeKg(volumeKg))
+                    SummaryMetric(stringResource(Res.string.weekly_activity_volume_label), formatVolumeKg(volumeKg))
                 }
             }
         }

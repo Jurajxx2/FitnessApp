@@ -12,8 +12,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.progress_this_week
+import coachfoska.composeapp.generated.resources.progress_workouts_count
 import com.coachfoska.app.domain.model.CompletionStatus
 import com.coachfoska.app.domain.model.DayCompletion
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun WeeklyCalendarStrip(
@@ -30,12 +34,12 @@ fun WeeklyCalendarStrip(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "This Week",
+                text = stringResource(Res.string.progress_this_week),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = "$completedCount/$totalDays workouts",
+                text = stringResource(Res.string.progress_workouts_count, completedCount, totalDays),
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary,
             )

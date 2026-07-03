@@ -23,7 +23,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.hydration_goal_format
 import kotlin.math.PI
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 
@@ -117,7 +120,7 @@ fun WaterFillAnimation(
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                text = "/ $goalMl ml",
+                text = stringResource(Res.string.hydration_goal_format, goalMl),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             )

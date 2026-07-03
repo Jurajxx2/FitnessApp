@@ -17,6 +17,25 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.common_cancel
+import coachfoska.composeapp.generated.resources.common_delete
+import coachfoska.composeapp.generated.resources.common_favorite_cd
+import coachfoska.composeapp.generated.resources.home_water_label
+import coachfoska.composeapp.generated.resources.hydration_active_from
+import coachfoska.composeapp.generated.resources.hydration_active_until
+import coachfoska.composeapp.generated.resources.hydration_add
+import coachfoska.composeapp.generated.resources.hydration_custom
+import coachfoska.composeapp.generated.resources.hydration_custom_amount_title
+import coachfoska.composeapp.generated.resources.hydration_enable_reminders
+import coachfoska.composeapp.generated.resources.hydration_manage
+import coachfoska.composeapp.generated.resources.hydration_ml
+import coachfoska.composeapp.generated.resources.hydration_quick_add
+import coachfoska.composeapp.generated.resources.hydration_remind_every
+import coachfoska.composeapp.generated.resources.hydration_reminders
+import coachfoska.composeapp.generated.resources.hydration_smart_suppress
+import coachfoska.composeapp.generated.resources.hydration_smart_suppress_subtitle
+import coachfoska.composeapp.generated.resources.hydration_todays_log
 import com.coachfoska.app.domain.model.HydrationSettings
 import com.coachfoska.app.domain.model.WaterLog
 import com.coachfoska.app.presentation.hydration.HydrationIntent
@@ -25,6 +44,7 @@ import com.coachfoska.app.presentation.hydration.HydrationViewModel
 import com.coachfoska.app.ui.components.CoachTopBar
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -68,7 +88,7 @@ fun HydrationScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        CoachTopBar(title = "WATER", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.home_water_label), onBackClick = onBackClick)
 
         Column(
             modifier = Modifier
@@ -100,9 +120,10 @@ fun HydrationScreen(
 
 @Composable
 private fun TodayLogSection(logs: List<WaterLog>, onDelete: (String) -> Unit) {
+    val deleteLabel = stringResource(Res.string.common_delete)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
-            text = "TODAY'S LOG",
+            text = stringResource(Res.string.hydration_todays_log),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
             letterSpacing = 2.sp
@@ -132,7 +153,7 @@ private fun TodayLogSection(logs: List<WaterLog>, onDelete: (String) -> Unit) {
                     IconButton(onClick = { onDelete(log.id) }) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Delete",
+                            contentDescription = deleteLabel,
                             tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
                             modifier = Modifier.size(18.dp)
                         )
@@ -147,7 +168,7 @@ private fun TodayLogSection(logs: List<WaterLog>, onDelete: (String) -> Unit) {
 private fun ReminderSettingsSection(settings: HydrationSettings, onUpdate: (HydrationSettings) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
         Text(
-            text = "REMINDERS",
+            text = stringResource(Res.string.hydration_reminders),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
             letterSpacing = 2.sp
@@ -160,13 +181,13 @@ private fun ReminderSettingsSection(settings: HydrationSettings, onUpdate: (Hydr
         ) {
             Column {
                 SettingsToggleRow(
-                    label = "Enable reminders",
+                    label = stringResource(Res.string.hydration_enable_reminders),
                     checked = settings.remindersEnabled,
                     onCheckedChange = { onUpdate(settings.copy(remindersEnabled = it)) },
                     showDivider = true
                 )
                 SettingsPickerRow(
-                    label = "Remind every",
+                    label = stringResource(Res.string.hydration_remind_every),
                     value = intervalLabel(settings.intervalMinutes),
                     enabled = settings.remindersEnabled,
                     options = listOf(30, 60, 120, 180, 240),
@@ -175,7 +196,7 @@ private fun ReminderSettingsSection(settings: HydrationSettings, onUpdate: (Hydr
                     showDivider = true
                 )
                 SettingsPickerRow(
-                    label = "Active from",
+                    label = stringResource(Res.string.hydration_active_from),
                     value = "${settings.startHour}:00",
                     enabled = settings.remindersEnabled,
                     options = (5..12).toList(),
@@ -184,7 +205,7 @@ private fun ReminderSettingsSection(settings: HydrationSettings, onUpdate: (Hydr
                     showDivider = true
                 )
                 SettingsPickerRow(
-                    label = "Active until",
+                    label = stringResource(Res.string.hydration_active_until),
                     value = "${settings.endHour}:00",
                     enabled = settings.remindersEnabled,
                     options = (18..23).toList(),
@@ -193,8 +214,8 @@ private fun ReminderSettingsSection(settings: HydrationSettings, onUpdate: (Hydr
                     showDivider = true
                 )
                 SettingsToggleRow(
-                    label = "Smart suppress",
-                    subtitle = "Skip if goal reached or recently logged",
+                    label = stringResource(Res.string.hydration_smart_suppress),
+                    subtitle = stringResource(Res.string.hydration_smart_suppress_subtitle),
                     checked = settings.smartSuppress,
                     onCheckedChange = { onUpdate(settings.copy(smartSuppress = it)) },
                     enabled = settings.remindersEnabled,
@@ -280,6 +301,8 @@ private fun ContainerQuickAddSection(
     containers: List<com.coachfoska.app.domain.model.WaterContainer>,
     onIntent: (HydrationIntent) -> Unit,
 ) {
+    val mlLabel = stringResource(Res.string.hydration_ml)
+    val customLabel = stringResource(Res.string.hydration_custom)
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -287,13 +310,13 @@ private fun ContainerQuickAddSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "QUICK ADD",
+                text = stringResource(Res.string.hydration_quick_add),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                 letterSpacing = 2.sp,
             )
             TextButton(onClick = { onIntent(HydrationIntent.ShowManageContainersSheet) }) {
-                Text("Manage", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(Res.string.hydration_manage), style = MaterialTheme.typography.labelMedium)
             }
         }
         Spacer(Modifier.height(10.dp))
@@ -307,7 +330,7 @@ private fun ContainerQuickAddSection(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("$amount", fontWeight = FontWeight.Bold)
-                            Text("ml", style = MaterialTheme.typography.labelSmall)
+                            Text(mlLabel, style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -318,7 +341,7 @@ private fun ContainerQuickAddSection(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("+", fontWeight = FontWeight.Bold)
-                        Text("custom", style = MaterialTheme.typography.labelSmall)
+                        Text(customLabel, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -338,7 +361,7 @@ private fun ContainerQuickAddSection(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("+", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                        Text("custom", style = MaterialTheme.typography.labelSmall)
+                        Text(customLabel, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -351,21 +374,23 @@ private fun CustomAmountDialog(onConfirm: (Int) -> Unit, onDismiss: () -> Unit) 
     var text by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Custom amount") },
+        title = { Text(stringResource(Res.string.hydration_custom_amount_title)) },
         text = {
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it.filter { c -> c.isDigit() }.take(4) },
-                label = { Text("ml") },
+                label = { Text(stringResource(Res.string.hydration_ml)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(text.toIntOrNull() ?: 0) }) { Text("Add") }
+            TextButton(onClick = { onConfirm(text.toIntOrNull() ?: 0) }) {
+                Text(stringResource(Res.string.hydration_add))
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_cancel)) }
         }
     )
 }

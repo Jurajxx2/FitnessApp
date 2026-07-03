@@ -37,6 +37,13 @@ import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
+import coachfoska.composeapp.generated.resources.common_search_cd
+import coachfoska.composeapp.generated.resources.meal_analyzing_photo
+import coachfoska.composeapp.generated.resources.meal_kcal_format
+import coachfoska.composeapp.generated.resources.meal_macro_summary
+import coachfoska.composeapp.generated.resources.meal_photo_cd
+import coachfoska.composeapp.generated.resources.meal_search_food_title
+import coachfoska.composeapp.generated.resources.meal_search_type_food_label
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -232,7 +239,7 @@ fun MealCaptureScreen(
         if (mediaUri != null) {
             AsyncImage(
                 model = mediaUri,
-                contentDescription = "Meal photo",
+                contentDescription = stringResource(Res.string.meal_photo_cd),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -334,7 +341,7 @@ fun MealCaptureScreen(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     Text(
-                        "ANALYZING PHOTO…",
+                        stringResource(Res.string.meal_analyzing_photo),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                         letterSpacing = 1.sp
@@ -361,7 +368,7 @@ fun FoodSearchDialog(
         containerColor = MaterialTheme.colorScheme.background
     ) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f).padding(24.dp)) {
-            Text("SEARCH FOOD", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.meal_search_food_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(16.dp))
             CoachTextField(
                 value = query,
@@ -369,7 +376,7 @@ fun FoodSearchDialog(
                     query = it
                     onSearch(it)
                 },
-                label = "Type food name…",
+                label = stringResource(Res.string.meal_search_type_food_label),
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(16.dp))
@@ -396,7 +403,7 @@ fun FoodSearchDialog(
                                     Text(food.brand, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f))
                                 }
                             }
-                            Text("${food.calories.toInt()} kcal", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(Res.string.meal_kcal_format, food.calories.toInt()), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -476,7 +483,7 @@ private fun FoodEntryRow(
                 ) {
                     Icon(
                         Icons.Default.Search,
-                        contentDescription = "Search",
+                        contentDescription = stringResource(Res.string.common_search_cd),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -494,13 +501,13 @@ private fun FoodEntryRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "${food.calories.toInt()} kcal",
+                    text = stringResource(Res.string.meal_kcal_format, food.calories.toInt()),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "P ${food.protein.toInt()}g · C ${food.carbs.toInt()}g · F ${food.fat.toInt()}g",
+                    text = stringResource(Res.string.meal_macro_summary, food.protein.toInt(), food.carbs.toInt(), food.fat.toInt()),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                 )

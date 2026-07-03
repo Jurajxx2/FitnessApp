@@ -19,6 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.recipe_fewer_servings_cd
+import coachfoska.composeapp.generated.resources.recipe_more_servings_cd
+import coachfoska.composeapp.generated.resources.recipe_servings_label
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ServingsAdjuster(
@@ -34,7 +39,7 @@ fun ServingsAdjuster(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = "SERVINGS",
+            text = stringResource(Res.string.recipe_servings_label),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             letterSpacing = 1.5.sp,
@@ -48,7 +53,7 @@ fun ServingsAdjuster(
                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
             ),
         ) {
-            Icon(Icons.Filled.Remove, contentDescription = "Fewer servings", modifier = Modifier.size(18.dp))
+            Icon(Icons.Filled.Remove, contentDescription = stringResource(Res.string.recipe_fewer_servings_cd), modifier = Modifier.size(18.dp))
         }
         Text(
             text = servings.toString(),
@@ -64,7 +69,7 @@ fun ServingsAdjuster(
                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
             ),
         ) {
-            Icon(Icons.Filled.Add, contentDescription = "More servings", modifier = Modifier.size(18.dp))
+            Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.recipe_more_servings_cd), modifier = Modifier.size(18.dp))
         }
     }
 }

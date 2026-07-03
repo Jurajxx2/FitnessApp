@@ -10,8 +10,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
+import coachfoska.composeapp.generated.resources.common_more_options_cd
+import coachfoska.composeapp.generated.resources.session_discard
+import coachfoska.composeapp.generated.resources.session_menu_finish_workout
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.SessionDraft
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,24 +70,24 @@ fun SessionHeaderBar(
         },
         navigationIcon = {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back_cd))
             }
         },
         actions = {
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.common_more_options_cd))
                 }
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Finish workout") },
+                        text = { Text(stringResource(Res.string.session_menu_finish_workout)) },
                         onClick = { menuExpanded = false; onFinishClick() },
                     )
                     DropdownMenuItem(
-                        text = { Text("Discard workout", color = MaterialTheme.colorScheme.error) },
+                        text = { Text(stringResource(Res.string.session_discard), color = MaterialTheme.colorScheme.error) },
                         onClick = { menuExpanded = false; onDiscardClick() },
                     )
                 }

@@ -12,9 +12,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.post_workout_complete_title
+import coachfoska.composeapp.generated.resources.post_workout_done
+import coachfoska.composeapp.generated.resources.progress_personal_records_format
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.PostWorkoutSummaryState
 import com.coachfoska.app.presentation.workout.PostWorkoutSummaryViewModel
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -47,7 +52,7 @@ fun PostWorkoutSummaryScreen(
         Text("🎉", fontSize = 48.sp)
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Workout Complete!",
+            text = stringResource(Res.string.post_workout_complete_title),
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
         )
 
@@ -81,7 +86,7 @@ fun PostWorkoutSummaryScreen(
                 if (state.personalRecords.isNotEmpty()) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     Text(
-                        text = "🏆 ${state.personalRecords.size} Personal Records",
+                        text = stringResource(Res.string.progress_personal_records_format, state.personalRecords.size),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -101,7 +106,7 @@ fun PostWorkoutSummaryScreen(
             onClick = onDone,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("DONE")
+            Text(stringResource(Res.string.post_workout_done))
         }
     }
 }

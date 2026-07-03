@@ -35,9 +35,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.common_delete
+import coachfoska.composeapp.generated.resources.common_favorite_cd
+import coachfoska.composeapp.generated.resources.hydration_add_container
+import coachfoska.composeapp.generated.resources.hydration_add_new
+import coachfoska.composeapp.generated.resources.hydration_container_name_label
+import coachfoska.composeapp.generated.resources.hydration_container_volume_label
+import coachfoska.composeapp.generated.resources.hydration_my_containers
 import com.coachfoska.app.domain.model.WaterContainer
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTextField
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +57,8 @@ fun ManageContainersSheet(
     onToggleFavorite: (containerId: String, isFavorite: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val favoriteLabel = stringResource(Res.string.common_favorite_cd)
+    val deleteLabel = stringResource(Res.string.common_delete)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { BottomSheetDefaults.DragHandle() },
@@ -55,7 +66,7 @@ fun ManageContainersSheet(
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Text(
-                text = "MY CONTAINERS",
+                text = stringResource(Res.string.hydration_my_containers),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
@@ -82,7 +93,7 @@ fun ManageContainersSheet(
                             IconButton(onClick = { onToggleFavorite(c.id, !c.isFavorite) }) {
                                 Icon(
                                     imageVector = if (c.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                                    contentDescription = "Favorite",
+                                    contentDescription = favoriteLabel,
                                     tint = if (c.isFavorite) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                                     modifier = Modifier.size(20.dp),
@@ -91,7 +102,7 @@ fun ManageContainersSheet(
                             IconButton(onClick = { onDelete(c.id) }) {
                                 Icon(
                                     Icons.Filled.Delete,
-                                    contentDescription = "Delete",
+                                    contentDescription = deleteLabel,
                                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -102,24 +113,27 @@ fun ManageContainersSheet(
             }
 
             Spacer(Modifier.height(16.dp))
-            Text("ADD NEW", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+            Text(
+                stringResource(Res.string.hydration_add_new),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            )
             Spacer(Modifier.height(8.dp))
 
             var name by remember { mutableStateOf("") }
             var volume by remember { mutableStateOf("") }
 
-            CoachTextField(value = name, onValueChange = { name = it }, label = "Name (e.g. Gym Bottle)")
+            CoachTextField(value = name, onValueChange = { name = it }, label = stringResource(Res.string.hydration_container_name_label))
             Spacer(Modifier.height(8.dp))
             CoachTextField(
                 value = volume,
                 onValueChange = { volume = it.filter { c -> c.isDigit() }.take(5) },
-                label = "Volume (ml)",
+                label = stringResource(Res.string.hydration_container_volume_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
             Spacer(Modifier.height(12.dp))
             CoachButton(
-                text = "Add container",
+                text = stringResource(Res.string.hydration_add_container),
                 onClick = {
                     val ml = volume.toIntOrNull() ?: 0
                     if (name.isNotBlank() && ml > 0) {

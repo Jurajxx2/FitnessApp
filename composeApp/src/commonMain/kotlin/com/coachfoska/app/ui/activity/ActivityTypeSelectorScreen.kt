@@ -21,9 +21,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.activity_what_did_you_do
+import coachfoska.composeapp.generated.resources.log_activity_title
 import com.coachfoska.app.domain.model.ActivityType
 import com.coachfoska.app.ui.components.CoachTopBar
 import androidx.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ActivityTypeSelectorRoute(
@@ -44,7 +48,7 @@ fun ActivityTypeSelectorScreen(
     Scaffold(
         topBar = {
             CoachTopBar(
-                title = "LOG ACTIVITY",
+                title = stringResource(Res.string.log_activity_title),
                 onBackClick = onBackClick
             )
         }
@@ -56,7 +60,7 @@ fun ActivityTypeSelectorScreen(
                 .background(MaterialTheme.colorScheme.background)
         ) {
             Text(
-                text = "What did you do?",
+                text = stringResource(Res.string.activity_what_did_you_do),
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.padding(24.dp)
             )

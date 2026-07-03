@@ -37,9 +37,21 @@ import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.meal_plan_assigned_meals
+import coachfoska.composeapp.generated.resources.meal_plan_count_planned
+import coachfoska.composeapp.generated.resources.meal_plan_daily_plan
+import coachfoska.composeapp.generated.resources.meal_plan_macro_carbs
+import coachfoska.composeapp.generated.resources.meal_plan_macro_fat
+import coachfoska.composeapp.generated.resources.meal_plan_macro_kcal
+import coachfoska.composeapp.generated.resources.meal_plan_macro_protein
+import coachfoska.composeapp.generated.resources.meal_plan_no_meals_for_day
+import coachfoska.composeapp.generated.resources.meal_plan_no_plan
+import coachfoska.composeapp.generated.resources.meal_plan_record_meal
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -113,7 +125,7 @@ fun MealPlanDetailScreen(
                 } else {
                     item {
                         Text(
-                            text = if (state.mealPlan == null) "No meal plan assigned yet." else "No meals for this day.",
+                            text = if (state.mealPlan == null) stringResource(Res.string.meal_plan_no_plan) else stringResource(Res.string.meal_plan_no_meals_for_day),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                         )
@@ -126,7 +138,7 @@ fun MealPlanDetailScreen(
                 shadowElevation = 8.dp,
             ) {
                 CoachButton(
-                    text = "RECORD MEAL",
+                    text = stringResource(Res.string.meal_plan_record_meal),
                     onClick = onRecordMealClick,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 18.dp),
                 )
@@ -171,7 +183,7 @@ private fun DayStrip(
 private fun PlanHeader(planName: String?, mealCount: Int) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
-            text = "DAILY PLAN",
+            text = stringResource(Res.string.meal_plan_daily_plan),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
             letterSpacing = 1.5.sp,
@@ -182,13 +194,13 @@ private fun PlanHeader(planName: String?, mealCount: Int) {
             verticalAlignment = Alignment.Bottom,
         ) {
             Text(
-                text = planName ?: "Assigned meals",
+                text = planName ?: stringResource(Res.string.meal_plan_assigned_meals),
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = "$mealCount planned",
+                text = stringResource(Res.string.meal_plan_count_planned, mealCount),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.48f),
             )
@@ -217,13 +229,13 @@ private fun DailyMacroRow(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MacroItem(value = "$totalKcal", label = "KCAL")
+            MacroItem(value = "$totalKcal", label = stringResource(Res.string.meal_plan_macro_kcal))
             MacroDivider()
-            MacroItem(value = "${totalProtein}G", label = "PROTEIN")
+            MacroItem(value = "${totalProtein}G", label = stringResource(Res.string.meal_plan_macro_protein))
             MacroDivider()
-            MacroItem(value = "${totalCarbs}G", label = "CARBS")
+            MacroItem(value = "${totalCarbs}G", label = stringResource(Res.string.meal_plan_macro_carbs))
             MacroDivider()
-            MacroItem(value = "${totalFat}G", label = "FAT")
+            MacroItem(value = "${totalFat}G", label = stringResource(Res.string.meal_plan_macro_fat))
         }
     }
 }

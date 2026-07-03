@@ -38,6 +38,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.duration_min
+import coachfoska.composeapp.generated.resources.exercises_count
+import coachfoska.composeapp.generated.resources.workout_history_capture_video_cd
+import coachfoska.composeapp.generated.resources.workout_history_detail_title
+import coachfoska.composeapp.generated.resources.workout_history_log_not_found
+import coachfoska.composeapp.generated.resources.workout_history_rpe_header
+import coachfoska.composeapp.generated.resources.workout_history_reps_header
+import coachfoska.composeapp.generated.resources.workout_history_sets_format
+import coachfoska.composeapp.generated.resources.workout_history_weight_header
 import com.coachfoska.app.core.util.toDisplayDateTime
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.SetLog
@@ -50,6 +60,7 @@ import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import kotlinx.datetime.Instant
 import androidx.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -82,7 +93,7 @@ fun WorkoutHistoryDetailScreen(
     onCaptureVideo: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "SESSION DETAIL", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.workout_history_detail_title), onBackClick = onBackClick)
         if (state.isHistoryLoading && state.selectedWorkoutLog == null) {
             CoachLoadingBox(Modifier.weight(1f))
         } else {
@@ -104,7 +115,7 @@ fun WorkoutHistoryDetailScreen(
                     }
                 }
             } ?: Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text(text = "Log not found", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                Text(text = stringResource(Res.string.workout_history_log_not_found), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
             }
         }
     }
@@ -130,7 +141,7 @@ private fun WorkoutLogHeader(log: WorkoutLog) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "${log.durationMinutes} MIN",
+                text = stringResource(Res.string.duration_min, log.durationMinutes),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             )
@@ -140,7 +151,7 @@ private fun WorkoutLogHeader(log: WorkoutLog) {
                     .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)),
             )
             Text(
-                text = "${log.exerciseLogs.size} EXERCISES",
+                text = stringResource(Res.string.exercises_count, log.exerciseLogs.size),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             )
@@ -195,7 +206,7 @@ private fun ExerciseLogDetailRow(
                         modifier = Modifier.weight(1f),
                     )
                     Text(
-                        text = "${log.setsCompletedCount} SETS",
+                        text = stringResource(Res.string.workout_history_sets_format, log.setsCompletedCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     )
@@ -224,7 +235,7 @@ private fun ExerciseLogDetailRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.Videocam,
-                    contentDescription = "Capture Video",
+                    contentDescription = stringResource(Res.string.workout_history_capture_video_cd),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -236,9 +247,9 @@ private fun ExerciseLogDetailRow(
 private fun SetTableHeader() {
     Row {
         Text("#", modifier = Modifier.width(32.dp), style = MaterialTheme.typography.labelSmall)
-        Text("Reps", modifier = Modifier.width(64.dp), style = MaterialTheme.typography.labelSmall)
-        Text("Weight", modifier = Modifier.width(80.dp), style = MaterialTheme.typography.labelSmall)
-        Text("RPE", modifier = Modifier.width(48.dp), style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(Res.string.workout_history_reps_header), modifier = Modifier.width(64.dp), style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(Res.string.workout_history_weight_header), modifier = Modifier.width(80.dp), style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(Res.string.workout_history_rpe_header), modifier = Modifier.width(48.dp), style = MaterialTheme.typography.labelSmall)
     }
 }
 

@@ -21,6 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.macro_ring_carbs
+import coachfoska.composeapp.generated.resources.macro_ring_fat
+import coachfoska.composeapp.generated.resources.macro_ring_protein
+import org.jetbrains.compose.resources.stringResource
 
 private const val DAILY_CALORIE_TARGET = 2000f
 
@@ -64,9 +69,9 @@ fun MacroRingSummary(
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            MacroLine(label = "Carbs",   grams = carbsG)
-            MacroLine(label = "Protein", grams = proteinG)
-            MacroLine(label = "Fat",     grams = fatG)
+            MacroLine(label = stringResource(Res.string.macro_ring_carbs),   grams = carbsG)
+            MacroLine(label = stringResource(Res.string.macro_ring_protein), grams = proteinG)
+            MacroLine(label = stringResource(Res.string.macro_ring_fat),     grams = fatG)
         }
     }
 }

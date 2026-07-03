@@ -8,7 +8,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.rest_timer_label
+import coachfoska.composeapp.generated.resources.rest_timer_minus30
+import coachfoska.composeapp.generated.resources.rest_timer_plus30
+import coachfoska.composeapp.generated.resources.rest_timer_skip
 import com.coachfoska.app.presentation.workout.RestTimerState
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun RestTimerBar(
@@ -41,7 +47,7 @@ fun RestTimerBar(
             ) {
                 Column {
                     Text(
-                        text = "REST TIME",
+                        text = stringResource(Res.string.rest_timer_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -55,10 +61,10 @@ fun RestTimerBar(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TextButton(onClick = { onAdjust(-30) }) { Text("-30s") }
-                    TextButton(onClick = { onAdjust(30) }) { Text("+30s") }
+                    TextButton(onClick = { onAdjust(-30) }) { Text(stringResource(Res.string.rest_timer_minus30)) }
+                    TextButton(onClick = { onAdjust(30) }) { Text(stringResource(Res.string.rest_timer_plus30)) }
                     TextButton(onClick = onSkip) {
-                        Text("Skip", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(stringResource(Res.string.rest_timer_skip), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 }
             }

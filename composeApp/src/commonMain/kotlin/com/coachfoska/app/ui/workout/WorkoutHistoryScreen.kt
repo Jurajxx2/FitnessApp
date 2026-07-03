@@ -20,6 +20,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.activity_hub_workout_history
+import coachfoska.composeapp.generated.resources.duration_min
+import coachfoska.composeapp.generated.resources.exercises_count
+import coachfoska.composeapp.generated.resources.workout_history_no_workouts
+import coachfoska.composeapp.generated.resources.workout_history_progress_desc
+import coachfoska.composeapp.generated.resources.workout_history_volume_format
+import coachfoska.composeapp.generated.resources.workout_history_your_progress
 import com.coachfoska.app.core.util.toDisplayDateTime
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.formatWeightKg
@@ -28,6 +36,7 @@ import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -56,7 +65,7 @@ fun WorkoutHistoryScreen(
     onProgressClick: () -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "WORKOUT HISTORY", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.activity_hub_workout_history), onBackClick = onBackClick)
         if (state.isHistoryLoading) {
             CoachLoadingBox(Modifier.weight(1f))
         } else {
@@ -81,12 +90,12 @@ fun WorkoutHistoryScreen(
                             Text("📊", fontSize = 24.sp)
                             Column {
                                 Text(
-                                    "Your Progress",
+                                    stringResource(Res.string.workout_history_your_progress),
                                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 )
                                 Text(
-                                    "View stats, streaks & records",
+                                    stringResource(Res.string.workout_history_progress_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                                 )
@@ -101,7 +110,7 @@ fun WorkoutHistoryScreen(
                 if (state.workoutHistory.isEmpty()) {
                     item {
                         Text(
-                            text = "No workouts logged yet.",
+                            text = stringResource(Res.string.workout_history_no_workouts),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                         )
@@ -145,13 +154,13 @@ private fun WorkoutHistoryDetailCard(log: WorkoutLog, onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${log.durationMinutes} MIN",
+                    text = stringResource(Res.string.duration_min, log.durationMinutes),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
                 Box(modifier = Modifier.size(3.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)))
                 Text(
-                    text = "${log.exerciseLogs.size} EXERCISES",
+                    text = stringResource(Res.string.exercises_count, log.exerciseLogs.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
@@ -165,7 +174,7 @@ private fun WorkoutHistoryDetailCard(log: WorkoutLog, onClick: () -> Unit) {
             }.toFloat()
             if (totalVolume > 0f) {
                 Text(
-                    text = "${formatWeightKg(totalVolume)} kg total volume",
+                    text = stringResource(Res.string.workout_history_volume_format, formatWeightKg(totalVolume)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                 )

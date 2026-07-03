@@ -42,7 +42,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.add_exercise
+import coachfoska.composeapp.generated.resources.add_set
 import coachfoska.composeapp.generated.resources.add_video_cd
+import coachfoska.composeapp.generated.resources.exercise_label
+import coachfoska.composeapp.generated.resources.exercises_section
+import coachfoska.composeapp.generated.resources.log_session_duration_mins
+import coachfoska.composeapp.generated.resources.log_session_exercise_name
+import coachfoska.composeapp.generated.resources.log_session_notes
+import coachfoska.composeapp.generated.resources.log_session_notes_label
+import coachfoska.composeapp.generated.resources.log_session_save_workout
+import coachfoska.composeapp.generated.resources.log_session_title
+import coachfoska.composeapp.generated.resources.log_session_workout_name
 import coachfoska.composeapp.generated.resources.remove_cd
 import com.coachfoska.app.core.util.MediaCaptureMode
 import com.coachfoska.app.domain.model.ExerciseLog
@@ -152,7 +163,7 @@ private fun LogWorkoutContent(
         exercises.any { it.name.isNotBlank() && it.sets.any { set -> set.completed } }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "LOG SESSION", onBackClick = onBackClick)
+        CoachTopBar(title = stringResource(Res.string.log_session_title), onBackClick = onBackClick)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -164,17 +175,17 @@ private fun LogWorkoutContent(
                 CoachTextField(
                     value = workoutName,
                     onValueChange = onWorkoutName,
-                    label = "WORKOUT NAME",
+                    label = stringResource(Res.string.log_session_workout_name),
                 )
                 CoachTextField(
                     value = durationMinutes,
                     onValueChange = onDurationMinutes,
-                    label = "DURATION (MINS)",
+                    label = stringResource(Res.string.log_session_duration_mins),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             }
 
-            CoachSectionHeader(text = "EXERCISES")
+            CoachSectionHeader(text = stringResource(Res.string.exercises_section))
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 exercises.forEachIndexed { index, exercise ->
                     ManualExerciseCard(
@@ -201,21 +212,21 @@ private fun LogWorkoutContent(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(Modifier.size(8.dp))
-                    Text("ADD EXERCISE")
+                    Text(stringResource(Res.string.add_exercise))
                 }
             }
 
-            CoachSectionHeader(text = "NOTES")
+            CoachSectionHeader(text = stringResource(Res.string.log_session_notes))
             CoachTextField(
                 value = notes,
                 onValueChange = onNotes,
-                label = "Workout notes (optional)",
+                label = stringResource(Res.string.log_session_notes_label),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
                 singleLine = false,
             )
 
             CoachButton(
-                text = "SAVE WORKOUT",
+                text = stringResource(Res.string.log_session_save_workout),
                 onClick = onSave,
                 modifier = Modifier.fillMaxWidth().height(56.dp).navigationBarsPadding(),
                 isLoading = isLogging,
@@ -246,7 +257,7 @@ private fun ManualExerciseCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "EXERCISE #${index + 1}",
+                    text = stringResource(Res.string.exercise_label, index + 1),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                 )
@@ -289,7 +300,7 @@ private fun ManualExerciseCard(
             CoachTextField(
                 value = exercise.name,
                 onValueChange = { onUpdate(exercise.copy(name = it)) },
-                label = "EXERCISE NAME",
+                label = stringResource(Res.string.log_session_exercise_name),
             )
 
             exercise.sets.forEachIndexed { setIndex, set ->
@@ -311,7 +322,7 @@ private fun ManualExerciseCard(
             }
 
             TextButton(onClick = { onUpdate(exercise.addSet()) }) {
-                Text("+ ADD SET")
+                Text(stringResource(Res.string.add_set))
             }
         }
     }

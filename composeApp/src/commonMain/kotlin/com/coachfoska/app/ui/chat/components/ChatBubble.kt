@@ -20,10 +20,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.chat_image_message_cd
 import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.MessageContent
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ChatBubble(
@@ -66,7 +69,7 @@ fun ChatBubble(
                     )
                     is MessageContent.Image -> AsyncImage(
                         model = content.url,
-                        contentDescription = "Image message",
+                        contentDescription = stringResource(Res.string.chat_image_message_cd),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(200.dp)

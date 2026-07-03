@@ -31,6 +31,11 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.session_save_failed
 import coachfoska.composeapp.generated.resources.session_saved
 import coachfoska.composeapp.generated.resources.session_saving
+import coachfoska.composeapp.generated.resources.set_row_kg_header
+import coachfoska.composeapp.generated.resources.set_row_prev_header
+import coachfoska.composeapp.generated.resources.set_row_reps_header
+import coachfoska.composeapp.generated.resources.set_row_save_header
+import coachfoska.composeapp.generated.resources.set_row_set_header
 import com.coachfoska.app.core.util.LocalReduceMotion
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.formatWeightKg
@@ -47,13 +52,13 @@ fun SetTableHeader(modifier: Modifier = Modifier) {
             .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("SET", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(32.dp))
-        Text("PREV", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(64.dp))
-        Text("KG", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
-        Text("REPS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
+        Text(stringResource(Res.string.set_row_set_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(32.dp))
+        Text(stringResource(Res.string.set_row_prev_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(64.dp))
+        Text(stringResource(Res.string.set_row_kg_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
+        Text(stringResource(Res.string.set_row_reps_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
         Spacer(Modifier.weight(1f))
         Text("✓", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(32.dp), textAlign = TextAlign.Center)
-        Text("SAVE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(76.dp), textAlign = TextAlign.End)
+        Text(stringResource(Res.string.set_row_save_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(76.dp), textAlign = TextAlign.End)
     }
 }
 

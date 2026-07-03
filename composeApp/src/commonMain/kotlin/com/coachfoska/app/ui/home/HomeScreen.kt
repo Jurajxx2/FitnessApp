@@ -257,7 +257,7 @@ private fun NotificationBell(hasUnread: Boolean, onClick: () -> Unit) {
         IconButton(onClick = onClick) {
             Icon(
                 imageVector = Icons.Outlined.Notifications,
-                contentDescription = "Notifications",
+                contentDescription = stringResource(Res.string.home_notifications_cd),
                 tint = MaterialTheme.colorScheme.onBackground,
             )
         }
@@ -291,14 +291,14 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
             Text(text = "💧", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.width(6.dp))
             Text(
-                text = "WATER",
+                text = stringResource(Res.string.home_water_label),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 letterSpacing = 1.sp,
                 modifier = Modifier.weight(1f)
             )
             Text(
-                text = "$consumedMl / $goalMl ml",
+                text = stringResource(Res.string.home_water_amount, consumedMl, goalMl),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground

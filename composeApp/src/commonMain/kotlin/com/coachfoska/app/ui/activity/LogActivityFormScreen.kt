@@ -37,6 +37,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.activity_distance_label
+import coachfoska.composeapp.generated.resources.activity_duration_label
+import coachfoska.composeapp.generated.resources.activity_easy
+import coachfoska.composeapp.generated.resources.activity_effort_section
+import coachfoska.composeapp.generated.resources.activity_hard
+import coachfoska.composeapp.generated.resources.activity_notes_label
+import coachfoska.composeapp.generated.resources.activity_rpe_format
+import coachfoska.composeapp.generated.resources.activity_save
+import coachfoska.composeapp.generated.resources.activity_when_section
+import coachfoska.composeapp.generated.resources.common_cancel
+import coachfoska.composeapp.generated.resources.common_ok
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.core.util.toDisplayDateTime
 import com.coachfoska.app.domain.model.ActivityType
@@ -53,6 +65,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -117,7 +130,7 @@ fun LogActivityFormScreen(
             CoachTextField(
                 value = state.durationMinutesText,
                 onValueChange = { onIntent(ActivityLogIntent.UpdateDuration(it)) },
-                label = "Duration (minutes)",
+                label = stringResource(Res.string.activity_duration_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -127,16 +140,16 @@ fun LogActivityFormScreen(
                 CoachTextField(
                     value = state.distanceKmText,
                     onValueChange = { onIntent(ActivityLogIntent.UpdateDistance(it)) },
-                    label = "Distance (km)",
+                    label = stringResource(Res.string.activity_distance_label),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
 
             Spacer(Modifier.height(16.dp))
-            CoachSectionHeader("EFFORT (1-10)")
+            CoachSectionHeader(stringResource(Res.string.activity_effort_section))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Easy", style = MaterialTheme.typography.labelSmall)
+                Text(stringResource(Res.string.activity_easy), style = MaterialTheme.typography.labelSmall)
                 Slider(
                     value = (state.rpe ?: 5).toFloat(),
                     onValueChange = { onIntent(ActivityLogIntent.UpdateRpe(it.toInt())) },
@@ -144,16 +157,16 @@ fun LogActivityFormScreen(
                     steps = 8,
                     modifier = Modifier.weight(1f),
                 )
-                Text("Hard", style = MaterialTheme.typography.labelSmall)
+                Text(stringResource(Res.string.activity_hard), style = MaterialTheme.typography.labelSmall)
             }
             Text(
-                text = "RPE ${state.rpe ?: "-"}",
+                text = stringResource(Res.string.activity_rpe_format, state.rpe?.toString() ?: "-"),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(start = 8.dp),
             )
 
             Spacer(Modifier.height(16.dp))
-            CoachSectionHeader("WHEN")
+            CoachSectionHeader(stringResource(Res.string.activity_when_section))
             LoggedAtPicker(
                 loggedAt = state.loggedAt,
                 onChange = { onIntent(ActivityLogIntent.UpdateLoggedAt(it)) },
@@ -163,7 +176,7 @@ fun LogActivityFormScreen(
             CoachTextField(
                 value = state.notes,
                 onValueChange = { onIntent(ActivityLogIntent.UpdateNotes(it)) },
-                label = "Notes",
+                label = stringResource(Res.string.activity_notes_label),
                 singleLine = false,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp),
             )
@@ -175,7 +188,7 @@ fun LogActivityFormScreen(
         }
 
         CoachButton(
-            text = "SAVE ACTIVITY",
+            text = stringResource(Res.string.activity_save),
             onClick = { onIntent(ActivityLogIntent.Submit) },
             isLoading = state.isLogging,
             enabled = state.canSubmit,
@@ -218,10 +231,10 @@ private fun LoggedAtPicker(
                             .toLocalDateTime(TimeZone.UTC).date
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(Res.string.common_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(Res.string.common_cancel)) }
             },
             text = { DatePicker(state = datePickerState) },
         )
@@ -249,10 +262,10 @@ private fun LoggedAtPicker(
                     )
                     onChange(combined.toInstant(zone))
                     pendingDate = null
-                }) { Text("OK") }
+                }) { Text(stringResource(Res.string.common_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDate = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDate = null }) { Text(stringResource(Res.string.common_cancel)) }
             },
             text = { TimePicker(state = timePickerState) },
         )

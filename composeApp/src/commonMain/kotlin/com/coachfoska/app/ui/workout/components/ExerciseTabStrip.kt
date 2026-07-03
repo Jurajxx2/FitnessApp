@@ -16,7 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.exercise_tab_completed_cd
 import com.coachfoska.app.presentation.workout.ExerciseDraft
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ExerciseTabStrip(
@@ -46,7 +49,7 @@ fun ExerciseTabStrip(
                 onClick = { onExerciseSelected(index) },
                 label = { Text(exercise.exerciseName, maxLines = 1) },
                 leadingIcon = if (isCompleted) {
-                    { Icon(Icons.Default.Check, contentDescription = "Completed", modifier = Modifier) }
+                    { Icon(Icons.Default.Check, contentDescription = stringResource(Res.string.exercise_tab_completed_cd), modifier = Modifier) }
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primary,

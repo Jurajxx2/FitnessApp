@@ -50,10 +50,20 @@ import com.coachfoska.app.ui.recipe.components.CookingStepCard
 import com.coachfoska.app.ui.recipe.components.ServingsAdjuster
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.log_this_meal
+import coachfoska.composeapp.generated.resources.recipe_detail_cook_label
+import coachfoska.composeapp.generated.resources.recipe_detail_level_label
+import coachfoska.composeapp.generated.resources.recipe_detail_prep_label
+import coachfoska.composeapp.generated.resources.recipe_detail_serves_label
+import coachfoska.composeapp.generated.resources.recipe_macro_label_carbs
+import coachfoska.composeapp.generated.resources.recipe_macro_label_fat
+import coachfoska.composeapp.generated.resources.recipe_macro_label_kcal
+import coachfoska.composeapp.generated.resources.recipe_macro_label_protein
 import coachfoska.composeapp.generated.resources.recipe_no_ingredients
 import coachfoska.composeapp.generated.resources.recipe_no_steps
 import coachfoska.composeapp.generated.resources.recipe_tab_directions
 import coachfoska.composeapp.generated.resources.recipe_tab_ingredients
+import coachfoska.composeapp.generated.resources.recipes_add_favorite_cd
+import coachfoska.composeapp.generated.resources.recipes_remove_favorite_cd
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -76,7 +86,7 @@ fun RecipeDetailRoute(
                 IconButton(onClick = { viewModel.onIntent(RecipeDetailIntent.ToggleFavorite) }) {
                     Icon(
                         imageVector = if (state.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = if (state.isFavorite) "Remove from favorites" else "Add to favorites",
+                        contentDescription = if (state.isFavorite) stringResource(Res.string.recipes_remove_favorite_cd) else stringResource(Res.string.recipes_add_favorite_cd),
                         tint = if (state.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
                     )
                 }
@@ -240,16 +250,16 @@ private fun RecipeMetaRow(recipe: Recipe) {
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         recipe.prepTimeMinutes?.let {
-            MetaChip(label = "PREP", value = "${it}m")
+            MetaChip(label = stringResource(Res.string.recipe_detail_prep_label), value = "${it}m")
         }
         recipe.cookTimeMinutes?.let {
-            MetaChip(label = "COOK", value = "${it}m")
+            MetaChip(label = stringResource(Res.string.recipe_detail_cook_label), value = "${it}m")
         }
         if (recipe.servings > 0) {
-            MetaChip(label = "SERVES", value = "${recipe.servings}")
+            MetaChip(label = stringResource(Res.string.recipe_detail_serves_label), value = "${recipe.servings}")
         }
         recipe.difficulty?.let {
-            MetaChip(label = "LEVEL", value = it.uppercase())
+            MetaChip(label = stringResource(Res.string.recipe_detail_level_label), value = it.uppercase())
         }
     }
 }
@@ -309,10 +319,10 @@ private fun MacrosBand(recipe: Recipe) {
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        MacroItem(value = "${recipe.calories.toInt()}", label = "kcal")
-        MacroItem(value = "${recipe.protein.toInt()}g", label = "protein")
-        MacroItem(value = "${recipe.carbs.toInt()}g", label = "carbs")
-        MacroItem(value = "${recipe.fat.toInt()}g", label = "fat")
+        MacroItem(value = "${recipe.calories.toInt()}", label = stringResource(Res.string.recipe_macro_label_kcal))
+        MacroItem(value = "${recipe.protein.toInt()}g", label = stringResource(Res.string.recipe_macro_label_protein))
+        MacroItem(value = "${recipe.carbs.toInt()}g", label = stringResource(Res.string.recipe_macro_label_carbs))
+        MacroItem(value = "${recipe.fat.toInt()}g", label = stringResource(Res.string.recipe_macro_label_fat))
     }
 }
 

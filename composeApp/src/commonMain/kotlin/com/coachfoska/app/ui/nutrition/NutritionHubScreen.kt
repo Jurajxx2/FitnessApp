@@ -39,9 +39,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.common_see_all
 import coachfoska.composeapp.generated.resources.img_nutrition_history
 import coachfoska.composeapp.generated.resources.img_nutrition_plan
+import coachfoska.composeapp.generated.resources.log_meal_button
+import coachfoska.composeapp.generated.resources.nutrition_hub_featured_recipes
+import coachfoska.composeapp.generated.resources.nutrition_hub_no_recipes
+import coachfoska.composeapp.generated.resources.nutrition_hub_title
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
+import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
@@ -102,7 +108,7 @@ fun NutritionHubScreen(
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = "NUTRITION",
+            text = stringResource(Res.string.nutrition_hub_title),
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp)
@@ -125,7 +131,7 @@ fun NutritionHubScreen(
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "LOG MEAL",
+                    text = stringResource(Res.string.log_meal_button),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -139,13 +145,13 @@ fun NutritionHubScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "FEATURED RECIPES",
+                    text = stringResource(Res.string.nutrition_hub_featured_recipes),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     letterSpacing = 1.5.sp,
                 )
                 Text(
-                    text = "SEE ALL",
+                    text = stringResource(Res.string.common_see_all),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     letterSpacing = 1.sp,
@@ -160,7 +166,7 @@ fun NutritionHubScreen(
                     CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(150.dp))
                 featured.isEmpty() ->
                     Text(
-                        text = "No recipes yet.",
+                        text = stringResource(Res.string.nutrition_hub_no_recipes),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     )

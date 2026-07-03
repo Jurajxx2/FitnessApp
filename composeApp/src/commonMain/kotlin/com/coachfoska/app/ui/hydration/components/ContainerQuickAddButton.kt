@@ -21,7 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.common_favorite_cd
 import com.coachfoska.app.domain.model.WaterContainer
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ContainerQuickAddButton(
@@ -68,7 +71,7 @@ fun ContainerQuickAddButton(
             if (container.isFavorite) {
                 Icon(
                     imageVector = Icons.Filled.Star,
-                    contentDescription = "Favorite",
+                    contentDescription = stringResource(Res.string.common_favorite_cd),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(12.dp),
                 )

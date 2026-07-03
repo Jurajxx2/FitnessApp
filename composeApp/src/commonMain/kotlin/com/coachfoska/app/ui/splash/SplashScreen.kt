@@ -19,6 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.splash_coach
+import coachfoska.composeapp.generated.resources.splash_foska
+import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.presentation.splash.SplashNavState
 import com.coachfoska.app.presentation.splash.SplashViewModel
 import io.github.alexzhirkevich.compottie.Compottie
@@ -77,14 +80,14 @@ fun SplashScreen() {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "COACH",
+                    text = stringResource(Res.string.splash_coach),
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 40.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 8.sp
                 )
                 Text(
-                    text = "FOŠKA",
+                    text = stringResource(Res.string.splash_foska),
                     color = MaterialTheme.colorScheme.primary,
                     fontSize = 40.sp,
                     fontWeight = FontWeight.ExtraBold,
