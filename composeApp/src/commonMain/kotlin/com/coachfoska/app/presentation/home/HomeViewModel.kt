@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.core.util.todayDate
 import com.coachfoska.app.domain.model.ChatType
+import com.coachfoska.app.domain.model.WeightEntry
+import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.repository.HydrationRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
@@ -24,8 +26,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.coachfoska.app.core.util.currentInstant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.abs
 
 private const val TAG = "HomeViewModel"
 
@@ -137,25 +141,10 @@ class HomeViewModel(
             val loadedUser = profileResult.getOrNull()
             val workoutHistory = historyResult.getOrDefault(emptyList())
 
-            // Week window: Monday 00:00 local (week starts Monday; ordinal 0 = Monday)
-            val todayEpoch = today.toEpochDays()
-            val mondayEpoch = todayEpoch - today.dayOfWeek.ordinal
-            val weekWorkoutsDone = workoutHistory.count { log ->
-                log.loggedAt.toLocalDateTime(TimeZone.currentSystemDefault())
-                    .date.toEpochDays() >= mondayEpoch
-            }
-
-            // Weight metrics: latest entry = current; delta vs. entry closest to 30 days back
-            val weightEntries = weightResult.getOrDefault(emptyList())
-                .sortedByDescending { it.recordedAt }
-            val currentWeightKg = weightEntries.firstOrNull()?.weightKg
-            val thirtyDaysEpoch = todayEpoch - 30
-            val weightDeltaKg = if (weightEntries.size >= 2 && currentWeightKg != null) {
-                val referenceEntry = weightEntries.drop(1).minByOrNull { entry ->
-                    kotlin.math.abs(entry.recordedAt.toEpochDays() - thirtyDaysEpoch)
-                }
-                referenceEntry?.let { currentWeightKg - it.weightKg }
-            } else null
+            val weekWorkoutsDone =
+                countLogsSinceMonday(workoutHistory, today, TimeZone.currentSystemDefault())
+            val (currentWeightKg, weightDeltaKg) =
+                computeWeightMetrics(weightResult.getOrDefault(emptyList()), today)
 
             val streakWeeks = streakResult.getOrDefault(0)
             // First-run: no workout history AND no coach-assigned workouts
@@ -194,24 +183,14 @@ class HomeViewModel(
         viewModelScope.launch {
             _state.update { it.copy(metricsError = false) }
             val today = todayDate()
-            val todayEpoch = today.toEpochDays()
             val weightResult = getWeightHistoryUseCase(userId)
             val streakResult = workoutRepository.getCurrentStreak(userId)
 
             weightResult.onFailure { e -> Napier.e("retryMetrics: loadWeightHistory failed", e, tag = TAG) }
             streakResult.onFailure { e -> Napier.e("retryMetrics: loadStreak failed", e, tag = TAG) }
 
-            val weightEntries = weightResult.getOrDefault(emptyList())
-                .sortedByDescending { it.recordedAt }
-            val currentWeightKg = weightEntries.firstOrNull()?.weightKg
-            val thirtyDaysEpoch = todayEpoch - 30
-            val weightDeltaKg = if (weightEntries.size >= 2 && currentWeightKg != null) {
-                val referenceEntry = weightEntries.drop(1).minByOrNull { entry ->
-                    kotlin.math.abs(entry.recordedAt.toEpochDays() - thirtyDaysEpoch)
-                }
-                referenceEntry?.let { currentWeightKg - it.weightKg }
-            } else null
-
+            val (currentWeightKg, weightDeltaKg) =
+                computeWeightMetrics(weightResult.getOrDefault(emptyList()), today)
             val streakWeeks = streakResult.getOrDefault(0)
             val metricsError = weightResult.isFailure || streakResult.isFailure
 
@@ -225,4 +204,38 @@ class HomeViewModel(
             }
         }
     }
+}
+
+/**
+ * Counts workout logs recorded on or after Monday 00:00 of [today]'s week
+ * (week starts Monday; kotlinx.datetime DayOfWeek.ordinal 0 = Monday).
+ */
+internal fun countLogsSinceMonday(
+    history: List<WorkoutLog>,
+    today: LocalDate,
+    zone: TimeZone,
+): Int {
+    val mondayEpoch = today.toEpochDays() - today.dayOfWeek.ordinal
+    return history.count { log ->
+        log.loggedAt.toLocalDateTime(zone).date.toEpochDays() >= mondayEpoch
+    }
+}
+
+/**
+ * Weight metrics from history: latest entry = current weight; delta = current minus
+ * the earlier entry closest to 30 days before [today] (null when fewer than 2 entries).
+ */
+private fun computeWeightMetrics(
+    entries: List<WeightEntry>,
+    today: LocalDate,
+): Pair<Float?, Float?> {
+    val sorted = entries.sortedByDescending { it.recordedAt }
+    val current = sorted.firstOrNull()?.weightKg ?: return null to null
+    val thirtyDaysEpoch = today.toEpochDays() - 30
+    val delta = if (sorted.size >= 2) {
+        sorted.drop(1)
+            .minByOrNull { entry -> abs(entry.recordedAt.toEpochDays() - thirtyDaysEpoch) }
+            ?.let { current - it.weightKg }
+    } else null
+    return current to delta
 }

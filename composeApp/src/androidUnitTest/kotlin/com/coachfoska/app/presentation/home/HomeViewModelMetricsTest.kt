@@ -31,6 +31,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -93,9 +94,10 @@ class HomeViewModelMetricsTest {
         // ordinal: 0 = Monday, so Monday is today - ordinal
         val mondayEpoch = todayEpoch - today.dayOfWeek.ordinal
         val secondsPerDay = 86400L
-        val nineAmSeconds = 9L * 3600L
+        // Noon UTC keeps the local date stable across negative-offset timezones
+        val noonSeconds = 12L * 3600L
 
-        fun logAt(epochDay: Long) = Instant.fromEpochSeconds(epochDay * secondsPerDay + nineAmSeconds)
+        fun logAt(epochDay: Long) = Instant.fromEpochSeconds(epochDay * secondsPerDay + noonSeconds)
 
         val thisWeekLog1 = WorkoutLog(
             id = "log-tw1", userId = "user-1", workoutId = null, workoutName = "Push",
@@ -155,5 +157,31 @@ class HomeViewModelMetricsTest {
         assertEquals(80.0f, vm.state.value.currentWeightKg)
         assertNotNull(vm.state.value.weightDeltaKg)
         assertEquals(-2.5f, vm.state.value.weightDeltaKg)
+    }
+
+    /**
+     * Independently-anchored week-boundary check with hardcoded calendar dates —
+     * deliberately does NOT reuse the production `dayOfWeek.ordinal` formula, so an
+     * off-by-one regression in the Monday computation would fail this test.
+     *
+     * 2026-07-05 is a Sunday; its week's Monday is 2026-06-29.
+     * A log on that Monday must count; a log on Sunday 2026-06-28 (previous week) must not.
+     */
+    @Test
+    fun `countLogsSinceMonday hardcoded sunday counts monday log but not previous sunday`() {
+        val sunday = LocalDate(2026, 7, 5)
+
+        fun logOn(id: String, isoInstant: String) = WorkoutLog(
+            id = id, userId = "user-1", workoutId = null, workoutName = "W",
+            durationMinutes = 30, notes = null, exerciseLogs = emptyList(),
+            loggedAt = Instant.parse(isoInstant),
+        )
+
+        val mondayLog = logOn("log-mon", "2026-06-29T12:00:00Z") // Monday of the same week
+        val prevSundayLog = logOn("log-sun", "2026-06-28T12:00:00Z") // Sunday of the previous week
+
+        val count = countLogsSinceMonday(listOf(mondayLog, prevSundayLog), sunday, TimeZone.UTC)
+
+        assertEquals(1, count)
     }
 }
