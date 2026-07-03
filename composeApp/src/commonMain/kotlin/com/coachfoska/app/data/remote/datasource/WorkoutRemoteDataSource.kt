@@ -6,8 +6,11 @@ import com.coachfoska.app.data.remote.dto.SetLogDto
 import com.coachfoska.app.data.remote.dto.SetLogInsertDto
 import com.coachfoska.app.data.remote.dto.UserWorkoutJoinDto
 import com.coachfoska.app.data.remote.dto.WorkoutDto
+import com.coachfoska.app.data.remote.dto.WorkoutExerciseInsertDto
+import com.coachfoska.app.data.remote.dto.WorkoutInsertDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogInsertDto
+import com.coachfoska.app.data.remote.dto.WorkoutUpdateDto
 import com.coachfoska.app.core.util.currentInstant
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -38,13 +41,19 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
             .mapNotNull { it.workouts }
             .filter { it.isActive }
 
-        return (global + legacyUserSpecific + viaJoinTable).distinctBy { it.id }
+        val ownPlans = supabase.postgrest["workouts"]
+            .select(columns = Columns.raw("*, workout_exercises(*)")) {
+                filter { eq("owner_user_id", userId); eq("is_active", true) }
+                order("day_of_week", Order.ASCENDING)
+            }.decodeList<WorkoutDto>()
+
+        return (global + legacyUserSpecific + viaJoinTable + ownPlans).distinctBy { it.id }
     }
 
     suspend fun getAllWorkouts(): List<WorkoutDto> =
         supabase.postgrest["workouts"]
             .select(columns = Columns.raw("*, workout_exercises(*)")) {
-                filter { eq("is_active", true) }
+                filter { exact("owner_user_id", null); eq("is_active", true) }
                 order("day_of_week", Order.ASCENDING)
             }.decodeList<WorkoutDto>()
 
@@ -190,4 +199,20 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
                 }
                 order("logged_at", Order.ASCENDING)
             }.decodeList<WorkoutLogDto>()
+
+    suspend fun insertWorkout(payload: WorkoutInsertDto): WorkoutDto =
+        supabase.postgrest["workouts"].insert(payload) { select() }.decodeSingle<WorkoutDto>()
+
+    suspend fun updateWorkout(workoutId: String, payload: WorkoutUpdateDto) {
+        supabase.postgrest["workouts"].update(payload) { filter { eq("id", workoutId) } }
+    }
+
+    suspend fun deleteWorkout(workoutId: String) {
+        supabase.postgrest["workouts"].delete { filter { eq("id", workoutId) } }
+    }
+
+    suspend fun replaceWorkoutExercises(workoutId: String, payloads: List<WorkoutExerciseInsertDto>) {
+        supabase.postgrest["workout_exercises"].delete { filter { eq("workout_id", workoutId) } }
+        if (payloads.isNotEmpty()) supabase.postgrest["workout_exercises"].insert(payloads)
+    }
 }

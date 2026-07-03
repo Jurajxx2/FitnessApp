@@ -6,6 +6,7 @@ import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.domain.model.WorkoutLog
+import com.coachfoska.app.domain.model.WorkoutSource
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -18,14 +19,20 @@ data class WorkoutDto(
     @SerialName("duration_minutes") val durationMinutes: Int = 0,
     val notes: String? = null,
     @SerialName("is_active") val isActive: Boolean = true,
-    @SerialName("workout_exercises") val exercises: List<WorkoutExerciseDto> = emptyList()
+    @SerialName("workout_exercises") val exercises: List<WorkoutExerciseDto> = emptyList(),
+    val source: String = "coach",
+    @SerialName("owner_user_id") val ownerUserId: String? = null,
+    @SerialName("forked_from_workout_id") val forkedFromWorkoutId: String? = null,
 ) {
     fun toDomain(): Workout = Workout(
         id = id, name = name,
         dayOfWeek = DayOfWeek.fromIndex(dayOfWeek),
         durationMinutes = durationMinutes,
         exercises = exercises.map { it.toDomain() },
-        notes = notes, isActive = isActive
+        notes = notes, isActive = isActive,
+        source = if (source == "user") WorkoutSource.USER else WorkoutSource.COACH,
+        ownerUserId = ownerUserId,
+        forkedFromWorkoutId = forkedFromWorkoutId,
     )
 }
 
@@ -41,14 +48,53 @@ data class WorkoutExerciseDto(
     val tips: String? = null,
     @SerialName("video_url") val videoUrl: String? = null,
     @SerialName("sort_order") val sortOrder: Int = 0,
-    @SerialName("exercise_id") val exerciseId: String? = null
+    @SerialName("exercise_id") val exerciseId: String? = null,
+    @SerialName("substituted_from_exercise_id") val substitutedFromExerciseId: String? = null,
+    @SerialName("substituted_from_name") val substitutedFromName: String? = null,
 ) {
     fun toDomain(): WorkoutExercise = WorkoutExercise(
         id = id, workoutId = workoutId, name = name, muscleGroup = muscleGroup,
         sets = sets, reps = reps, restSeconds = restSeconds, tips = tips,
-        videoUrl = videoUrl, sortOrder = sortOrder, exerciseId = exerciseId
+        videoUrl = videoUrl, sortOrder = sortOrder, exerciseId = exerciseId,
+        substitutedFromExerciseId = substitutedFromExerciseId,
+        substitutedFromName = substitutedFromName,
     )
 }
+
+@Serializable
+data class WorkoutInsertDto(
+    val name: String,
+    @SerialName("day_of_week") val dayOfWeek: Int? = null,
+    @SerialName("duration_minutes") val durationMinutes: Int = 0,
+    val notes: String? = null,
+    @SerialName("is_active") val isActive: Boolean = true,
+    val source: String = "user",
+    @SerialName("owner_user_id") val ownerUserId: String,
+    @SerialName("user_id") val userId: String,   // keeps own plans out of the global (user_id IS NULL) feed
+    @SerialName("forked_from_workout_id") val forkedFromWorkoutId: String? = null,
+)
+
+@Serializable
+data class WorkoutUpdateDto(
+    val name: String,
+    @SerialName("day_of_week") val dayOfWeek: Int? = null,
+    val notes: String? = null,
+)
+
+@Serializable
+data class WorkoutExerciseInsertDto(
+    @SerialName("workout_id") val workoutId: String,
+    val name: String,
+    @SerialName("muscle_group") val muscleGroup: String? = null,
+    val sets: Int,
+    val reps: String,
+    @SerialName("rest_seconds") val restSeconds: Int,
+    val tips: String? = null,
+    @SerialName("sort_order") val sortOrder: Int,
+    @SerialName("exercise_id") val exerciseId: String? = null,
+    @SerialName("substituted_from_exercise_id") val substitutedFromExerciseId: String? = null,
+    @SerialName("substituted_from_name") val substitutedFromName: String? = null,
+)
 
 @Serializable
 data class WorkoutLogDto(

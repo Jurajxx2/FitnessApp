@@ -2,6 +2,8 @@ package com.coachfoska.app.domain.model
 
 import kotlinx.datetime.Instant
 
+enum class WorkoutSource { COACH, USER }
+
 data class Workout(
     val id: String,
     val name: String,
@@ -9,7 +11,10 @@ data class Workout(
     val durationMinutes: Int,
     val exercises: List<WorkoutExercise>,
     val notes: String? = null,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val source: WorkoutSource = WorkoutSource.COACH,
+    val ownerUserId: String? = null,
+    val forkedFromWorkoutId: String? = null,
 )
 
 data class WorkoutExercise(
@@ -23,7 +28,28 @@ data class WorkoutExercise(
     val tips: String?,
     val videoUrl: String? = null,
     val sortOrder: Int = 0,
-    val exerciseId: String? = null
+    val exerciseId: String? = null,
+    val substitutedFromExerciseId: String? = null,
+    val substitutedFromName: String? = null,
+)
+
+data class WorkoutExerciseDraft(
+    val exerciseId: String?,
+    val name: String,
+    val muscleGroup: String?,
+    val sets: Int,
+    val reps: String,
+    val restSeconds: Int,
+    val tips: String? = null,
+    val substitutedFromExerciseId: String? = null,
+    val substitutedFromName: String? = null,
+)
+
+data class WorkoutDraft(
+    val name: String,
+    val dayOfWeek: DayOfWeek?,
+    val notes: String?,
+    val exercises: List<WorkoutExerciseDraft>,
 )
 
 data class WorkoutLog(

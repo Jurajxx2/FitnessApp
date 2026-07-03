@@ -82,10 +82,13 @@ import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
 import com.coachfoska.app.domain.usecase.workout.CalculateEstimated1RMUseCase
 import com.coachfoska.app.domain.usecase.workout.GetPreviousExerciseLogsUseCase
 import com.coachfoska.app.domain.usecase.workout.CheckPersonalRecordUseCase
+import com.coachfoska.app.domain.usecase.workout.DeleteUserWorkoutUseCase
+import com.coachfoska.app.domain.usecase.workout.ForkWorkoutUseCase
 import com.coachfoska.app.domain.usecase.workout.GetExerciseHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.GetExerciseRecordsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetProgressDashboardUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutsPerWeekUseCase
+import com.coachfoska.app.domain.usecase.workout.SaveUserWorkoutUseCase
 import com.coachfoska.app.presentation.workout.ActiveSessionViewModel
 import com.coachfoska.app.presentation.workout.ProgressDashboardViewModel
 import com.coachfoska.app.presentation.workout.PostWorkoutSummaryViewModel
@@ -180,6 +183,9 @@ val useCaseModule = module {
     factory { GetWorkoutByIdUseCase(get()) }
     factory { LogWorkoutUseCase(get()) }
     factory { GetWorkoutHistoryUseCase(get()) }
+    factory { SaveUserWorkoutUseCase(get()) }
+    factory { DeleteUserWorkoutUseCase(get()) }
+    factory { ForkWorkoutUseCase(get()) }
 
     // Workout analytics
     factory { CalculateEstimated1RMUseCase() }

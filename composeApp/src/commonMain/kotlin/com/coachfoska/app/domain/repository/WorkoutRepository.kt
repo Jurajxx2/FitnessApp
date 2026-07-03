@@ -6,6 +6,7 @@ import com.coachfoska.app.domain.model.PersonalRecord
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WeeklyCount
 import com.coachfoska.app.domain.model.Workout
+import com.coachfoska.app.domain.model.WorkoutDraft
 import com.coachfoska.app.domain.model.WorkoutLog
 import kotlinx.datetime.LocalDate
 
@@ -64,4 +65,17 @@ interface WorkoutRepository {
 
     /** Returns the number of consecutive weeks (ending with current) with at least 1 workout. */
     suspend fun getCurrentStreak(userId: String): Result<Int>
+
+    /** Creates a new user-authored workout plan. */
+    suspend fun createUserWorkout(
+        userId: String,
+        draft: WorkoutDraft,
+        forkedFromWorkoutId: String? = null,
+    ): Result<Workout>
+
+    /** Updates the name/day/notes and replaces all exercises of a user-authored workout. */
+    suspend fun updateUserWorkout(workoutId: String, draft: WorkoutDraft): Result<Workout>
+
+    /** Deletes a user-authored workout plan. */
+    suspend fun deleteUserWorkout(workoutId: String): Result<Unit>
 }

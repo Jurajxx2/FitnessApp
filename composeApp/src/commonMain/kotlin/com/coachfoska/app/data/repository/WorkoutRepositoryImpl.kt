@@ -3,6 +3,9 @@ package com.coachfoska.app.data.repository
 import com.coachfoska.app.data.remote.datasource.WorkoutRemoteDataSource
 import com.coachfoska.app.data.remote.dto.ExerciseLogInsertDto
 import com.coachfoska.app.data.remote.dto.SetLogInsertDto
+import com.coachfoska.app.data.remote.dto.WorkoutExerciseInsertDto
+import com.coachfoska.app.data.remote.dto.WorkoutInsertDto
+import com.coachfoska.app.data.remote.dto.WorkoutUpdateDto
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.ExerciseRecords
@@ -12,6 +15,7 @@ import com.coachfoska.app.domain.model.RecordEntry
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WeeklyCount
 import com.coachfoska.app.domain.model.Workout
+import com.coachfoska.app.domain.model.WorkoutDraft
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.domain.repository.WorkoutRepository
@@ -25,7 +29,7 @@ class WorkoutRepositoryImpl(
 ) : WorkoutRepository {
 
     override suspend fun getAssignedWorkouts(userId: String): Result<List<Workout>> = runCatching {
-        workoutDataSource.getAssignedWorkouts(userId).map { it.toDomain() }
+        shadowForks(workoutDataSource.getAssignedWorkouts(userId).map { it.toDomain() })
     }
 
     override suspend fun getAllWorkouts(): Result<List<Workout>> = runCatching {
@@ -278,4 +282,72 @@ class WorkoutRepositoryImpl(
         }
         streak
     }
+
+    override suspend fun createUserWorkout(
+        userId: String,
+        draft: WorkoutDraft,
+        forkedFromWorkoutId: String?,
+    ): Result<Workout> = runCatching {
+        val workoutPayload = WorkoutInsertDto(
+            name = draft.name,
+            dayOfWeek = draft.dayOfWeek?.index,
+            notes = draft.notes,
+            ownerUserId = userId,
+            userId = userId,
+            forkedFromWorkoutId = forkedFromWorkoutId,
+        )
+        val workoutDto = workoutDataSource.insertWorkout(workoutPayload)
+        val exercisePayloads = draft.exercises.mapIndexed { index, ex ->
+            WorkoutExerciseInsertDto(
+                workoutId = workoutDto.id,
+                name = ex.name,
+                muscleGroup = ex.muscleGroup,
+                sets = ex.sets,
+                reps = ex.reps,
+                restSeconds = ex.restSeconds,
+                tips = ex.tips,
+                sortOrder = index,
+                exerciseId = ex.exerciseId,
+                substitutedFromExerciseId = ex.substitutedFromExerciseId,
+                substitutedFromName = ex.substitutedFromName,
+            )
+        }
+        workoutDataSource.replaceWorkoutExercises(workoutDto.id, exercisePayloads)
+        workoutDataSource.getWorkoutById(workoutDto.id).toDomain()
+    }
+
+    override suspend fun updateUserWorkout(workoutId: String, draft: WorkoutDraft): Result<Workout> = runCatching {
+        val updatePayload = WorkoutUpdateDto(
+            name = draft.name,
+            dayOfWeek = draft.dayOfWeek?.index,
+            notes = draft.notes,
+        )
+        workoutDataSource.updateWorkout(workoutId, updatePayload)
+        val exercisePayloads = draft.exercises.mapIndexed { index, ex ->
+            WorkoutExerciseInsertDto(
+                workoutId = workoutId,
+                name = ex.name,
+                muscleGroup = ex.muscleGroup,
+                sets = ex.sets,
+                reps = ex.reps,
+                restSeconds = ex.restSeconds,
+                tips = ex.tips,
+                sortOrder = index,
+                exerciseId = ex.exerciseId,
+                substitutedFromExerciseId = ex.substitutedFromExerciseId,
+                substitutedFromName = ex.substitutedFromName,
+            )
+        }
+        workoutDataSource.replaceWorkoutExercises(workoutId, exercisePayloads)
+        workoutDataSource.getWorkoutById(workoutId).toDomain()
+    }
+
+    override suspend fun deleteUserWorkout(workoutId: String): Result<Unit> = runCatching {
+        workoutDataSource.deleteWorkout(workoutId)
+    }
+}
+
+internal fun shadowForks(workouts: List<Workout>): List<Workout> {
+    val forkedIds = workouts.mapNotNull { it.forkedFromWorkoutId }.toSet()
+    return workouts.filter { it.id !in forkedIds }
 }
