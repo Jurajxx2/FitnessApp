@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.editor_picker_done
+import coachfoska.composeapp.generated.resources.editor_picker_no_results
+import coachfoska.composeapp.generated.resources.editor_picker_search_prompt
 import coachfoska.composeapp.generated.resources.editor_picker_title
 import coachfoska.composeapp.generated.resources.editor_search_exercises
 import com.coachfoska.app.domain.model.Exercise
@@ -135,7 +137,7 @@ fun ExercisePickerSheet(
                 }
                 state.searchQuery.isBlank() -> {
                     Text(
-                        text = "Type to search the exercise library",
+                        text = stringResource(Res.string.editor_picker_search_prompt),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         modifier = Modifier
@@ -145,7 +147,7 @@ fun ExercisePickerSheet(
                 }
                 else -> {
                     Text(
-                        text = "No exercises found",
+                        text = stringResource(Res.string.editor_picker_no_results),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         modifier = Modifier

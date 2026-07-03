@@ -342,6 +342,8 @@
     <string name="editor_search_exercises">Search exercises…</string>
     <string name="editor_picker_done">Done</string>
     <string name="editor_picker_title">Add exercises</string>
+    <string name="editor_picker_search_prompt">Type to search the exercise library</string>
+    <string name="editor_picker_no_results">No exercises found</string>
     <string name="editor_move_up_cd">Move up</string>
     <string name="editor_move_down_cd">Move down</string>
     <string name="editor_remove_cd">Remove exercise</string>
