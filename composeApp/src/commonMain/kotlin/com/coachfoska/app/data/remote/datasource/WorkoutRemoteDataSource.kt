@@ -17,6 +17,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
+import kotlinx.serialization.Serializable
 
 class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
 
@@ -212,7 +213,30 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
     }
 
     suspend fun replaceWorkoutExercises(workoutId: String, payloads: List<WorkoutExerciseInsertDto>) {
-        supabase.postgrest["workout_exercises"].delete { filter { eq("workout_id", workoutId) } }
+        // Fetch the ids of existing rows before touching anything — insert-before-delete prevents
+        // irrecoverable data loss if the insert fails (network drop, constraint error, etc.).
+        // NOTE: Postgrest has no client-side transaction. If the delete below fails after a
+        // successful insert, the workout temporarily holds both old and new rows (duplicate rows,
+        // not lost rows). A retry of updateUserWorkout converges to the correct final state.
+        val oldIds = supabase.postgrest["workout_exercises"]
+            .select(columns = Columns.raw("id")) {
+                filter { eq("workout_id", workoutId) }
+            }
+            .decodeList<WorkoutExerciseIdDto>()
+            .map { it.id }
+
+        // Insert new rows first — confirmed in DB before any old row is destroyed.
         if (payloads.isNotEmpty()) supabase.postgrest["workout_exercises"].insert(payloads)
+
+        // Delete only the previously-recorded old ids (skip if there were none).
+        if (oldIds.isNotEmpty()) {
+            supabase.postgrest["workout_exercises"].delete {
+                filter { filter("id", FilterOperator.IN, oldIds) }
+            }
+        }
     }
 }
+
+// Minimal id-holder used by replaceWorkoutExercises for the insert-before-delete pattern.
+@Serializable
+private data class WorkoutExerciseIdDto(val id: String)
