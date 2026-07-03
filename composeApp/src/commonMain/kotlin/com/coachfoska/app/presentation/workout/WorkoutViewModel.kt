@@ -2,15 +2,22 @@ package com.coachfoska.app.presentation.workout
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.coachfoska.app.core.util.currentInstant
+import com.coachfoska.app.domain.model.WorkoutDraft
+import com.coachfoska.app.domain.model.WorkoutExerciseDraft
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.SetLog
+import com.coachfoska.app.domain.model.WorkoutSource
+import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.workout.DeleteUserWorkoutUseCase
+import com.coachfoska.app.domain.usecase.workout.ExerciseSwap
+import com.coachfoska.app.domain.usecase.workout.ForkWorkoutUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAllWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
-import com.coachfoska.app.core.util.currentInstant
+import com.coachfoska.app.domain.usecase.workout.SaveUserWorkoutUseCase
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +34,9 @@ class WorkoutViewModel(
     private val logWorkoutUseCase: LogWorkoutUseCase,
     private val getWorkoutHistoryUseCase: GetWorkoutHistoryUseCase,
     private val deleteUserWorkoutUseCase: DeleteUserWorkoutUseCase,
+    private val saveUserWorkoutUseCase: SaveUserWorkoutUseCase,
+    private val forkWorkoutUseCase: ForkWorkoutUseCase,
+    private val workoutRepository: WorkoutRepository,
     private val userId: String
 ) : ViewModel() {
 
@@ -37,6 +47,7 @@ class WorkoutViewModel(
         onIntent(WorkoutIntent.LoadWorkouts)
         onIntent(WorkoutIntent.LoadAllWorkouts)
         onIntent(WorkoutIntent.LoadHistory)
+        onIntent(WorkoutIntent.LoadInProgressSession)
     }
 
     fun onIntent(intent: WorkoutIntent) {
@@ -44,11 +55,14 @@ class WorkoutViewModel(
         when (intent) {
             WorkoutIntent.LoadWorkouts -> loadWorkouts()
             WorkoutIntent.LoadAllWorkouts -> loadAllWorkouts()
+            WorkoutIntent.LoadInProgressSession -> loadInProgressSession()
             is WorkoutIntent.SelectWorkout -> selectWorkout(intent.workoutId)
             WorkoutIntent.LoadHistory -> loadHistory()
             is WorkoutIntent.LogWorkout -> logWorkout(intent)
             is WorkoutIntent.DeleteWorkout -> deleteWorkout(intent.workoutId)
+            is WorkoutIntent.SubstitutePlanExercise -> substitutePlanExercise(intent)
             WorkoutIntent.DismissError -> _state.update { it.copy(error = null) }
+            WorkoutIntent.DismissPlanSubstitution -> _state.update { it.copy(lastPlanSubstitution = null) }
             WorkoutIntent.WorkoutLogged -> _state.update { it.copy(workoutLoggedSuccess = false) }
             is WorkoutIntent.SelectWorkoutLog -> selectWorkoutLog(intent.logId)
             is WorkoutIntent.AttachVideoToLog -> { /* TODO */ }
@@ -124,6 +138,14 @@ class WorkoutViewModel(
         }
     }
 
+    private fun loadInProgressSession() {
+        viewModelScope.launch {
+            workoutRepository.getInProgressSession(userId)
+                .onSuccess { log -> _state.update { it.copy(inProgressSession = log) } }
+                .onFailure { e -> Napier.e("Failed to load in-progress session", e, tag = TAG) }
+        }
+    }
+
     private fun deleteWorkout(workoutId: String) {
         viewModelScope.launch {
             deleteUserWorkoutUseCase(workoutId)
@@ -132,6 +154,77 @@ class WorkoutViewModel(
                     loadWorkouts()
                 }
                 .onFailure { e -> _state.update { it.copy(error = e.message) } }
+        }
+    }
+
+    private fun substitutePlanExercise(intent: WorkoutIntent.SubstitutePlanExercise) {
+        val workout = _state.value.selectedWorkout ?: return
+        val ordered = workout.exercises.sortedBy { it.sortOrder }
+        if (intent.exerciseIndex !in ordered.indices) return
+
+        val old = ordered[intent.exerciseIndex]
+        val replacement = intent.replacement
+        val swap = ExerciseSwap(
+            exerciseIndex = intent.exerciseIndex,
+            newExerciseId = replacement.id,
+            newName = replacement.name,
+            newMuscleGroup = replacement.muscles.firstOrNull() ?: replacement.category?.name,
+        )
+
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            val result = if (workout.source == WorkoutSource.COACH) {
+                forkWorkoutUseCase(userId, workout, swap)
+            } else {
+                val draft = WorkoutDraft(
+                    name = workout.name,
+                    dayOfWeek = workout.dayOfWeek,
+                    notes = workout.notes,
+                    exercises = ordered.mapIndexed { index, ex ->
+                        if (index == intent.exerciseIndex) {
+                            WorkoutExerciseDraft(
+                                exerciseId = replacement.id,
+                                name = replacement.name,
+                                muscleGroup = swap.newMuscleGroup,
+                                sets = ex.sets,
+                                reps = ex.reps,
+                                restSeconds = ex.restSeconds,
+                                tips = ex.tips,
+                                substitutedFromExerciseId = ex.substitutedFromExerciseId ?: ex.exerciseId,
+                                substitutedFromName = ex.substitutedFromName ?: ex.name,
+                            )
+                        } else {
+                            WorkoutExerciseDraft(
+                                exerciseId = ex.exerciseId,
+                                name = ex.name,
+                                muscleGroup = ex.muscleGroup,
+                                sets = ex.sets,
+                                reps = ex.reps,
+                                restSeconds = ex.restSeconds,
+                                tips = ex.tips,
+                                substitutedFromExerciseId = ex.substitutedFromExerciseId,
+                                substitutedFromName = ex.substitutedFromName,
+                            )
+                        }
+                    },
+                )
+                saveUserWorkoutUseCase(userId, draft, workout.id)
+            }
+
+            result
+                .onSuccess { updated ->
+                    _state.update {
+                        it.copy(
+                            selectedWorkout = updated,
+                            lastPlanSubstitution = Pair(old.name, replacement.name),
+                            isLoading = false,
+                        )
+                    }
+                    loadWorkouts()
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(error = e.message, isLoading = false) }
+                }
         }
     }
 

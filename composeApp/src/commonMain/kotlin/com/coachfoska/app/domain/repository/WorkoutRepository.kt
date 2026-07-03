@@ -3,6 +3,7 @@ package com.coachfoska.app.domain.repository
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.ExerciseRecords
 import com.coachfoska.app.domain.model.PersonalRecord
+import com.coachfoska.app.domain.model.SavedSetRef
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WeeklyCount
 import com.coachfoska.app.domain.model.Workout
@@ -78,4 +79,38 @@ interface WorkoutRepository {
 
     /** Deletes a user-authored workout plan. */
     suspend fun deleteUserWorkout(workoutId: String): Result<Unit>
+
+    /** Starts a live session and returns the workout_log id. */
+    suspend fun startWorkoutSession(
+        userId: String,
+        workoutId: String?,
+        workoutName: String,
+    ): Result<String>
+
+    /** Inserts a set log, creating the parent exercise_log lazily when needed. */
+    suspend fun saveSetLog(
+        workoutLogId: String,
+        exerciseName: String,
+        exerciseId: String?,
+        substitutedFromExerciseId: String?,
+        substitutedFromName: String?,
+        existingExerciseLogId: String?,
+        set: SetLog,
+    ): Result<SavedSetRef>
+
+    /** Updates an existing set log row. */
+    suspend fun updateSetLog(setLogId: String, set: SetLog): Result<Unit>
+
+    /** Marks the live session completed. */
+    suspend fun finishWorkoutSession(
+        workoutLogId: String,
+        durationMinutes: Int,
+        notes: String?,
+    ): Result<Unit>
+
+    /** Marks the live session discarded. */
+    suspend fun discardWorkoutSession(workoutLogId: String): Result<Unit>
+
+    /** Returns the newest in-progress session, including exercise/set rows when present. */
+    suspend fun getInProgressSession(userId: String): Result<WorkoutLog?>
 }

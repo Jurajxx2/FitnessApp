@@ -10,6 +10,7 @@ import com.coachfoska.app.data.remote.dto.WorkoutExerciseInsertDto
 import com.coachfoska.app.data.remote.dto.WorkoutInsertDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogInsertDto
+import com.coachfoska.app.data.remote.dto.WorkoutLogUpdateDto
 import com.coachfoska.app.data.remote.dto.WorkoutUpdateDto
 import com.coachfoska.app.core.util.currentInstant
 import io.github.jan.supabase.SupabaseClient
@@ -73,11 +74,30 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
             userId = userId, workoutName = workoutName,
             durationMinutes = durationMinutes, loggedAt = currentInstant().toString(),
             workoutId = workoutId, notes = notes,
+            status = "completed",
         )
         return supabase.postgrest["workout_logs"]
             .insert(payload) { select() }
             .decodeSingle<WorkoutLogDto>()
     }
+
+    suspend fun insertInProgressWorkoutLog(
+        userId: String,
+        workoutId: String?,
+        workoutName: String,
+    ): WorkoutLogDto =
+        supabase.postgrest["workout_logs"]
+            .insert(
+                WorkoutLogInsertDto(
+                    userId = userId,
+                    workoutName = workoutName,
+                    durationMinutes = 0,
+                    loggedAt = currentInstant().toString(),
+                    workoutId = workoutId,
+                    status = "in_progress",
+                )
+            ) { select() }
+            .decodeSingle<WorkoutLogDto>()
 
     // Inserts one exercise log row; returns the persisted DTO with its assigned id.
     // Use a loop in the caller rather than batch to maintain a known id-per-input mapping.
@@ -93,12 +113,35 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
             .decodeList<SetLogDto>()
     }
 
+    suspend fun insertSetLog(payload: SetLogInsertDto): SetLogDto =
+        supabase.postgrest["set_logs"]
+            .insert(payload) { select() }
+            .decodeSingle<SetLogDto>()
+
+    suspend fun updateSetLog(id: String, payload: SetLogInsertDto) {
+        supabase.postgrest["set_logs"].update(payload) { filter { eq("id", id) } }
+    }
+
+    suspend fun updateWorkoutLog(id: String, payload: WorkoutLogUpdateDto) {
+        supabase.postgrest["workout_logs"].update(payload) { filter { eq("id", id) } }
+    }
+
     suspend fun getWorkoutLogs(userId: String): List<WorkoutLogDto> =
         supabase.postgrest["workout_logs"]
             .select {
-                filter { eq("user_id", userId) }
+                filter { eq("user_id", userId); eq("status", "completed") }
                 order("logged_at", Order.DESCENDING)
             }.decodeList<WorkoutLogDto>()
+
+    suspend fun getInProgressWorkoutLog(userId: String): WorkoutLogDto? =
+        supabase.postgrest["workout_logs"]
+            .select(columns = Columns.raw("*, exercise_logs(*, set_logs(*))")) {
+                filter { eq("user_id", userId); eq("status", "in_progress") }
+                order("logged_at", Order.DESCENDING)
+                limit(1)
+            }
+            .decodeList<WorkoutLogDto>()
+            .firstOrNull()
 
     suspend fun getExerciseLogsForWorkouts(workoutLogIds: List<String>): List<ExerciseLogDto> {
         if (workoutLogIds.isEmpty()) return emptyList()
@@ -196,6 +239,7 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
             .select {
                 filter {
                     eq("user_id", userId)
+                    eq("status", "completed")
                     gte("logged_at", sinceIso)
                 }
                 order("logged_at", Order.ASCENDING)

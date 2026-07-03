@@ -19,7 +19,7 @@ import kotlinx.serialization.Serializable
 // Workout
 @Serializable object WorkoutList
 @Serializable data class WorkoutDetail(val workoutId: String)
-@Serializable data class ActiveSession(val workoutId: String)
+@Serializable data class ActiveSession(val workoutId: String, val resumeLogId: String? = null)
 @Serializable data class ExerciseDetail(val exerciseId: String)
 @Serializable object LogWorkout
 @Serializable object ActivityTypeSelector

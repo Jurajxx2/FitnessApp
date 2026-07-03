@@ -5,6 +5,7 @@ import com.coachfoska.app.data.remote.dto.ExerciseLogInsertDto
 import com.coachfoska.app.data.remote.dto.SetLogInsertDto
 import com.coachfoska.app.data.remote.dto.WorkoutExerciseInsertDto
 import com.coachfoska.app.data.remote.dto.WorkoutInsertDto
+import com.coachfoska.app.data.remote.dto.WorkoutLogUpdateDto
 import com.coachfoska.app.data.remote.dto.WorkoutUpdateDto
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.domain.model.ExerciseLog
@@ -12,6 +13,7 @@ import com.coachfoska.app.domain.model.ExerciseRecords
 import com.coachfoska.app.domain.model.PRType
 import com.coachfoska.app.domain.model.PersonalRecord
 import com.coachfoska.app.domain.model.RecordEntry
+import com.coachfoska.app.domain.model.SavedSetRef
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WeeklyCount
 import com.coachfoska.app.domain.model.Workout
@@ -60,6 +62,9 @@ class WorkoutRepositoryImpl(
                     exerciseName = exerciseLog.exerciseName,
                     notes = exerciseLog.notes,
                     videoUrl = exerciseLog.videoUrl,
+                    exerciseId = exerciseLog.exerciseId,
+                    substitutedFromExerciseId = exerciseLog.substitutedFromExerciseId,
+                    substitutedFromName = exerciseLog.substitutedFromName,
                     // legacy columns left null on new writes
                 )
             )
@@ -345,9 +350,79 @@ class WorkoutRepositoryImpl(
     override suspend fun deleteUserWorkout(workoutId: String): Result<Unit> = runCatching {
         workoutDataSource.deleteWorkout(workoutId)
     }
+
+    override suspend fun startWorkoutSession(
+        userId: String,
+        workoutId: String?,
+        workoutName: String,
+    ): Result<String> = runCatching {
+        workoutDataSource.insertInProgressWorkoutLog(userId, workoutId, workoutName).id
+    }
+
+    override suspend fun saveSetLog(
+        workoutLogId: String,
+        exerciseName: String,
+        exerciseId: String?,
+        substitutedFromExerciseId: String?,
+        substitutedFromName: String?,
+        existingExerciseLogId: String?,
+        set: SetLog,
+    ): Result<SavedSetRef> = runCatching {
+        val exerciseLogId = existingExerciseLogId ?: workoutDataSource.insertExerciseLog(
+            ExerciseLogInsertDto(
+                workoutLogId = workoutLogId,
+                exerciseName = exerciseName,
+                exerciseId = exerciseId,
+                substitutedFromExerciseId = substitutedFromExerciseId,
+                substitutedFromName = substitutedFromName,
+            )
+        ).id
+        val inserted = workoutDataSource.insertSetLog(set.toInsertDto(exerciseLogId))
+        SavedSetRef(exerciseLogId = exerciseLogId, setLogId = inserted.id)
+    }
+
+    override suspend fun updateSetLog(setLogId: String, set: SetLog): Result<Unit> = runCatching {
+        workoutDataSource.updateSetLog(setLogId, set.toInsertDto(set.exerciseLogId))
+    }
+
+    override suspend fun finishWorkoutSession(
+        workoutLogId: String,
+        durationMinutes: Int,
+        notes: String?,
+    ): Result<Unit> = runCatching {
+        workoutDataSource.updateWorkoutLog(
+            workoutLogId,
+            WorkoutLogUpdateDto(
+                durationMinutes = durationMinutes,
+                notes = notes,
+                status = "completed",
+            ),
+        )
+    }
+
+    override suspend fun discardWorkoutSession(workoutLogId: String): Result<Unit> = runCatching {
+        workoutDataSource.updateWorkoutLog(workoutLogId, WorkoutLogUpdateDto(status = "discarded"))
+    }
+
+    override suspend fun getInProgressSession(userId: String): Result<WorkoutLog?> = runCatching {
+        workoutDataSource.getInProgressWorkoutLog(userId)?.toDomain()
+    }
 }
 
 internal fun shadowForks(workouts: List<Workout>): List<Workout> {
     val forkedIds = workouts.mapNotNull { it.forkedFromWorkoutId }.toSet()
     return workouts.filter { it.id !in forkedIds }
 }
+
+private fun SetLog.toInsertDto(exerciseLogId: String): SetLogInsertDto = SetLogInsertDto(
+    exerciseLogId = exerciseLogId,
+    sortOrder = sortOrder,
+    targetReps = targetReps,
+    actualReps = actualReps,
+    targetWeightKg = targetWeightKg,
+    actualWeightKg = actualWeightKg,
+    rpe = rpe,
+    targetRestSeconds = targetRestSeconds,
+    actualRestSeconds = actualRestSeconds,
+    completed = completed,
+)

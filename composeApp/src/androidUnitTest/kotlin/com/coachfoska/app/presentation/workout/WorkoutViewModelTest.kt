@@ -3,13 +3,16 @@ package com.coachfoska.app.presentation.workout
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.domain.model.WorkoutLog
+import com.coachfoska.app.domain.model.WorkoutSource
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.workout.DeleteUserWorkoutUseCase
+import com.coachfoska.app.domain.usecase.workout.ForkWorkoutUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAllWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
+import com.coachfoska.app.domain.usecase.workout.SaveUserWorkoutUseCase
 import com.coachfoska.app.fixtures.aWorkout
 import com.coachfoska.app.fixtures.aWorkoutLog
 import io.mockk.coEvery
@@ -34,6 +37,9 @@ class WorkoutViewModelTest {
         logWorkoutUseCase = LogWorkoutUseCase(repo),
         getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(repo),
         deleteUserWorkoutUseCase = DeleteUserWorkoutUseCase(repo),
+        saveUserWorkoutUseCase = SaveUserWorkoutUseCase(repo),
+        forkWorkoutUseCase = ForkWorkoutUseCase(repo),
+        workoutRepository = repo,
         userId = "user-1"
     )
 
@@ -42,6 +48,7 @@ class WorkoutViewModelTest {
         coEvery { repo.getAllWorkouts() } returns Result.success(emptyList())
         // LoadHistory is now triggered in init
         coEvery { repo.getWorkoutHistory(any()) } returns Result.success(emptyList())
+        coEvery { repo.getInProgressSession(any()) } returns Result.success(null)
     }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
@@ -198,6 +205,111 @@ class WorkoutViewModelTest {
     }
 
     @Test
+    fun `substitutePlanExercise updates user workout in place and records origin`() = runTest {
+        val exercise = WorkoutExercise(
+            id = "we1", workoutId = "user-workout", name = "Bench Press",
+            muscleGroup = "Chest", sets = 3, reps = "8", restSeconds = 90,
+            tips = null, sortOrder = 0, exerciseId = "bench-id"
+        )
+        val workout = aWorkout(
+            id = "user-workout",
+            exercises = listOf(exercise),
+        ).copy(
+            source = WorkoutSource.USER,
+            ownerUserId = "user-1",
+        )
+        coEvery { repo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { repo.getWorkoutById("user-workout") } returns Result.success(workout)
+        coEvery { repo.updateUserWorkout(eq("user-workout"), any()) } returns Result.success(
+            workout.copy(
+                exercises = listOf(
+                    exercise.copy(
+                        name = "Dumbbell Press",
+                        exerciseId = "dumbbell-id",
+                        substitutedFromExerciseId = "bench-id",
+                        substitutedFromName = "Bench Press",
+                    )
+                )
+            )
+        )
+
+        val vm = viewModel()
+        vm.onIntent(WorkoutIntent.SelectWorkout("user-workout"))
+        advanceUntilIdle()
+
+        vm.onIntent(WorkoutIntent.SubstitutePlanExercise(0, anExercise(id = "dumbbell-id", name = "Dumbbell Press")))
+        advanceUntilIdle()
+
+        coVerify {
+            repo.updateUserWorkout(
+                "user-workout",
+                match { draft ->
+                    draft.exercises.single().name == "Dumbbell Press" &&
+                        draft.exercises.single().substitutedFromExerciseId == "bench-id" &&
+                        draft.exercises.single().substitutedFromName == "Bench Press"
+                }
+            )
+        }
+        assertEquals("Dumbbell Press", vm.state.value.selectedWorkout?.exercises?.single()?.name)
+        assertEquals(Pair("Bench Press", "Dumbbell Press"), vm.state.value.lastPlanSubstitution)
+    }
+
+    @Test
+    fun `substitutePlanExercise forks coach workout`() = runTest {
+        val exercise = WorkoutExercise(
+            id = "we1", workoutId = "coach-workout", name = "Squat",
+            muscleGroup = "Legs", sets = 3, reps = "5", restSeconds = 120,
+            tips = null, sortOrder = 0, exerciseId = "squat-id"
+        )
+        val workout = aWorkout(
+            id = "coach-workout",
+            exercises = listOf(exercise),
+        ).copy(
+            source = WorkoutSource.COACH,
+            ownerUserId = null,
+        )
+        coEvery { repo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { repo.getWorkoutById("coach-workout") } returns Result.success(workout)
+        coEvery { repo.createUserWorkout(eq("user-1"), any(), eq("coach-workout")) } returns Result.success(
+            workout.copy(
+                id = "forked-workout",
+                source = WorkoutSource.USER,
+                ownerUserId = "user-1",
+                forkedFromWorkoutId = "coach-workout",
+                exercises = listOf(
+                    exercise.copy(
+                        name = "Leg Press",
+                        exerciseId = "leg-press-id",
+                        substitutedFromExerciseId = "squat-id",
+                        substitutedFromName = "Squat",
+                    )
+                ),
+            )
+        )
+
+        val vm = viewModel()
+        vm.onIntent(WorkoutIntent.SelectWorkout("coach-workout"))
+        advanceUntilIdle()
+
+        vm.onIntent(WorkoutIntent.SubstitutePlanExercise(0, anExercise(id = "leg-press-id", name = "Leg Press")))
+        advanceUntilIdle()
+
+        coVerify {
+            repo.createUserWorkout(
+                userId = "user-1",
+                draft = match { draft ->
+                    draft.exercises.single().name == "Leg Press" &&
+                        draft.exercises.single().substitutedFromExerciseId == "squat-id" &&
+                        draft.exercises.single().substitutedFromName == "Squat"
+                },
+                forkedFromWorkoutId = "coach-workout",
+            )
+        }
+        assertEquals("forked-workout", vm.state.value.selectedWorkout?.id)
+        assertEquals("coach-workout", vm.state.value.selectedWorkout?.forkedFromWorkoutId)
+    }
+
+    @Test
     fun `SubmitActiveSession transforms draft and calls logWorkout`() = runTest {
         val exercises = listOf(
             WorkoutExercise(
@@ -240,4 +352,18 @@ class WorkoutViewModelTest {
             )
         }
     }
+
+    private fun anExercise(id: String, name: String) = com.coachfoska.app.domain.model.Exercise(
+        id = id,
+        name = name,
+        description = "",
+        category = null,
+        muscles = emptyList(),
+        musclesSecondary = emptyList(),
+        equipment = emptyList(),
+        imageUrl = null,
+        imageUrl2 = null,
+        videoUrl = null,
+        difficulty = null,
+    )
 }

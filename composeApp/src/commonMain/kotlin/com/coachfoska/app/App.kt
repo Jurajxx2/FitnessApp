@@ -272,6 +272,7 @@ fun App(openHumanChat: Boolean = false) {
                     ActivityHubRoute(
                         userId = currentUserId,
                         onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
+                        onResumeSession = { workoutId, logId -> navController.navigate(ActiveSession(workoutId, resumeLogId = logId)) },
                         onPlanClick = { navController.navigate(WorkoutPlan) },
                         onHistoryClick = { navController.navigate(WorkoutHistory) },
                         onLibraryClick = { navController.navigate(ExerciseLibrary) },
@@ -298,6 +299,7 @@ fun App(openHumanChat: Boolean = false) {
                     val route = backStackEntry.toRoute<ActiveSession>()
                     ActiveSessionRoute(
                         workoutId = route.workoutId,
+                        resumeLogId = route.resumeLogId,
                         userId = currentUserId,
                         onBackClick = { navController.popBackStack() },
                         onWorkoutComplete = { logId ->

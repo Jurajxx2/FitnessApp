@@ -1,10 +1,12 @@
 package com.coachfoska.app.presentation.workout
 
+import com.coachfoska.app.domain.model.Exercise
 import com.coachfoska.app.domain.model.ExerciseLog
 
 sealed interface WorkoutIntent {
     data object LoadWorkouts : WorkoutIntent
     data object LoadAllWorkouts : WorkoutIntent
+    data object LoadInProgressSession : WorkoutIntent
     data class SelectWorkout(val workoutId: String) : WorkoutIntent
     data object LoadHistory : WorkoutIntent
     data class LogWorkout(
@@ -30,8 +32,10 @@ sealed interface WorkoutIntent {
     data class SubmitActiveSession(val durationMinutes: Int, val notes: String?) : WorkoutIntent
 
     data class DeleteWorkout(val workoutId: String) : WorkoutIntent
+    data class SubstitutePlanExercise(val exerciseIndex: Int, val replacement: Exercise) : WorkoutIntent
 
     data object DismissError : WorkoutIntent
+    data object DismissPlanSubstitution : WorkoutIntent
     data object WorkoutLogged : WorkoutIntent
     data class SelectWorkoutLog(val logId: String) : WorkoutIntent
     data class AttachVideoToLog(val exerciseLogId: String, val videoBytes: ByteArray) : WorkoutIntent

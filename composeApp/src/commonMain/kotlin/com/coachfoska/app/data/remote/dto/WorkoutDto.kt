@@ -105,13 +105,15 @@ data class WorkoutLogDto(
     @SerialName("duration_minutes") val durationMinutes: Int = 0,
     val notes: String? = null,
     @SerialName("logged_at") val loggedAt: String,
+    val status: String = "completed",
     @SerialName("exercise_logs") val exerciseLogs: List<ExerciseLogDto> = emptyList()
 ) {
     fun toDomain(): WorkoutLog = WorkoutLog(
         id = id, userId = userId, workoutId = workoutId,
         workoutName = workoutName, durationMinutes = durationMinutes, notes = notes,
         exerciseLogs = exerciseLogs.map { it.toDomain() },
-        loggedAt = Instant.parse(loggedAt)
+        loggedAt = Instant.parse(loggedAt),
+        status = status,
     )
 }
 
@@ -122,7 +124,15 @@ data class WorkoutLogInsertDto(
     @SerialName("duration_minutes") val durationMinutes: Int,
     @SerialName("logged_at") val loggedAt: String,
     @SerialName("workout_id") val workoutId: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    val status: String = "completed",
+)
+
+@Serializable
+data class WorkoutLogUpdateDto(
+    @SerialName("duration_minutes") val durationMinutes: Int? = null,
+    val notes: String? = null,
+    val status: String? = null,
 )
 
 // NOTE: sets_completed / reps_completed / weight_kg are legacy nullable columns kept for
@@ -137,6 +147,9 @@ data class ExerciseLogInsertDto(
     @SerialName("sets_completed") val setsCompleted: Int? = null,
     @SerialName("reps_completed") val repsCompleted: String? = null,
     @SerialName("weight_kg") val weightKg: Float? = null,
+    @SerialName("exercise_id") val exerciseId: String? = null,
+    @SerialName("substituted_from_exercise_id") val substitutedFromExerciseId: String? = null,
+    @SerialName("substituted_from_name") val substitutedFromName: String? = null,
 )
 
 @Serializable
@@ -149,6 +162,9 @@ data class ExerciseLogDto(
     @SerialName("weight_kg") val weightKg: Float? = null,
     val notes: String? = null,
     @SerialName("video_url") val videoUrl: String? = null,
+    @SerialName("exercise_id") val exerciseId: String? = null,
+    @SerialName("substituted_from_exercise_id") val substitutedFromExerciseId: String? = null,
+    @SerialName("substituted_from_name") val substitutedFromName: String? = null,
     @SerialName("set_logs") val setLogs: List<SetLogDto> = emptyList(),
 ) {
     fun toDomain(): ExerciseLog = ExerciseLog(
@@ -157,6 +173,9 @@ data class ExerciseLogDto(
         exerciseName = exerciseName,
         notes = notes,
         videoUrl = videoUrl,
+        exerciseId = exerciseId,
+        substitutedFromExerciseId = substitutedFromExerciseId,
+        substitutedFromName = substitutedFromName,
         sets = if (setLogs.isNotEmpty()) setLogs.map { it.toDomain() }
                else synthesizeFromFlat(),
     )

@@ -14,7 +14,11 @@ data class ActiveSessionState(
     val isLoading: Boolean = false,
     val isSubmitting: Boolean = false,
     val submittedLogId: String? = null,
+    val sessionDiscarded: Boolean = false,
+    val sessionSaveDegraded: Boolean = false,
     val error: String? = null,
+    /** (oldName, newName) — set after a session-scope substitution; consumed by UI for snackbar. */
+    val lastSubstitution: Pair<String, String>? = null,
 )
 
 data class RestTimerState(

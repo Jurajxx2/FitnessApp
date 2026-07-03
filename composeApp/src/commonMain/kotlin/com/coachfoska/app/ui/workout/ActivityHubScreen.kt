@@ -40,11 +40,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.session_resume_action
+import coachfoska.composeapp.generated.resources.session_resume_title
 import com.coachfoska.app.core.util.todayDate
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.Exercise
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
+import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.usecase.workout.deriveCategoryLabel
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.app.presentation.workout.WorkoutIntent
@@ -54,6 +58,7 @@ import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.workout.components.AssignedWorkoutCard
 import com.coachfoska.app.ui.workout.components.ExercisePreviewCard
 import com.coachfoska.app.ui.workout.components.QuickLinkRow
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -63,6 +68,7 @@ private val SquareShape = RoundedCornerShape(0.dp)
 fun ActivityHubRoute(
     userId: String,
     onStartWorkout: (workoutId: String) -> Unit,
+    onResumeSession: (workoutId: String, logId: String) -> Unit,
     onPlanClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onLibraryClick: () -> Unit,
@@ -84,6 +90,7 @@ fun ActivityHubRoute(
         state = state,
         exercises = exerciseState.exercises,
         onStartWorkout = onStartWorkout,
+        onResumeSession = onResumeSession,
         onPlanClick = onPlanClick,
         onHistoryClick = onHistoryClick,
         onLibraryClick = onLibraryClick,
@@ -99,6 +106,7 @@ fun ActivityHubScreen(
     state: WorkoutState,
     exercises: List<Exercise>,
     onStartWorkout: (workoutId: String) -> Unit,
+    onResumeSession: (workoutId: String, logId: String) -> Unit,
     onPlanClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onLibraryClick: () -> Unit,
@@ -126,6 +134,9 @@ fun ActivityHubScreen(
             if (state.isLoading && state.workouts.isEmpty()) {
                 CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
             } else {
+                state.inProgressSession?.let { session ->
+                    ResumeSessionBanner(session = session, onResumeSession = onResumeSession)
+                }
                 StartWorkoutButton(todayWorkout = todayWorkout, onStartWorkout = onStartWorkout, onBrowse = onPlanClick)
 
                 if (state.workouts.isNotEmpty()) {
@@ -176,6 +187,44 @@ fun ActivityHubScreen(
                 }
             }
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun ResumeSessionBanner(
+    session: WorkoutLog,
+    onResumeSession: (workoutId: String, logId: String) -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(Res.string.session_resume_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = session.workoutName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Button(
+                enabled = session.workoutId != null,
+                onClick = { session.workoutId?.let { onResumeSession(it, session.id) } },
+            ) {
+                Text(stringResource(Res.string.session_resume_action))
+            }
         }
     }
 }
@@ -284,7 +333,7 @@ private fun ActivityHubScreenPreview() {
     ActivityHubScreen(
         state = WorkoutState(workouts = workouts, allWorkouts = workouts),
         exercises = emptyList(),
-        onStartWorkout = {}, onPlanClick = {}, onHistoryClick = {},
+        onStartWorkout = {}, onResumeSession = { _, _ -> }, onPlanClick = {}, onHistoryClick = {},
         onLibraryClick = {}, onProgressClick = {}, onWorkoutClick = {},
         onExerciseClick = {}, onLogGeneralActivityClick = {},
     )
@@ -296,7 +345,7 @@ private fun ActivityHubScreenRestDayPreview() {
     ActivityHubScreen(
         state = WorkoutState(workouts = emptyList()),
         exercises = emptyList(),
-        onStartWorkout = {}, onPlanClick = {}, onHistoryClick = {},
+        onStartWorkout = {}, onResumeSession = { _, _ -> }, onPlanClick = {}, onHistoryClick = {},
         onLibraryClick = {}, onProgressClick = {}, onWorkoutClick = {},
         onExerciseClick = {}, onLogGeneralActivityClick = {},
     )

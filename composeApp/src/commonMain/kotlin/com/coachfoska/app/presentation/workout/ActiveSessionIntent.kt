@@ -1,7 +1,9 @@
 package com.coachfoska.app.presentation.workout
 
+import com.coachfoska.app.domain.model.Exercise
+
 sealed interface ActiveSessionIntent {
-    data class InitSession(val workoutId: String) : ActiveSessionIntent
+    data class InitSession(val workoutId: String, val resumeLogId: String? = null) : ActiveSessionIntent
     data class SwitchExercise(val index: Int) : ActiveSessionIntent
     data class UpdateSetActual(
         val exerciseIndex: Int,
@@ -22,5 +24,9 @@ sealed interface ActiveSessionIntent {
     data class AdjustRestTimer(val deltaSeconds: Int) : ActiveSessionIntent
     data object DismissPRBanner : ActiveSessionIntent
     data class SubmitSession(val notes: String?) : ActiveSessionIntent
+    data class RetrySetSave(val exerciseIndex: Int, val setIndex: Int) : ActiveSessionIntent
+    data object DiscardSession : ActiveSessionIntent
     data object DismissError : ActiveSessionIntent
+    data class SubstituteExercise(val exerciseIndex: Int, val replacement: Exercise) : ActiveSessionIntent
+    data object DismissSubstitution : ActiveSessionIntent
 }

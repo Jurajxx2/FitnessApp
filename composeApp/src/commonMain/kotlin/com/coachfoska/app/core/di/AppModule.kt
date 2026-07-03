@@ -242,7 +242,7 @@ val viewModelModule = module {
     viewModelOf(::AuthViewModel)
     viewModelOf(::SettingsViewModel)
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
-    viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> ActivityLogViewModel(get(), get(), userId) }
     viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (recipeId: String, userId: String) -> RecipeDetailViewModel(get(), get(), get(), get(), recipeId, userId) }
@@ -250,7 +250,7 @@ val viewModelModule = module {
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
     viewModel { (userId: String) -> ExerciseViewModel(get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) ->
-        ActiveSessionViewModel(get(), get(), get(), get(), userId)
+        ActiveSessionViewModel(get(), get(), get(), get(), get(), userId)
     }
     viewModel { (userId: String) ->
         ProgressDashboardViewModel(get(), get(), userId)

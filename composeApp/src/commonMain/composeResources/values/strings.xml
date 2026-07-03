@@ -199,6 +199,7 @@
     <string name="set_number_format">SET %d</string>
     <string name="add_set">+ ADD SET</string>
     <string name="finish_workout">FINISH WORKOUT</string>
+    <string name="exercise_form_guide_cta">Tap to view form guide</string>
     <string name="log_this_meal">LOG THIS MEAL</string>
 
     <!-- ===== Onboarding quiz ===== -->
@@ -347,4 +348,41 @@
     <string name="editor_move_up_cd">Move up</string>
     <string name="editor_move_down_cd">Move down</string>
     <string name="editor_remove_cd">Remove exercise</string>
+    <!-- Exercise substitution -->
+    <string name="substitute_title">Substitute exercise</string>
+    <string name="substitute_cant_do">Can\'t do this one</string>
+    <string name="substitute_suggested">Same muscle group</string>
+    <string name="substitute_search_hint">Search exercises</string>
+    <string name="substitute_scope_session">Just this session</string>
+    <string name="substitute_scope_plan">For this plan going forward</string>
+    <string name="substitute_applied">Swapped %1$s → %2$s</string>
+    <string name="substitute_swap_icon_cd">Substitute exercise</string>
+    <string name="session_saved">Saved</string>
+    <string name="session_saving">Saving…</string>
+    <string name="session_save_failed">Not saved — tap to retry</string>
+    <string name="session_resume_title">Workout in progress</string>
+    <string name="session_resume_action">Resume</string>
+    <string name="session_discard">Discard workout</string>
+    <string name="session_discard_confirm">Discard this session? Logged sets will be removed from history.</string>
+    <string name="session_volume">Volume</string>
+    <string name="session_save_degraded">Live save is unavailable. Finish workout will retry the full log.</string>
+    <string name="common_keep_working">Keep working</string>
+    <string name="recipes_title">RECIPES</string>
+    <string name="recipes_search_label">Search recipes</string>
+    <string name="recipes_favorites_filter">Favorites</string>
+    <string name="recipes_count">%1$d recipes</string>
+    <string name="recipes_empty_title">No recipes yet</string>
+    <string name="recipes_empty_message">Your coach is cooking something up. Check back soon.</string>
+    <string name="recipes_remove_favorite_cd">Remove from favorites</string>
+    <string name="recipes_add_favorite_cd">Add to favorites</string>
+    <string name="recipes_fallback_description">Coach recipe</string>
+    <string name="recipe_tab_ingredients">Ingredients</string>
+    <string name="recipe_tab_directions">Directions</string>
+    <string name="recipe_no_ingredients">No ingredients listed.</string>
+    <string name="recipe_no_steps">No directions provided.</string>
+    <string name="progress_empty_title">Track your first weight</string>
+    <string name="progress_empty_message">Log your weight to see your trend here.</string>
+    <string name="progress_empty_action">Add weight</string>
+    <string name="progress_weight_dialog_title">Add weight</string>
+    <string name="progress_weight_dialog_save">Save weight</string>
 </resources>

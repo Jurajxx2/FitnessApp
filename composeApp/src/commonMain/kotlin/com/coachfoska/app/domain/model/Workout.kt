@@ -60,7 +60,8 @@ data class WorkoutLog(
     val durationMinutes: Int,
     val notes: String?,
     val exerciseLogs: List<ExerciseLog>,
-    val loggedAt: Instant
+    val loggedAt: Instant,
+    val status: String = "completed",
 )
 
 data class ExerciseLog(
@@ -69,6 +70,9 @@ data class ExerciseLog(
     val exerciseName: String,
     val notes: String?,
     val videoUrl: String? = null,
+    val exerciseId: String? = null,
+    val substitutedFromExerciseId: String? = null,
+    val substitutedFromName: String? = null,
     val sets: List<SetLog> = emptyList(),
 ) {
     val setsCompletedCount: Int get() = sets.count { it.completed }
@@ -87,6 +91,11 @@ data class SetLog(
     val targetRestSeconds: Int?,
     val actualRestSeconds: Int?,
     val completed: Boolean,
+)
+
+data class SavedSetRef(
+    val exerciseLogId: String,
+    val setLogId: String,
 )
 
 private fun buildSummaryLine(sets: List<SetLog>): String {

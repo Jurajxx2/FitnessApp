@@ -22,6 +22,8 @@ import coachfoska.composeapp.generated.resources.detail_coach_readonly
 import coachfoska.composeapp.generated.resources.detail_start_workout
 import coachfoska.composeapp.generated.resources.detail_title
 import coachfoska.composeapp.generated.resources.plan_coach_badge
+import coachfoska.composeapp.generated.resources.substitute_applied
+import coachfoska.composeapp.generated.resources.substitute_swap_icon_cd
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.domain.model.WorkoutSource
 import com.coachfoska.app.presentation.workout.WorkoutIntent
@@ -58,10 +60,12 @@ fun WorkoutDetailRoute(
         onBackClick = onBackClick,
         onExerciseClick = onExerciseClick,
         onStartWorkout = onStartWorkout,
-        onEditWorkout = onEditWorkout
+        onEditWorkout = onEditWorkout,
+        onIntent = viewModel::onIntent,
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutDetailScreen(
     state: WorkoutState,
@@ -70,110 +74,146 @@ fun WorkoutDetailScreen(
     onExerciseClick: (String) -> Unit,
     onStartWorkout: (String) -> Unit,
     onEditWorkout: (String) -> Unit,
-    // Substitute affordance stub — wired in substitution task (Task 8)
-    onSubstitute: (Int) -> Unit = {}
+    onIntent: (WorkoutIntent) -> Unit = {}
 ) {
     val workout = state.selectedWorkout
     val isCoachPlan = workout?.source == WorkoutSource.COACH
     val isOwned = workout != null && workout.ownerUserId == currentUserId
+    val snackbarHostState = remember { SnackbarHostState() }
+    val substituteSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var substituteIndex by remember { mutableStateOf<Int?>(null) }
+    val appliedTemplate = stringResource(Res.string.substitute_applied)
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(
-            title = stringResource(Res.string.detail_title),
-            onBackClick = onBackClick,
-            actions = {
-                if (workout != null && isOwned) {
-                    IconButton(onClick = { onEditWorkout(workout.id) }) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = stringResource(Res.string.common_edit)
-                        )
+    LaunchedEffect(state.lastPlanSubstitution) {
+        val sub = state.lastPlanSubstitution ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = appliedTemplate
+                .replace("%1\$s", sub.first)
+                .replace("%2\$s", sub.second),
+        )
+        onIntent(WorkoutIntent.DismissPlanSubstitution)
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            CoachTopBar(
+                title = stringResource(Res.string.detail_title),
+                onBackClick = onBackClick,
+                actions = {
+                    if (workout != null && isOwned) {
+                        IconButton(onClick = { onEditWorkout(workout.id) }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = stringResource(Res.string.common_edit)
+                            )
+                        }
                     }
                 }
-            }
-        )
+            )
 
-        if (state.isLoading) {
-            CoachLoadingBox(Modifier.weight(1f))
-        } else {
-            workout?.let { w ->
-                Box(modifier = Modifier.weight(1f)) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 100.dp)
-                    ) {
-                        item {
-                            Column(modifier = Modifier.padding(Spacing.xl)) {
-                                // Coach badge for coach plans
-                                if (isCoachPlan) {
-                                    FoskaFilterChip(
-                                        selected = true,
-                                        label = stringResource(Res.string.plan_coach_badge),
-                                        onClick = {},
-                                        modifier = Modifier.padding(bottom = Spacing.sm)
-                                    )
-                                }
-
-                                Text(
-                                    text = w.name,
-                                    style = MaterialTheme.typography.displayMedium,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-
-                                if (w.notes != null) {
-                                    Spacer(modifier = Modifier.height(Spacing.md))
-                                    Text(
-                                        text = w.notes,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                                    )
-                                }
-
-                                // Coach-readonly note
-                                if (isCoachPlan) {
-                                    Spacer(modifier = Modifier.height(Spacing.md))
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Text(
-                                            text = stringResource(Res.string.detail_coach_readonly),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(Spacing.md)
+            if (state.isLoading) {
+                CoachLoadingBox(Modifier.weight(1f))
+            } else {
+                workout?.let { w ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 100.dp)
+                        ) {
+                            item {
+                                Column(modifier = Modifier.padding(Spacing.xl)) {
+                                    // Coach badge for coach plans
+                                    if (isCoachPlan) {
+                                        FoskaFilterChip(
+                                            selected = true,
+                                            label = stringResource(Res.string.plan_coach_badge),
+                                            onClick = {},
+                                            modifier = Modifier.padding(bottom = Spacing.sm)
                                         )
+                                    }
+
+                                    Text(
+                                        text = w.name,
+                                        style = MaterialTheme.typography.displayMedium,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+
+                                    if (w.notes != null) {
+                                        Spacer(modifier = Modifier.height(Spacing.md))
+                                        Text(
+                                            text = w.notes,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                        )
+                                    }
+
+                                    // Coach-readonly note
+                                    if (isCoachPlan) {
+                                        Spacer(modifier = Modifier.height(Spacing.md))
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text(
+                                                text = stringResource(Res.string.detail_coach_readonly),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(Spacing.md)
+                                            )
+                                        }
                                     }
                                 }
                             }
+
+                            itemsIndexed(w.exercises.sortedBy { it.sortOrder }) { index, exercise ->
+                                ExerciseRow(
+                                    index = index + 1,
+                                    exercise = exercise,
+                                    onClick = { exercise.exerciseId?.let { onExerciseClick(it) } },
+                                    onSubstitute = { substituteIndex = index }
+                                )
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = Spacing.xl),
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
+                                )
+                            }
                         }
 
-                        itemsIndexed(w.exercises.sortedBy { it.sortOrder }) { index, exercise ->
-                            ExerciseRow(
-                                index = index + 1,
-                                exercise = exercise,
-                                onClick = { exercise.exerciseId?.let { onExerciseClick(it) } },
-                                onSubstitute = { onSubstitute(index) }
-                            )
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = Spacing.xl),
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(Spacing.xl),
+                            color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
+                        ) {
+                            CoachButton(
+                                text = stringResource(Res.string.detail_start_workout),
+                                onClick = { onStartWorkout(w.id) }
                             )
                         }
-                    }
-
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(Spacing.xl),
-                        color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
-                    ) {
-                        CoachButton(
-                            text = stringResource(Res.string.detail_start_workout),
-                            onClick = { onStartWorkout(w.id) }
-                        )
                     }
                 }
             }
+        }
+
+        if (substituteIndex != null) {
+            val ordered = workout?.exercises?.sortedBy { it.sortOrder }.orEmpty()
+            val exIndex = substituteIndex!!
+            val exercise = ordered.getOrNull(exIndex)
+            SubstituteExerciseSheet(
+                currentExerciseId = exercise?.exerciseId,
+                sheetState = substituteSheetState,
+                onExerciseSelected = { replacement ->
+                    onIntent(WorkoutIntent.SubstitutePlanExercise(exIndex, replacement))
+                    substituteIndex = null
+                },
+                onDismiss = { substituteIndex = null },
+            )
         }
     }
 }
@@ -244,7 +284,7 @@ private fun ExerciseRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.SwapHoriz,
-                    contentDescription = null,
+                    contentDescription = stringResource(Res.string.substitute_swap_icon_cd),
                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                 )
             }
