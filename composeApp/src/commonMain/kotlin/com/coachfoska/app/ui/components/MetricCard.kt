@@ -42,14 +42,14 @@ fun MetricCard(
 ) {
     val reduceMotion = LocalReduceMotion.current
     val numeric = remember(value) { value.toIntOrNull() }
-    val displayed: String = if (numeric != null && animateValue && !reduceMotion) {
-        val animated by animateIntAsState(
-            targetValue = numeric,
-            animationSpec = tween(durationMillis = 700),
-            label = "metric-countup",
-        )
-        animated.toString()
-    } else value
+    // Called unconditionally to keep Compose's slot table stable when `value`
+    // flips between numeric and non-numeric; motion is gated via duration/usage.
+    val animated by animateIntAsState(
+        targetValue = numeric ?: 0,
+        animationSpec = tween(if (!reduceMotion && animateValue && numeric != null) 700 else 0),
+        label = "metric-countup",
+    )
+    val displayed = if (numeric != null && animateValue && !reduceMotion) animated.toString() else value
 
     Surface(
         onClick = onClick ?: {},
