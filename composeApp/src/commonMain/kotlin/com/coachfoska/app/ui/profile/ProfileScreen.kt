@@ -22,6 +22,8 @@ import com.coachfoska.app.presentation.profile.ProfileViewModel
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.MetricCard
+import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -74,8 +76,8 @@ fun ProfileScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 40.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = Spacing.xl, vertical = 40.dp),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Text(
                     text = stringResource(Res.string.profile_label),
@@ -100,18 +102,20 @@ fun ProfileScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = Spacing.xl),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
-                    ProfileStatCard(
+                    MetricCard(
+                        label = stringResource(Res.string.stat_weight),
+                        value = user.weightKg?.let { stringResource(Res.string.weight_kg_upper_format, it.toString()) } ?: "--",
+                        animateValue = false,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MetricCard(
                         label = stringResource(Res.string.stat_goal),
                         value = user.goal?.displayName?.uppercase() ?: "---",
-                        modifier = Modifier.weight(1.5f)
-                    )
-                    ProfileStatCard(
-                        label = stringResource(Res.string.stat_weight),
-                        value = stringResource(Res.string.weight_kg_upper_format, user.weightKg?.toString() ?: "--"),
-                        modifier = Modifier.weight(1f)
+                        animateValue = false,
+                        modifier = Modifier.weight(1.4f),
                     )
                 }
             }

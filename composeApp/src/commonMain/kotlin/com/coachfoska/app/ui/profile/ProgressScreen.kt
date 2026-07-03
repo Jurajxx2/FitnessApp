@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,14 +21,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.domain.model.WeightEntry
+import com.coachfoska.app.core.util.todayDate
 import com.coachfoska.app.presentation.profile.ProfileIntent
 import com.coachfoska.app.presentation.profile.ProfileState
 import com.coachfoska.app.presentation.profile.ProfileViewModel
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.ui.components.CoachLoadingBox
-import com.coachfoska.app.ui.components.CoachSectionHeader
 import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.app.ui.components.EmptyState
+import com.coachfoska.app.theme.ChartLine
+import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -43,14 +48,51 @@ fun ProgressRoute(
         viewModel.onIntent(ProfileIntent.LoadWeightHistory)
     }
 
-    ProgressScreen(state = state, onBackClick = onBackClick)
+    ProgressScreen(state = state, onIntent = viewModel::onIntent, onBackClick = onBackClick)
 }
 
 @Composable
 fun ProgressScreen(
     state: ProfileState,
+    onIntent: (ProfileIntent) -> Unit = {},
     onBackClick: () -> Unit
 ) {
+    var showWeightDialog by remember { mutableStateOf(false) }
+    var weightInput by remember { mutableStateOf("") }
+
+    if (showWeightDialog) {
+        AlertDialog(
+            onDismissRequest = { showWeightDialog = false },
+            title = { Text(stringResource(Res.string.progress_weight_dialog_title)) },
+            text = {
+                OutlinedTextField(
+                    value = weightInput,
+                    onValueChange = { weightInput = it },
+                    label = { Text(stringResource(Res.string.stat_weight)) },
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        weightInput.toFloatOrNull()?.let { weight ->
+                            onIntent(ProfileIntent.LogWeight(weight, todayDate()))
+                            showWeightDialog = false
+                            weightInput = ""
+                        }
+                    },
+                ) {
+                    Text(stringResource(Res.string.progress_weight_dialog_save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWeightDialog = false }) {
+                    Text(stringResource(Res.string.common_cancel))
+                }
+            },
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(title = "MY PROGRESS", onBackClick = onBackClick)
         if (state.isWeightHistoryLoading) {
@@ -60,12 +102,12 @@ fun ProgressScreen(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(32.dp)
+                    .padding(horizontal = Spacing.xl, vertical = Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xxl)
             ) {
                 // Weight Progress Card
                 if (state.weightHistory.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                         Text(
                             text = stringResource(Res.string.weight_evolution),
                             style = MaterialTheme.typography.labelMedium,
@@ -82,7 +124,7 @@ fun ProgressScreen(
                             Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                                 WeightChart(
                                     entries = state.weightHistory.take(12).reversed(),
-                                    color = MaterialTheme.colorScheme.background
+                                    color = ChartLine
                                 )
                                 
                                 val first = state.weightHistory.lastOrNull()?.weightKg
@@ -115,6 +157,14 @@ fun ProgressScreen(
                             }
                         }
                     }
+                } else {
+                    EmptyState(
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        title = stringResource(Res.string.progress_empty_title),
+                        message = stringResource(Res.string.progress_empty_message),
+                        actionLabel = stringResource(Res.string.progress_empty_action),
+                        onAction = { showWeightDialog = true },
+                    )
                 }
 
                 // Body Stats Section
