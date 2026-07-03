@@ -163,6 +163,41 @@ class WorkoutViewModelTest {
     }
 
     @Test
+    fun `deleteWorkout success reloads plans`() = runTest {
+        val plan = aWorkout(id = "del-1")
+        coEvery { repo.getAssignedWorkouts("user-1") } returnsMany listOf(
+            Result.success(listOf(plan)),   // initial load in init
+            Result.success(emptyList())      // reload after successful delete
+        )
+        coEvery { repo.deleteUserWorkout("del-1") } returns Result.success(Unit)
+
+        val vm = viewModel()
+        assertEquals(1, vm.state.value.workouts.size)
+
+        vm.onIntent(WorkoutIntent.DeleteWorkout("del-1"))
+        advanceUntilIdle()
+
+        assertEquals(0, vm.state.value.workouts.size)
+        assertNull(vm.state.value.error)
+    }
+
+    @Test
+    fun `deleteWorkout failure sets error and leaves list unchanged`() = runTest {
+        val plan = aWorkout(id = "del-1")
+        coEvery { repo.getAssignedWorkouts("user-1") } returns Result.success(listOf(plan))
+        coEvery { repo.deleteUserWorkout("del-1") } returns Result.failure(Exception("Server error"))
+
+        val vm = viewModel()
+        assertEquals(1, vm.state.value.workouts.size)
+
+        vm.onIntent(WorkoutIntent.DeleteWorkout("del-1"))
+        advanceUntilIdle()
+
+        assertNotNull(vm.state.value.error)
+        assertEquals(1, vm.state.value.workouts.size)
+    }
+
+    @Test
     fun `SubmitActiveSession transforms draft and calls logWorkout`() = runTest {
         val exercises = listOf(
             WorkoutExercise(

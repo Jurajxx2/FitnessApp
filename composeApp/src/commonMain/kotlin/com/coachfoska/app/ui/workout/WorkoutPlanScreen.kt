@@ -83,8 +83,8 @@ fun WorkoutPlanScreen(
 ) {
     var showDeleteDialogFor by remember { mutableStateOf<String?>(null) }
 
-    val coachPlans = state.allWorkouts.filter { it.source == WorkoutSource.COACH }
-    val myPlans = state.allWorkouts.filter { it.source == WorkoutSource.USER }
+    val coachPlans = state.workouts.filter { it.source == WorkoutSource.COACH }
+    val myPlans = state.workouts.filter { it.source == WorkoutSource.USER }
     val allEmpty = coachPlans.isEmpty() && myPlans.isEmpty()
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {

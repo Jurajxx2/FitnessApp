@@ -128,8 +128,8 @@ class WorkoutViewModel(
         viewModelScope.launch {
             deleteUserWorkoutUseCase(workoutId)
                 .onSuccess {
-                    // Reload all workouts so the deleted plan disappears from the list
-                    loadAllWorkouts()
+                    // Reload assigned workouts so the deleted plan disappears from the list
+                    loadWorkouts()
                 }
                 .onFailure { e -> _state.update { it.copy(error = e.message) } }
         }
