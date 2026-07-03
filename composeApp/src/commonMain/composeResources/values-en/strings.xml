@@ -364,7 +364,6 @@
     <string name="session_resume_action">Resume</string>
     <string name="session_discard">Discard workout</string>
     <string name="session_discard_confirm">Discard this session? Logged sets will be removed from history.</string>
-    <string name="session_volume">Volume</string>
     <string name="session_volume_format">Volume %1$s kg</string>
     <string name="session_save_degraded">Live save is unavailable. Finish workout will retry the full log.</string>
     <string name="common_keep_working">Keep working</string>

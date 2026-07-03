@@ -364,7 +364,6 @@
     <string name="session_resume_action">Pokračovat</string>
     <string name="session_discard">Zahodit trénink</string>
     <string name="session_discard_confirm">Zahodit tento trénink? Zapsané série budou odebrány z historie.</string>
-    <string name="session_volume">Objem</string>
     <string name="session_volume_format">Objem %1$s kg</string>
     <string name="session_save_degraded">Živé ukládání není dostupné. Dokončení tréninku zkusí uložit celý zápis znovu.</string>
     <string name="common_keep_working">Pokračovat</string>

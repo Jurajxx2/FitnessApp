@@ -40,6 +40,7 @@ import coachfoska.composeapp.generated.resources.common_delete
 import coachfoska.composeapp.generated.resources.common_favorite_cd
 import coachfoska.composeapp.generated.resources.hydration_add_container
 import coachfoska.composeapp.generated.resources.hydration_add_new
+import coachfoska.composeapp.generated.resources.hydration_amount_ml_format
 import coachfoska.composeapp.generated.resources.hydration_container_name_label
 import coachfoska.composeapp.generated.resources.hydration_container_volume_label
 import coachfoska.composeapp.generated.resources.hydration_my_containers
@@ -87,7 +88,7 @@ fun ManageContainersSheet(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(c.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                Text("${c.volumeMl} ml", style = MaterialTheme.typography.labelSmall,
+                                Text(stringResource(Res.string.hydration_amount_ml_format, c.volumeMl), style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
                             }
                             IconButton(onClick = { onToggleFavorite(c.id, !c.isFavorite) }) {
