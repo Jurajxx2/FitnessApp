@@ -37,6 +37,7 @@ import coachfoska.composeapp.generated.resources.set_row_reps_header
 import coachfoska.composeapp.generated.resources.set_row_save_header
 import coachfoska.composeapp.generated.resources.set_row_set_header
 import com.coachfoska.app.core.util.LocalReduceMotion
+import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.SetDraft
@@ -57,7 +58,7 @@ fun SetTableHeader(modifier: Modifier = Modifier) {
         Text(stringResource(Res.string.set_row_kg_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
         Text(stringResource(Res.string.set_row_reps_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
         Spacer(Modifier.weight(1f))
-        Text("✓", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(32.dp), textAlign = TextAlign.Center)
+        Text("✓", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(Sizes.touchTarget), textAlign = TextAlign.Center)
         Text(stringResource(Res.string.set_row_save_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(76.dp), textAlign = TextAlign.End)
     }
 }
@@ -150,31 +151,38 @@ fun SetRow(
 
         Spacer(Modifier.weight(1f))
 
+        // 48dp outer box is the touch target; 32dp inner box is the visual element.
         Box(
             modifier = Modifier
-                .size(32.dp)
-                .graphicsLayer {
-                    scaleX = pulse.value
-                    scaleY = pulse.value
-                }
-                .clip(RoundedCornerShape(6.dp))
-                .background(
-                    if (setDraft.completed) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceVariant
-                )
+                .size(Sizes.touchTarget)
                 .clickable {
                     if (!setDraft.completed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                     onCompleted()
                 },
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = if (setDraft.completed) "✓" else "",
-                color = if (setDraft.completed) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-            )
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .graphicsLayer {
+                        scaleX = pulse.value
+                        scaleY = pulse.value
+                    }
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(
+                        if (setDraft.completed) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (setDraft.completed) "✓" else "",
+                    color = if (setDraft.completed) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                )
+            }
         }
 
         SetSaveStateLabel(

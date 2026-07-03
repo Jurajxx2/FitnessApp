@@ -13,8 +13,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -42,10 +45,14 @@ fun MetricCard(
 ) {
     val reduceMotion = LocalReduceMotion.current
     val numeric = remember(value) { value.toIntOrNull() }
+    // `started` flips true after first composition so the counter animates from 0 → target
+    // on first display. LaunchedEffect(Unit) runs exactly once per composition entry.
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { started = true }
     // Called unconditionally to keep Compose's slot table stable when `value`
     // flips between numeric and non-numeric; motion is gated via duration/usage.
     val animated by animateIntAsState(
-        targetValue = numeric ?: 0,
+        targetValue = if (started) numeric ?: 0 else 0,
         animationSpec = tween(if (!reduceMotion && animateValue && numeric != null) 700 else 0),
         label = "metric-countup",
     )

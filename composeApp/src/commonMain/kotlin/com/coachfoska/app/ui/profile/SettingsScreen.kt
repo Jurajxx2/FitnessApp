@@ -66,7 +66,6 @@ import coachfoska.composeapp.generated.resources.terms_of_service
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.settings.SettingsViewModel
 import com.coachfoska.app.theme.Spacing
-import com.coachfoska.app.theme.Sizes
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
