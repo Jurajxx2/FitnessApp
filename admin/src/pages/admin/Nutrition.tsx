@@ -306,6 +306,14 @@ function RecipesTab() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['recipes-admin'] }),
   })
 
+  const toggleFeatured = useMutation({
+    mutationFn: async (r: Recipe) => {
+      const { error } = await supabase.from('recipes').update({ featured: !r.featured }).eq('id', r.id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['recipes-admin'] }),
+  })
+
   function updateIngredient(i: number, field: keyof IngredientDraft, value: string | number | null) {
     setIngredients(ings => ings.map((ing, idx) => idx === i ? { ...ing, [field]: value } : ing))
   }
@@ -327,7 +335,7 @@ function RecipesTab() {
         <Table>
           <thead>
             <tr>
-              <Th>{''}</Th><Th>Name</Th><Th>ID</Th><Th>Difficulty</Th><Th>Tags</Th><Th>Calories</Th><Th>Protein</Th><Th>Carbs</Th><Th>Fat</Th><Th>Prep</Th><Th>{''}</Th>
+              <Th>{''}</Th><Th>Name</Th><Th>ID</Th><Th>Difficulty</Th><Th>Tags</Th><Th>Featured</Th><Th>Calories</Th><Th>Protein</Th><Th>Carbs</Th><Th>Fat</Th><Th>Prep</Th><Th>{''}</Th>
             </tr>
           </thead>
           <tbody>
@@ -343,6 +351,13 @@ function RecipesTab() {
                 <Td className="text-[var(--text-muted)] text-xs font-mono">{r.external_id ?? '—'}</Td>
                 <Td className="text-xs">{r.difficulty ?? '—'}</Td>
                 <Td className="text-xs text-[var(--text-muted)]">{r.tags?.length ? r.tags.join(', ') : '—'}</Td>
+                <Td>
+                  <button
+                    onClick={() => toggleFeatured.mutate(r)}
+                    title={r.featured ? 'Remove from featured' : 'Feature on the app home'}
+                    className={`text-sm bg-transparent border-0 cursor-pointer ${r.featured ? 'text-amber-400' : 'text-[var(--text-disabled)] hover:text-[var(--text-muted)]'}`}
+                  >★</button>
+                </Td>
                 <Td>{Math.round(r.calories)} kcal</Td>
                 <Td>{r.protein_g.toFixed(1)}g</Td>
                 <Td>{r.carbs_g.toFixed(1)}g</Td>

@@ -129,6 +129,7 @@ export interface Recipe {
   protein_g: number
   carbs_g: number
   fat_g: number
+  featured: boolean
   created_at: string
   updated_at: string
 }

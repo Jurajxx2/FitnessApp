@@ -50,6 +50,10 @@ import com.coachfoska.app.ui.recipe.components.CookingStepCard
 import com.coachfoska.app.ui.recipe.components.ServingsAdjuster
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.log_this_meal
+import coachfoska.composeapp.generated.resources.recipe_no_ingredients
+import coachfoska.composeapp.generated.resources.recipe_no_steps
+import coachfoska.composeapp.generated.resources.recipe_tab_directions
+import coachfoska.composeapp.generated.resources.recipe_tab_ingredients
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -109,7 +113,10 @@ fun RecipeDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     var tabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Ingredients", "Directions")
+    val tabs = listOf(
+        stringResource(Res.string.recipe_tab_ingredients),
+        stringResource(Res.string.recipe_tab_directions),
+    )
 
     LazyColumn(
         modifier = modifier.background(MaterialTheme.colorScheme.background),
@@ -189,7 +196,7 @@ private fun LazyListScope.ingredientsItems(
     if (recipe.ingredients.isEmpty()) {
         item("ingredients-empty") {
             Text(
-                text = "No ingredients listed.",
+                text = stringResource(Res.string.recipe_no_ingredients),
                 modifier = Modifier.padding(24.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
@@ -208,7 +215,7 @@ private fun LazyListScope.directionsItems(
     if (steps.isEmpty()) {
         item("steps-empty") {
             Text(
-                text = "No directions provided.",
+                text = stringResource(Res.string.recipe_no_steps),
                 modifier = Modifier.padding(24.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
