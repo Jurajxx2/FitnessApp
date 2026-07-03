@@ -234,7 +234,7 @@ val viewModelModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::AuthViewModel)
     viewModelOf(::SettingsViewModel)
-    viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> ActivityLogViewModel(get(), get(), userId) }
     viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }

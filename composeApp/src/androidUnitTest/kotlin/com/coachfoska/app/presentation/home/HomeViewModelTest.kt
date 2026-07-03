@@ -15,6 +15,7 @@ import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
 import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
+import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
 import com.coachfoska.app.domain.model.WorkoutLog
@@ -62,6 +63,8 @@ class HomeViewModelTest {
         calculateMacroTargetsUseCase = CalculateMacroTargetsUseCase(),
         getWaterContainersUseCase = GetWaterContainersUseCase(hydrationRepo),
         getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(workoutRepo),
+        getWeightHistoryUseCase = GetWeightHistoryUseCase(userRepo),
+        workoutRepository = workoutRepo,
         userId = "user-1"
     )
 
@@ -72,6 +75,8 @@ class HomeViewModelTest {
         coEvery { hydrationRepo.getTodayLogs(any()) } returns Result.success(emptyList())
         coEvery { hydrationRepo.getContainers(any()) } returns Result.success(emptyList())
         coEvery { workoutRepo.getWorkoutHistory(any()) } returns Result.success(emptyList())
+        coEvery { userRepo.getWeightHistory(any()) } returns Result.success(emptyList())
+        coEvery { workoutRepo.getCurrentStreak(any()) } returns Result.success(0)
     }
 
     @AfterTest fun tearDown() = Dispatchers.resetMain()

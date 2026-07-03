@@ -249,7 +249,14 @@ fun App(openHumanChat: Boolean = false) {
                         onWaterClick = { navController.navigate(Hydration) },
                         onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
                         onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
-                        onLogMealClick = { navController.navigate(MealCapture()) }
+                        onLogMealClick = { navController.navigate(MealCapture()) },
+                        onGoToActivity = {
+                            navController.navigate(WorkoutList) {
+                                popUpTo<Home> { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
                     )
                 }
 

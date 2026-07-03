@@ -54,6 +54,13 @@
     <string name="start_training">START TRAINING</string>
 
     <!-- Home -->
+    <string name="home_metric_week_workouts">This week</string>
+    <string name="home_metric_weight">Weight</string>
+    <string name="home_metric_streak">Week streak</string>
+    <string name="home_first_run_title">Start your first workout</string>
+    <string name="home_first_run_message">Your coach plan is waiting — or build your own.</string>
+    <string name="home_first_run_action">Go to workouts</string>
+    <string name="home_metrics_retry">Retry</string>
     <string name="welcome_back">WELCOME BACK,</string>
     <string name="default_athlete_name">ATHLETE</string>
     <string name="todays_focus">TODAY\'S FOCUS</string>

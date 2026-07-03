@@ -20,5 +20,12 @@ data class HomeState(
     val waterConsumedMl: Int = 0,
     val waterGoalMl: Int = 2000,
     val quickAddVolumeMl: Int = 250,
-    val error: String? = null
+    val error: String? = null,
+    // Metrics row
+    val weekWorkoutsDone: Int = 0,
+    val currentWeightKg: Float? = null,
+    val weightDeltaKg: Float? = null,
+    val streakWeeks: Int = 0,
+    val isFirstRun: Boolean = false,
+    val metricsError: Boolean = false,
 )

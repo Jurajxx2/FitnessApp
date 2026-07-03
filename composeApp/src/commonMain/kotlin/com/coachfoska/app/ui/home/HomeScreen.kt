@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,13 +27,19 @@ import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.MacroTargets
 import com.coachfoska.app.domain.model.WeekDayActivity
+import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.core.util.todayDate
 import com.coachfoska.app.domain.usecase.workout.buildWeeklyActivity
 import com.coachfoska.app.domain.usecase.workout.deriveTodayVolumeKg
 import com.coachfoska.app.presentation.home.HomeIntent
 import com.coachfoska.app.presentation.home.HomeState
 import com.coachfoska.app.presentation.home.HomeViewModel
+import com.coachfoska.app.theme.Sizes
+import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.app.ui.components.EmptyState
+import com.coachfoska.app.ui.components.MetricCard
+import com.coachfoska.app.ui.components.MetricCardSkeleton
 import com.coachfoska.app.ui.workout.components.WeeklyActivitySection
 import kotlinx.datetime.TimeZone
 import org.koin.compose.viewmodel.koinViewModel
@@ -46,6 +53,7 @@ fun HomeRoute(
     onWorkoutClick: (String) -> Unit = {},
     onStartWorkout: (String) -> Unit = {},
     onLogMealClick: () -> Unit = {},
+    onGoToActivity: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -59,7 +67,8 @@ fun HomeRoute(
         onWaterClick = onWaterClick,
         onWorkoutClick = onWorkoutClick,
         onStartWorkout = onStartWorkout,
-        onLogMealClick = onLogMealClick
+        onLogMealClick = onLogMealClick,
+        onGoToActivity = onGoToActivity,
     )
 }
 
@@ -71,7 +80,8 @@ fun HomeScreen(
     onWaterClick: () -> Unit = {},
     onWorkoutClick: (String) -> Unit = {},
     onStartWorkout: (String) -> Unit = {},
-    onLogMealClick: () -> Unit = {}
+    onLogMealClick: () -> Unit = {},
+    onGoToActivity: () -> Unit = {},
 ) {
     var selectedDay by remember { mutableStateOf<WeekDayActivity?>(null) }
 
@@ -113,9 +123,55 @@ fun HomeScreen(
                 )
             }
 
+            // Metrics row (or skeleton while loading, or first-run guidance)
             if (state.isLoading) {
-                CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    MetricCardSkeleton(Modifier.weight(1f))
+                    MetricCardSkeleton(Modifier.weight(1f))
+                    MetricCardSkeleton(Modifier.weight(1f))
+                }
+            } else if (state.isFirstRun) {
+                EmptyState(
+                    icon = Icons.Default.FitnessCenter,
+                    title = stringResource(Res.string.home_first_run_title),
+                    message = stringResource(Res.string.home_first_run_message),
+                    actionLabel = stringResource(Res.string.home_first_run_action),
+                    onAction = onGoToActivity,
+                )
             } else {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                        MetricCard(
+                            value = state.weekWorkoutsDone.toString(),
+                            label = stringResource(Res.string.home_metric_week_workouts),
+                            modifier = Modifier.weight(1f),
+                        )
+                        MetricCard(
+                            value = state.currentWeightKg?.let { formatWeightKg(it) } ?: "--",
+                            label = stringResource(Res.string.home_metric_weight),
+                            delta = state.weightDeltaKg?.let { delta ->
+                                (if (delta > 0) "+" else "") + formatWeightKg(delta)
+                            },
+                            // Losing weight reads as positive for most fitness goals
+                            deltaPositive = state.weightDeltaKg?.let { it <= 0f },
+                            animateValue = false,
+                            modifier = Modifier.weight(1f),
+                        )
+                        MetricCard(
+                            value = state.streakWeeks.toString(),
+                            label = stringResource(Res.string.home_metric_streak),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (state.metricsError) {
+                        TextButton(onClick = { onIntent(HomeIntent.RetryMetrics) }) {
+                            Text(stringResource(Res.string.home_metrics_retry))
+                        }
+                    }
+                }
+            }
+
+            if (!state.isLoading && !state.isFirstRun) {
                 // Weekly Activity
                 run {
                     val today = todayDate()
@@ -178,6 +234,8 @@ fun HomeScreen(
                         }
                     }
                 }
+            } else if (state.isLoading) {
+                CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
             }
 
             state.error?.let {
@@ -246,7 +304,7 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(Modifier.width(8.dp))
-            IconButton(onClick = onQuickAdd, modifier = Modifier.size(40.dp)) {
+            IconButton(onClick = onQuickAdd, modifier = Modifier.size(Sizes.touchTarget)) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = stringResource(Res.string.quick_add_water),

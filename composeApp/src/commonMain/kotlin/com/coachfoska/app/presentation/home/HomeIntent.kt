@@ -5,4 +5,5 @@ sealed interface HomeIntent {
     data object Refresh : HomeIntent
     data object QuickAddWater : HomeIntent
     data object MarkCoachMessageRead : HomeIntent
+    data object RetryMetrics : HomeIntent
 }
