@@ -27,6 +27,7 @@ import kotlinx.serialization.Serializable
 @Serializable object WorkoutHistory
 @Serializable data class WorkoutHistoryDetail(val logId: String)
 @Serializable object WorkoutPlan
+@Serializable data class WorkoutEditor(val workoutId: String? = null)
 @Serializable object ExerciseLibrary
 
 // Nutrition

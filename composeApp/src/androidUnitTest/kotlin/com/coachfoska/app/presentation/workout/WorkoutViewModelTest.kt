@@ -4,6 +4,7 @@ import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.repository.WorkoutRepository
+import com.coachfoska.app.domain.usecase.workout.DeleteUserWorkoutUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAllWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
@@ -32,12 +33,15 @@ class WorkoutViewModelTest {
         getWorkoutByIdUseCase = GetWorkoutByIdUseCase(repo),
         logWorkoutUseCase = LogWorkoutUseCase(repo),
         getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(repo),
+        deleteUserWorkoutUseCase = DeleteUserWorkoutUseCase(repo),
         userId = "user-1"
     )
 
     @BeforeTest fun setUp() {
         Dispatchers.setMain(testDispatcher)
         coEvery { repo.getAllWorkouts() } returns Result.success(emptyList())
+        // LoadHistory is now triggered in init
+        coEvery { repo.getWorkoutHistory(any()) } returns Result.success(emptyList())
     }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 

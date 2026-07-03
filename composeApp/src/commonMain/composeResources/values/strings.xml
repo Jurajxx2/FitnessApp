@@ -307,4 +307,23 @@
     <string name="ob_loading_done">Hotovo!</string>
     <string name="ob_loading_retry">Zkusit znovu</string>
     <string name="ob_loading_error">Něco se pokazilo. Zkus to prosím znovu.</string>
+
+    <!-- Plans (Task 6) -->
+    <string name="plan_title">Plan</string>
+    <string name="plan_coach_badge">Coach</string>
+    <string name="plan_mine_badge">Mine</string>
+    <string name="plan_exercise_count">%1$d exercises</string>
+    <string name="plan_last_performed">Last: %1$s</string>
+    <string name="plan_never_performed">Not performed yet</string>
+    <string name="plan_create_first_title">Create your first workout</string>
+    <string name="plan_create_first_message">No plan assigned yet. Build your own in a minute.</string>
+    <string name="plan_create_action">Create workout</string>
+    <string name="plan_delete_confirm">Delete this workout?</string>
+    <string name="plan_log_session">LOG SESSION</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="detail_title">WORKOUT</string>
+    <string name="detail_start_workout">Start workout</string>
+    <string name="detail_coach_readonly">Coach plan — start it or substitute an exercise for your own copy.</string>
 </resources>

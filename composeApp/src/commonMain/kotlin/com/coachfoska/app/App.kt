@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -287,7 +288,8 @@ fun App(openHumanChat: Boolean = false) {
                         userId = currentUserId,
                         onBackClick = { navController.popBackStack() },
                         onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
-                        onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) }
+                        onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
+                        onEditWorkout = { workoutId -> navController.navigate(WorkoutEditor(workoutId)) }
                     )
                 }
 
@@ -383,9 +385,13 @@ fun App(openHumanChat: Boolean = false) {
                         userId = currentUserId,
                         onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
                         onLogWorkoutClick = { navController.navigate(LogWorkout) },
+                        onCreateWorkout = { navController.navigate(WorkoutEditor()) },
+                        onEditWorkout = { workoutId -> navController.navigate(WorkoutEditor(workoutId)) },
                         onBackClick = { navController.popBackStack() }
                     )
                 }
+
+                composable<WorkoutEditor> { /* Task 7 screen */ Box {} }
 
                 composable<ExerciseLibrary> {
                     ExerciseLibraryRoute(

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.SetLog
+import com.coachfoska.app.domain.usecase.workout.DeleteUserWorkoutUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAllWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
@@ -25,6 +26,7 @@ class WorkoutViewModel(
     private val getWorkoutByIdUseCase: GetWorkoutByIdUseCase,
     private val logWorkoutUseCase: LogWorkoutUseCase,
     private val getWorkoutHistoryUseCase: GetWorkoutHistoryUseCase,
+    private val deleteUserWorkoutUseCase: DeleteUserWorkoutUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -34,6 +36,7 @@ class WorkoutViewModel(
     init {
         onIntent(WorkoutIntent.LoadWorkouts)
         onIntent(WorkoutIntent.LoadAllWorkouts)
+        onIntent(WorkoutIntent.LoadHistory)
     }
 
     fun onIntent(intent: WorkoutIntent) {
@@ -44,6 +47,7 @@ class WorkoutViewModel(
             is WorkoutIntent.SelectWorkout -> selectWorkout(intent.workoutId)
             WorkoutIntent.LoadHistory -> loadHistory()
             is WorkoutIntent.LogWorkout -> logWorkout(intent)
+            is WorkoutIntent.DeleteWorkout -> deleteWorkout(intent.workoutId)
             WorkoutIntent.DismissError -> _state.update { it.copy(error = null) }
             WorkoutIntent.WorkoutLogged -> _state.update { it.copy(workoutLoggedSuccess = false) }
             is WorkoutIntent.SelectWorkoutLog -> selectWorkoutLog(intent.logId)
@@ -103,8 +107,31 @@ class WorkoutViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isHistoryLoading = true) }
             getWorkoutHistoryUseCase(userId)
-                .onSuccess { history -> _state.update { it.copy(workoutHistory = history, isHistoryLoading = false) } }
+                .onSuccess { history ->
+                    val lastPerformed = history
+                        .filter { it.workoutId != null }
+                        .groupBy { it.workoutId!! }
+                        .mapValues { (_, logs) -> logs.maxBy { it.loggedAt }.loggedAt }
+                    _state.update {
+                        it.copy(
+                            workoutHistory = history,
+                            lastPerformedByWorkoutId = lastPerformed,
+                            isHistoryLoading = false,
+                        )
+                    }
+                }
                 .onFailure { e -> _state.update { it.copy(error = e.message, isHistoryLoading = false) } }
+        }
+    }
+
+    private fun deleteWorkout(workoutId: String) {
+        viewModelScope.launch {
+            deleteUserWorkoutUseCase(workoutId)
+                .onSuccess {
+                    // Reload all workouts so the deleted plan disappears from the list
+                    loadAllWorkouts()
+                }
+                .onFailure { e -> _state.update { it.copy(error = e.message) } }
         }
     }
 

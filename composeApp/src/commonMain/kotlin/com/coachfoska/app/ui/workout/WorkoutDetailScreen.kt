@@ -1,11 +1,13 @@
 package com.coachfoska.app.ui.workout
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,12 +16,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.common_edit
+import coachfoska.composeapp.generated.resources.detail_coach_readonly
+import coachfoska.composeapp.generated.resources.detail_start_workout
+import coachfoska.composeapp.generated.resources.detail_title
+import coachfoska.composeapp.generated.resources.plan_coach_badge
 import com.coachfoska.app.domain.model.WorkoutExercise
+import com.coachfoska.app.domain.model.WorkoutSource
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
+import com.coachfoska.app.theme.Spacing
+import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.app.ui.components.FoskaFilterChip
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -30,6 +43,7 @@ fun WorkoutDetailRoute(
     onBackClick: () -> Unit,
     onExerciseClick: (String) -> Unit,
     onStartWorkout: (String) -> Unit,
+    onEditWorkout: (String) -> Unit,
     viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -40,56 +54,108 @@ fun WorkoutDetailRoute(
 
     WorkoutDetailScreen(
         state = state,
+        currentUserId = userId,
         onBackClick = onBackClick,
         onExerciseClick = onExerciseClick,
-        onStartWorkout = onStartWorkout
+        onStartWorkout = onStartWorkout,
+        onEditWorkout = onEditWorkout
     )
 }
 
 @Composable
 fun WorkoutDetailScreen(
     state: WorkoutState,
+    currentUserId: String,
     onBackClick: () -> Unit,
     onExerciseClick: (String) -> Unit,
-    onStartWorkout: (String) -> Unit
+    onStartWorkout: (String) -> Unit,
+    onEditWorkout: (String) -> Unit,
+    // Substitute affordance stub — wired in substitution task (Task 8)
+    onSubstitute: (Int) -> Unit = {}
 ) {
+    val workout = state.selectedWorkout
+    val isCoachPlan = workout?.source == WorkoutSource.COACH
+    val isOwned = workout != null && workout.ownerUserId == currentUserId
+
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = "WORKOUT", onBackClick = onBackClick)
+        CoachTopBar(
+            title = stringResource(Res.string.detail_title),
+            onBackClick = onBackClick,
+            actions = {
+                if (workout != null && isOwned) {
+                    IconButton(onClick = { onEditWorkout(workout.id) }) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = stringResource(Res.string.common_edit)
+                        )
+                    }
+                }
+            }
+        )
+
         if (state.isLoading) {
             CoachLoadingBox(Modifier.weight(1f))
         } else {
-            state.selectedWorkout?.let { workout ->
+            workout?.let { w ->
                 Box(modifier = Modifier.weight(1f)) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 100.dp)
                     ) {
                         item {
-                            Column(modifier = Modifier.padding(24.dp)) {
+                            Column(modifier = Modifier.padding(Spacing.xl)) {
+                                // Coach badge for coach plans
+                                if (isCoachPlan) {
+                                    FoskaFilterChip(
+                                        selected = true,
+                                        label = stringResource(Res.string.plan_coach_badge),
+                                        onClick = {},
+                                        modifier = Modifier.padding(bottom = Spacing.sm)
+                                    )
+                                }
+
                                 Text(
-                                    text = workout.name,
+                                    text = w.name,
                                     style = MaterialTheme.typography.displayMedium,
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
-                                if (workout.notes != null) {
-                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                if (w.notes != null) {
+                                    Spacer(modifier = Modifier.height(Spacing.md))
                                     Text(
-                                        text = workout.notes,
+                                        text = w.notes,
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                                     )
                                 }
+
+                                // Coach-readonly note
+                                if (isCoachPlan) {
+                                    Spacer(modifier = Modifier.height(Spacing.md))
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.detail_coach_readonly),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(Spacing.md)
+                                        )
+                                    }
+                                }
                             }
                         }
 
-                        itemsIndexed(workout.exercises.sortedBy { it.sortOrder }) { index, exercise ->
+                        itemsIndexed(w.exercises.sortedBy { it.sortOrder }) { index, exercise ->
                             ExerciseRow(
                                 index = index + 1,
                                 exercise = exercise,
-                                onClick = { exercise.exerciseId?.let { onExerciseClick(it) } }
+                                onClick = { exercise.exerciseId?.let { onExerciseClick(it) } },
+                                onSubstitute = { onSubstitute(index) }
                             )
                             HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 24.dp),
+                                modifier = Modifier.padding(horizontal = Spacing.xl),
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
                             )
                         }
@@ -98,26 +164,13 @@ fun WorkoutDetailScreen(
                     Surface(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(24.dp),
+                            .padding(Spacing.xl),
                         color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
                     ) {
-                        Button(
-                            onClick = { onStartWorkout(workout.id) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) {
-                            Text(
-                                text = "START WORKOUT",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        CoachButton(
+                            text = stringResource(Res.string.detail_start_workout),
+                            onClick = { onStartWorkout(w.id) }
+                        )
                     }
                 }
             }
@@ -126,16 +179,21 @@ fun WorkoutDetailScreen(
 }
 
 @Composable
-private fun ExerciseRow(index: Int, exercise: WorkoutExercise, onClick: () -> Unit) {
+private fun ExerciseRow(
+    index: Int,
+    exercise: WorkoutExercise,
+    onClick: () -> Unit,
+    onSubstitute: () -> Unit
+) {
     Surface(
         onClick = onClick,
         color = MaterialTheme.colorScheme.background,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+            modifier = Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.lg + Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg + Spacing.sm)
         ) {
             Box(
                 modifier = Modifier
@@ -149,7 +207,7 @@ private fun ExerciseRow(index: Int, exercise: WorkoutExercise, onClick: () -> Un
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = exercise.name,
@@ -165,7 +223,7 @@ private fun ExerciseRow(index: Int, exercise: WorkoutExercise, onClick: () -> Un
                     )
                 }
             }
-            
+
             Surface(
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
                 shape = RoundedCornerShape(4.dp)
@@ -175,7 +233,19 @@ private fun ExerciseRow(index: Int, exercise: WorkoutExercise, onClick: () -> Un
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                )
+            }
+
+            // Substitute affordance — UI stub; logic wired in substitution task (Task 8)
+            IconButton(
+                onClick = onSubstitute,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SwapHoriz,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                 )
             }
         }

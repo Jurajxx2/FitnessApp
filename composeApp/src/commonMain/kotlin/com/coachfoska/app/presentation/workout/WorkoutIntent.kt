@@ -29,6 +29,8 @@ sealed interface WorkoutIntent {
     data class RemoveSet(val exerciseIndex: Int, val setIndex: Int) : WorkoutIntent
     data class SubmitActiveSession(val durationMinutes: Int, val notes: String?) : WorkoutIntent
 
+    data class DeleteWorkout(val workoutId: String) : WorkoutIntent
+
     data object DismissError : WorkoutIntent
     data object WorkoutLogged : WorkoutIntent
     data class SelectWorkoutLog(val logId: String) : WorkoutIntent
