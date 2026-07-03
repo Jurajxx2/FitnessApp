@@ -27,6 +27,6 @@ fun SelectableChip(text: String, selected: Boolean, onClick: () -> Unit, modifie
             .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
             .clickable(onClick = onClick)
             .defaultMinSize(minHeight = Sizes.touchTarget)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm + Spacing.xs)
+            .padding(horizontal = Spacing.lg, vertical = 10.dp)
     )
 }
