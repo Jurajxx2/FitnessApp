@@ -37,6 +37,7 @@ import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
+import com.coachfoska.app.theme.Sizes
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.meal_plan_assigned_meals
 import coachfoska.composeapp.generated.resources.meal_plan_count_planned
@@ -164,17 +165,23 @@ private fun DayStrip(
             val textColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(bgColor)
+                    .size(Sizes.touchTarget)
                     .clickable { onSelectDay(index) },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = DAY_LETTERS[index],
-                    style = MaterialTheme.typography.labelMedium,
-                    color = textColor,
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(bgColor),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = DAY_LETTERS[index],
+                        style = MaterialTheme.typography.labelMedium,
+                        color = textColor,
+                    )
+                }
             }
         }
     }

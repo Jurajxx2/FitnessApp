@@ -216,6 +216,7 @@ private fun SetSaveStateLabel(
         color = color,
         textAlign = TextAlign.End,
         modifier = modifier
+            .heightIn(min = Sizes.touchTarget)
             .then(if (saveState == SetSaveState.Failed) Modifier.clickable(onClick = onRetrySave) else Modifier),
     )
 }
