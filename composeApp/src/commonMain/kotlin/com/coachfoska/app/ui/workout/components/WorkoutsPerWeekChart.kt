@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.coachfoska.app.domain.model.WeeklyCount
+import com.coachfoska.app.theme.ChartLine
 
 @Composable
 fun WorkoutsPerWeekChart(
@@ -41,7 +42,7 @@ fun WorkoutsPerWeekChart(
                         modifier = Modifier
                             .fillMaxWidth()
                             .fillMaxHeight(fraction.coerceIn(0.05f, 1f))
-                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)),
+                            .background(ChartLine, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)),
                     )
                 }
             }

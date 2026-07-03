@@ -65,6 +65,8 @@ import coachfoska.composeapp.generated.resources.store_compliance_ready
 import coachfoska.composeapp.generated.resources.terms_of_service
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.settings.SettingsViewModel
+import com.coachfoska.app.theme.Spacing
+import com.coachfoska.app.theme.Sizes
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -121,10 +123,10 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp)
+                .padding(horizontal = Spacing.xl, vertical = Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xl)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
                     text = stringResource(Res.string.settings_title),
                     style = MaterialTheme.typography.displaySmall,
@@ -165,7 +167,7 @@ fun SettingsScreen(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 SectionTitle(stringResource(Res.string.settings_privacy_data))
                 SettingsSection {
                     SettingsRow(
@@ -195,7 +197,7 @@ fun SettingsScreen(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 SectionTitle(stringResource(Res.string.settings_about))
                 SettingsSection {
                     SettingsRow(
@@ -206,7 +208,7 @@ fun SettingsScreen(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 SectionTitle(stringResource(Res.string.settings_debug))
                 SettingsSection {
                     DebugRow(
@@ -245,7 +247,7 @@ fun SettingsScreen(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(Spacing.lg)
                     )
                 }
             }
@@ -265,7 +267,7 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(Spacing.xl))
         }
     }
 }
@@ -299,13 +301,15 @@ private fun SettingsRow(
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Text(
                     text = title,
@@ -339,7 +343,7 @@ private fun SettingsRow(
 private fun SettingsDivider() {
     HorizontalDivider(
         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-        modifier = Modifier.padding(horizontal = 16.dp)
+        modifier = Modifier.padding(horizontal = Spacing.lg)
     )
 }
 
@@ -369,13 +373,15 @@ private fun DebugRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Text(
                     text = title,

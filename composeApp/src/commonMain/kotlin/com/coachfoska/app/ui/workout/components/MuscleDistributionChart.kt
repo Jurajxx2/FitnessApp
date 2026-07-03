@@ -10,15 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.coachfoska.app.domain.model.MuscleVolumeEntry
-
-private val chartColors = listOf(
-    androidx.compose.ui.graphics.Color(0xFF4CAF50),
-    androidx.compose.ui.graphics.Color(0xFF3498DB),
-    androidx.compose.ui.graphics.Color(0xFF9B59B6),
-    androidx.compose.ui.graphics.Color(0xFFE74C3C),
-    androidx.compose.ui.graphics.Color(0xFFFF9800),
-    androidx.compose.ui.graphics.Color(0xFF00BCD4),
-)
+import com.coachfoska.app.theme.muscleGroupColor
 
 @Composable
 fun MuscleDistributionChart(
@@ -31,7 +23,7 @@ fun MuscleDistributionChart(
             style = MaterialTheme.typography.titleSmall,
         )
         entries.forEachIndexed { index, entry ->
-            val color = chartColors[index % chartColors.size]
+            val color = muscleGroupColor(entry.muscleGroup)
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
