@@ -20,6 +20,7 @@ turbine = "1.2.1"
 credentials = "1.6.0"
 googleid = "1.1.1"
 work = "2.10.0"
+kover = "0.9.1"
 
 [libraries]
 # Compose Multiplatform (explicit artifacts, no deprecated plugin accessors)
@@ -95,3 +96,4 @@ kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

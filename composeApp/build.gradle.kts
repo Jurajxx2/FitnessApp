@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.buildkonfig)
+    alias(libs.plugins.kover)
 }
 
 val localProperties = Properties().apply {
@@ -136,6 +137,25 @@ android {
 
     buildFeatures {
         compose = true
+    }
+}
+
+kover {
+    reports {
+        filters {
+            excludes {
+                packages(
+                    "com.coachfoska.app.di",
+                    "com.coachfoska.app.ui",
+                    "com.coachfoska.app.data.remote.dto",
+                    "com.coachfoska.app.data.remote.datasource",
+                )
+                classes(
+                    "*ComposableSingletons*",
+                    "*\$\$serializer",
+                )
+            }
+        }
     }
 }
 
