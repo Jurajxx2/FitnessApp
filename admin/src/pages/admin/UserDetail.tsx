@@ -3,9 +3,34 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import { SlideOver, Button, Input, Badge } from '../../components/ui'
 import { BodyFocusMap } from '../../components/BodyFocusMap'
-import type { Profile, Workout, WeightEntry, MealPlan, OnboardingResponse } from '../../types/database'
+import type {
+  ExerciseLog,
+  MealLog,
+  MealLogFood,
+  MealPlan,
+  OnboardingResponse,
+  Profile,
+  SetLog,
+  WeightEntry,
+  Workout,
+  WorkoutFeedback,
+  WorkoutLog,
+} from '../../types/database'
+
+type WorkoutLogWithExercises = WorkoutLog & {
+  exercise_logs?: Array<ExerciseLog & { set_logs?: SetLog[] }>
+}
+
+type MealLogWithFoods = MealLog & {
+  meal_log_foods?: MealLogFood[]
+}
+
+type FeedbackTarget =
+  | { type: 'workout'; id: string }
+  | { type: 'exercise'; id: string }
 
 function useUser(id: string) {
   return useQuery<Profile>({
@@ -59,7 +84,7 @@ function useUserCompliance(userId: string) {
       let totalCals = 0
       let totalProt = 0
       mealLogs.forEach(log => {
-        log.meal_log_foods.forEach((f: any) => {
+        (log.meal_log_foods ?? []).forEach((f: any) => {
           totalCals += f.calories
           totalProt += f.protein_g
         })
@@ -72,6 +97,105 @@ function useUserCompliance(userId: string) {
         logCount: mealLogs.length
       }
     }
+  })
+}
+
+function useRecentWorkoutLogs(userId: string) {
+  return useQuery<WorkoutLogWithExercises[]>({
+    queryKey: ['user-workout-logs', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('workout_logs')
+        .select(`
+          id,
+          user_id,
+          workout_id,
+          workout_name,
+          duration_minutes,
+          notes,
+          status,
+          logged_at,
+          created_at,
+          exercise_logs (
+            id,
+            workout_log_id,
+            exercise_name,
+            sets_completed,
+            reps_completed,
+            weight_kg,
+            notes,
+            created_at,
+            set_logs (
+              id,
+              exercise_log_id,
+              sort_order,
+              target_reps,
+              actual_reps,
+              target_weight_kg,
+              actual_weight_kg,
+              rpe,
+              completed,
+              created_at
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .order('logged_at', { ascending: false })
+        .limit(5)
+      if (error) throw error
+      return (data ?? []) as unknown as WorkoutLogWithExercises[]
+    },
+  })
+}
+
+function useRecentMealLogs(userId: string) {
+  return useQuery<MealLogWithFoods[]>({
+    queryKey: ['user-meal-logs', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('meal_logs')
+        .select(`
+          id,
+          user_id,
+          meal_name,
+          notes,
+          image_url,
+          logged_at,
+          created_at,
+          meal_log_foods (
+            id,
+            meal_log_id,
+            name,
+            amount,
+            unit,
+            amount_grams,
+            calories,
+            protein_g,
+            carbs_g,
+            fat_g
+          )
+        `)
+        .eq('user_id', userId)
+        .order('logged_at', { ascending: false })
+        .limit(5)
+      if (error) throw error
+      return (data ?? []) as unknown as MealLogWithFoods[]
+    },
+  })
+}
+
+function useWorkoutFeedback(userId: string) {
+  return useQuery<WorkoutFeedback[]>({
+    queryKey: ['user-workout-feedback', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('workout_feedback')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      return (data ?? []) as WorkoutFeedback[]
+    },
   })
 }
 
@@ -156,10 +280,303 @@ function deriveStatus(p: Profile): 'active' | 'inactive' | 'blocked' {
   return 'active'
 }
 
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function parseLegacyReps(value: string | null): number | null {
+  if (!value) return null
+  const first = value.split('-')[0]?.trim()
+  if (!first || !/^\d+$/.test(first)) return null
+  return Number(first)
+}
+
+function formatNumber(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+function mealTotals(log: MealLogWithFoods) {
+  return (log.meal_log_foods ?? []).reduce(
+    (acc, food) => ({
+      calories: acc.calories + (food.calories ?? 0),
+      protein: acc.protein + (food.protein_g ?? 0),
+      carbs: acc.carbs + (food.carbs_g ?? 0),
+      fat: acc.fat + (food.fat_g ?? 0),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  )
+}
+
+function workoutTotals(log: WorkoutLogWithExercises) {
+  return (log.exercise_logs ?? []).reduce(
+    (acc, exercise) => {
+      const sets = (exercise.set_logs ?? [])
+        .filter(set => set.completed || set.actual_reps != null || set.actual_weight_kg != null)
+      if (sets.length > 0) {
+        const volume = sets.reduce((sum, set) => {
+          const reps = set.actual_reps ?? 0
+          const weight = set.actual_weight_kg ?? 0
+          return sum + reps * weight
+        }, 0)
+        return { sets: acc.sets + sets.length, volumeKg: acc.volumeKg + volume }
+      }
+
+      const reps = parseLegacyReps(exercise.reps_completed)
+      const setsCompleted = exercise.sets_completed ?? 0
+      const weight = exercise.weight_kg ?? 0
+      const legacyVolume = reps && weight ? setsCompleted * reps * weight : 0
+      return { sets: acc.sets + setsCompleted, volumeKg: acc.volumeKg + legacyVolume }
+    },
+    { sets: 0, volumeKg: 0 }
+  )
+}
+
+function feedbackForTarget(feedback: WorkoutFeedback[], target: FeedbackTarget): WorkoutFeedback[] {
+  return feedback.filter(item =>
+    target.type === 'workout'
+      ? item.workout_log_id === target.id
+      : item.exercise_log_id === target.id
+  )
+}
+
+function SectionTitle({ children }: { children: string }) {
+  return (
+    <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+      {children}
+    </p>
+  )
+}
+
+function TargetFeedback({
+  target,
+  feedback,
+  onAdd,
+  onDelete,
+  isPending,
+}: {
+  target: FeedbackTarget
+  feedback: WorkoutFeedback[]
+  onAdd: (target: FeedbackTarget, body: string) => void
+  onDelete: (id: string) => void
+  isPending: boolean
+}) {
+  const [draft, setDraft] = useState('')
+  const label = target.type === 'workout' ? 'Workout comment' : 'Exercise comment'
+
+  function handleSubmit() {
+    const body = draft.trim()
+    if (!body) return
+    onAdd(target, body)
+    setDraft('')
+  }
+
+  return (
+    <div className="mt-3 rounded-md border border-[var(--border-subtle)] bg-[var(--input-bg)] p-2">
+      <p className="text-[10px] font-semibold text-[var(--text-disabled)] uppercase tracking-wider mb-2">
+        Coach feedback
+      </p>
+      {feedback.length > 0 ? (
+        <div className="flex flex-col gap-2 mb-2">
+          {feedback.map(item => (
+            <div key={item.id} className="rounded bg-[var(--bg-card)] border border-[var(--border)] p-2">
+              <p className="text-xs text-[var(--text-muted)] whitespace-pre-wrap">{item.body}</p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <span className="text-[10px] text-[var(--text-disabled)]">{formatDateTime(item.created_at)}</span>
+                <button
+                  type="button"
+                  className="text-[10px] text-red-400 bg-transparent border-0 cursor-pointer p-0"
+                  onClick={() => onDelete(item.id)}
+                  disabled={isPending}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[11px] text-[var(--text-disabled)] mb-2">No feedback yet.</p>
+      )}
+      <textarea
+        className="w-full min-h-16 resize-y rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-xs text-[var(--text)] outline-none"
+        placeholder={label}
+        value={draft}
+        onChange={event => setDraft(event.target.value)}
+      />
+      <Button
+        variant="ghost"
+        className="mt-2 w-full py-1.5 text-xs"
+        onClick={handleSubmit}
+        loading={isPending}
+        disabled={!draft.trim()}
+      >
+        Add feedback
+      </Button>
+    </div>
+  )
+}
+
+function WorkoutLogsSection({
+  logs,
+  isLoading,
+  error,
+  feedback,
+  onAddFeedback,
+  onDeleteFeedback,
+  isFeedbackPending,
+}: {
+  logs: WorkoutLogWithExercises[]
+  isLoading: boolean
+  error: Error | null
+  feedback: WorkoutFeedback[]
+  onAddFeedback: (target: FeedbackTarget, body: string) => void
+  onDeleteFeedback: (id: string) => void
+  isFeedbackPending: boolean
+}) {
+  return (
+    <div>
+      <SectionTitle>Recent Workout Logs</SectionTitle>
+      {isLoading && <p className="text-sm text-[var(--text-disabled)]">Loading workout logs…</p>}
+      {error && <p className="text-sm text-red-400">{error.message}</p>}
+      {!isLoading && !error && logs.length === 0 && (
+        <p className="text-sm text-[var(--text-disabled)]">No workout logs yet.</p>
+      )}
+      <div className="flex flex-col gap-2">
+        {logs.map(log => {
+          const totals = workoutTotals(log)
+          return (
+            <div key={log.id} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--text)]">{log.workout_name}</p>
+                  <p className="text-xs text-[var(--text-disabled)]">{formatDateTime(log.logged_at)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-[var(--text-muted)]">{log.duration_minutes} min</p>
+                  <p className="text-[10px] text-[var(--text-disabled)]">{totals.sets} sets · {formatNumber(totals.volumeKg)} kg</p>
+                </div>
+              </div>
+              {(log.exercise_logs ?? []).length > 0 && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {(log.exercise_logs ?? []).map(exercise => {
+                    const sets = [...(exercise.set_logs ?? [])].sort((a, b) => a.sort_order - b.sort_order)
+                    return (
+                      <div key={exercise.id} className="border-t border-[var(--border-subtle)] pt-2">
+                        <p className="text-xs font-semibold text-[var(--text-muted)]">{exercise.exercise_name}</p>
+                        {sets.length > 0 ? (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {sets.map(set => (
+                              <span key={set.id} className="text-[10px] px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text-muted)]">
+                                Set {set.sort_order}: {set.actual_reps ?? '—'} reps
+                                {set.actual_weight_kg != null ? ` · ${formatNumber(set.actual_weight_kg)} kg` : ''}
+                                {set.rpe != null ? ` · RPE ${set.rpe}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-[var(--text-disabled)] mt-1">
+                            {exercise.sets_completed ?? 0} sets · {exercise.reps_completed ?? '—'} reps
+                            {exercise.weight_kg != null ? ` · ${formatNumber(exercise.weight_kg)} kg` : ''}
+                          </p>
+                        )}
+                        <TargetFeedback
+                          target={{ type: 'exercise', id: exercise.id }}
+                          feedback={feedbackForTarget(feedback, { type: 'exercise', id: exercise.id })}
+                          onAdd={onAddFeedback}
+                          onDelete={onDeleteFeedback}
+                          isPending={isFeedbackPending}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {log.notes && <p className="mt-2 text-xs text-[var(--text-disabled)]">{log.notes}</p>}
+              <TargetFeedback
+                target={{ type: 'workout', id: log.id }}
+                feedback={feedbackForTarget(feedback, { type: 'workout', id: log.id })}
+                onAdd={onAddFeedback}
+                onDelete={onDeleteFeedback}
+                isPending={isFeedbackPending}
+              />
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function MealLogsSection({
+  logs,
+  isLoading,
+  error,
+}: {
+  logs: MealLogWithFoods[]
+  isLoading: boolean
+  error: Error | null
+}) {
+  return (
+    <div>
+      <SectionTitle>Recent Nutrition Logs</SectionTitle>
+      {isLoading && <p className="text-sm text-[var(--text-disabled)]">Loading nutrition logs…</p>}
+      {error && <p className="text-sm text-red-400">{error.message}</p>}
+      {!isLoading && !error && logs.length === 0 && (
+        <p className="text-sm text-[var(--text-disabled)]">No nutrition logs yet.</p>
+      )}
+      <div className="flex flex-col gap-2">
+        {logs.map(log => {
+          const totals = mealTotals(log)
+          return (
+            <div key={log.id} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-3">
+              <div className="flex items-start gap-3">
+                {log.image_url && (
+                  <img src={log.image_url} alt="" className="w-12 h-12 rounded-md object-cover flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text)]">{log.meal_name}</p>
+                      <p className="text-xs text-[var(--text-disabled)]">{formatDateTime(log.logged_at)}</p>
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] whitespace-nowrap">{Math.round(totals.calories)} kcal</p>
+                  </div>
+                  <p className="mt-1 text-[10px] text-[var(--text-disabled)]">
+                    P {formatNumber(totals.protein)}g · C {formatNumber(totals.carbs)}g · F {formatNumber(totals.fat)}g
+                  </p>
+                  {(log.meal_log_foods ?? []).length > 0 && (
+                    <div className="mt-2 flex flex-col gap-1">
+                      {(log.meal_log_foods ?? []).map(food => (
+                        <div key={food.id} className="flex justify-between gap-3 text-[11px]">
+                          <span className="text-[var(--text-muted)] truncate">{food.name}</span>
+                          <span className="text-[var(--text-disabled)] whitespace-nowrap">
+                            {formatNumber(food.amount ?? food.amount_grams ?? 0)} {food.unit ?? 'g'} · {Math.round(food.calories)} kcal
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {log.notes && <p className="mt-2 text-xs text-[var(--text-disabled)]">{log.notes}</p>}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function UserDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { user: adminUser } = useAuth()
 
   const { data: user, isLoading } = useUser(id!)
   const { data: workoutPlans = [] } = useWorkoutPlans()
@@ -169,6 +586,9 @@ export default function UserDetail() {
   const { data: weightHistory = [] } = useWeightHistory(id!)
   const { data: compliance } = useUserCompliance(id!)
   const { data: onboarding } = useOnboardingResponse(id!)
+  const workoutLogs = useRecentWorkoutLogs(id!)
+  const mealLogs = useRecentMealLogs(id!)
+  const { data: workoutFeedback = [] } = useWorkoutFeedback(id!)
 
   const [adminNotes, setAdminNotes] = useState('')
 
@@ -217,6 +637,36 @@ export default function UserDetail() {
     },
   })
 
+  const addWorkoutFeedback = useMutation({
+    mutationFn: async ({ target, body }: { target: FeedbackTarget; body: string }) => {
+      if (!adminUser?.id) throw new Error('Admin session is missing')
+
+      const { error } = await supabase
+        .from('workout_feedback')
+        .insert({
+          user_id: id!,
+          coach_id: adminUser.id,
+          body,
+          workout_log_id: target.type === 'workout' ? target.id : null,
+          exercise_log_id: target.type === 'exercise' ? target.id : null,
+        })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user-workout-feedback', id] })
+    },
+  })
+
+  const deleteWorkoutFeedback = useMutation({
+    mutationFn: async (feedbackId: string) => {
+      const { error } = await supabase.from('workout_feedback').delete().eq('id', feedbackId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user-workout-feedback', id] })
+    },
+  })
+
   function Field({ label, value }: { label: string; value: string | number | null }) {
     return (
       <div>
@@ -261,6 +711,22 @@ export default function UserDetail() {
           </div>
         </div>
 
+        <WorkoutLogsSection
+          logs={workoutLogs.data ?? []}
+          isLoading={workoutLogs.isLoading}
+          error={workoutLogs.error}
+          feedback={workoutFeedback}
+          onAddFeedback={(target, body) => addWorkoutFeedback.mutate({ target, body })}
+          onDeleteFeedback={feedbackId => deleteWorkoutFeedback.mutate(feedbackId)}
+          isFeedbackPending={addWorkoutFeedback.isPending || deleteWorkoutFeedback.isPending}
+        />
+
+        <MealLogsSection
+          logs={mealLogs.data ?? []}
+          isLoading={mealLogs.isLoading}
+          error={mealLogs.error}
+        />
+
         {/* Profile info */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
           <Field label="Full name"  value={user.full_name} />
@@ -277,7 +743,7 @@ export default function UserDetail() {
         {/* Onboarding quiz */}
         {onboarding && (
           <div>
-            <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Onboarding Quiz</p>
+            <SectionTitle>Onboarding Quiz</SectionTitle>
             <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               <Field label="Gender"     value={onboarding.gender} />
               <Field label="Goal"       value={onboarding.goal ? GOAL_LABELS[onboarding.goal] : null} />
@@ -304,7 +770,7 @@ export default function UserDetail() {
 
         {/* Assign Meal Plan */}
         <div>
-          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Meal Plan</p>
+          <SectionTitle>Meal Plan</SectionTitle>
           <select
             className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] outline-none"
             value={userMealPlanId ?? ''}
@@ -318,7 +784,7 @@ export default function UserDetail() {
 
         {/* Assign Workout Plan */}
         <div>
-          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Workout Plan</p>
+          <SectionTitle>Workout Plan</SectionTitle>
           <select
             className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] outline-none"
             value={userWorkoutPlanId ?? ''}
@@ -333,7 +799,7 @@ export default function UserDetail() {
         {/* Weight history */}
         {weightHistory.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Weight History</p>
+            <SectionTitle>Weight History</SectionTitle>
             <div className="flex flex-col gap-1">
               {weightHistory.map(e => (
                 <div key={e.id} className="flex justify-between text-xs">

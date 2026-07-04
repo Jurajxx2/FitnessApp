@@ -76,8 +76,44 @@ export interface WorkoutLog {
   workout_name: string
   duration_minutes: number
   notes: string | null
+  status?: 'in_progress' | 'completed' | 'discarded'
   logged_at: string
   created_at: string
+}
+
+export interface ExerciseLog {
+  id: string
+  workout_log_id: string
+  exercise_name: string
+  sets_completed: number | null
+  reps_completed: string | null
+  weight_kg: number | null
+  notes: string | null
+  created_at?: string
+}
+
+export interface SetLog {
+  id: string
+  exercise_log_id: string
+  sort_order: number
+  target_reps: number | null
+  actual_reps: number | null
+  target_weight_kg: number | null
+  actual_weight_kg: number | null
+  rpe: number | null
+  completed: boolean
+  created_at?: string
+}
+
+export interface WorkoutFeedback {
+  id: string
+  user_id: string
+  coach_id: string
+  workout_log_id: string | null
+  exercise_log_id: string | null
+  body: string
+  created_at: string
+  updated_at: string
 }
 
 export interface MealPlan {
@@ -106,6 +142,29 @@ export interface MealFood {
   meal_id: string
   name: string
   amount_grams: number
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+}
+
+export interface MealLog {
+  id: string
+  user_id: string
+  meal_name: string
+  notes: string | null
+  image_url: string | null
+  logged_at: string
+  created_at?: string
+}
+
+export interface MealLogFood {
+  id: string
+  meal_log_id: string
+  name: string
+  amount: number | null
+  unit: string | null
+  amount_grams: number | null
   calories: number
   protein_g: number
   carbs_g: number

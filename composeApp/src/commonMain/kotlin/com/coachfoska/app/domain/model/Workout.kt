@@ -62,6 +62,7 @@ data class WorkoutLog(
     val exerciseLogs: List<ExerciseLog>,
     val loggedAt: Instant,
     val status: String = "completed",
+    val feedback: List<WorkoutFeedback> = emptyList(),
 )
 
 data class ExerciseLog(
@@ -74,10 +75,22 @@ data class ExerciseLog(
     val substitutedFromExerciseId: String? = null,
     val substitutedFromName: String? = null,
     val sets: List<SetLog> = emptyList(),
+    val feedback: List<WorkoutFeedback> = emptyList(),
 ) {
     val setsCompletedCount: Int get() = sets.count { it.completed }
     val summaryLine: String get() = buildSummaryLine(sets)
 }
+
+data class WorkoutFeedback(
+    val id: String,
+    val userId: String,
+    val coachId: String,
+    val workoutLogId: String?,
+    val exerciseLogId: String?,
+    val body: String,
+    val createdAt: Instant,
+    val updatedAt: Instant,
+)
 
 data class SetLog(
     val id: String,

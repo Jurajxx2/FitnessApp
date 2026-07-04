@@ -103,14 +103,29 @@ class WorkoutRepositoryImpl(
 
         val exerciseLogs = workoutDataSource.getExerciseLogsForWorkouts(workoutLogs.map { it.id })
         val setLogs = workoutDataSource.getSetLogsForExerciseLogs(exerciseLogs.map { it.id })
+        val feedback = workoutDataSource.getWorkoutFeedback(userId)
 
         val setsByExerciseId = setLogs.groupBy { it.exerciseLogId }
+        val feedbackByWorkoutLogId = feedback
+            .filter { it.workoutLogId != null }
+            .groupBy { it.workoutLogId!! }
+        val feedbackByExerciseLogId = feedback
+            .filter { it.exerciseLogId != null }
+            .groupBy { it.exerciseLogId!! }
         val exercisesByWorkoutId = exerciseLogs
-            .map { it.copy(setLogs = setsByExerciseId[it.id].orEmpty().sortedBy { s -> s.sortOrder }) }
+            .map {
+                it.copy(
+                    setLogs = setsByExerciseId[it.id].orEmpty().sortedBy { s -> s.sortOrder },
+                    feedback = feedbackByExerciseLogId[it.id].orEmpty(),
+                )
+            }
             .groupBy { it.workoutLogId }
 
         workoutLogs.map { wl ->
-            wl.copy(exerciseLogs = exercisesByWorkoutId[wl.id].orEmpty()).toDomain()
+            wl.copy(
+                exerciseLogs = exercisesByWorkoutId[wl.id].orEmpty(),
+                feedback = feedbackByWorkoutLogId[wl.id].orEmpty(),
+            ).toDomain()
         }
     }
 

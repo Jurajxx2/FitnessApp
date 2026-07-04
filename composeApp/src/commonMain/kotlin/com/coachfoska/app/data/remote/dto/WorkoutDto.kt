@@ -5,6 +5,7 @@ import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
+import com.coachfoska.app.domain.model.WorkoutFeedback
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.WorkoutSource
 import kotlinx.datetime.Instant
@@ -106,7 +107,8 @@ data class WorkoutLogDto(
     val notes: String? = null,
     @SerialName("logged_at") val loggedAt: String,
     val status: String = "completed",
-    @SerialName("exercise_logs") val exerciseLogs: List<ExerciseLogDto> = emptyList()
+    @SerialName("exercise_logs") val exerciseLogs: List<ExerciseLogDto> = emptyList(),
+    @SerialName("workout_feedback") val feedback: List<WorkoutFeedbackDto> = emptyList(),
 ) {
     fun toDomain(): WorkoutLog = WorkoutLog(
         id = id, userId = userId, workoutId = workoutId,
@@ -114,6 +116,7 @@ data class WorkoutLogDto(
         exerciseLogs = exerciseLogs.map { it.toDomain() },
         loggedAt = Instant.parse(loggedAt),
         status = status,
+        feedback = feedback.map { it.toDomain() },
     )
 }
 
@@ -166,6 +169,7 @@ data class ExerciseLogDto(
     @SerialName("substituted_from_exercise_id") val substitutedFromExerciseId: String? = null,
     @SerialName("substituted_from_name") val substitutedFromName: String? = null,
     @SerialName("set_logs") val setLogs: List<SetLogDto> = emptyList(),
+    @SerialName("workout_feedback") val feedback: List<WorkoutFeedbackDto> = emptyList(),
 ) {
     fun toDomain(): ExerciseLog = ExerciseLog(
         id = id,
@@ -178,6 +182,7 @@ data class ExerciseLogDto(
         substitutedFromName = substitutedFromName,
         sets = if (setLogs.isNotEmpty()) setLogs.map { it.toDomain() }
                else synthesizeFromFlat(),
+        feedback = feedback.map { it.toDomain() },
     )
 
     private fun synthesizeFromFlat(): List<SetLog> {
@@ -199,6 +204,29 @@ private fun parseLegacyReps(value: String?): Int? {
     if (value.isNullOrBlank()) return null
     val firstSegment = value.substringBefore('-').trim()
     return if (firstSegment.all { it.isDigit() }) firstSegment.toIntOrNull() else null
+}
+
+@Serializable
+data class WorkoutFeedbackDto(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("coach_id") val coachId: String,
+    @SerialName("workout_log_id") val workoutLogId: String? = null,
+    @SerialName("exercise_log_id") val exerciseLogId: String? = null,
+    val body: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String,
+) {
+    fun toDomain(): WorkoutFeedback = WorkoutFeedback(
+        id = id,
+        userId = userId,
+        coachId = coachId,
+        workoutLogId = workoutLogId,
+        exerciseLogId = exerciseLogId,
+        body = body,
+        createdAt = Instant.parse(createdAt),
+        updatedAt = Instant.parse(updatedAt),
+    )
 }
 
 @Serializable

@@ -7,6 +7,7 @@ import com.coachfoska.app.data.remote.dto.SetLogInsertDto
 import com.coachfoska.app.data.remote.dto.UserWorkoutJoinDto
 import com.coachfoska.app.data.remote.dto.WorkoutDto
 import com.coachfoska.app.data.remote.dto.WorkoutExerciseInsertDto
+import com.coachfoska.app.data.remote.dto.WorkoutFeedbackDto
 import com.coachfoska.app.data.remote.dto.WorkoutInsertDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogInsertDto
@@ -162,6 +163,13 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
                 order("sort_order", Order.ASCENDING)
             }.decodeList<SetLogDto>()
     }
+
+    suspend fun getWorkoutFeedback(userId: String): List<WorkoutFeedbackDto> =
+        supabase.postgrest["workout_feedback"]
+            .select {
+                filter { eq("user_id", userId) }
+                order("created_at", Order.ASCENDING)
+            }.decodeList<WorkoutFeedbackDto>()
 
     suspend fun getLastExerciseLogs(
         userId: String,

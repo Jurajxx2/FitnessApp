@@ -6,6 +6,7 @@ import com.coachfoska.app.data.remote.dto.ExerciseLogInsertDto
 import com.coachfoska.app.data.remote.dto.SetLogDto
 import com.coachfoska.app.data.remote.dto.SetLogInsertDto
 import com.coachfoska.app.data.remote.dto.WorkoutDto
+import com.coachfoska.app.data.remote.dto.WorkoutFeedbackDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogDto
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.ExerciseLog
@@ -119,6 +120,26 @@ class WorkoutRepositoryImplTest {
             SetLogDto(id = "s1", exerciseLogId = "el-1", sortOrder = 1,
                 actualReps = 10, actualWeightKg = 60f, completed = true),
         )
+        coEvery { dataSource.getWorkoutFeedback("u") } returns listOf(
+            WorkoutFeedbackDto(
+                id = "wf-1",
+                userId = "u",
+                coachId = "coach-1",
+                workoutLogId = "wl-1",
+                body = "Good pace.",
+                createdAt = "2026-05-21T11:00:00Z",
+                updatedAt = "2026-05-21T11:00:00Z",
+            ),
+            WorkoutFeedbackDto(
+                id = "ef-1",
+                userId = "u",
+                coachId = "coach-1",
+                exerciseLogId = "el-1",
+                body = "Control the eccentric.",
+                createdAt = "2026-05-21T11:05:00Z",
+                updatedAt = "2026-05-21T11:05:00Z",
+            ),
+        )
 
         val result = repository.getWorkoutHistory("u")
         assertTrue(result.isSuccess)
@@ -127,5 +148,7 @@ class WorkoutRepositoryImplTest {
         assertEquals(1, logs[0].exerciseLogs.size)
         assertEquals(1, logs[0].exerciseLogs[0].sets.size)
         assertEquals(10, logs[0].exerciseLogs[0].sets[0].actualReps)
+        assertEquals("Good pace.", logs[0].feedback.single().body)
+        assertEquals("Control the eccentric.", logs[0].exerciseLogs[0].feedback.single().body)
     }
 }

@@ -4,9 +4,11 @@ import com.coachfoska.app.domain.model.ChatConversationSummary
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.repository.ChatRepository
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -26,7 +28,10 @@ class ChatHubViewModelTest {
 
     private fun viewModel() = ChatHubViewModel(chatRepository, "user-1")
 
-    @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)
+    @BeforeTest fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        every { chatRepository.observeMessages(any(), any()) } returns emptyFlow()
+    }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     @Test

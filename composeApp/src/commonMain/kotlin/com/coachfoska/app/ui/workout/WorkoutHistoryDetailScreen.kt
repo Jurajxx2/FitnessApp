@@ -51,6 +51,7 @@ import coachfoska.composeapp.generated.resources.workout_history_weight_header
 import com.coachfoska.app.core.util.toDisplayDateTime
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.SetLog
+import com.coachfoska.app.domain.model.WorkoutFeedback
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.WorkoutIntent
@@ -172,6 +173,11 @@ private fun WorkoutLogHeader(log: WorkoutLog) {
                 )
             }
         }
+
+        if (log.feedback.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            FeedbackList(feedback = log.feedback)
+        }
     }
 }
 
@@ -223,6 +229,10 @@ private fun ExerciseLogDetailRow(
                     SetTableHeader()
                     log.sets.forEach { set -> SetTableRow(set) }
                 }
+                if (log.feedback.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    FeedbackList(feedback = log.feedback)
+                }
             }
 
             IconButton(
@@ -238,6 +248,39 @@ private fun ExerciseLogDetailRow(
                     contentDescription = stringResource(Res.string.workout_history_capture_video_cd),
                     modifier = Modifier.size(20.dp),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeedbackList(feedback: List<WorkoutFeedback>) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Coach feedback",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            letterSpacing = 1.sp,
+        )
+        feedback.forEach { item ->
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = item.body,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = item.createdAt.toDisplayDateTime(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    )
+                }
             }
         }
     }
