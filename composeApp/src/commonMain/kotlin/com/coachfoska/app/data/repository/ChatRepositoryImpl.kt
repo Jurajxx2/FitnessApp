@@ -11,8 +11,10 @@ import com.coachfoska.app.domain.model.MessageContent
 import com.coachfoska.app.domain.model.SenderType
 import com.coachfoska.app.domain.repository.ChatRepository
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.datetime.Instant
@@ -27,6 +29,7 @@ class ChatRepositoryImpl(
 
     companion object {
         private const val MAX_RETRIES = 3
+        private const val SUBSCRIBE_GRACE_MS = 1_500L
         private fun retryDelayMs(attempt: Int): Long = 1000L shl (attempt - 1) // 1s, 2s, 4s
     }
 
@@ -63,21 +66,27 @@ class ChatRepositoryImpl(
                 }
             }
 
-            // Subscribe FIRST — channel buffers any inserts that arrive during the seed fetch below
+            // Subscribe FIRST, then seed persisted history, so inserts during the fetch are not missed.
+            val subscribed = CompletableDeferred<Unit>()
             val realtimeJob = launch {
                 var attempt = 0
                 while (attempt <= MAX_RETRIES) {
                     val error = runCatching {
-                        dataSource.observeNewMessages(userId, chatType).collect { dto ->
-                            addAndEmit(dto.toDomain())
-                        }
+                        dataSource.observeNewMessages(
+                            userId = userId,
+                            chatType = chatType,
+                            onSubscribed = {
+                                if (!subscribed.isCompleted) subscribed.complete(Unit)
+                            },
+                        ).collect { dto -> addAndEmit(dto.toDomain()) }
                     }.exceptionOrNull()
 
                     if (error == null) break
                     attempt++
                     if (attempt > MAX_RETRIES) {
                         Napier.e("Realtime gave up after $MAX_RETRIES retries", error, tag = TAG)
-                        throw error!!
+                        if (!subscribed.isCompleted) subscribed.completeExceptionally(error)
+                        throw error
                     }
                     Napier.w("Realtime disconnected (attempt $attempt), retrying in ${retryDelayMs(attempt)}ms", tag = TAG)
                     delay(retryDelayMs(attempt))
@@ -85,7 +94,14 @@ class ChatRepositoryImpl(
                 }
             }
 
-            // Seed with persisted history AFTER Realtime is subscribed
+            runCatching {
+                withTimeout(SUBSCRIBE_GRACE_MS) { subscribed.await() }
+            }.onFailure { e ->
+                Napier.w("Realtime subscription not ready; seeding chat history anyway: ${e.message}", tag = TAG)
+            }
+
+            // Seed persisted history after Realtime is subscribed, or after a short grace period
+            // if Realtime is slow. Initial screens must never hang on websocket setup.
             val initial = runCatching { dataSource.fetchMessages(userId, chatType) }
                 .getOrElse { e ->
                     Napier.e("Failed to fetch initial messages", e, tag = TAG)

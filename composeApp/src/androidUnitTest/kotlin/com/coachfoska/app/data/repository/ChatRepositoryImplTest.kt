@@ -8,9 +8,11 @@ import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.fixtures.aChatMessageDto
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -29,9 +31,29 @@ class ChatRepositoryImplTest {
     fun `observeMessages emits seeded messages from DB`() = runTest {
         val dto = aChatMessageDto()
         coEvery { dataSource.fetchMessages(any(), any(), any(), any()) } returns listOf(dto)
-        coEvery { dataSource.observeNewMessages(any(), any()) } returns flowOf()
+        every { dataSource.observeNewMessages(any(), any(), any()) } answers {
+            val onSubscribed = invocation.args[2] as suspend () -> Unit
+            flow { onSubscribed() }
+        }
 
         repo().observeMessages("user-1", ChatType.Human).test {
+            val first = awaitItem()
+            assertEquals(1, first.size)
+            assertEquals("msg-1", first[0].id)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `observeMessages emits seeded messages when realtime subscription is slow`() = runTest {
+        val dto = aChatMessageDto()
+        coEvery { dataSource.fetchMessages(any(), any(), any(), any()) } returns listOf(dto)
+        every { dataSource.observeNewMessages(any(), any(), any()) } returns flow {
+            awaitCancellation()
+        }
+
+        repo().observeMessages("user-1", ChatType.Human).test(timeout = 10.seconds) {
+            advanceTimeBy(1_600L)
             val first = awaitItem()
             assertEquals(1, first.size)
             assertEquals("msg-1", first[0].id)
@@ -43,7 +65,13 @@ class ChatRepositoryImplTest {
     fun `observeMessages deduplicates realtime echo of seeded message`() = runTest {
         val dto = aChatMessageDto(id = "msg-1")
         coEvery { dataSource.fetchMessages(any(), any(), any(), any()) } returns listOf(dto)
-        coEvery { dataSource.observeNewMessages(any(), any()) } returns flowOf(dto)
+        every { dataSource.observeNewMessages(any(), any(), any()) } answers {
+            val onSubscribed = invocation.args[2] as suspend () -> Unit
+            flow {
+                onSubscribed()
+                emit(dto)
+            }
+        }
 
         repo().observeMessages("user-1", ChatType.Human).test {
             // Only one emission expected: the seed. The realtime echo is deduplicated, so no second emission.
@@ -59,7 +87,13 @@ class ChatRepositoryImplTest {
         val seed = aChatMessageDto(id = "msg-1", createdAt = "2026-04-23T10:00:00Z")
         val newMsg = aChatMessageDto(id = "msg-2", createdAt = "2026-04-23T10:01:00Z")
         coEvery { dataSource.fetchMessages(any(), any(), any(), any()) } returns listOf(seed)
-        coEvery { dataSource.observeNewMessages(any(), any()) } returns flowOf(newMsg)
+        every { dataSource.observeNewMessages(any(), any(), any()) } answers {
+            val onSubscribed = invocation.args[2] as suspend () -> Unit
+            flow {
+                onSubscribed()
+                emit(newMsg)
+            }
+        }
 
         repo().observeMessages("user-1", ChatType.Human).test {
             val afterSeed = awaitItem()
@@ -79,15 +113,21 @@ class ChatRepositoryImplTest {
         coEvery { dataSource.fetchMessages(any(), any(), any(), any()) } returns listOf(dto1)
 
         var realtimeCallCount = 0
-        coEvery { dataSource.observeNewMessages(any(), any()) } answers {
+        every { dataSource.observeNewMessages(any(), any(), any()) } answers {
             realtimeCallCount++
-            if (realtimeCallCount == 1) flow { throw RuntimeException("disconnected") }
-            else flowOf()
+            val onSubscribed = invocation.args[2] as suspend () -> Unit
+            if (realtimeCallCount == 1) flow {
+                onSubscribed()
+                delay(1)
+                throw RuntimeException("disconnected")
+            }
+            else flow { onSubscribed() }
         }
         coEvery { dataSource.fetchMessagesSince(any(), any(), any()) } returns listOf(dto2)
 
         repo().observeMessages("user-1", ChatType.Human).test(timeout = 10.seconds) {
             awaitItem() // initial seed emission
+            advanceTimeBy(1500L)
             val afterGap = awaitItem() // gap fill after reconnect
             assertEquals(2, afterGap.size)
             assertEquals("msg-2", afterGap[1].id)
@@ -101,10 +141,15 @@ class ChatRepositoryImplTest {
 
         coEvery { dataSource.fetchMessages(any(), any(), any(), any()) } returns listOf(dto1)
         var realtimeCallCount = 0
-        coEvery { dataSource.observeNewMessages(any(), any()) } answers {
+        every { dataSource.observeNewMessages(any(), any(), any()) } answers {
             realtimeCallCount++
-            if (realtimeCallCount == 1) flow { throw RuntimeException("disconnected") }
-            else flowOf()
+            val onSubscribed = invocation.args[2] as suspend () -> Unit
+            if (realtimeCallCount == 1) flow {
+                onSubscribed()
+                delay(1)
+                throw RuntimeException("disconnected")
+            }
+            else flow { onSubscribed() }
         }
         coEvery { dataSource.fetchMessagesSince(any(), any(), any()) } returns emptyList()
 

@@ -658,6 +658,9 @@
 
     <!-- Set Input Row -->
     <string name="set_input_rpe_format">RPE %1$s</string>
+    <string name="remove_set_cd">Odebrat sérii</string>
+    <string name="next_exercise">DALŠÍ CVIK</string>
+    <string name="exercise_preview_cd">Ukázka cviku</string>
 
     <!-- Assigned Workout Card / Plan -->
     <string name="workout_card_exercises_count">%1$d cviků</string>

@@ -1,5 +1,10 @@
 package com.coachfoska.app.ui.workout.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -23,8 +28,6 @@ fun RestTimerBar(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (!timerState.isActive) return
-
     val progress = if (timerState.totalSeconds > 0) {
         1f - (timerState.remainingSeconds.toFloat() / timerState.totalSeconds)
     } else 0f
@@ -33,52 +36,78 @@ fun RestTimerBar(
     val seconds = timerState.remainingSeconds % 60
     val timeText = "$minutes:${seconds.toString().padStart(2, '0')}"
 
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
-        modifier = modifier.fillMaxWidth(),
+    AnimatedVisibility(
+        visible = timerState.isActive,
+        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+        modifier = modifier,
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text(
-                        text = stringResource(Res.string.rest_timer_label),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = timeText,
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.inverseSurface,
+            tonalElevation = 6.dp,
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+        ) {
+            Column(modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.rest_timer_label),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.inverseOnSurface,
+                        )
+                        Text(
+                            text = timeText,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TextButton(onClick = { onAdjust(-30) }) { Text(stringResource(Res.string.rest_timer_minus30)) }
-                    TextButton(onClick = { onAdjust(30) }) { Text(stringResource(Res.string.rest_timer_plus30)) }
-                    TextButton(onClick = onSkip) {
-                        Text(stringResource(Res.string.rest_timer_skip), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(onClick = { onAdjust(-30) }) {
+                            Text(
+                                text = stringResource(Res.string.rest_timer_minus30),
+                                color = MaterialTheme.colorScheme.inversePrimary,
+                            )
+                        }
+                        TextButton(onClick = { onAdjust(30) }) {
+                            Text(
+                                text = stringResource(Res.string.rest_timer_plus30),
+                                color = MaterialTheme.colorScheme.inversePrimary,
+                            )
+                        }
+                        TextButton(onClick = onSkip) {
+                            Text(
+                                text = stringResource(Res.string.rest_timer_skip),
+                                color = MaterialTheme.colorScheme.inversePrimary,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
                 }
+
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .padding(horizontal = 4.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.3f),
+                )
             }
-
-            Spacer(Modifier.height(8.dp))
-
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-            )
         }
     }
 }

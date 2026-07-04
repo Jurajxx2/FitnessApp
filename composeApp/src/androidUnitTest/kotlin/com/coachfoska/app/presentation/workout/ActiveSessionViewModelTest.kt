@@ -5,7 +5,9 @@ import com.coachfoska.app.domain.model.SavedSetRef
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.domain.model.WorkoutLog
+import com.coachfoska.app.domain.repository.ExerciseRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
+import com.coachfoska.app.domain.usecase.exercise.GetExerciseByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.CalculateEstimated1RMUseCase
 import com.coachfoska.app.domain.usecase.workout.CheckPersonalRecordUseCase
 import com.coachfoska.app.domain.usecase.workout.GetPreviousExerciseLogsUseCase
@@ -33,6 +35,7 @@ class ActiveSessionViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val repo: WorkoutRepository = mockk(relaxed = true)
+    private val exerciseRepo: ExerciseRepository = mockk(relaxed = true)
 
     private fun viewModel() = ActiveSessionViewModel(
         getWorkoutByIdUseCase = GetWorkoutByIdUseCase(repo),
@@ -40,6 +43,7 @@ class ActiveSessionViewModelTest {
         getPreviousLogsUseCase = GetPreviousExerciseLogsUseCase(repo),
         checkPRUseCase = CheckPersonalRecordUseCase(repo, CalculateEstimated1RMUseCase()),
         workoutRepository = repo,
+        getExerciseByIdUseCase = GetExerciseByIdUseCase(exerciseRepo),
         userId = "user-1",
     )
 
@@ -55,6 +59,8 @@ class ActiveSessionViewModelTest {
         coEvery { repo.getLastLogsForExercises(any(), any()) } returns Result.success(emptyMap())
         coEvery { repo.getExerciseRecords(any(), any()) } returns Result.failure(Exception("not checked"))
         coEvery { repo.startWorkoutSession(any(), any(), any()) } returns Result.success("live-log-1")
+        coEvery { repo.deleteSetLog(any()) } returns Result.success(Unit)
+        coEvery { exerciseRepo.getExerciseById(any()) } returns Result.failure(Exception("not found"))
     }
 
     @AfterTest fun tearDown() = Dispatchers.resetMain()

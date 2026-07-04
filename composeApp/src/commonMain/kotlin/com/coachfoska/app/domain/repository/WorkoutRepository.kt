@@ -101,6 +101,9 @@ interface WorkoutRepository {
     /** Updates an existing set log row. */
     suspend fun updateSetLog(setLogId: String, set: SetLog): Result<Unit>
 
+    /** Deletes an existing set log row. */
+    suspend fun deleteSetLog(setLogId: String): Result<Unit>
+
     /** Marks the live session completed. */
     suspend fun finishWorkoutSession(
         workoutLogId: String,

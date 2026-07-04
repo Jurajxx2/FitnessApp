@@ -14,8 +14,10 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 
 private const val TAG = "ChatRemoteDataSource"
@@ -104,9 +106,13 @@ class ChatRemoteDataSource(private val supabase: SupabaseClient) {
      * Opens a Supabase Realtime channel and emits new inserts to [TABLE] for this user.
      * The channel is automatically cleaned up when the Flow collector cancels.
      */
-    fun observeNewMessages(userId: String, chatType: ChatType): Flow<ChatMessageDto> = channelFlow {
+    fun observeNewMessages(
+        userId: String,
+        chatType: ChatType,
+        onSubscribed: suspend () -> Unit = {},
+    ): Flow<ChatMessageDto> = channelFlow {
         val chatTypeStr = chatType.toDbValue()
-        val channelName = "chat-$userId-$chatTypeStr"
+        val channelName = "chat-$userId-$chatTypeStr-${currentInstant().toEpochMilliseconds()}"
         val realtimeChannel = supabase.channel(channelName)
 
         val insertFlow = realtimeChannel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
@@ -114,10 +120,7 @@ class ChatRemoteDataSource(private val supabase: SupabaseClient) {
             filter("user_id", FilterOperator.EQ, userId)
         }
 
-        try {
-            realtimeChannel.subscribe(blockUntilSubscribed = true)
-            Napier.d("Realtime subscribed: $channelName", tag = TAG)
-
+        val collectJob = launch(start = CoroutineStart.UNDISPATCHED) {
             insertFlow.collect { action ->
                 try {
                     val dto = action.decodeRecord<ChatMessageDto>()
@@ -128,7 +131,15 @@ class ChatRemoteDataSource(private val supabase: SupabaseClient) {
                     Napier.e("Failed to decode realtime record", e, tag = TAG)
                 }
             }
+        }
+
+        try {
+            realtimeChannel.subscribe(blockUntilSubscribed = true)
+            Napier.d("Realtime subscribed: $channelName", tag = TAG)
+            onSubscribed()
+            collectJob.join()
         } finally {
+            collectJob.cancel()
             realtimeChannel.unsubscribe()
             supabase.realtime.removeChannel(realtimeChannel)
             Napier.d("Realtime unsubscribed: $channelName", tag = TAG)

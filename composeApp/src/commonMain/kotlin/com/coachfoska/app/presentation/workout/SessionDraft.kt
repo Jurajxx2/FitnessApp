@@ -15,6 +15,8 @@ data class SessionDraft(
 data class ExerciseDraft(
     val exerciseName: String,
     val sets: List<SetDraft>,
+    val imageUrl: String? = null,
+    val imageUrl2: String? = null,
     val videoUrl: String? = null,
     val muscleGroup: String? = null,
     val tips: String? = null,
@@ -26,6 +28,8 @@ data class ExerciseDraft(
     val substitutedFromName: String? = null,
 )
 
+enum class SetType { NORMAL, WARMUP, DROP_SET, FAILURE }
+
 data class SetDraft(
     val sortOrder: Int,
     val targetReps: Int?,
@@ -36,6 +40,7 @@ data class SetDraft(
     val targetRestSeconds: Int?,
     val actualRestSeconds: Int?,
     val completed: Boolean = false,
+    val setType: SetType = SetType.NORMAL,
     val setLogId: String? = null,
     val saveState: SetSaveState = SetSaveState.Idle,
 )
@@ -70,7 +75,8 @@ fun WorkoutExercise.toDraft(): ExerciseDraft {
                 actualWeightKg = null,
                 rpe = null,
                 targetRestSeconds = restSeconds,
-                actualRestSeconds = null
+                actualRestSeconds = null,
+                setType = SetType.NORMAL,
             )
         }
     )

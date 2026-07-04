@@ -34,7 +34,8 @@ fun animatedImageMode(startUrl: String?, endUrl: String?): AnimatedImageMode =
 fun ExerciseAnimatedImage(
     startUrl: String?,
     endUrl: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
 ) {
     val shape = RoundedCornerShape(12.dp)
     val box = @Composable { content: @Composable () -> Unit ->
@@ -52,7 +53,7 @@ fun ExerciseAnimatedImage(
         AnimatedImageMode.STATIC -> box {
             AsyncImage(
                 model = startUrl ?: endUrl,
-                contentDescription = null,
+                contentDescription = contentDescription,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize()
             )
@@ -79,7 +80,7 @@ fun ExerciseAnimatedImage(
             box {
                 AsyncImage(
                     model = startUrl,
-                    contentDescription = null,
+                    contentDescription = contentDescription,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize()
                 )

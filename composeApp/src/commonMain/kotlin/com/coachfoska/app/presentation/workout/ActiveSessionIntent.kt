@@ -18,6 +18,7 @@ sealed interface ActiveSessionIntent {
     ) : ActiveSessionIntent
     data class AddExtraSet(val exerciseIndex: Int) : ActiveSessionIntent
     data class RemoveSet(val exerciseIndex: Int, val setIndex: Int) : ActiveSessionIntent
+    data class SkipToNextExercise(val exerciseIndex: Int) : ActiveSessionIntent
     data class AddExerciseNote(val exerciseIndex: Int, val note: String) : ActiveSessionIntent
     data class StartRestTimer(val seconds: Int) : ActiveSessionIntent
     data object SkipRestTimer : ActiveSessionIntent
@@ -29,4 +30,6 @@ sealed interface ActiveSessionIntent {
     data object DismissError : ActiveSessionIntent
     data class SubstituteExercise(val exerciseIndex: Int, val replacement: Exercise) : ActiveSessionIntent
     data object DismissSubstitution : ActiveSessionIntent
+    data class RenameSession(val name: String) : ActiveSessionIntent
+    data class ChangeSetType(val exerciseIndex: Int, val setIndex: Int, val setType: SetType) : ActiveSessionIntent
 }

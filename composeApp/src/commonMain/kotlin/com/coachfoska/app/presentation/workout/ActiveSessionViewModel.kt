@@ -7,6 +7,7 @@ import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.workout.CheckPersonalRecordUseCase
+import com.coachfoska.app.domain.usecase.exercise.GetExerciseByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetPreviousExerciseLogsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
@@ -28,6 +29,7 @@ class ActiveSessionViewModel(
     private val getPreviousLogsUseCase: GetPreviousExerciseLogsUseCase,
     private val checkPRUseCase: CheckPersonalRecordUseCase,
     private val workoutRepository: WorkoutRepository,
+    private val getExerciseByIdUseCase: GetExerciseByIdUseCase,
     private val userId: String,
 ) : ViewModel() {
 
@@ -45,6 +47,7 @@ class ActiveSessionViewModel(
             is ActiveSessionIntent.MarkSetComplete -> markSetComplete(intent)
             is ActiveSessionIntent.AddExtraSet -> addExtraSet(intent.exerciseIndex)
             is ActiveSessionIntent.RemoveSet -> removeSet(intent.exerciseIndex, intent.setIndex)
+            is ActiveSessionIntent.SkipToNextExercise -> skipToNextExercise(intent.exerciseIndex)
             is ActiveSessionIntent.AddExerciseNote -> addNote(intent.exerciseIndex, intent.note)
             is ActiveSessionIntent.StartRestTimer -> startTimer(intent.seconds)
             ActiveSessionIntent.SkipRestTimer -> skipTimer()
@@ -56,6 +59,8 @@ class ActiveSessionViewModel(
             ActiveSessionIntent.DismissError -> _state.update { it.copy(error = null) }
             is ActiveSessionIntent.SubstituteExercise -> substituteExercise(intent)
             ActiveSessionIntent.DismissSubstitution -> _state.update { it.copy(lastSubstitution = null) }
+            is ActiveSessionIntent.RenameSession -> renameSession(intent.name)
+            is ActiveSessionIntent.ChangeSetType -> changeSetType(intent.exerciseIndex, intent.setIndex, intent.setType)
         }
     }
 
@@ -67,7 +72,7 @@ class ActiveSessionViewModel(
                 return@launch
             }
             getWorkoutByIdUseCase(workoutId).onSuccess { workout ->
-                val draft = workout.toDraft(currentInstant().toEpochMilliseconds())
+                val draft = enrichExerciseMedia(workout.toDraft(currentInstant().toEpochMilliseconds()))
                 _state.update {
                     it.copy(
                         sessionDraft = draft,
@@ -103,7 +108,7 @@ class ActiveSessionViewModel(
             }
             val baseDraft = log.workoutId
                 ?.let { id -> getWorkoutByIdUseCase(id).getOrNull()?.toDraft(log.loggedAt.toEpochMilliseconds()) }
-            val draft = rebuildDraftFromLog(log, baseDraft)
+            val draft = enrichExerciseMedia(rebuildDraftFromLog(log, baseDraft))
             _state.update {
                 it.copy(
                     sessionDraft = draft,
@@ -303,9 +308,7 @@ class ActiveSessionViewModel(
         val draft = _state.value.sessionDraft ?: return
         val exercise = draft.exercises[exerciseIndex]
         if (exercise.sets.all { it.completed }) {
-            val nextIncomplete = draft.exercises.indexOfFirst { ex ->
-                ex.sets.any { !it.completed }
-            }
+            val nextIncomplete = nextIncompleteExerciseIndex(draft, exerciseIndex)
             if (nextIncomplete >= 0 && nextIncomplete != exerciseIndex) {
                 viewModelScope.launch {
                     delay(1000)
@@ -337,11 +340,35 @@ class ActiveSessionViewModel(
     }
 
     private fun removeSet(exIndex: Int, setIndex: Int) {
+        val setLogId = _state.value.sessionDraft
+            ?.exercises
+            ?.getOrNull(exIndex)
+            ?.sets
+            ?.getOrNull(setIndex)
+            ?.setLogId
+
+        if (setLogId != null) {
+            viewModelScope.launch {
+                workoutRepository.deleteSetLog(setLogId)
+                    .onSuccess { removeSetLocally(exIndex, setIndex) }
+                    .onFailure { e ->
+                        Napier.e("Failed to delete set log", e, tag = TAG)
+                        _state.update { it.copy(error = e.message) }
+                    }
+            }
+            return
+        }
+
+        removeSetLocally(exIndex, setIndex)
+    }
+
+    private fun removeSetLocally(exIndex: Int, setIndex: Int) {
         _state.update { s ->
             val draft = s.sessionDraft ?: return@update s
             val updatedEx = draft.exercises.toMutableList()
-            val ex = updatedEx[exIndex]
+            val ex = updatedEx.getOrNull(exIndex) ?: return@update s
             if (ex.sets.size <= 1) return@update s
+            if (setIndex !in ex.sets.indices) return@update s
             val updatedSets = ex.sets.toMutableList().apply { removeAt(setIndex) }
                 .mapIndexed { i, set -> set.copy(sortOrder = i + 1) }
             updatedEx[exIndex] = ex.copy(sets = updatedSets)
@@ -349,11 +376,48 @@ class ActiveSessionViewModel(
         }
     }
 
+    private fun skipToNextExercise(exerciseIndex: Int) {
+        val draft = _state.value.sessionDraft ?: return
+        val nextIndex = nextIncompleteExerciseIndex(draft, exerciseIndex)
+        if (nextIndex >= 0 && nextIndex != exerciseIndex) {
+            _state.update { it.copy(currentExerciseIndex = nextIndex) }
+        }
+    }
+
+    private fun nextIncompleteExerciseIndex(draft: SessionDraft, exerciseIndex: Int): Int {
+        val afterCurrent = ((exerciseIndex + 1)..draft.exercises.lastIndex)
+            .firstOrNull { index -> draft.exercises[index].sets.any { !it.completed } }
+        if (afterCurrent != null) return afterCurrent
+        return (0 until exerciseIndex)
+            .firstOrNull { index -> draft.exercises[index].sets.any { !it.completed } }
+            ?: -1
+    }
+
     private fun addNote(exIndex: Int, note: String) {
         _state.update { s ->
             val draft = s.sessionDraft ?: return@update s
             val updatedEx = draft.exercises.toMutableList()
             updatedEx[exIndex] = updatedEx[exIndex].copy(tips = note)
+            s.copy(sessionDraft = draft.copy(exercises = updatedEx))
+        }
+    }
+
+    private fun renameSession(name: String) {
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            s.copy(sessionDraft = draft.copy(workoutName = name))
+        }
+    }
+
+    private fun changeSetType(exerciseIndex: Int, setIndex: Int, setType: SetType) {
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            val updatedEx = draft.exercises.toMutableList()
+            val ex = updatedEx.getOrNull(exerciseIndex) ?: return@update s
+            val updatedSets = ex.sets.toMutableList()
+            val set = updatedSets.getOrNull(setIndex) ?: return@update s
+            updatedSets[setIndex] = set.copy(setType = setType)
+            updatedEx[exerciseIndex] = ex.copy(sets = updatedSets)
             s.copy(sessionDraft = draft.copy(exercises = updatedEx))
         }
     }
@@ -374,6 +438,8 @@ class ActiveSessionViewModel(
         updatedEx[index] = old.copy(
             exerciseName = replacement.name,
             exerciseId = replacement.id,
+            imageUrl = replacement.imageUrl,
+            imageUrl2 = replacement.imageUrl2,
             videoUrl = replacement.videoUrl,
             substitutedFromExerciseId = originId,
             substitutedFromName = originName,
@@ -522,6 +588,24 @@ class ActiveSessionViewModel(
             notes = log.notes,
             exercises = exercises,
         )
+    }
+
+    private suspend fun enrichExerciseMedia(draft: SessionDraft): SessionDraft {
+        val cache = mutableMapOf<String, com.coachfoska.app.domain.model.Exercise?>()
+        val exercises = draft.exercises.map { exercise ->
+            val exerciseId = exercise.exerciseId ?: return@map exercise
+            val domainExercise = cache.getOrPut(exerciseId) {
+                getExerciseByIdUseCase(exerciseId)
+                    .onFailure { Napier.w("Failed to enrich exercise media for $exerciseId: ${it.message}", tag = TAG) }
+                    .getOrNull()
+            } ?: return@map exercise
+            exercise.copy(
+                imageUrl = exercise.imageUrl ?: domainExercise.imageUrl,
+                imageUrl2 = exercise.imageUrl2 ?: domainExercise.imageUrl2,
+                videoUrl = exercise.videoUrl ?: domainExercise.videoUrl,
+            )
+        }
+        return draft.copy(exercises = exercises)
     }
 
     private fun mergeLoggedSets(baseSets: List<SetDraft>, loggedSets: List<SetLog>): List<SetDraft> {

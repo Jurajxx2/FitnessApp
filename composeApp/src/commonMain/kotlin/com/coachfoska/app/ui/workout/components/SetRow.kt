@@ -8,7 +8,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,11 +23,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,6 +39,7 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.session_save_failed
 import coachfoska.composeapp.generated.resources.session_saved
 import coachfoska.composeapp.generated.resources.session_saving
+import coachfoska.composeapp.generated.resources.remove_set_cd
 import coachfoska.composeapp.generated.resources.set_row_kg_header
 import coachfoska.composeapp.generated.resources.set_row_prev_header
 import coachfoska.composeapp.generated.resources.set_row_reps_header
@@ -42,6 +51,7 @@ import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.SetDraft
 import com.coachfoska.app.presentation.workout.SetSaveState
+import com.coachfoska.app.presentation.workout.SetType
 import com.coachfoska.app.ui.components.CoachTextField
 import org.jetbrains.compose.resources.stringResource
 
@@ -59,6 +69,7 @@ fun SetTableHeader(modifier: Modifier = Modifier) {
         Text(stringResource(Res.string.set_row_reps_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
         Spacer(Modifier.weight(1f))
         Text("✓", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(Sizes.touchTarget), textAlign = TextAlign.Center)
+        Spacer(Modifier.width(Sizes.touchTarget))
         Text(stringResource(Res.string.set_row_save_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(76.dp), textAlign = TextAlign.End)
     }
 }
@@ -68,11 +79,15 @@ fun SetRow(
     setDraft: SetDraft,
     previousSetLog: SetLog?,
     isNextSet: Boolean,
-    isWarmup: Boolean,
     onWeightChange: (Float?) -> Unit,
     onRepsChange: (Int?) -> Unit,
     onCompleted: () -> Unit,
+    onSetTypeChange: (SetType) -> Unit = {},
+    onRemove: (() -> Unit)? = null,
     onRetrySave: () -> Unit = {},
+    onNextAfterReps: () -> Unit = {},
+    weightFocusRequester: FocusRequester = FocusRequester(),
+    repsFocusRequester: FocusRequester = FocusRequester(),
     modifier: Modifier = Modifier,
 ) {
     val reduceMotion = LocalReduceMotion.current
@@ -97,9 +112,25 @@ fun SetRow(
         else -> Color.Transparent
     }
 
+    // --- Set type display ---
+    val setLabel = when (setDraft.setType) {
+        SetType.NORMAL -> "${setDraft.sortOrder}"
+        SetType.WARMUP -> "W"
+        SetType.DROP_SET -> "D"
+        SetType.FAILURE -> "F"
+    }
+    val setColor = when (setDraft.setType) {
+        SetType.NORMAL -> MaterialTheme.colorScheme.onSurface
+        SetType.WARMUP -> Color(0xFFFFC107) // amber
+        SetType.DROP_SET -> Color(0xFFFF9800) // orange
+        SetType.FAILURE -> MaterialTheme.colorScheme.error // red
+    }
+
+    // Fitts's Law: entire row is a tap target to mark set complete
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(completedBg)
             .then(
@@ -107,16 +138,36 @@ fun SetRow(
                     Modifier.border(1.dp, borderColor, RoundedCornerShape(6.dp))
                 else Modifier
             )
+            .clickable {
+                // Only mark done when both fields are filled; text fields consume
+                // their own taps so this won't fire when editing.
+                val hasBothValues = setDraft.actualWeightKg != null && setDraft.actualReps != null
+                if (hasBothValues) {
+                    if (!setDraft.completed) {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                    onCompleted()
+                }
+            }
             .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val setLabel = if (isWarmup) "W" else "${setDraft.sortOrder}"
-        val setColor = if (isWarmup) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface
+        // Set number / type label — tap to cycle set type
         Text(
             text = setLabel,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             color = setColor,
-            modifier = Modifier.width(32.dp),
+            modifier = Modifier
+                .width(32.dp)
+                .clickable {
+                    val nextType = when (setDraft.setType) {
+                        SetType.NORMAL -> SetType.WARMUP
+                        SetType.WARMUP -> SetType.DROP_SET
+                        SetType.DROP_SET -> SetType.FAILURE
+                        SetType.FAILURE -> SetType.NORMAL
+                    }
+                    onSetTypeChange(nextType)
+                },
         )
 
         val prevText = previousSetLog?.let { prev ->
@@ -131,21 +182,39 @@ fun SetRow(
             modifier = Modifier.width(64.dp),
         )
 
+        // Weight input — ImeAction.Next moves focus to reps field
         CoachTextField(
             value = setDraft.actualWeightKg?.let { formatWeightKg(it) } ?: "",
             onValueChange = { onWeightChange(it.toFloatOrNull()) },
             label = "",
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.width(56.dp),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Next,
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { repsFocusRequester.requestFocus() },
+            ),
+            modifier = Modifier
+                .width(56.dp)
+                .focusRequester(weightFocusRequester),
             singleLine = true,
         )
 
+        // Reps input — ImeAction.Done triggers onNextAfterReps callback
         CoachTextField(
             value = setDraft.actualReps?.toString() ?: "",
             onValueChange = { onRepsChange(it.toIntOrNull()) },
             label = "",
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.width(48.dp),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { onNextAfterReps() },
+            ),
+            modifier = Modifier
+                .width(48.dp)
+                .focusRequester(repsFocusRequester),
             singleLine = true,
         )
 
@@ -183,6 +252,22 @@ fun SetRow(
                     fontSize = 16.sp,
                 )
             }
+        }
+
+        IconButton(
+            onClick = { onRemove?.invoke() },
+            enabled = onRemove != null,
+            modifier = Modifier.size(Sizes.touchTarget),
+        ) {
+            Icon(
+                imageVector = Icons.Default.DeleteOutline,
+                contentDescription = stringResource(Res.string.remove_set_cd),
+                tint = if (onRemove != null) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.24f)
+                },
+            )
         }
 
         SetSaveStateLabel(

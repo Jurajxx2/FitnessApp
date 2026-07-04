@@ -385,6 +385,10 @@ class WorkoutRepositoryImpl(
         workoutDataSource.updateSetLog(setLogId, set.toInsertDto(set.exerciseLogId))
     }
 
+    override suspend fun deleteSetLog(setLogId: String): Result<Unit> = runCatching {
+        workoutDataSource.deleteSetLog(setLogId)
+    }
+
     override suspend fun finishWorkoutSession(
         workoutLogId: String,
         durationMinutes: Int,

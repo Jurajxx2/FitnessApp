@@ -250,7 +250,7 @@ val viewModelModule = module {
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
     viewModel { (userId: String) -> ExerciseViewModel(get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) ->
-        ActiveSessionViewModel(get(), get(), get(), get(), get(), userId)
+        ActiveSessionViewModel(get(), get(), get(), get(), get(), get(), userId)
     }
     viewModel { (userId: String) ->
         ProgressDashboardViewModel(get(), get(), userId)
