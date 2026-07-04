@@ -7,6 +7,7 @@ import com.coachfoska.app.domain.model.FitnessGoal
 import com.coachfoska.app.domain.model.OnboardingData
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
@@ -59,6 +60,7 @@ class OnboardingRepositoryImplTest {
 
         assertTrue(result.isSuccess)
         assertEquals("user-1", profileSlot.captured.id)
+        assertEquals("", profileSlot.captured.email)
         assertEquals("Alice", profileSlot.captured.fullName)
         assertTrue(profileSlot.captured.onboardingComplete)
     }
@@ -84,5 +86,6 @@ class OnboardingRepositoryImplTest {
 
         assertTrue(result.isFailure)
         assertEquals("db down", result.exceptionOrNull()?.message)
+        coVerify(exactly = 0) { userDataSource.upsertProfile(any()) }
     }
 }
