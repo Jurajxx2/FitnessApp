@@ -12,12 +12,20 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-06-design-system-design.md`
 
+> **Status: COMPLETE (2026-07-06).** All 13 tasks implemented and committed;
+> `:designsystem` + `:composeApp` compile on Android and iOS, all unit tests
+> pass (`BrandContrastTest`, `NoHardcodedColorsTest`), and `:composeApp:assembleDebug`
+> succeeds. One ordering deviation from the plan: the legacy theme package was
+> deleted (Task 13) before adding the guardrail test (Task 10), so the temporary
+> allowlist described in Task 10 Step 2 / Task 13 Step 3 was never needed — the
+> guardrail passes with zero allowlist.
+
 ## Global Constraints
 
 - All commands run from the repo root (`/…/coach-foska`). All `./gradlew` commands are pre-approved.
 - New module namespace/package: `com.coachfoska.designsystem`. Component prefix: `Ds`.
-- `:designsystem` may depend ONLY on: Compose (runtime, foundation, material3, material-icons, ui, components-resources), Compottie, kotlin-test (test only). NEVER on: Koin, Ktor, Supabase, navigation, coil, app domain models, or `coachfoska.composeapp.generated.resources`.
-- **Visual neutrality:** `FoskaBrand` token values are copied verbatim from `composeApp/src/commonMain/kotlin/com/coachfoska/app/theme/Color.kt`, `Type.kt`, `Dimens.kt`, `Theme.kt` — never re-derived. Exception (documented in Task 9): the three hardcoded-color leak files normalize onto nearest semantic tokens.
+- `:designsystem` may depend ONLY on: Compose (runtime, foundation, material3, material-icons, ui, components-resources, ui-tooling-preview), Compottie, kotlin-test (test only). NEVER on: Koin, Ktor, Supabase, navigation, coil, app domain models, or `coachfoska.composeapp.generated.resources`.
+- **Visual neutrality:** `FoskaBrand` token values are copied verbatim from `composeApp/src/commonMain/kotlin/com/coachfoska/app/theme/Color.kt`, `Type.kt`, `Dimens.kt`, `Theme.kt` — never re-derived. Exception (documented in Task 9): the hardcoded-color leak files normalize onto nearest semantic tokens.
 - **Git:** stage explicit paths only — NEVER `git add -A` or `git add .` (repo contains untracked cruft). Commit after every task.
 - Fast per-task verification: `./gradlew :composeApp:compileDebugKotlinAndroid :designsystem:compileDebugKotlinAndroid`. Test runs: `./gradlew :designsystem:testDebugUnitTest` / `./gradlew :composeApp:testDebugUnitTest`. Expected: `BUILD SUCCESSFUL`.
 - Kotlin files in this plan are complete — copy them as written. Where a step says "move a file", the current file in the repo is the source of truth; apply ONLY the listed substitutions.
@@ -35,7 +43,7 @@
 **Interfaces:**
 - Produces: Gradle project `:designsystem`, package `com.coachfoska.designsystem`, resource class `com.coachfoska.designsystem.generated.resources.Res`, and `DsSpacing` (consumed by every later task).
 
-- [ ] **Step 1: Register the module**
+- [x] **Step 1: Register the module**
 
 In `settings.gradle.kts`, append after `include(":composeApp")`:
 
@@ -43,7 +51,7 @@ In `settings.gradle.kts`, append after `include(":composeApp")`:
 include(":designsystem")
 ```
 
-- [ ] **Step 2: Create `designsystem/build.gradle.kts`**
+- [x] **Step 2: Create `designsystem/build.gradle.kts`**
 
 ```kotlin
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
@@ -87,6 +95,8 @@ kotlin {
 
 compose.resources {
     packageOfResClass = "com.coachfoska.designsystem.generated.resources"
+    // Public so app code (e.g. SplashScreen) can read brand assets via DsTheme.assets paths.
+    publicResClass = true
 }
 
 android {
@@ -102,7 +112,7 @@ android {
 }
 ```
 
-- [ ] **Step 3: Copy the Lottie asset into the module**
+- [x] **Step 3: Copy the Lottie asset into the module**
 
 ```bash
 mkdir -p designsystem/src/commonMain/composeResources/files
@@ -111,7 +121,7 @@ cp composeApp/src/commonMain/composeResources/files/barbell_loader.json designsy
 
 (Do NOT delete the composeApp copy yet — `CoachLoadingBox` still reads it until Task 7.)
 
-- [ ] **Step 4: Create the first token file so the module has something to compile**
+- [x] **Step 4: Create the first token file so the module has something to compile**
 
 Create `designsystem/src/commonMain/kotlin/com/coachfoska/designsystem/tokens/DsSpacing.kt`:
 
@@ -134,7 +144,7 @@ data class DsSpacing(
 )
 ```
 
-- [ ] **Step 5: Wire composeApp → designsystem**
+- [x] **Step 5: Wire composeApp → designsystem**
 
 In `composeApp/build.gradle.kts`, inside `commonMain.dependencies { … }`, add as the first line:
 
@@ -142,12 +152,12 @@ In `composeApp/build.gradle.kts`, inside `commonMain.dependencies { … }`, add 
 implementation(projects.designsystem)
 ```
 
-- [ ] **Step 6: Verify it compiles**
+- [x] **Step 6: Verify it compiles**
 
 Run: `./gradlew :designsystem:compileDebugKotlinAndroid :composeApp:compileDebugKotlinAndroid`
 Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add settings.gradle.kts designsystem/build.gradle.kts designsystem/src composeApp/build.gradle.kts
@@ -169,7 +179,7 @@ git commit -m "feat(designsystem): add :designsystem KMP module skeleton"
 - Consumes: `DsSpacing` (Task 1).
 - Produces: `DsColors` (all fields below + `categoricalFor(label: String?): Color`), `DsTypography` + `DsTypographyDefaults.default(fontFamily: FontFamily?): DsTypography`, `DsShapes`, `DsSizes`, `DsMotion`. Every later task reads these exact names.
 
-- [ ] **Step 1: Create `DsColors.kt`**
+- [x] **Step 1: Create `DsColors.kt`**
 
 ```kotlin
 package com.coachfoska.designsystem.tokens
@@ -233,7 +243,7 @@ data class DsColors(
 }
 ```
 
-- [ ] **Step 2: Create `DsTypography.kt`**
+- [x] **Step 2: Create `DsTypography.kt`**
 
 Values are copied verbatim from `composeApp/src/commonMain/kotlin/com/coachfoska/app/theme/Type.kt`.
 
@@ -293,7 +303,7 @@ object DsTypographyDefaults {
 }
 ```
 
-- [ ] **Step 3: Create `DsShapes.kt`**
+- [x] **Step 3: Create `DsShapes.kt`**
 
 Radii xs–xl are verbatim from `Theme.kt` `CoachFoskaShapes`; `xxl` covers the hub cards' 16dp.
 
@@ -318,7 +328,7 @@ data class DsShapes(
 )
 ```
 
-- [ ] **Step 4: Create `DsSizes.kt`**
+- [x] **Step 4: Create `DsSizes.kt`**
 
 ```kotlin
 package com.coachfoska.designsystem.tokens
@@ -337,7 +347,7 @@ data class DsSizes(
 )
 ```
 
-- [ ] **Step 5: Create `DsMotion.kt`**
+- [x] **Step 5: Create `DsMotion.kt`**
 
 ```kotlin
 package com.coachfoska.designsystem.tokens
@@ -353,7 +363,7 @@ data class DsMotion(
 )
 ```
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run: `./gradlew :designsystem:compileDebugKotlinAndroid`
 Expected: `BUILD SUCCESSFUL`
@@ -377,7 +387,7 @@ git commit -m "feat(designsystem): add semantic token classes"
 - Consumes: all token classes (Task 2).
 - Produces: `interface Brand` (properties: `id: String`, `lightColors/darkColors: DsColors`, `fonts: BrandFonts`, `shapes: DsShapes`, `spacing: DsSpacing`, `sizes: DsSizes`, `motion: DsMotion`, `assets: BrandAssets`, `strings: BrandStrings`, `features: BrandFeatures`, `fun typography(fontFamily: FontFamily?): DsTypography`), `object FoskaBrand : Brand`, `object BrandRegistry { val all: List<Brand>; fun fromId(id: String): Brand }`.
 
-- [ ] **Step 1: Write the failing contrast test**
+- [x] **Step 1: Write the failing contrast test**
 
 Create `designsystem/src/commonTest/kotlin/com/coachfoska/designsystem/brand/BrandContrastTest.kt`:
 
@@ -442,12 +452,12 @@ class BrandContrastTest {
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `./gradlew :designsystem:testDebugUnitTest --tests "com.coachfoska.designsystem.brand.BrandContrastTest"`
 Expected: FAIL — compilation error, `BrandRegistry` unresolved.
 
-- [ ] **Step 3: Create the brand contract**
+- [x] **Step 3: Create the brand contract**
 
 Create `designsystem/src/commonMain/kotlin/com/coachfoska/designsystem/brand/Brand.kt`:
 
@@ -520,7 +530,7 @@ interface Brand {
 }
 ```
 
-- [ ] **Step 4: Create FoskaBrand**
+- [x] **Step 4: Create FoskaBrand**
 
 Create `designsystem/src/commonMain/kotlin/com/coachfoska/designsystem/brand/foska/FoskaBrand.kt`. Every hex value below is copied from `composeApp/src/commonMain/kotlin/com/coachfoska/app/theme/Color.kt` and the scheme mapping in `Theme.kt` — do not adjust them.
 
@@ -647,7 +657,7 @@ object FoskaBrand : Brand {
 }
 ```
 
-- [ ] **Step 5: Create the registry**
+- [x] **Step 5: Create the registry**
 
 Create `designsystem/src/commonMain/kotlin/com/coachfoska/designsystem/brand/BrandRegistry.kt`:
 
@@ -664,12 +674,12 @@ object BrandRegistry {
 }
 ```
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [x] **Step 6: Run the test to verify it passes**
 
 Run: `./gradlew :designsystem:testDebugUnitTest --tests "com.coachfoska.designsystem.brand.BrandContrastTest"`
 Expected: PASS (Foska dark textAccent/background lands ≈ 4.08, above the 3.0 floor; everything else clears 4.5).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add designsystem/src/commonMain/kotlin/com/coachfoska/designsystem/brand designsystem/src/commonTest
@@ -691,7 +701,7 @@ git commit -m "feat(designsystem): add Brand contract, FoskaBrand, registry + WC
 - Consumes: `Brand`, `BrandRegistry` (Task 3); all tokens (Task 2).
 - Produces: `@Composable fun DsTheme(brand: Brand, darkTheme: Boolean, content: @Composable () -> Unit)`; `object DsTheme` with `@Composable` getters `colors`, `type`, `shapes`, `spacing`, `sizes`, `motion`, `assets`, `strings`, `features`; `LocalBrand`; `LocalReduceMotion` (design-system copy — the app's `com.coachfoska.app.core.util.LocalReduceMotion` is replaced by this in Task 5).
 
-- [ ] **Step 1: Move reduce-motion into the design system**
+- [x] **Step 1: Move reduce-motion into the design system**
 
 The app files are the source of truth:
 - `composeApp/src/commonMain/kotlin/com/coachfoska/app/core/util/ReduceMotion.kt`
@@ -700,7 +710,7 @@ The app files are the source of truth:
 
 Copy each file to the matching `designsystem/src/<sourceSet>/kotlin/com/coachfoska/designsystem/theme/` path listed above, changing ONLY the package line to `package com.coachfoska.designsystem.theme`. Keep the app copies for now — they are deleted in Task 5.
 
-- [ ] **Step 2: Create `MaterialBridge.kt`**
+- [x] **Step 2: Create `MaterialBridge.kt`**
 
 The mapping reproduces `Theme.kt`'s `DarkColorScheme`/`LightColorScheme` value-for-value (verify against that file if in doubt).
 
@@ -800,7 +810,7 @@ internal fun DsShapes.toMaterialShapes(): Shapes = Shapes(
 )
 ```
 
-- [ ] **Step 3: Create `DsTheme.kt`**
+- [x] **Step 3: Create `DsTheme.kt`**
 
 ```kotlin
 package com.coachfoska.designsystem.theme
@@ -889,7 +899,7 @@ object DsTheme {
 }
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run: `./gradlew :designsystem:compileDebugKotlinAndroid :designsystem:compileKotlinIosSimulatorArm64`
 Expected: `BUILD SUCCESSFUL` (the iOS compile validates the expect/actual pair).
@@ -913,7 +923,7 @@ git commit -m "feat(designsystem): add DsTheme engine with Material3 bridge and 
 - Consumes: `DsTheme`, `BrandRegistry` (Tasks 3–4).
 - Produces: `BuildKonfig.BRAND_ID` (String); app root themed by `DsTheme`. All old theme constants keep working through the Material bridge until Task 9.
 
-- [ ] **Step 1: Add BRAND_ID to BuildKonfig**
+- [x] **Step 1: Add BRAND_ID to BuildKonfig**
 
 In `composeApp/build.gradle.kts`, inside `buildkonfig { defaultConfigs { … } }`, add after the `DEBUG` field:
 
@@ -924,7 +934,7 @@ buildConfigField(
 )
 ```
 
-- [ ] **Step 2: Swap the theme root in App.kt**
+- [x] **Step 2: Swap the theme root in App.kt**
 
 In `composeApp/src/commonMain/kotlin/com/coachfoska/app/App.kt`:
 
@@ -954,7 +964,7 @@ and remove the matching closer near the end of `App()`: delete the line `} // Co
 
 Add the BuildKonfig import if not present: `import com.coachfoska.app.BuildKonfig`. (BuildKonfig is generated in package `com.coachfoska.app` — same package as App.kt, so the import may be unnecessary; the compiler will tell you.)
 
-- [ ] **Step 3: Re-point reduce-motion consumers**
+- [x] **Step 3: Re-point reduce-motion consumers**
 
 In each of `Shimmer.kt`, `MetricCard.kt`, `ActiveSessionScreen.kt`, `SetRow.kt`, replace the import:
 ```kotlin
@@ -966,12 +976,12 @@ import com.coachfoska.designsystem.theme.LocalReduceMotion
 ```
 Then delete the three app-side ReduceMotion files listed in **Files**.
 
-- [ ] **Step 4: Verify — full compile plus existing tests**
+- [x] **Step 4: Verify — full compile plus existing tests**
 
 Run: `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest`
 Expected: `BUILD SUCCESSFUL`, all existing tests pass. The app renders identically: the bridge reproduces the legacy Material scheme exactly.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/build.gradle.kts composeApp/src/commonMain/kotlin/com/coachfoska/app/App.kt composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/components/Shimmer.kt composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/components/MetricCard.kt composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/workout/ActiveSessionScreen.kt composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/workout/components/SetRow.kt
@@ -1029,14 +1039,14 @@ Required import in every Ds component: `import com.coachfoska.designsystem.theme
 - Consumes: `DsTheme` accessors (Task 4).
 - Produces: `DsCard`, `DsChip`, `DsStatRow`, `DsSectionHeader`, `DsSectionLabel`, `DsShimmerBox`, `DsMetricCardSkeleton` — signatures identical to their sources except the rename and defaults noted above.
 
-- [ ] **Step 1:** Move `CoachCard` → `DsCard.kt`; apply substitutions; delete `CoachCard` from `CoachComponents.kt`.
-- [ ] **Step 2:** Move `FoskaFilterChip` → `DsChip.kt` (rename to `DsChip`); delete `FoskaChip.kt`.
-- [ ] **Step 3:** Move `StatRow` → `DsStatRow.kt` (rename `DsStatRow`); delete `StatRow.kt`.
-- [ ] **Step 4:** Create `DsSectionHeader.kt` with `DsSectionHeader` + `DsSectionLabel` as described; delete `SectionHeader.kt` and `CoachSectionHeader`.
-- [ ] **Step 5:** Move `ShimmerBox`/`MetricCardSkeleton` → `DsShimmer.kt` (renames above); delete `Shimmer.kt`.
-- [ ] **Step 6:** Update every call site: for each old name run `grep -rlnE "CoachCard|FoskaFilterChip|StatRow|SectionHeader|CoachSectionHeader|ShimmerBox|MetricCardSkeleton" composeApp/src --include="*.kt"`, then in each hit replace the name and swap the import to `com.coachfoska.designsystem.components.<DsName>`. Beware substring collisions: `StatRow` also matches `DsStatRow` after edits — re-grep to confirm no stale references: `grep -rnE "ui\.components\.(CoachCard|StatRow|SectionHeader|ShimmerBox)|FoskaFilterChip|CoachSectionHeader" composeApp/src --include="*.kt"` → expect no output.
-- [ ] **Step 7:** Run: `./gradlew :composeApp:compileDebugKotlinAndroid :designsystem:compileDebugKotlinAndroid` — Expected: `BUILD SUCCESSFUL`.
-- [ ] **Step 8:** Commit:
+- [x] **Step 1:** Move `CoachCard` → `DsCard.kt`; apply substitutions; delete `CoachCard` from `CoachComponents.kt`.
+- [x] **Step 2:** Move `FoskaFilterChip` → `DsChip.kt` (rename to `DsChip`); delete `FoskaChip.kt`.
+- [x] **Step 3:** Move `StatRow` → `DsStatRow.kt` (rename `DsStatRow`); delete `StatRow.kt`.
+- [x] **Step 4:** Create `DsSectionHeader.kt` with `DsSectionHeader` + `DsSectionLabel` as described; delete `SectionHeader.kt` and `CoachSectionHeader`.
+- [x] **Step 5:** Move `ShimmerBox`/`MetricCardSkeleton` → `DsShimmer.kt` (renames above); delete `Shimmer.kt`.
+- [x] **Step 6:** Update every call site: for each old name run `grep -rlnE "CoachCard|FoskaFilterChip|StatRow|SectionHeader|CoachSectionHeader|ShimmerBox|MetricCardSkeleton" composeApp/src --include="*.kt"`, then in each hit replace the name and swap the import to `com.coachfoska.designsystem.components.<DsName>`. Beware substring collisions: `StatRow` also matches `DsStatRow` after edits — re-grep to confirm no stale references: `grep -rnE "ui\.components\.(CoachCard|StatRow|SectionHeader|ShimmerBox)|FoskaFilterChip|CoachSectionHeader" composeApp/src --include="*.kt"` → expect no output.
+- [x] **Step 7:** Run: `./gradlew :composeApp:compileDebugKotlinAndroid :designsystem:compileDebugKotlinAndroid` — Expected: `BUILD SUCCESSFUL`.
+- [x] **Step 8:** Commit:
 ```bash
 git add designsystem/src/commonMain/kotlin/com/coachfoska/designsystem/components composeApp/src/commonMain/kotlin/com/coachfoska/app/ui
 git commit -m "feat(designsystem): migrate cards, chips, stat rows, section headers, shimmer to Ds components"
@@ -1063,7 +1073,7 @@ git commit -m "feat(designsystem): migrate cards, chips, stat rows, section head
   - `@Composable fun DsLoadingBox(modifier: Modifier = Modifier.fillMaxSize())`
   - `@Composable fun DsEmptyState(...)` — same params as `EmptyState`
 
-- [ ] **Step 1: Create `DsButton.kt`**
+- [x] **Step 1: Create `DsButton.kt`**
 
 ```kotlin
 package com.coachfoska.designsystem.components
@@ -1168,9 +1178,9 @@ fun DsButton(
 }
 ```
 
-- [ ] **Step 2: Create `DsTextField.kt`** — move `CoachTextField`, `CoachSearchField`, `coachTextFieldColors` from `CoachComponents.kt` with renames `DsTextField`, `DsSearchField`, `DsTextFieldDefaults.colors()` and the substitution table. In `DsSearchField`, `shape = MaterialTheme.shapes.extraLarge` → `DsTheme.shapes.xl`; in `DsTextField`, `shape = MaterialTheme.shapes.medium` → `DsTheme.shapes.md`. In `DsTextFieldDefaults.colors()`: `focusedBorderColor`/`cursorColor`/`focusedLabelColor` → `DsTheme.colors.actionPrimary`; text colors → `DsTheme.colors.textPrimary`; `outlineVariant` → `DsTheme.colors.outlineSubtle`; `onSurfaceVariant` → `DsTheme.colors.textSecondary`.
+- [x] **Step 2: Create `DsTextField.kt`** — move `CoachTextField`, `CoachSearchField`, `coachTextFieldColors` from `CoachComponents.kt` with renames `DsTextField`, `DsSearchField`, `DsTextFieldDefaults.colors()` and the substitution table. In `DsSearchField`, `shape = MaterialTheme.shapes.extraLarge` → `DsTheme.shapes.xl`; in `DsTextField`, `shape = MaterialTheme.shapes.medium` → `DsTheme.shapes.md`. In `DsTextFieldDefaults.colors()`: `focusedBorderColor`/`cursorColor`/`focusedLabelColor` → `DsTheme.colors.actionPrimary`; text colors → `DsTheme.colors.textPrimary`; `outlineVariant` → `DsTheme.colors.outlineSubtle`; `onSurfaceVariant` → `DsTheme.colors.textSecondary`.
 
-- [ ] **Step 3: Create `DsLoadingBox.kt`**
+- [x] **Step 3: Create `DsLoadingBox.kt`**
 
 ```kotlin
 package com.coachfoska.designsystem.components
@@ -1228,13 +1238,44 @@ fun DsLoadingBox(modifier: Modifier = Modifier.fillMaxSize()) {
 
 (If `rememberLottieComposition(key) { … }` does not accept a key argument in Compottie 2.1.0, use the no-key overload `rememberLottieComposition { … }` — the path is constant per brand at runtime.)
 
-- [ ] **Step 4: Move `EmptyState` → `DsEmptyState.kt`** (rename, substitutions, `CoachButton(...)` → `DsButton(...)`). Delete `EmptyState.kt`.
+- [x] **Step 4: Move `EmptyState` → `DsEmptyState.kt`** (rename, substitutions, `CoachButton(...)` → `DsButton(...)`). Delete `EmptyState.kt`.
 
-- [ ] **Step 5: Update call sites.** Enumerate: `grep -rlnE "CoachButton|CoachOutlinedButton|CoachTextField|CoachSearchField|coachTextFieldColors|CoachLoadingBox|EmptyState\(" composeApp/src --include="*.kt"`. Replacements: `CoachButton(` → `DsButton(`; `CoachButtonVariant.X` → `DsButtonVariant.X`; `CoachOutlinedButton(…)` → `DsButton(…, variant = DsButtonVariant.Outlined)` — append the variant as the LAST argument so any positional arguments stay valid; `CoachTextField` → `DsTextField`; `CoachSearchField` → `DsSearchField`; `coachTextFieldColors()` → `DsTextFieldDefaults.colors()`; `CoachLoadingBox` → `DsLoadingBox`; `EmptyState(` → `DsEmptyState(`. Fix imports to `com.coachfoska.designsystem.components.*` names. Delete `CoachComponents.kt` and `composeApp/src/commonMain/composeResources/files/barbell_loader.json`.
+- [x] **Step 4b: Re-point SplashScreen's Lottie read to the designsystem resources.** `composeApp/.../ui/splash/SplashScreen.kt:59-63` inlines its own Lottie composition from the app-resource copy of the loader (do NOT replace it with `DsLoadingBox` — Splash animates the painter inside its own layout). Edit `SplashScreen.kt`:
 
-- [ ] **Step 6:** Verify: `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`.
+Add imports (the file keeps its existing app `Res` import for strings):
+```kotlin
+import com.coachfoska.designsystem.generated.resources.Res as DsRes
+import com.coachfoska.designsystem.theme.DsTheme
+```
+Replace:
+```kotlin
+    val composition by rememberLottieComposition {
+        LottieCompositionSpec.JsonString(
+            Res.readBytes("files/barbell_loader.json").decodeToString()
+        )
+    }
+```
+with:
+```kotlin
+    val lottiePath = DsTheme.assets.loaderLottiePath
+    val composition by rememberLottieComposition {
+        LottieCompositionSpec.JsonString(
+            DsRes.readBytes(lottiePath).decodeToString()
+        )
+    }
+```
 
-- [ ] **Step 7:** Commit:
+(The app-resource copy of the JSON is deleted in Step 5, guarded by a grep.)
+
+- [x] **Step 5: Update call sites.** Enumerate: `grep -rlnE "CoachButton|CoachOutlinedButton|CoachTextField|CoachSearchField|coachTextFieldColors|CoachLoadingBox|EmptyState\(" composeApp/src --include="*.kt"`. Replacements: `CoachButton(` → `DsButton(`; `CoachButtonVariant.X` → `DsButtonVariant.X`; `CoachOutlinedButton(…)` → `DsButton(…, variant = DsButtonVariant.Outlined)` — append the variant as the LAST argument so any positional arguments stay valid; `CoachTextField` → `DsTextField`; `CoachSearchField` → `DsSearchField`; `coachTextFieldColors()` → `DsTextFieldDefaults.colors()`; `CoachLoadingBox` → `DsLoadingBox`; `EmptyState(` → `DsEmptyState(`. Fix imports to `com.coachfoska.designsystem.components.*` names. Delete `CoachComponents.kt`. Then confirm nothing in composeApp still references the app-resource copy of the loader:
+```bash
+grep -rn "files/barbell_loader.json" composeApp/src --include="*.kt"
+```
+Expected: no output (Splash reads the DS copy after Step 4b; `CoachLoadingBox` is gone with `CoachComponents.kt`). Only then delete `composeApp/src/commonMain/composeResources/files/barbell_loader.json`.
+
+- [x] **Step 6:** Verify: `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`.
+
+- [x] **Step 7:** Commit:
 ```bash
 git add designsystem/src/commonMain/kotlin/com/coachfoska/designsystem/components composeApp/src/commonMain/kotlin/com/coachfoska/app/ui composeApp/src/commonMain/composeResources
 git commit -m "feat(designsystem): migrate buttons, text fields, loading box, empty state"
@@ -1258,7 +1299,7 @@ git commit -m "feat(designsystem): migrate buttons, text fields, loading box, em
   - `@Composable fun DsTopBar(title: String, onBackClick: (() -> Unit)? = null, backContentDescription: String? = null, actions: @Composable () -> Unit = {})`
   - `DsMetricCard`, `DsHubIconCard`, `DsHubImageCard` — same params as sources.
 
-- [ ] **Step 1: Create `DsBottomNav.kt`**
+- [x] **Step 1: Create `DsBottomNav.kt`**
 
 ```kotlin
 package com.coachfoska.designsystem.components
@@ -1323,7 +1364,7 @@ fun DsBottomNav(
 }
 ```
 
-- [ ] **Step 2: Move `BottomNavTab` and adapt `App.kt`.** Create `composeApp/src/commonMain/kotlin/com/coachfoska/app/navigation/BottomNavTab.kt` containing the enum exactly as in `BottomNavBar.kt` (package `com.coachfoska.app.navigation`; keep the `StringResource`/`ImageVector` imports and `Res.string.nav_*` references — allowed, this file is app-side). In `App.kt`, replace the `BottomNavBar(...)` call with:
+- [x] **Step 2: Move `BottomNavTab` and adapt `App.kt`.** Create `composeApp/src/commonMain/kotlin/com/coachfoska/app/navigation/BottomNavTab.kt` containing the enum exactly as in `BottomNavBar.kt` (package `com.coachfoska.app.navigation`; keep the `StringResource`/`ImageVector` imports and `Res.string.nav_*` references — allowed, this file is app-side). In `App.kt`, replace the `BottomNavBar(...)` call with:
 
 ```kotlin
     val tabs = BottomNavTab.entries.map { tab ->
@@ -1352,13 +1393,13 @@ fun DsBottomNav(
 
 Imports in `App.kt`: replace `com.coachfoska.app.ui.components.BottomNavBar` / `com.coachfoska.app.ui.components.BottomNavTab` with `com.coachfoska.designsystem.components.DsBottomNav`, `com.coachfoska.designsystem.components.DsBottomNavItem`, `com.coachfoska.app.navigation.BottomNavTab`, `org.jetbrains.compose.resources.stringResource`. Delete `BottomNavBar.kt`.
 
-- [ ] **Step 3: Move `CoachTopBar` → `DsTopBar`.** Callers pass the content description now: at each call site (`grep -rln "CoachTopBar" composeApp/src --include="*.kt"`) replace `CoachTopBar(` with `DsTopBar(` and, where `onBackClick` is passed, add `backContentDescription = stringResource(Res.string.back_cd),` (add the `Res`/`stringResource` imports if missing — they are app-side files). Delete `CoachTopBar.kt`.
+- [x] **Step 3: Move `CoachTopBar` → `DsTopBar`.** Callers pass the content description now: at each call site (`grep -rln "CoachTopBar" composeApp/src --include="*.kt"`) replace `CoachTopBar(` with `DsTopBar(` and, where `onBackClick` is passed, add `backContentDescription = stringResource(Res.string.back_cd),` (add the `Res`/`stringResource` imports if missing — they are app-side files). Delete `CoachTopBar.kt`.
 
-- [ ] **Step 4: Move `MetricCard` → `DsMetricCard`, `HubIconCard` → `DsHubIconCard`, `HubImageCard` → `DsHubImageCard`** per **Files** notes; update call sites via `grep -rlnE "MetricCard|HubIconCard|HubImageCard" composeApp/src --include="*.kt"`; delete the three source files.
+- [x] **Step 4: Move `MetricCard` → `DsMetricCard`, `HubIconCard` → `DsHubIconCard`, `HubImageCard` → `DsHubImageCard`** per **Files** notes; update call sites via `grep -rlnE "MetricCard|HubIconCard|HubImageCard" composeApp/src --include="*.kt"`; delete the three source files.
 
-- [ ] **Step 5:** Verify: `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`. Also confirm the old components directory holds only app-side files: `ls composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/components/` → expect only `DayOfWeekExtensions.kt`, `MediaCaptureBottomSheet.kt`.
+- [x] **Step 5:** Verify: `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`. Also confirm the old components directory holds only app-side files: `ls composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/components/` → expect only `DayOfWeekExtensions.kt`, `MediaCaptureBottomSheet.kt`.
 
-- [ ] **Step 6:** Commit:
+- [x] **Step 6:** Commit:
 ```bash
 git add designsystem/src/commonMain/kotlin/com/coachfoska/designsystem/components composeApp/src/commonMain/kotlin/com/coachfoska/app
 git commit -m "feat(designsystem): migrate top bar, bottom nav, metric and hub cards"
@@ -1370,27 +1411,43 @@ git commit -m "feat(designsystem): migrate top bar, bottom nav, metric and hub c
 
 **Files:**
 - Modify: every file returned by `grep -rln "import com.coachfoska.app.theme" composeApp/src --include="*.kt"` EXCEPT the `theme/` package itself (~35 files at this point: 28 import `Spacing`, 12 `Sizes`, plus singles for `BrandRed`, `TextAccent`, `Success`, `Error`, `ChartLine`, `muscleGroupColor`).
-- Modify (hardcoded-color leaks): `composeApp/.../ui/profile/ProgressScreen.kt`, `composeApp/.../ui/workout/components/PRBanner.kt`, `composeApp/.../ui/workout/components/SetRow.kt`.
+- Modify: every file returned by `grep -rln "MaterialTheme.colorScheme" composeApp/src/commonMain --include="*.kt"` (~96 files at plan time), replacing color-scheme reads where a semantic token exists.
+- Modify (hardcoded/named color leaks): `composeApp/.../ui/profile/ProgressScreen.kt`, `composeApp/.../ui/workout/components/PRBanner.kt`, `composeApp/.../ui/workout/components/SetRow.kt`, `composeApp/.../ui/home/HomeScreen.kt`.
 
 **Interfaces:**
 - Consumes: `DsTheme` accessors (Task 4).
-- Produces: zero references to `com.coachfoska.app.theme.*` outside the `theme/` package itself (checked by grep; the package is deleted in Task 13).
+- Produces: zero references to `com.coachfoska.app.theme.*` outside the `theme/` package itself (checked by grep; the package is deleted in Task 13), and no `MaterialTheme.colorScheme` reads except the explicit KEEP list in Step 1b.
 
-- [ ] **Step 1: Sweep the mechanical imports.** For each file from the grep, apply the universal substitution table from Task 6 (`Spacing.x` → `DsTheme.spacing.x`, `Sizes.touchTarget` → `DsTheme.sizes.touchTarget`, `Metric*` → `DsTheme.type.metric*`, color constants per table), replacing the `com.coachfoska.app.theme.*` import with `import com.coachfoska.designsystem.theme.DsTheme`. Watch for non-composable contexts: `DsTheme.spacing` is `@Composable`-only — if a `Spacing` reference sits in a non-composable helper, hoist the value to a parameter with the call site reading `DsTheme.spacing` (there are no known cases; the compiler will flag any).
+- [x] **Step 1: Sweep the mechanical imports.** For each file from the grep, apply the universal substitution table from Task 6 (`Spacing.x` → `DsTheme.spacing.x`, `Sizes.touchTarget` → `DsTheme.sizes.touchTarget`, `Metric*` → `DsTheme.type.metric*`, color constants per table), replacing the `com.coachfoska.app.theme.*` import with `import com.coachfoska.designsystem.theme.DsTheme`. Watch for non-composable contexts: `DsTheme.spacing` is `@Composable`-only — if a `Spacing` reference sits in a non-composable helper, hoist the value to a parameter with the call site reading `DsTheme.spacing` (there are no known cases; the compiler will flag any).
 
-- [ ] **Step 2: Fix the three leak files** (deliberate shade normalization onto semantic tokens — the one sanctioned visual deviation, per spec §9.3):
+- [x] **Step 1b: Sweep `MaterialTheme.colorScheme` reads onto semantic tokens** (spec §9.3 — "where a semantic token exists"; ~715 reads across ~100 files, all mechanical). Enumerate with `grep -rln "MaterialTheme.colorScheme" composeApp/src/commonMain --include="*.kt"`. Apply the Task 6 universal table plus these additional rows:
+
+| Old expression | New expression |
+|---|---|
+| `MaterialTheme.colorScheme.primaryContainer` | `DsTheme.colors.surfaceElevated` |
+| `MaterialTheme.colorScheme.onPrimaryContainer` | `DsTheme.colors.textPrimary` |
+| `MaterialTheme.colorScheme.tertiary` | `DsTheme.colors.accent` |
+| `MaterialTheme.colorScheme.surfaceContainerHighest` | `DsTheme.colors.surfaceHighest` |
+
+KEEP on `MaterialTheme.colorScheme` (no semantic token exists; the bridge keeps them brand-correct): `inversePrimary`, `inverseSurface`, `inverseOnSurface`, `errorContainer`, `onErrorContainer`, `tertiaryContainer`, `onTertiaryContainer`, `secondaryContainer`. Verify the sweep with `grep -roE "MaterialTheme\.colorScheme\.[a-zA-Z]+" composeApp/src/commonMain --include="*.kt" | awk -F. '{print $NF}' | sort -u` — the output must contain only names from the KEEP list.
+
+**Explicit scope boundary:** `MaterialTheme.typography`/`MaterialTheme.shapes` reads in screens may remain (the bridge makes them identical); raw layout literals (`.dp`, `.sp`, `RoundedCornerShape` in screen layout code) are NOT tokenized — spacing tokens govern components and shared rhythm, not every screen-local offset. Do not sweep those.
+
+- [x] **Step 2: Fix the hardcoded/named color leak files** (deliberate shade normalization onto semantic tokens — the sanctioned visual deviations, per spec §9.3):
   - `ProgressScreen.kt:152`: `if (diff <= 0) Color(0xFF81C784) else Color(0xFFE57373)` → `if (diff <= 0) DsTheme.colors.successSoft else DsTheme.colors.errorSoft` (identical values — no visual change).
   - `PRBanner.kt`: `Color(0xFFFFF3CD)` → `DsTheme.colors.warningContainer`; both `Color(0xFF856404)` → `DsTheme.colors.onWarningContainer` (identical values). Also `RoundedCornerShape(8.dp)` → `DsTheme.shapes.md`.
   - `SetRow.kt:124-125`: `SetType.WARMUP -> Color(0xFFFFC107)` → `DsTheme.colors.warning` (FFC107 → F9A825, one amber shade); `SetType.DROP_SET -> Color(0xFFFF9800)` → `DsTheme.colors.warningStrong` (identical). `SetRow.kt:294`: `SetSaveState.Saved -> Color(0xFF4CAF50)` → `DsTheme.colors.successSoft` (4CAF50 → 81C784, one green shade — chosen over `success` 2E7D32 which would be too dark on the black background). If these expressions live in a non-composable `when` helper, convert the helper to `@Composable` or hoist `DsTheme.colors` into a local before the `when`.
+  - `HomeScreen.kt:270`: notification-dot `.background(Color.Red)` → `.background(DsTheme.colors.error)` (pure red → brand error red — deliberate normalization).
+  - `ProgressScreen.kt:229`: `drawCircle(Color.Black.copy(alpha = 0.2f), …)` STAYS — it is a chart-point shadow, not a brand color; `Color.Black`/`Color.White` scrims and shadows are allowlisted by the Task 10 guardrail.
 
-- [ ] **Step 3: Verify no theme imports remain outside the theme package:**
+- [x] **Step 3: Verify no theme imports remain outside the theme package:**
 
 Run: `grep -rln "import com.coachfoska.app.theme" composeApp/src --include="*.kt"`
 Expected output: only `composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/onboarding/components/OnboardingProgressBar.kt` (its `CoachFoskaTheme` preview import — handled in Task 13). If anything else appears, sweep it.
 
-- [ ] **Step 4:** Run: `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`.
+- [x] **Step 4:** Run: `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5:** Commit:
+- [x] **Step 5:** Commit:
 ```bash
 git add composeApp/src/commonMain/kotlin/com/coachfoska/app
 git commit -m "refactor(app): sweep screens onto DsTheme tokens; retire hardcoded colors"
@@ -1405,9 +1462,9 @@ git commit -m "refactor(app): sweep screens onto DsTheme tokens; retire hardcode
 
 **Interfaces:**
 - Consumes: nothing (pure file-system test).
-- Produces: a failing build whenever `Color(0x…)` appears anywhere in `composeApp/src`.
+- Produces: a failing build whenever a raw hex color constructor or disallowed named Compose color appears anywhere in `composeApp/src`.
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```kotlin
 package com.coachfoska.app.guardrails
@@ -1417,16 +1474,20 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 /**
- * Design-system guardrail: raw hex colors are only allowed inside
- * :designsystem (tokens + brand files). Everything in composeApp must
- * read DsTheme semantic tokens.
+ * Design-system guardrail: raw hex colors and lazy named colors are only
+ * allowed inside :designsystem (tokens + brand files). Everything in
+ * composeApp must read DsTheme semantic tokens.
+ *
+ * Allowlisted named colors (NOT flagged): Color.Black, Color.White,
+ * Color.Transparent, Color.Unspecified — legitimate for scrims, shadows,
+ * and gradient overlays that must not vary by brand.
  */
 class NoHardcodedColorsTest {
 
     @Test
     fun composeAppContainsNoRawHexColors() {
         val root = findRepoRoot()
-        val pattern = Regex("""Color\(0x""")
+        val pattern = Regex("""Color\(0x|Color\.(Red|Green|Blue|Yellow|Magenta|Cyan|Gray|LightGray|DarkGray)\b""")
         val offenders = File(root, "composeApp/src").walkTopDown()
             .filter { it.isFile && it.extension == "kt" }
             .filter { file -> file.readText().contains(pattern) }
@@ -1434,7 +1495,7 @@ class NoHardcodedColorsTest {
             .toList()
         assertTrue(
             offenders.isEmpty(),
-            "Raw Color(0x…) found — use DsTheme.colors tokens instead:\n" +
+            "Raw hex color constructor or named Compose color found — use DsTheme.colors tokens instead:\n" +
                 offenders.joinToString("\n")
         )
     }
@@ -1449,7 +1510,7 @@ class NoHardcodedColorsTest {
 }
 ```
 
-- [ ] **Step 2: Run it — expect a controlled failure, then allowlist the legacy package**
+- [x] **Step 2: Run it — expect a controlled failure, then allowlist the legacy package**
 
 Run: `./gradlew :composeApp:testDebugUnitTest --tests "com.coachfoska.app.guardrails.NoHardcodedColorsTest"`
 Expected: FAIL, listing ONLY files under `composeApp/src/commonMain/kotlin/com/coachfoska/app/theme/` (the legacy package that Task 13 deletes). If anything OUTSIDE that package is listed, Task 9 missed a sweep — fix that file first.
@@ -1462,7 +1523,7 @@ Then add this temporary allowlist line directly after the `.filter { it.isFile &
 
 Re-run the same command. Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add composeApp/src/androidUnitTest/kotlin/com/coachfoska/app/guardrails/NoHardcodedColorsTest.kt
@@ -1483,7 +1544,7 @@ git commit -m "test(app): guardrail against raw hex colors outside the design sy
 - Consumes: every Ds component (Tasks 6–8), `BrandRegistry`, `DsTheme`.
 - Produces: `@Composable fun GalleryScreen(onBackClick: () -> Unit)` — self-themed (nested `DsTheme` with its own brand/dark state), so it can override the app theme for previewing.
 
-- [ ] **Step 1: Create `GalleryScreen.kt`**
+- [x] **Step 1: Create `GalleryScreen.kt`**
 
 ```kotlin
 package com.coachfoska.designsystem.gallery
@@ -1511,6 +1572,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.coachfoska.designsystem.brand.Brand
 import com.coachfoska.designsystem.brand.BrandRegistry
 import com.coachfoska.designsystem.components.DsButton
@@ -1669,14 +1731,14 @@ private fun colorSwatches(): List<Pair<String, (com.coachfoska.designsystem.toke
 
 Note: if `DsSectionLabel`'s parameter is named `text` vs `title`, match whatever name Task 6 Step 4 produced (`DsSectionLabel(text = …)` is the expected signature, inherited from `CoachSectionHeader(text: String, …)`).
 
-- [ ] **Step 2: Add the route.** In the navigation routes file found via the grep in **Files**, add next to `Settings` (matching its serialization style, e.g. `@Serializable data object Gallery` or `@Serializable object Gallery`):
+- [x] **Step 2: Add the route.** In the navigation routes file found via the grep in **Files**, add next to `Settings` (matching its serialization style, e.g. `@Serializable data object Gallery` or `@Serializable object Gallery`):
 
 ```kotlin
 @Serializable
 data object Gallery
 ```
 
-- [ ] **Step 3: Register the route in `App.kt`**, after the `composable<Settings> { … }` block:
+- [x] **Step 3: Register the route in `App.kt`**, after the `composable<Settings> { … }` block:
 
 ```kotlin
 composable<Gallery> {
@@ -1686,7 +1748,7 @@ composable<Gallery> {
 
 Import: `com.coachfoska.designsystem.gallery.GalleryScreen` (and `Gallery` if the routes file needs explicit import — it's covered by the existing `com.coachfoska.app.navigation.*` wildcard).
 
-- [ ] **Step 4: Debug entry in Settings.** In `SettingsScreen.kt`: add parameters `onOpenGallery: () -> Unit = {}` to both `SettingsRoute` and `SettingsScreen` (pass through). Inside the existing debug `SettingsSection` (after the launch-onboarding `DebugRow`), add:
+- [x] **Step 4: Debug entry in Settings.** In `SettingsScreen.kt`: add parameters `onOpenGallery: () -> Unit = {}` to both `SettingsRoute` and `SettingsScreen` (pass through). Inside the existing debug `SettingsSection` (after the launch-onboarding `DebugRow`), add:
 
 ```kotlin
 if (BuildKonfig.DEBUG) {
@@ -1701,9 +1763,9 @@ if (BuildKonfig.DEBUG) {
 
 Import `com.coachfoska.app.BuildKonfig` if needed. In `App.kt`, pass `onOpenGallery = { navController.navigate(Gallery) }` at the `SettingsRoute(...)` call site.
 
-- [ ] **Step 5:** Verify: `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`.
+- [x] **Step 5:** Verify: `./gradlew :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest` — Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6:** Commit:
+- [x] **Step 6:** Commit:
 ```bash
 git add designsystem/src/commonMain/kotlin/com/coachfoska/designsystem/gallery composeApp/src/commonMain/kotlin/com/coachfoska/app
 git commit -m "feat(designsystem): debug gallery with brand switcher and dark/light toggle"
@@ -1720,7 +1782,7 @@ git commit -m "feat(designsystem): debug gallery with brand switcher and dark/li
 - Consumes: `DsTheme.features` (Task 4).
 - Produces: the AI coach entry respects both the build flag and the brand flag.
 
-- [ ] **Step 1:** In `ChatHubScreen.kt` line 85, change:
+- [x] **Step 1:** In `ChatHubScreen.kt` line 85, change:
 
 ```kotlin
 if (BuildKonfig.AI_COACH_ENABLED) {
@@ -1731,9 +1793,9 @@ if (BuildKonfig.AI_COACH_ENABLED && DsTheme.features.aiCoach) {
 ```
 Add `import com.coachfoska.designsystem.theme.DsTheme` if missing.
 
-- [ ] **Step 2:** Verify: `./gradlew :composeApp:compileDebugKotlinAndroid` — Expected: `BUILD SUCCESSFUL`. (FoskaBrand has `aiCoach = true`, so behavior is unchanged.)
+- [x] **Step 2:** Verify: `./gradlew :composeApp:compileDebugKotlinAndroid` — Expected: `BUILD SUCCESSFUL`. (FoskaBrand has `aiCoach = true`, so behavior is unchanged.)
 
-- [ ] **Step 3:** Commit:
+- [x] **Step 3:** Commit:
 ```bash
 git add composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/chat/ChatHubScreen.kt
 git commit -m "feat(app): gate AI coach entry on brand feature flag"
@@ -1752,7 +1814,7 @@ git commit -m "feat(app): gate AI coach entry on brand feature flag"
 - Consumes: everything.
 - Produces: done state — no theme constant referenced outside `:designsystem`.
 
-- [ ] **Step 1:** In `OnboardingProgressBar.kt`, replace the preview wrapper: import `com.coachfoska.designsystem.theme.DsTheme` and `com.coachfoska.designsystem.brand.foska.FoskaBrand` instead of `com.coachfoska.app.theme.CoachFoskaTheme`, and change:
+- [x] **Step 1:** In `OnboardingProgressBar.kt`, replace the preview wrapper: import `com.coachfoska.designsystem.theme.DsTheme` and `com.coachfoska.designsystem.brand.foska.FoskaBrand` instead of `com.coachfoska.app.theme.CoachFoskaTheme`, and change:
 ```kotlin
     CoachFoskaTheme { OnboardingProgressBar(progress = 0.4f) }
 ```
@@ -1761,19 +1823,19 @@ to:
     DsTheme(brand = FoskaBrand, darkTheme = true) { OnboardingProgressBar(progress = 0.4f) }
 ```
 
-- [ ] **Step 2:** Confirm nothing else references the package: `grep -rn "com.coachfoska.app.theme" composeApp/src --include="*.kt"` → the only hits must be inside `composeApp/src/commonMain/kotlin/com/coachfoska/app/theme/` itself. Then delete the directory:
+- [x] **Step 2:** Confirm nothing else references the package: `grep -rn "com.coachfoska.app.theme" composeApp/src --include="*.kt"` → the only hits must be inside `composeApp/src/commonMain/kotlin/com/coachfoska/app/theme/` itself. Then delete the directory:
 ```bash
 git rm -r composeApp/src/commonMain/kotlin/com/coachfoska/app/theme
 ```
 
-- [ ] **Step 3:** If Task 10 added the `filterNot { … app/theme … }` allowlist line to `NoHardcodedColorsTest.kt`, remove it now.
+- [x] **Step 3:** If Task 10 added the `filterNot { … app/theme … }` allowlist line to `NoHardcodedColorsTest.kt`, remove it now.
 
-- [ ] **Step 4: Final verification — full suite:**
+- [x] **Step 4: Final verification — full suite:**
 
 Run: `./gradlew :designsystem:testDebugUnitTest :composeApp:testDebugUnitTest :composeApp:assembleDebug :composeApp:compileKotlinIosSimulatorArm64`
 Expected: `BUILD SUCCESSFUL`; all tests green, including `BrandContrastTest` and `NoHardcodedColorsTest` (now with zero allowlist).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/coachfoska/app/ui/onboarding/components/OnboardingProgressBar.kt composeApp/src/androidUnitTest/kotlin/com/coachfoska/app/guardrails/NoHardcodedColorsTest.kt
