@@ -19,13 +19,14 @@ import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.meal_history_kcal_format
 import coachfoska.composeapp.generated.resources.meal_history_no_meals
 import coachfoska.composeapp.generated.resources.meal_history_protein_format
 import coachfoska.composeapp.generated.resources.meal_history_screen_title
 import coachfoska.composeapp.generated.resources.meal_history_your_logs
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -53,7 +54,7 @@ fun MealHistoryScreen(
     onLogClick: (String) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = stringResource(Res.string.meal_history_screen_title), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.meal_history_screen_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
         if (state.isHistoryLoading) {
             DsLoadingBox(Modifier.weight(1f))
         } else {

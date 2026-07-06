@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.duration_min
 import coachfoska.composeapp.generated.resources.exercises_count
 import coachfoska.composeapp.generated.resources.workout_history_capture_video_cd
@@ -58,7 +59,7 @@ import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import kotlinx.datetime.Instant
 import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.stringResource
@@ -94,7 +95,7 @@ fun WorkoutHistoryDetailScreen(
     onCaptureVideo: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = stringResource(Res.string.workout_history_detail_title), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.workout_history_detail_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
         if (state.isHistoryLoading && state.selectedWorkoutLog == null) {
             DsLoadingBox(Modifier.weight(1f))
         } else {

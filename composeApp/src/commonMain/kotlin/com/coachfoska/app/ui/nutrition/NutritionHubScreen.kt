@@ -60,7 +60,7 @@ import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.HubImageCard
+import com.coachfoska.designsystem.components.DsHubImageCard
 import com.coachfoska.app.ui.nutrition.components.FeaturedRecipeCard
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -192,7 +192,7 @@ fun NutritionHubScreen(
 
             // Other destinations
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                HubImageCard(
+                DsHubImageCard(
                     imageRes = Res.drawable.img_nutrition_plan,
                     eyebrow = stringResource(Res.string.nutrition_hub_plan_eyebrow),
                     title = stringResource(Res.string.nutrition_hub_plan_title),
@@ -200,7 +200,7 @@ fun NutritionHubScreen(
                     onClick = onPlanClick,
                     modifier = Modifier.weight(1f).aspectRatio(1f),
                 )
-                HubImageCard(
+                DsHubImageCard(
                     imageRes = Res.drawable.img_nutrition_history,
                     eyebrow = stringResource(Res.string.nutrition_hub_log_eyebrow),
                     title = stringResource(Res.string.nutrition_hub_history_title),
@@ -208,7 +208,7 @@ fun NutritionHubScreen(
                     onClick = onHistoryClick,
                     modifier = Modifier.weight(1f).aspectRatio(1f),
                 )
-                HubImageCard(
+                DsHubImageCard(
                     imageRes = Res.drawable.img_nutrition_history,
                     eyebrow = stringResource(Res.string.nutrition_hub_track_eyebrow),
                     title = stringResource(Res.string.nutrition_hub_water_title),

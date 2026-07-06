@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.editor_add_exercise
 import coachfoska.composeapp.generated.resources.editor_day_label
 import coachfoska.composeapp.generated.resources.editor_exercises_error
@@ -69,7 +70,7 @@ import com.coachfoska.app.presentation.workout.WorkoutEditorViewModel
 import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.theme.Sizes
 import com.coachfoska.designsystem.components.DsButton
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.designsystem.components.DsChip
 import com.coachfoska.app.ui.components.localizedShortName
 import kotlinx.coroutines.launch
@@ -128,12 +129,13 @@ fun WorkoutEditorScreen(
 
     Scaffold(
         topBar = {
-            CoachTopBar(
+            DsTopBar(
                 title = stringResource(
                     if (state.workoutId == null) Res.string.editor_title_new
                     else Res.string.editor_title_edit
                 ),
                 onBackClick = onBackClick,
+                backContentDescription = stringResource(Res.string.back_cd),
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },

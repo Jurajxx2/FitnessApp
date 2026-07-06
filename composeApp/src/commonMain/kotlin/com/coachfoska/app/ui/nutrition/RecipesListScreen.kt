@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.recipes_add_favorite_cd
 import coachfoska.composeapp.generated.resources.recipes_count
 import coachfoska.composeapp.generated.resources.recipes_empty_message
@@ -35,7 +36,7 @@ import com.coachfoska.app.domain.model.Recipe
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.designsystem.components.DsEmptyState
 import com.coachfoska.designsystem.components.DsChip
 import com.coachfoska.designsystem.components.DsShimmerBox
@@ -90,7 +91,7 @@ fun RecipesListScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = stringResource(Res.string.recipes_title), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.recipes_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
         Column(
             modifier = Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.sm),

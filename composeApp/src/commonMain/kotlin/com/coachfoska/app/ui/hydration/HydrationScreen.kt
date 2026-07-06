@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.common_cancel
 import coachfoska.composeapp.generated.resources.common_delete
 import coachfoska.composeapp.generated.resources.common_favorite_cd
@@ -42,7 +43,7 @@ import com.coachfoska.app.domain.model.WaterLog
 import com.coachfoska.app.presentation.hydration.HydrationIntent
 import com.coachfoska.app.presentation.hydration.HydrationState
 import com.coachfoska.app.presentation.hydration.HydrationViewModel
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -89,7 +90,7 @@ fun HydrationScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        CoachTopBar(title = stringResource(Res.string.home_water_label), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.home_water_label), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
         Column(
             modifier = Modifier

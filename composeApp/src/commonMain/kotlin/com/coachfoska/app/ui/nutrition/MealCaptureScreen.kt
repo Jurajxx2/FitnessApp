@@ -33,10 +33,11 @@ import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsSectionLabel
 import com.coachfoska.designsystem.components.DsTextField
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
 import com.coachfoska.app.theme.Sizes
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.*
 import coachfoska.composeapp.generated.resources.common_search_cd
 import coachfoska.composeapp.generated.resources.meal_analyzing_photo
@@ -189,7 +190,7 @@ fun MealCaptureScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = stringResource(Res.string.meal_capture_screen_title), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.meal_capture_screen_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
         Column(
             modifier = Modifier
                 .weight(1f)

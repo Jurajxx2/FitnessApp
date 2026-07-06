@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.common_grams_format
 import coachfoska.composeapp.generated.resources.log_this_meal
 import coachfoska.composeapp.generated.resources.meal_detail_screen_title
@@ -29,7 +30,7 @@ import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -62,7 +63,7 @@ fun MealDetailScreen(
     onLogMeal: () -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = stringResource(Res.string.meal_detail_screen_title), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.meal_detail_screen_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
         when {
             state.selectedMeal != null -> {

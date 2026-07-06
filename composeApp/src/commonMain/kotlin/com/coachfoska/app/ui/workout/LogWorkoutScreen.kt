@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.add_exercise
 import coachfoska.composeapp.generated.resources.add_set
 import coachfoska.composeapp.generated.resources.add_video_cd
@@ -66,7 +67,7 @@ import com.coachfoska.app.theme.Sizes
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsSectionLabel
 import com.coachfoska.designsystem.components.DsTextField
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -164,7 +165,7 @@ private fun LogWorkoutContent(
         exercises.any { it.name.isNotBlank() && it.sets.any { set -> set.completed } }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = stringResource(Res.string.log_session_title), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.log_session_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
         Column(
             modifier = Modifier
                 .weight(1f)

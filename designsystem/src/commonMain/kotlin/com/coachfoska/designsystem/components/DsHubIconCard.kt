@@ -1,21 +1,29 @@
-package com.coachfoska.app.ui.components
+package com.coachfoska.designsystem.components
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
+import com.coachfoska.designsystem.brand.foska.FoskaBrand
+import com.coachfoska.designsystem.theme.DsTheme
 
 @Composable
-fun HubIconCard(
+fun DsHubIconCard(
     icon: ImageVector,
     eyebrow: String,
     title: String,
@@ -27,11 +35,10 @@ fun HubIconCard(
     Surface(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+        shape = DsTheme.shapes.xxl,
+        color = DsTheme.colors.surfaceElevated
     ) {
         Box {
-            // Icon Background
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -42,28 +49,28 @@ fun HubIconCard(
                     imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    tint = DsTheme.colors.actionPrimary.copy(alpha = 0.5f)
                 )
             }
-            
+
             badge?.let {
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(10.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    shape = DsTheme.shapes.full,
+                    color = DsTheme.colors.actionPrimary.copy(alpha = 0.1f)
                 ) {
                     Text(
                         text = it,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        style = DsTheme.type.labelSmall,
+                        color = DsTheme.colors.actionPrimary,
                         letterSpacing = 1.sp
                     )
                 }
             }
-            
+
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -72,20 +79,20 @@ fun HubIconCard(
             ) {
                 Text(
                     text = eyebrow.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    style = DsTheme.type.labelSmall,
+                    color = DsTheme.colors.textSecondary.copy(alpha = 0.6f),
                     letterSpacing = 1.5.sp
                 )
                 Text(
                     text = title.uppercase(),
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = DsTheme.type.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                    color = DsTheme.colors.textSecondary,
                     letterSpacing = (-0.3).sp
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    style = DsTheme.type.bodySmall,
+                    color = DsTheme.colors.textSecondary.copy(alpha = 0.7f)
                 )
             }
         }
@@ -94,9 +101,9 @@ fun HubIconCard(
 
 @Preview
 @Composable
-fun HubIconCardPreview() {
-    MaterialTheme {
-        HubIconCard(
+fun DsHubIconCardPreview() {
+    DsTheme(brand = FoskaBrand, darkTheme = true) {
+        DsHubIconCard(
             icon = Icons.Default.Add,
             eyebrow = "Log",
             title = "Log Activity",
@@ -109,9 +116,9 @@ fun HubIconCardPreview() {
 
 @Preview
 @Composable
-fun HubIconCardWithBadgePreview() {
-    MaterialTheme {
-        HubIconCard(
+fun DsHubIconCardWithBadgePreview() {
+    DsTheme(brand = FoskaBrand, darkTheme = true) {
+        DsHubIconCard(
             icon = Icons.Default.Add,
             eyebrow = "Log",
             title = "Log Activity",

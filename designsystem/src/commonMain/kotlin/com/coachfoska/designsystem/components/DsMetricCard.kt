@@ -1,4 +1,4 @@
-package com.coachfoska.app.ui.components
+package com.coachfoska.designsystem.components
 
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,19 +21,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.coachfoska.app.theme.MetricMedium
-import com.coachfoska.app.theme.Spacing
-import com.coachfoska.app.theme.Success
-import com.coachfoska.app.theme.TextAccent
+import com.coachfoska.designsystem.theme.DsTheme
 import com.coachfoska.designsystem.theme.LocalReduceMotion
 
 /**
  * Big number + label + optional trend delta. If [value] is purely numeric and
- * [animateValue] is true, the number counts up on first composition (spec §2.4:
- * effort-as-data — numbers in motion), skipped under reduce-motion.
+ * [animateValue] is true, the number counts up on first composition, skipped
+ * under reduce-motion.
  */
 @Composable
-fun MetricCard(
+fun DsMetricCard(
     value: String,
     label: String,
     modifier: Modifier = Modifier,
@@ -45,15 +41,11 @@ fun MetricCard(
 ) {
     val reduceMotion = LocalReduceMotion.current
     val numeric = remember(value) { value.toIntOrNull() }
-    // `started` flips true after first composition so the counter animates from 0 → target
-    // on first display. LaunchedEffect(Unit) runs exactly once per composition entry.
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
-    // Called unconditionally to keep Compose's slot table stable when `value`
-    // flips between numeric and non-numeric; motion is gated via duration/usage.
     val animated by animateIntAsState(
         targetValue = if (started) numeric ?: 0 else 0,
-        animationSpec = tween(if (!reduceMotion && animateValue && numeric != null) 700 else 0),
+        animationSpec = tween(if (!reduceMotion && animateValue && numeric != null) DsTheme.motion.durationLongMs else 0),
         label = "metric-countup",
     )
     val displayed = if (numeric != null && animateValue && !reduceMotion) animated.toString() else value
@@ -61,36 +53,36 @@ fun MetricCard(
     Surface(
         onClick = onClick ?: {},
         enabled = onClick != null,
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = DsTheme.shapes.lg,
+        color = DsTheme.colors.surface,
+        border = BorderStroke(1.dp, DsTheme.colors.outlineSubtle),
         modifier = modifier,
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            modifier = Modifier.padding(DsTheme.spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.xs),
         ) {
             Text(
                 text = displayed,
-                style = MetricMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = DsTheme.type.metricMedium,
+                color = DsTheme.colors.textPrimary,
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = label.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = DsTheme.type.labelSmall,
+                    color = DsTheme.colors.textSecondary,
                     letterSpacing = 1.sp,
                 )
                 if (delta != null) {
-                    Spacer(Modifier.width(Spacing.sm))
+                    Spacer(Modifier.width(DsTheme.spacing.sm))
                     Text(
                         text = delta,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = DsTheme.type.labelSmall,
                         color = when (deltaPositive) {
-                            true -> Success
-                            false -> TextAccent
-                            null -> MaterialTheme.colorScheme.onSurfaceVariant
+                            true -> DsTheme.colors.success
+                            false -> DsTheme.colors.textAccent
+                            null -> DsTheme.colors.textSecondary
                         },
                     )
                 }

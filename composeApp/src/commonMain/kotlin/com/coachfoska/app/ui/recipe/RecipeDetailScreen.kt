@@ -45,10 +45,11 @@ import com.coachfoska.app.presentation.recipe.RecipeDetailIntent
 import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.app.ui.recipe.components.CookingStepCard
 import com.coachfoska.app.ui.recipe.components.ServingsAdjuster
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.log_this_meal
 import coachfoska.composeapp.generated.resources.recipe_detail_cook_label
 import coachfoska.composeapp.generated.resources.recipe_detail_level_label
@@ -80,9 +81,10 @@ fun RecipeDetailRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(
+        DsTopBar(
             title = stringResource(Res.string.recipe_title),
             onBackClick = onBackClick,
+            backContentDescription = stringResource(Res.string.back_cd),
             actions = {
                 IconButton(onClick = { viewModel.onIntent(RecipeDetailIntent.ToggleFavorite) }) {
                     Icon(

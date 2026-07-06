@@ -28,8 +28,6 @@ import com.coachfoska.app.navigation.*
 import com.coachfoska.app.ui.auth.EmailOtpRoute
 import com.coachfoska.app.ui.auth.VerifyOtpRoute
 import com.coachfoska.app.ui.auth.WelcomeRoute
-import com.coachfoska.app.ui.components.BottomNavBar
-import com.coachfoska.app.ui.components.BottomNavTab
 import com.coachfoska.app.ui.home.HomeRoute
 import com.coachfoska.app.ui.nutrition.MealCaptureRoute
 import com.coachfoska.app.ui.nutrition.MealDetailRoute
@@ -66,7 +64,10 @@ import com.coachfoska.app.ui.workout.ProgressDashboardRoute
 import com.coachfoska.app.ui.workout.WorkoutEditorRoute
 import com.coachfoska.app.ui.hydration.HydrationRoute
 import com.coachfoska.designsystem.brand.BrandRegistry
+import com.coachfoska.designsystem.components.DsBottomNav
+import com.coachfoska.designsystem.components.DsBottomNavItem
 import com.coachfoska.designsystem.theme.DsTheme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun App(openHumanChat: Boolean = false) {
@@ -138,9 +139,14 @@ fun App(openHumanChat: Boolean = false) {
         Scaffold(
             bottomBar = {
                 if (showBottomBar) {
-                    BottomNavBar(
-                        selectedTab = selectedTab,
-                        onTabSelected = { tab ->
+                    val tabs = BottomNavTab.entries.map { tab ->
+                        DsBottomNavItem(id = tab.name, icon = tab.icon, label = stringResource(tab.labelRes))
+                    }
+                    DsBottomNav(
+                        items = tabs,
+                        selectedId = selectedTab.name,
+                        onItemSelected = { id ->
+                            val tab = BottomNavTab.valueOf(id)
                             val route: Any = when (tab) {
                                 BottomNavTab.Home -> Home
                                 BottomNavTab.Activity -> WorkoutList

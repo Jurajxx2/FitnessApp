@@ -17,11 +17,12 @@ import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.ProgressDashboardState
 import com.coachfoska.app.presentation.workout.ProgressDashboardViewModel
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.progress_kg_this_week
 import coachfoska.composeapp.generated.resources.progress_recent_prs_title
 import coachfoska.composeapp.generated.resources.progress_week_streak
 import coachfoska.composeapp.generated.resources.progress_your_progress
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.app.ui.workout.components.MuscleDistributionChart
 import com.coachfoska.app.ui.workout.components.WeeklyCalendarStrip
 import com.coachfoska.app.ui.workout.components.WorkoutsPerWeekChart
@@ -50,7 +51,7 @@ fun ProgressDashboardScreen(
     onTimePeriodSelected: (TimePeriod) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = stringResource(Res.string.progress_your_progress), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.progress_your_progress), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

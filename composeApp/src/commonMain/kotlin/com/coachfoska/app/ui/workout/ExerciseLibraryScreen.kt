@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.common_clear_cd
 import coachfoska.composeapp.generated.resources.exercise_library_favorites_filter
 import coachfoska.composeapp.generated.resources.exercise_library_no_exercises
@@ -39,7 +40,7 @@ import com.coachfoska.app.presentation.exercise.ExerciseSortOrder
 import com.coachfoska.app.presentation.exercise.ExerciseState
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -91,7 +92,7 @@ fun ExerciseLibraryScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(title = stringResource(Res.string.exercise_library_title), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.exercise_library_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
         OutlinedTextField(
             value = searchText,

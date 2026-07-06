@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.common_edit
 import coachfoska.composeapp.generated.resources.detail_coach_readonly
 import coachfoska.composeapp.generated.resources.detail_start_workout
@@ -32,7 +33,7 @@ import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.theme.Spacing
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.designsystem.components.DsChip
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -102,9 +103,10 @@ fun WorkoutDetailScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            CoachTopBar(
+            DsTopBar(
                 title = stringResource(Res.string.detail_title),
                 onBackClick = onBackClick,
+                backContentDescription = stringResource(Res.string.back_cd),
                 actions = {
                     if (workout != null && isOwned) {
                         IconButton(onClick = { onEditWorkout(workout.id) }) {

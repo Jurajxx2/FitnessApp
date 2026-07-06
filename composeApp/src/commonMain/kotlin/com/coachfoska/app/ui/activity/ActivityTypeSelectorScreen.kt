@@ -22,10 +22,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.activity_what_did_you_do
 import coachfoska.composeapp.generated.resources.log_activity_title
 import com.coachfoska.app.domain.model.ActivityType
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.stringResource
 
@@ -47,9 +48,10 @@ fun ActivityTypeSelectorScreen(
 ) {
     Scaffold(
         topBar = {
-            CoachTopBar(
+            DsTopBar(
                 title = stringResource(Res.string.log_activity_title),
-                onBackClick = onBackClick
+                onBackClick = onBackClick,
+                backContentDescription = stringResource(Res.string.back_cd)
             )
         }
     ) { padding ->

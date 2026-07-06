@@ -22,7 +22,7 @@ import com.coachfoska.app.presentation.profile.ProfileViewModel
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.MetricCard
+import com.coachfoska.designsystem.components.DsMetricCard
 import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -105,13 +105,13 @@ fun ProfileScreen(
                         .padding(horizontal = Spacing.xl),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
-                    MetricCard(
+                    DsMetricCard(
                         label = stringResource(Res.string.stat_weight),
                         value = user.weightKg?.let { stringResource(Res.string.weight_kg_upper_format, it.toString()) } ?: "--",
                         animateValue = false,
                         modifier = Modifier.weight(1f),
                     )
-                    MetricCard(
+                    DsMetricCard(
                         label = stringResource(Res.string.stat_goal),
                         value = user.goal?.displayName?.uppercase() ?: "---",
                         animateValue = false,

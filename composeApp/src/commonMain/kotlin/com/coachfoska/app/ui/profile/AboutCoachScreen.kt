@@ -13,8 +13,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.*
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import org.jetbrains.compose.resources.stringResource
 
 private val coachName = "Andrea Krišková"
@@ -41,7 +42,7 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
         color = MaterialTheme.colorScheme.background
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            CoachTopBar(title = stringResource(Res.string.about_foska), onBackClick = onBackClick)
+            DsTopBar(title = stringResource(Res.string.about_foska), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
             Column(
                 modifier = Modifier
                     .weight(1f)

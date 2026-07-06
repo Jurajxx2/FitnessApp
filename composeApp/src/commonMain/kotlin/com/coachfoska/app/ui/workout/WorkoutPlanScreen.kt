@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.common_cancel
 import coachfoska.composeapp.generated.resources.common_delete
 import coachfoska.composeapp.generated.resources.common_edit
@@ -41,7 +42,7 @@ import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.theme.Spacing
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.designsystem.components.DsEmptyState
 import com.coachfoska.designsystem.components.DsChip
 import com.coachfoska.designsystem.components.DsSectionHeader
@@ -90,9 +91,10 @@ fun WorkoutPlanScreen(
     val allEmpty = coachPlans.isEmpty() && myPlans.isEmpty()
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(
+        DsTopBar(
             title = stringResource(Res.string.plan_title),
             onBackClick = onBackClick,
+            backContentDescription = stringResource(Res.string.back_cd),
             actions = {
                 IconButton(onClick = onCreateWorkout) {
                     Icon(

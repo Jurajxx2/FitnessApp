@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.activity_distance_label
 import coachfoska.composeapp.generated.resources.activity_duration_label
 import coachfoska.composeapp.generated.resources.activity_easy
@@ -59,7 +60,7 @@ import com.coachfoska.app.presentation.activity.ActivityLogViewModel
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsSectionLabel
 import com.coachfoska.designsystem.components.DsTextField
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -103,9 +104,10 @@ fun LogActivityFormScreen(
     )
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        CoachTopBar(
+        DsTopBar(
             title = stringResource(Res.string.activity_log_type_title, state.selectedType.displayName.uppercase()),
             onBackClick = onBackClick,
+            backContentDescription = stringResource(Res.string.back_cd),
         )
 
         Column(

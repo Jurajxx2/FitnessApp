@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.exercise_detail_no_chart_data
 import coachfoska.composeapp.generated.resources.exercise_detail_no_history
 import coachfoska.composeapp.generated.resources.exercise_detail_no_records
@@ -46,7 +47,7 @@ import com.coachfoska.app.presentation.exercise.ExerciseIntent
 import com.coachfoska.app.presentation.exercise.ExerciseState
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -84,9 +85,10 @@ fun ExerciseDetailScreen(
     val exercise = state.selectedExercise
 
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(
+        DsTopBar(
             title = stringResource(Res.string.exercise_detail_title),
             onBackClick = onBackClick,
+            backContentDescription = stringResource(Res.string.back_cd),
             actions = {
                 if (exercise != null) {
                     IconButton(onClick = onToggleFavorite) {

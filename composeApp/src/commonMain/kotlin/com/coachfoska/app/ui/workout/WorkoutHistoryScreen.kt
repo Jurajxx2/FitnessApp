@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.activity_hub_workout_history
 import coachfoska.composeapp.generated.resources.duration_min
 import coachfoska.composeapp.generated.resources.exercises_count
@@ -35,7 +36,7 @@ import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -65,7 +66,7 @@ fun WorkoutHistoryScreen(
     onProgressClick: () -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = stringResource(Res.string.activity_hub_workout_history), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.activity_hub_workout_history), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
         if (state.isHistoryLoading) {
             DsLoadingBox(Modifier.weight(1f))
         } else {

@@ -38,7 +38,7 @@ import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.theme.Spacing
 import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsEmptyState
-import com.coachfoska.app.ui.components.MetricCard
+import com.coachfoska.designsystem.components.DsMetricCard
 import com.coachfoska.designsystem.components.DsMetricCardSkeleton
 import com.coachfoska.app.ui.workout.components.WeeklyActivitySection
 import kotlinx.datetime.TimeZone
@@ -141,12 +141,12 @@ fun HomeScreen(
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                        MetricCard(
+                        DsMetricCard(
                             value = state.weekWorkoutsDone.toString(),
                             label = stringResource(Res.string.home_metric_week_workouts),
                             modifier = Modifier.weight(1f),
                         )
-                        MetricCard(
+                        DsMetricCard(
                             value = state.currentWeightKg?.let { formatWeightKg(it) } ?: "--",
                             label = stringResource(Res.string.home_metric_weight),
                             delta = state.weightDeltaKg?.let { delta ->
@@ -157,7 +157,7 @@ fun HomeScreen(
                             animateValue = false,
                             modifier = Modifier.weight(1f),
                         )
-                        MetricCard(
+                        DsMetricCard(
                             value = state.streakWeeks.toString(),
                             label = stringResource(Res.string.home_metric_streak),
                             modifier = Modifier.weight(1f),

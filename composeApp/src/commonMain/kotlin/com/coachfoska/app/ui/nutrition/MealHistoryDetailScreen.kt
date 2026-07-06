@@ -33,6 +33,7 @@ import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.meal_history_detail_food_items
 import coachfoska.composeapp.generated.resources.meal_history_detail_not_found
 import coachfoska.composeapp.generated.resources.meal_history_detail_screen_title
@@ -43,7 +44,7 @@ import coachfoska.composeapp.generated.resources.meal_macro_label_kcal
 import coachfoska.composeapp.generated.resources.meal_macro_label_protein
 import coachfoska.composeapp.generated.resources.meal_macro_summary
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -71,7 +72,7 @@ fun MealHistoryDetailRoute(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = stringResource(Res.string.meal_history_detail_screen_title), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.meal_history_detail_screen_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
         when {
             state.isHistoryLoading -> DsLoadingBox(Modifier.weight(1f))
             state.selectedMealLog != null -> MealHistoryDetailScreen(

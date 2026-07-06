@@ -26,9 +26,10 @@ import com.coachfoska.app.presentation.profile.ProfileIntent
 import com.coachfoska.app.presentation.profile.ProfileState
 import com.coachfoska.app.presentation.profile.ProfileViewModel
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.designsystem.components.DsEmptyState
 import com.coachfoska.app.theme.ChartLine
 import com.coachfoska.app.theme.Spacing
@@ -94,7 +95,7 @@ fun ProgressScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(title = stringResource(Res.string.progress_screen_title), onBackClick = onBackClick)
+        DsTopBar(title = stringResource(Res.string.progress_screen_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
         if (state.isWeightHistoryLoading) {
             DsLoadingBox(Modifier.weight(1f))
         } else {

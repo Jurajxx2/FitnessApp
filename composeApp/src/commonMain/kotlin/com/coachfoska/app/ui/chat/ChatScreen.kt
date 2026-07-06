@@ -27,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.back_cd
 import com.coachfoska.app.core.util.MediaCaptureMode
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.core.util.rememberUriBytesReader
@@ -39,8 +41,9 @@ import com.coachfoska.app.presentation.chat.ChatViewModel
 import com.coachfoska.app.ui.chat.components.ChatBubble
 import com.coachfoska.app.ui.chat.components.ChatInputBar
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.app.ui.components.CoachTopBar
+import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -105,9 +108,10 @@ fun ChatScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        CoachTopBar(
+        DsTopBar(
             title = when (chatType) { ChatType.Human -> "COACH"; ChatType.Ai -> "AI COACH" },
-            onBackClick = onBackClick
+            onBackClick = onBackClick,
+            backContentDescription = stringResource(Res.string.back_cd)
         )
         if (state.isLoading) {
             LinearProgressIndicator(
