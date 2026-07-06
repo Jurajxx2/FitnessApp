@@ -267,7 +267,7 @@ private fun NotificationBell(hasUnread: Boolean, onClick: () -> Unit) {
                     .padding(top = 10.dp, end = 10.dp)
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(Color.Red)
+                    .background(DsTheme.colors.error)
             )
         }
     }

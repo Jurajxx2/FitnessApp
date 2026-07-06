@@ -150,7 +150,7 @@ fun ProgressScreen(
                                             Text(
                                                 text = "${if (diff < 0) "" else "+"}${stringResource(Res.string.weight_kg_format, diff.toString())}",
                                                 style = MaterialTheme.typography.titleMedium,
-                                                color = if (diff <= 0) Color(0xFF81C784) else Color(0xFFE57373)
+                                                color = if (diff <= 0) DsTheme.colors.successSoft else DsTheme.colors.errorSoft
                                             )
                                         }
                                     }

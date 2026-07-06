@@ -122,8 +122,8 @@ fun SetRow(
     }
     val setColor = when (setDraft.setType) {
         SetType.NORMAL -> MaterialTheme.colorScheme.onSurface
-        SetType.WARMUP -> Color(0xFFFFC107) // amber
-        SetType.DROP_SET -> Color(0xFFFF9800) // orange
+        SetType.WARMUP -> DsTheme.colors.warning
+        SetType.DROP_SET -> DsTheme.colors.warningStrong
         SetType.FAILURE -> MaterialTheme.colorScheme.error // red
     }
 
@@ -292,7 +292,7 @@ private fun SetSaveStateLabel(
         SetSaveState.Failed -> stringResource(Res.string.session_save_failed)
     }
     val color = when (saveState) {
-        SetSaveState.Saved -> Color(0xFF4CAF50)
+        SetSaveState.Saved -> DsTheme.colors.successSoft
         SetSaveState.Failed -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
