@@ -45,7 +45,6 @@ import coachfoska.composeapp.generated.resources.set_row_prev_header
 import coachfoska.composeapp.generated.resources.set_row_reps_header
 import coachfoska.composeapp.generated.resources.set_row_save_header
 import coachfoska.composeapp.generated.resources.set_row_set_header
-import com.coachfoska.app.core.util.LocalReduceMotion
 import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.formatWeightKg
@@ -53,6 +52,7 @@ import com.coachfoska.app.presentation.workout.SetDraft
 import com.coachfoska.app.presentation.workout.SetSaveState
 import com.coachfoska.app.presentation.workout.SetType
 import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.designsystem.theme.LocalReduceMotion
 import org.jetbrains.compose.resources.stringResource
 
 @Composable

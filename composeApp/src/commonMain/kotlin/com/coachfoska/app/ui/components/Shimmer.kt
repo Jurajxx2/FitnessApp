@@ -20,8 +20,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
-import com.coachfoska.app.core.util.LocalReduceMotion
 import com.coachfoska.app.theme.Spacing
+import com.coachfoska.designsystem.theme.LocalReduceMotion
 
 /** Single shimmer recipe (spec §2.3). Static placeholder under reduce-motion. */
 @Composable

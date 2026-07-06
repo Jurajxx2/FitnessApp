@@ -22,7 +22,6 @@ import coachfoska.composeapp.generated.resources.session_discard_confirm
 import coachfoska.composeapp.generated.resources.session_save_degraded
 import coachfoska.composeapp.generated.resources.session_sets_progress
 import coachfoska.composeapp.generated.resources.substitute_applied
-import com.coachfoska.app.core.util.LocalReduceMotion
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.presentation.workout.ActiveSessionIntent
 import com.coachfoska.app.presentation.workout.ActiveSessionState
@@ -30,6 +29,7 @@ import com.coachfoska.app.presentation.workout.ActiveSessionViewModel
 import com.coachfoska.app.presentation.workout.SessionDraft
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.workout.components.*
+import com.coachfoska.designsystem.theme.LocalReduceMotion
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel

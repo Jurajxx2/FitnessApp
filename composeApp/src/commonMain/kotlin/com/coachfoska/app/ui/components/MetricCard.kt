@@ -22,11 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.coachfoska.app.core.util.LocalReduceMotion
 import com.coachfoska.app.theme.MetricMedium
 import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.theme.Success
 import com.coachfoska.app.theme.TextAccent
+import com.coachfoska.designsystem.theme.LocalReduceMotion
 
 /**
  * Big number + label + optional trend delta. If [value] is purely numeric and

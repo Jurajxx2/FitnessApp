@@ -25,10 +25,6 @@ import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.SessionAuthState
 import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.navigation.*
-import androidx.compose.runtime.CompositionLocalProvider
-import com.coachfoska.app.core.util.LocalReduceMotion
-import com.coachfoska.app.core.util.rememberPlatformReduceMotion
-import com.coachfoska.app.theme.CoachFoskaTheme
 import com.coachfoska.app.ui.auth.EmailOtpRoute
 import com.coachfoska.app.ui.auth.VerifyOtpRoute
 import com.coachfoska.app.ui.auth.WelcomeRoute
@@ -69,14 +65,15 @@ import com.coachfoska.app.ui.workout.PostWorkoutSummaryRoute
 import com.coachfoska.app.ui.workout.ProgressDashboardRoute
 import com.coachfoska.app.ui.workout.WorkoutEditorRoute
 import com.coachfoska.app.ui.hydration.HydrationRoute
+import com.coachfoska.designsystem.brand.BrandRegistry
+import com.coachfoska.designsystem.theme.DsTheme
 
 @Composable
 fun App(openHumanChat: Boolean = false) {
     val themeRepository = koinInject<ThemeRepository>()
     val isDarkTheme by themeRepository.isDarkTheme.collectAsState()
 
-    CoachFoskaTheme(darkTheme = isDarkTheme) {
-        CompositionLocalProvider(LocalReduceMotion provides rememberPlatformReduceMotion()) {
+    DsTheme(brand = BrandRegistry.fromId(BuildKonfig.BRAND_ID), darkTheme = isDarkTheme) {
         val navController = rememberNavController()
         // Derive the current user id from the singleton session observer so it survives
         // Activity recreation (where `remember` would reset to "" but rememberNavController
@@ -641,7 +638,6 @@ fun App(openHumanChat: Boolean = false) {
                 }
             }
         }
-        } // CompositionLocalProvider
     }
 }
 

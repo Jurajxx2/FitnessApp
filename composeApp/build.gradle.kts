@@ -195,5 +195,9 @@ buildkonfig {
             BOOLEAN, "DEBUG",
             localProperties.getProperty("debug") ?: "false"
         )
+        buildConfigField(
+            STRING, "BRAND_ID",
+            localProperties.getProperty("brand.id") ?: "foska"
+        )
     }
 }
