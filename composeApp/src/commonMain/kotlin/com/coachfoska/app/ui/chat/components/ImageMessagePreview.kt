@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -51,14 +50,14 @@ fun ImageMessagePreview(
                 .align(Alignment.TopEnd)
                 .size(DsTheme.sizes.touchTarget)
                 .background(
-                    color = MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
+                    color = DsTheme.colors.background.copy(alpha = 0.85f),
                     shape = CircleShape
                 )
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = stringResource(Res.string.chat_remove_image_cd),
-                tint = MaterialTheme.colorScheme.onBackground,
+                tint = DsTheme.colors.textPrimary,
                 modifier = Modifier.size(12.dp)
             )
         }

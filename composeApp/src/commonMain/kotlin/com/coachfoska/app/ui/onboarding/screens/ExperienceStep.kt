@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.onboarding.screens
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
@@ -37,8 +38,8 @@ fun ExperienceStep(state: OnboardingState, onSelectAdvance: (OnboardingIntent) -
         modifier = modifier
     ) { level ->
         Column(Modifier.weight(1f)) {
-            Text(titles.getValue(level), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
-            Text(descs.getValue(level), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(titles.getValue(level), style = MaterialTheme.typography.titleMedium, color = DsTheme.colors.textPrimary)
+            Text(descs.getValue(level), style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
         }
         LevelBars(filled = level.bars)
     }

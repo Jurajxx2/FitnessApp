@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.profile
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -39,7 +40,7 @@ private const val website = "coachfoska.com"
 fun AboutCoachScreen(onBackClick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = DsTheme.colors.background
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             DsTopBar(title = stringResource(Res.string.about_foska), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
@@ -55,27 +56,27 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
                     Text(
                         text = coachName.uppercase(),
                         style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = DsTheme.colors.textPrimary,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.5).sp
                     )
                     Text(
                         text = coachTitle,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                         lineHeight = 20.sp
                     )
                 }
 
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.03f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = coachBio,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.8f),
                         lineHeight = 26.sp,
                         modifier = Modifier.padding(24.dp)
                     )
@@ -86,20 +87,20 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
                     Text(
                         text = stringResource(Res.string.certifications_section),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                         letterSpacing = 1.5.sp
                     )
                     certifications.forEach { cert ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)),
+                            color = DsTheme.colors.surface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.05f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = cert,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground,
+                                color = DsTheme.colors.textPrimary,
                                 modifier = Modifier.padding(16.dp)
                             )
                         }
@@ -111,17 +112,17 @@ fun AboutCoachScreen(onBackClick: () -> Unit) {
                     Text(
                         text = stringResource(Res.string.connect_section),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                         letterSpacing = 1.5.sp
                     )
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        color = DsTheme.colors.surfaceElevated.copy(alpha = 0.2f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(4.dp)) {
                             ConnectRow(stringResource(Res.string.instagram_label), instagram)
-                            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+                            HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
                             ConnectRow(stringResource(Res.string.website_label), website)
                         }
                     }
@@ -145,13 +146,13 @@ private fun ConnectRow(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
             letterSpacing = 1.sp
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             fontWeight = FontWeight.Bold
         )
     }

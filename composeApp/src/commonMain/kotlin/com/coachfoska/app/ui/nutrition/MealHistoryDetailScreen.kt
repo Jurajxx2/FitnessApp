@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.nutrition
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -83,7 +84,7 @@ fun MealHistoryDetailRoute(
                 Text(
                     text = stringResource(Res.string.meal_history_detail_not_found),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
                 )
             }
         }
@@ -119,20 +120,20 @@ private fun MealHistoryDetailScreen(log: MealLog, modifier: Modifier = Modifier)
                 Text(
                     text = log.mealName.uppercase(),
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.5.sp
                 )
                 Text(
                     text = log.loggedAt.toDisplayDateTime(),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.45f)
                 )
                 if (!log.notes.isNullOrBlank()) {
                     Text(
                         text = log.notes,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -152,7 +153,7 @@ private fun MealHistoryDetailScreen(log: MealLog, modifier: Modifier = Modifier)
             ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -174,7 +175,7 @@ private fun MealHistoryDetailScreen(log: MealLog, modifier: Modifier = Modifier)
                 Text(
                     text = stringResource(Res.string.meal_history_detail_food_items),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                     letterSpacing = 2.sp,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                 )
@@ -192,13 +193,13 @@ private fun MacroItem(value: String, label: String) {
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
         )
     }
 }
@@ -216,7 +217,7 @@ private fun FoodDetailRow(food: MealLogFood) {
             Text(
                 text = food.name,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
                 modifier = Modifier.weight(1f)
             )
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -224,15 +225,15 @@ private fun FoodDetailRow(food: MealLogFood) {
                     text = stringResource(Res.string.meal_kcal_format, food.calories.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = DsTheme.colors.textPrimary
                 )
                 Text(
                     text = stringResource(Res.string.meal_macro_summary, food.proteinG.toInt(), food.carbsG.toInt(), food.fatG.toInt()),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.45f)
                 )
             }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+        HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.05f))
     }
 }

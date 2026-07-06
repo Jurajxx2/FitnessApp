@@ -34,14 +34,14 @@ fun MuscleDistributionChart(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(entry.muscleGroup, style = MaterialTheme.typography.bodySmall)
-                    Text("${entry.percentage.toInt()}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${entry.percentage.toInt()}%", style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
                 }
                 Spacer(Modifier.height(2.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(3.dp)),
+                        .background(DsTheme.colors.surfaceElevated, RoundedCornerShape(3.dp)),
                 ) {
                     Box(
                         modifier = Modifier

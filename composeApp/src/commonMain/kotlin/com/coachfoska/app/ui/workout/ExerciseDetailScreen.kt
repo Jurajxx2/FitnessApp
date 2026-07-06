@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -95,7 +96,7 @@ fun ExerciseDetailScreen(
                         Icon(
                             imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = if (isFavorite) stringResource(Res.string.recipes_remove_favorite_cd) else stringResource(Res.string.recipes_add_favorite_cd),
-                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                            tint = if (isFavorite) DsTheme.colors.actionPrimary else DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                         )
                     }
                 }
@@ -110,7 +111,7 @@ fun ExerciseDetailScreen(
         if (exercise == null) {
             state.error?.let {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.error)
                 }
             }
             return@Column
@@ -122,7 +123,7 @@ fun ExerciseDetailScreen(
                 Text(
                     text = it.name.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                     letterSpacing = 1.sp,
                 )
             }
@@ -185,7 +186,7 @@ private fun GuideTab(exercise: com.coachfoska.app.domain.model.Exercise) {
                         Text(
                             stringResource(Res.string.exercise_detail_secondary_muscles, exercise.musclesSecondary.joinToString(", ")),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                            color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                         )
                     }
                 }
@@ -203,7 +204,7 @@ private fun GuideTab(exercise: com.coachfoska.app.domain.model.Exercise) {
                 Text(
                     exercise.description,
                     style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.8f),
                 )
             }
         }
@@ -229,7 +230,7 @@ private fun HistoryTab(userId: String, exerciseName: String) {
 
     if (history.isEmpty()) {
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-            Text(stringResource(Res.string.exercise_detail_no_history), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(Res.string.exercise_detail_no_history), style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.textSecondary)
         }
         return
     }
@@ -252,7 +253,7 @@ private fun HistoryTab(userId: String, exerciseName: String) {
                         Text(
                             text = exerciseLog.summaryLine,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = DsTheme.colors.textSecondary,
                         )
                     }
                 }
@@ -282,7 +283,7 @@ private fun ChartsTab(userId: String, exerciseName: String) {
 
     if (history.isEmpty()) {
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-            Text(stringResource(Res.string.exercise_detail_no_chart_data), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(Res.string.exercise_detail_no_chart_data), style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.textSecondary)
         }
         return
     }
@@ -325,8 +326,8 @@ private fun ChartsTab(userId: String, exerciseName: String) {
 
         // Simple Canvas line chart
         if (dataPoints.isNotEmpty()) {
-            val primary = MaterialTheme.colorScheme.primary
-            val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+            val primary = DsTheme.colors.actionPrimary
+            val surfaceVariant = DsTheme.colors.surfaceElevated
             val maxVal = dataPoints.max().coerceAtLeast(1f)
             val minVal = dataPoints.min()
 
@@ -412,7 +413,7 @@ private fun RecordsTab(userId: String, exerciseName: String) {
     val r = records
     if (r == null || listOfNotNull(r.heaviestWeight, r.mostRepsAtWeight, r.highestEstimated1RM, r.highestVolume).isEmpty()) {
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-            Text(stringResource(Res.string.exercise_detail_no_records), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(Res.string.exercise_detail_no_records), style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.textSecondary)
         }
         return
     }
@@ -437,10 +438,10 @@ private fun RecordCard(title: String, entry: RecordEntry) {
         Column(modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(title, style = MaterialTheme.typography.labelMedium, color = DsTheme.colors.actionPrimary)
             Text(entry.value, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-            Text(entry.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(entry.date.toString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(entry.detail, style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
+            Text(entry.date.toString(), style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
         }
     }
 }
@@ -451,12 +452,12 @@ private fun InfoSection(title: String, content: @Composable () -> Unit) {
         Text(
             title,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
             letterSpacing = 1.5.sp,
         )
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+            color = DsTheme.colors.surfaceElevated.copy(alpha = 0.2f),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Box(modifier = Modifier.padding(20.dp)) { content() }

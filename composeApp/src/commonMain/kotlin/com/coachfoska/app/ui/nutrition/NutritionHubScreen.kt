@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.nutrition
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -113,13 +114,13 @@ fun NutritionHubScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(DsTheme.colors.background)
             .verticalScroll(rememberScrollState())
     ) {
         Text(
             text = stringResource(Res.string.nutrition_hub_title),
             style = MaterialTheme.typography.displayMedium,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp)
         )
 
@@ -133,8 +134,8 @@ fun NutritionHubScreen(
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = DsTheme.colors.actionPrimary,
+                    contentColor = DsTheme.colors.onActionPrimary,
                 ),
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -156,13 +157,13 @@ fun NutritionHubScreen(
                 Text(
                     text = stringResource(Res.string.nutrition_hub_featured_recipes),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     letterSpacing = 1.5.sp,
                 )
                 Text(
                     text = stringResource(Res.string.common_see_all),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = DsTheme.colors.actionPrimary,
                     letterSpacing = 1.sp,
                     modifier = Modifier.clickable(onClick = onRecipesClick),
                 )
@@ -177,7 +178,7 @@ fun NutritionHubScreen(
                     Text(
                         text = stringResource(Res.string.nutrition_hub_no_recipes),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                     )
                 else ->
                     LazyRow(

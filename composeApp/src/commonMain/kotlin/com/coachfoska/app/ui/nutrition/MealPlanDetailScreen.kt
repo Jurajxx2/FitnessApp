@@ -87,7 +87,7 @@ fun MealPlanDetailScreen(
     onBackClick: () -> Unit,
     onSelectDay: (Int) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsTheme.colors.background)) {
         DsTopBar(title = stringResource(Res.string.meal_plan_screen_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
         if (state.isLoading) {
@@ -131,14 +131,14 @@ fun MealPlanDetailScreen(
                         Text(
                             text = if (state.mealPlan == null) stringResource(Res.string.meal_plan_no_plan) else stringResource(Res.string.meal_plan_no_meals_for_day),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                         )
                     }
                 }
             }
 
             Surface(
-                color = MaterialTheme.colorScheme.background,
+                color = DsTheme.colors.background,
                 shadowElevation = 8.dp,
             ) {
                 DsButton(
@@ -163,8 +163,8 @@ private fun DayStrip(
     ) {
         items(DAY_LETTERS.size) { index ->
             val isSelected = index == selectedDay
-            val bgColor = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.surface
-            val textColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            val bgColor = if (isSelected) DsTheme.colors.textPrimary else DsTheme.colors.surface
+            val textColor = if (isSelected) DsTheme.colors.background else DsTheme.colors.textPrimary.copy(alpha = 0.6f)
             Box(
                 modifier = Modifier
                     .size(DsTheme.sizes.touchTarget)
@@ -195,7 +195,7 @@ private fun PlanHeader(planName: String?, mealCount: Int) {
         Text(
             text = stringResource(Res.string.meal_plan_daily_plan),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
             letterSpacing = 1.5.sp,
         )
         Row(
@@ -206,13 +206,13 @@ private fun PlanHeader(planName: String?, mealCount: Int) {
             Text(
                 text = planName ?: stringResource(Res.string.meal_plan_assigned_meals),
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 text = stringResource(Res.string.meal_plan_count_planned, mealCount),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.48f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.48f),
             )
         }
     }
@@ -231,8 +231,8 @@ private fun DailyMacroRow(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)),
+        color = DsTheme.colors.surface,
+        border = BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.08f)),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -256,12 +256,12 @@ private fun MacroItem(value: String, label: String) {
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
             letterSpacing = 0.5.sp,
         )
     }
@@ -272,7 +272,7 @@ private fun MacroDivider() {
     Box(
         modifier = Modifier
             .size(3.dp)
-            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), CircleShape),
+            .background(DsTheme.colors.textPrimary.copy(alpha = 0.2f), CircleShape),
     )
 }
 
@@ -281,8 +281,8 @@ private fun MealPlanDetailCard(meal: Meal, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)),
+        color = DsTheme.colors.surface,
+        border = BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.08f)),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -300,14 +300,14 @@ private fun MealPlanDetailCard(meal: Meal, onClick: () -> Unit) {
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        color = DsTheme.colors.actionPrimary.copy(alpha = 0.12f),
                         modifier = Modifier.size(34.dp),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.Restaurant,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = DsTheme.colors.actionPrimary,
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -315,7 +315,7 @@ private fun MealPlanDetailCard(meal: Meal, onClick: () -> Unit) {
                     Text(
                         text = meal.name,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = DsTheme.colors.textPrimary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -324,7 +324,7 @@ private fun MealPlanDetailCard(meal: Meal, onClick: () -> Unit) {
                     Text(
                         text = it.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                         letterSpacing = 0.5.sp,
                     )
                 }
@@ -333,7 +333,7 @@ private fun MealPlanDetailCard(meal: Meal, onClick: () -> Unit) {
                 Text(
                     text = meal.foods.joinToString(" + ") { it.name },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -355,13 +355,13 @@ private fun MealPlanDetailCard(meal: Meal, onClick: () -> Unit) {
 private fun MealMacroChip(text: String) {
     Surface(
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.045f),
+        color = DsTheme.colors.textPrimary.copy(alpha = 0.045f),
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.62f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.62f),
         )
     }
 }

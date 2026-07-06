@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.hydration.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -36,8 +37,8 @@ fun WaterFillAnimation(
     consumedMl: Int,
     goalMl: Int,
     modifier: Modifier = Modifier,
-    waterColor: Color = MaterialTheme.colorScheme.primary,
-    trackColor: Color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f),
+    waterColor: Color = DsTheme.colors.actionPrimary,
+    trackColor: Color = DsTheme.colors.textPrimary.copy(alpha = 0.06f),
 ) {
     val targetFraction = fraction.coerceIn(0f, 1f)
     val animatedFraction by animateFloatAsState(
@@ -117,12 +118,12 @@ fun WaterFillAnimation(
                 text = consumedMl.toString(),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
             )
             Text(
                 text = stringResource(Res.string.hydration_goal_format, goalMl),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
             )
         }
     }

@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -46,7 +47,7 @@ fun ExerciseCardHeader(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DsTheme.colors.textSecondary,
             )
         }
         

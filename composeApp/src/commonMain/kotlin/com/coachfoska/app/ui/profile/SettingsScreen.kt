@@ -117,7 +117,7 @@ fun SettingsScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = DsTheme.colors.background
     ) {
         Column(
             modifier = Modifier
@@ -130,13 +130,13 @@ fun SettingsScreen(
                 Text(
                     text = stringResource(Res.string.settings_title),
                     style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
                     text = complianceReady,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.55f),
                     lineHeight = 20.sp
                 )
             }
@@ -240,13 +240,13 @@ fun SettingsScreen(
             notice?.let {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
+                    color = DsTheme.colors.surfaceElevated.copy(alpha = 0.25f),
+                    border = BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.08f))
                 ) {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.75f),
                         modifier = Modifier.padding(DsTheme.spacing.lg)
                     )
                 }
@@ -257,7 +257,7 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onBackground
+                    contentColor = DsTheme.colors.textPrimary
                 )
             ) {
                 Text(
@@ -276,8 +276,8 @@ fun SettingsScreen(
 private fun SettingsSection(content: @Composable ColumnScope.() -> Unit) {
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.16f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f)),
+        color = DsTheme.colors.surfaceElevated.copy(alpha = 0.16f),
+        border = BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.06f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(content = content)
@@ -297,7 +297,7 @@ private fun SettingsRow(
     Surface(
         onClick = { if (enabled) onClick?.invoke() },
         enabled = enabled && onClick != null,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f),
+        color = DsTheme.colors.surfaceElevated.copy(alpha = 0f),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -315,16 +315,16 @@ private fun SettingsRow(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
                     color = if (destructive) {
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = contentAlpha)
+                        DsTheme.colors.accent.copy(alpha = contentAlpha)
                     } else {
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = contentAlpha)
+                        DsTheme.colors.textPrimary.copy(alpha = contentAlpha)
                     },
                     letterSpacing = 1.sp
                 )
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f * contentAlpha),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.45f * contentAlpha),
                     lineHeight = 18.sp
                 )
             }
@@ -332,7 +332,7 @@ private fun SettingsRow(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f)
+                    tint = DsTheme.colors.textPrimary.copy(alpha = 0.25f)
                 )
             }
         }
@@ -342,7 +342,7 @@ private fun SettingsRow(
 @Composable
 private fun SettingsDivider() {
     HorizontalDivider(
-        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+        color = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
         modifier = Modifier.padding(horizontal = DsTheme.spacing.lg)
     )
 }
@@ -352,7 +352,7 @@ private fun SectionTitle(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
+        color = DsTheme.colors.textPrimary.copy(alpha = 0.45f),
         letterSpacing = 1.5.sp
     )
 }
@@ -369,7 +369,7 @@ private fun DebugRow(
     Surface(
         onClick = { onClick?.invoke() },
         enabled = onClick != null,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f),
+        color = DsTheme.colors.surfaceElevated.copy(alpha = 0f),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -386,16 +386,16 @@ private fun DebugRow(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     letterSpacing = 1.sp
                 )
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = when {
-                        isSuccess -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                        isError -> MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                        else -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
+                        isSuccess -> DsTheme.colors.actionPrimary.copy(alpha = 0.8f)
+                        isError -> DsTheme.colors.error.copy(alpha = 0.8f)
+                        else -> DsTheme.colors.textPrimary.copy(alpha = 0.45f)
                     },
                     lineHeight = 18.sp
                 )
@@ -404,12 +404,12 @@ private fun DebugRow(
                 isLoading -> CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
                 )
                 !isSuccess && !isError -> Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f)
+                    tint = DsTheme.colors.textPrimary.copy(alpha = 0.25f)
                 )
             }
         }

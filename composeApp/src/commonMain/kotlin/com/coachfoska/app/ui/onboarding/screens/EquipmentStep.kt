@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.onboarding.screens
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,8 +36,8 @@ fun EquipmentStep(state: OnboardingState, onSelectAdvance: (OnboardingIntent) ->
         modifier = modifier
     ) { eq ->
         Column {
-            Text(titles.getValue(eq), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
-            Text(descs.getValue(eq), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(titles.getValue(eq), style = MaterialTheme.typography.titleMedium, color = DsTheme.colors.textPrimary)
+            Text(descs.getValue(eq), style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
         }
     }
 }

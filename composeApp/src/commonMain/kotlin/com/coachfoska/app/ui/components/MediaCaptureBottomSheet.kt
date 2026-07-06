@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
@@ -45,7 +46,7 @@ fun MediaCaptureBottomSheet(
             Text(
                 text = if (mode == MediaCaptureMode.PHOTO) stringResource(Res.string.media_add_photo_title) else stringResource(Res.string.media_add_video_title),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
             if (mode == MediaCaptureMode.PHOTO) {
@@ -83,7 +84,7 @@ private fun MediaSheetOption(
 ) {
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.surface,
+        color = DsTheme.colors.surface,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -94,7 +95,7 @@ private fun MediaSheetOption(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                tint = DsTheme.colors.textPrimary.copy(alpha = 0.7f),
                 modifier = Modifier.size(24.dp)
             )
             Text(

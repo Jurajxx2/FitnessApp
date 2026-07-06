@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,7 +45,7 @@ fun WeeklyActivitySection(
         Text(
             text = stringResource(Res.string.weekly_activity_title),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             letterSpacing = 1.5.sp,
         )
         WeeklyActivityGrid(days = days, onDayClick = onDayClick)
@@ -57,7 +58,7 @@ private fun DaySummaryBar(todayWorkout: Workout?, volumeKg: Double?, onClick: ((
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), SquareShape)
+            .border(BorderStroke(1.dp, DsTheme.colors.outlineSubtle), SquareShape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -66,13 +67,13 @@ private fun DaySummaryBar(todayWorkout: Workout?, volumeKg: Double?, onClick: ((
             Text(
                 text = if (todayWorkout != null) stringResource(Res.string.todays_focus) else stringResource(Res.string.weekly_activity_rest_day),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DsTheme.colors.textSecondary,
                 letterSpacing = 1.sp,
             )
             Text(
                 text = todayWorkout?.name?.uppercase() ?: stringResource(Res.string.weekly_activity_no_workout),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
             )
         }
         if (todayWorkout != null) {
@@ -90,7 +91,7 @@ private fun DaySummaryBar(todayWorkout: Workout?, volumeKg: Double?, onClick: ((
 @Composable
 private fun SummaryMetric(label: String, value: String) {
     Column(horizontalAlignment = Alignment.End) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
-        Text(value, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, letterSpacing = 1.sp)
+        Text(value, style = MaterialTheme.typography.labelLarge, color = DsTheme.colors.textPrimary)
     }
 }

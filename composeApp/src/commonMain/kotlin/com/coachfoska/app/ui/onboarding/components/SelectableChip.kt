@@ -16,15 +16,15 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SelectableChip(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onBackground
+    val bg = if (selected) DsTheme.colors.actionPrimary else DsTheme.colors.surface
+    val fg = if (selected) DsTheme.colors.onActionPrimary else DsTheme.colors.textPrimary
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,
         color = fg,
         modifier = modifier
             .background(bg, RectangleShape)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
+            .border(1.dp, DsTheme.colors.outline, RectangleShape)
             .clickable(onClick = onClick)
             .defaultMinSize(minHeight = DsTheme.sizes.touchTarget)
             .padding(horizontal = DsTheme.spacing.lg, vertical = 10.dp)

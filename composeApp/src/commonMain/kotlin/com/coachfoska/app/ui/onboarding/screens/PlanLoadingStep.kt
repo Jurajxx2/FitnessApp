@@ -53,9 +53,9 @@ fun PlanLoadingStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit
             stringResource(Res.string.ob_loading_done)
         else
             stringResource(Res.string.ob_loading_preparing, state.data.name)
-        Text(headline, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = DsTheme.spacing.xl))
+        Text(headline, style = MaterialTheme.typography.headlineSmall, color = DsTheme.colors.actionPrimary, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = DsTheme.spacing.xl))
         if (state.error != null) {
-            Text(stringResource(Res.string.ob_loading_error), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+            Text(stringResource(Res.string.ob_loading_error), style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.error, textAlign = TextAlign.Center)
             DsButton(text = stringResource(Res.string.ob_loading_retry), onClick = { animationDone = false; onIntent(OnboardingIntent.CompleteOnboarding) }, shape = RectangleShape, modifier = Modifier.padding(top = DsTheme.spacing.lg))
         } else {
             PlanLoadingAnimation(rows = rows, onFinished = { animationDone = true })

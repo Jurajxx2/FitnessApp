@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.chat.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,7 +40,7 @@ fun ChatInputBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(DsTheme.colors.background)
             .padding(horizontal = 8.dp, vertical = 8.dp)
             .imePadding(),
         verticalAlignment = Alignment.CenterVertically
@@ -48,7 +49,7 @@ fun ChatInputBar(
             Icon(
                 imageVector = Icons.Default.AttachFile,
                 contentDescription = stringResource(Res.string.attach_image_cd),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                tint = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
             )
         }
 
@@ -73,14 +74,14 @@ fun ChatInputBar(
                 CircularProgressIndicator(
                     modifier = Modifier.size(20.dp),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.primary
+                    color = DsTheme.colors.actionPrimary
                 )
             } else {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = stringResource(Res.string.send_cd),
-                    tint = if (text.isNotBlank()) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+                    tint = if (text.isNotBlank()) DsTheme.colors.actionPrimary
+                           else DsTheme.colors.textPrimary.copy(alpha = 0.3f)
                 )
             }
         }

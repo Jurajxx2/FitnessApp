@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.nutrition.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -43,8 +44,8 @@ fun MacroRingSummary(
 
     val gradient = Brush.linearGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.02f),
+            DsTheme.colors.actionPrimary.copy(alpha = 0.10f),
+            DsTheme.colors.actionPrimary.copy(alpha = 0.02f),
         ),
     )
     Row(
@@ -60,8 +61,8 @@ fun MacroRingSummary(
                 progress = { fraction },
                 modifier = Modifier.size(72.dp),
                 strokeWidth = 6.dp,
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                color = DsTheme.colors.actionPrimary,
+                trackColor = DsTheme.colors.textPrimary.copy(alpha = 0.08f),
             )
             Text(
                 text = "${calories.toInt()}",
@@ -84,12 +85,12 @@ private fun MacroLine(label: String, grams: Float) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
         )
         Text(
             text = stringResource(Res.string.common_grams_format, animated.toInt()),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             fontWeight = FontWeight.SemiBold,
         )
     }

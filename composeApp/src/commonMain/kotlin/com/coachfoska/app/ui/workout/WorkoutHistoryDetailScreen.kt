@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -112,12 +113,12 @@ fun WorkoutHistoryDetailScreen(
                         )
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 24.dp),
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                            color = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
                         )
                     }
                 }
             } ?: Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text(text = stringResource(Res.string.workout_history_log_not_found), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                Text(text = stringResource(Res.string.workout_history_log_not_found), color = DsTheme.colors.textPrimary.copy(alpha = 0.5f))
             }
         }
     }
@@ -129,13 +130,13 @@ private fun WorkoutLogHeader(log: WorkoutLog) {
         Text(
             text = log.loggedAt.toDisplayDateTime().uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
             letterSpacing = 1.sp,
         )
         Text(
             text = log.workoutName,
             style = MaterialTheme.typography.displayMedium,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
         )
         Row(
             modifier = Modifier.padding(top = 12.dp),
@@ -145,17 +146,17 @@ private fun WorkoutLogHeader(log: WorkoutLog) {
             Text(
                 text = stringResource(Res.string.duration_min, log.durationMinutes),
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
             )
             Box(
                 modifier = Modifier
                     .size(3.dp)
-                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)),
+                    .background(DsTheme.colors.textPrimary.copy(alpha = 0.2f), RoundedCornerShape(50)),
             )
             Text(
                 text = stringResource(Res.string.exercises_count, log.exerciseLogs.size),
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
             )
         }
 
@@ -163,13 +164,13 @@ private fun WorkoutLogHeader(log: WorkoutLog) {
             Spacer(modifier = Modifier.height(24.dp))
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                color = DsTheme.colors.surfaceElevated.copy(alpha = 0.2f),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
                     text = log.notes,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.8f),
                     modifier = Modifier.padding(16.dp),
                 )
             }
@@ -190,7 +191,7 @@ private fun ExerciseLogDetailRow(
     var expanded by rememberSaveable(log.id) { mutableStateOf(false) }
 
     Surface(
-        color = MaterialTheme.colorScheme.background,
+        color = DsTheme.colors.background,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -208,21 +209,21 @@ private fun ExerciseLogDetailRow(
                     Text(
                         text = log.exerciseName,
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = DsTheme.colors.textPrimary,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = stringResource(Res.string.workout_history_sets_format, log.setsCompletedCount),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                     )
                 }
                 if (log.summaryLine.isNotEmpty()) {
                     Text(
                         text = log.summaryLine,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
                     )
                 }
                 if (expanded && log.sets.isNotEmpty()) {
@@ -239,8 +240,8 @@ private fun ExerciseLogDetailRow(
             IconButton(
                 onClick = onCaptureVideo,
                 colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                    contentColor = MaterialTheme.colorScheme.onBackground,
+                    containerColor = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
+                    contentColor = DsTheme.colors.textPrimary,
                 ),
                 modifier = Modifier.size(48.dp),
             ) {
@@ -260,26 +261,26 @@ private fun FeedbackList(feedback: List<WorkoutFeedback>) {
         Text(
             text = "Coach feedback",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
+            color = DsTheme.colors.actionPrimary,
             letterSpacing = 1.sp,
         )
         feedback.forEach { item ->
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                color = DsTheme.colors.actionPrimary.copy(alpha = 0.08f),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
                         text = item.body,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.85f),
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = item.createdAt.toDisplayDateTime(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                     )
                 }
             }

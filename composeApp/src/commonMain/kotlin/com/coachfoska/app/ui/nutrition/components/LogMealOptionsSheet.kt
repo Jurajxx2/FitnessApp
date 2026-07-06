@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.nutrition.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,7 +53,7 @@ fun LogMealOptionsSheet(
             Text(
                 text = stringResource(Res.string.log_meal_button),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                 letterSpacing = 1.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
@@ -68,7 +69,7 @@ fun LogMealOptionsSheet(
 private fun LogMealOption(icon: ImageVector, label: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.surface,
+        color = DsTheme.colors.surface,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -79,7 +80,7 @@ private fun LogMealOption(icon: ImageVector, label: String, onClick: () -> Unit)
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                tint = DsTheme.colors.textPrimary.copy(alpha = 0.7f),
                 modifier = Modifier.size(24.dp)
             )
             Text(label, style = MaterialTheme.typography.bodyLarge)

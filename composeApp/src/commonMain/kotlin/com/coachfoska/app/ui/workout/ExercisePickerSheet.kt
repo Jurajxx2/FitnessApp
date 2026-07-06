@@ -35,7 +35,7 @@ fun ExercisePickerSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = DsTheme.colors.surface,
     ) {
         Column(
             modifier = Modifier

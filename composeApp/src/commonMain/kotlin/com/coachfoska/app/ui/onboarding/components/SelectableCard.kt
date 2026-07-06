@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -37,14 +36,14 @@ fun SelectableCard(
         label = "card-scale"
     )
     val border by animateColorAsState(
-        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+        if (selected) DsTheme.colors.actionPrimary else DsTheme.colors.outline,
         label = "card-border"
     )
     Box(
         modifier
             .fillMaxWidth()
             .scale(scale)
-            .background(MaterialTheme.colorScheme.surface, RectangleShape)
+            .background(DsTheme.colors.surface, RectangleShape)
             .border(BorderStroke(if (selected) 2.dp else 1.dp, border), RectangleShape)
             .clickable(onClick = onClick)
             .heightIn(min = DsTheme.sizes.touchTarget)

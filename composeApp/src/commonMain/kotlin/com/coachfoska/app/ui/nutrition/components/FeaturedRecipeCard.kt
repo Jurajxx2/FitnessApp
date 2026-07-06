@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.nutrition.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,8 +40,8 @@ fun FeaturedRecipeCard(
         onClick = onClick,
         modifier = modifier.width(200.dp),
         shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)),
+        color = DsTheme.colors.surface,
+        border = BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.08f)),
     ) {
         Column {
             Box(
@@ -48,7 +49,7 @@ fun FeaturedRecipeCard(
                     .fillMaxWidth()
                     .height(110.dp)
                     .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)),
+                    .background(DsTheme.colors.textPrimary.copy(alpha = 0.05f)),
                 contentAlignment = Alignment.Center,
             ) {
                 if (recipe.imageUrl != null) {
@@ -62,7 +63,7 @@ fun FeaturedRecipeCard(
                     Icon(
                         imageVector = Icons.Filled.RestaurantMenu,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f),
+                        tint = DsTheme.colors.textPrimary.copy(alpha = 0.25f),
                         modifier = Modifier.size(32.dp),
                     )
                 }
@@ -74,7 +75,7 @@ fun FeaturedRecipeCard(
                 Text(
                     text = recipe.name,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -85,7 +86,7 @@ fun FeaturedRecipeCard(
                 Text(
                     text = meta,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

@@ -178,16 +178,16 @@ fun WorkoutEditorScreen(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     shape = RoundedCornerShape(8.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        focusedBorderColor = MaterialTheme.colorScheme.onBackground,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
-                        errorBorderColor = MaterialTheme.colorScheme.error,
-                        errorLabelColor = MaterialTheme.colorScheme.error,
-                        errorSupportingTextColor = MaterialTheme.colorScheme.error,
-                        cursorColor = MaterialTheme.colorScheme.onBackground,
-                        focusedLabelColor = MaterialTheme.colorScheme.onBackground,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        focusedTextColor = DsTheme.colors.textPrimary,
+                        unfocusedTextColor = DsTheme.colors.textPrimary,
+                        focusedBorderColor = DsTheme.colors.textPrimary,
+                        unfocusedBorderColor = DsTheme.colors.textPrimary.copy(alpha = 0.1f),
+                        errorBorderColor = DsTheme.colors.error,
+                        errorLabelColor = DsTheme.colors.error,
+                        errorSupportingTextColor = DsTheme.colors.error,
+                        cursorColor = DsTheme.colors.textPrimary,
+                        focusedLabelColor = DsTheme.colors.textPrimary,
+                        unfocusedLabelColor = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                     )
                 )
             }
@@ -198,7 +198,7 @@ fun WorkoutEditorScreen(
                     Text(
                         text = stringResource(Res.string.editor_day_label),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
                     )
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)
@@ -237,7 +237,7 @@ fun WorkoutEditorScreen(
                     Text(
                         text = stringResource(Res.string.editor_exercises_error),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                        color = DsTheme.colors.error,
                     )
                 }
             }
@@ -284,7 +284,7 @@ private fun ExerciseEditorCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = DsTheme.colors.surfaceElevated
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -298,13 +298,13 @@ private fun ExerciseEditorCard(
                     Text(
                         text = exercise.name,
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = DsTheme.colors.textPrimary
                     )
                     if (exercise.muscleGroup != null) {
                         Text(
                             text = exercise.muscleGroup,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            color = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -317,8 +317,8 @@ private fun ExerciseEditorCard(
                     Icon(
                         Icons.Default.KeyboardArrowUp,
                         contentDescription = stringResource(Res.string.editor_move_up_cd),
-                        tint = if (!isFirst) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        tint = if (!isFirst) DsTheme.colors.textPrimary
+                        else DsTheme.colors.textPrimary.copy(alpha = 0.2f)
                     )
                 }
                 // Down button — 48dp touch target
@@ -330,8 +330,8 @@ private fun ExerciseEditorCard(
                     Icon(
                         Icons.Default.KeyboardArrowDown,
                         contentDescription = stringResource(Res.string.editor_move_down_cd),
-                        tint = if (!isLast) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        tint = if (!isLast) DsTheme.colors.textPrimary
+                        else DsTheme.colors.textPrimary.copy(alpha = 0.2f)
                     )
                 }
                 // Remove button — 48dp touch target
@@ -342,7 +342,7 @@ private fun ExerciseEditorCard(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = stringResource(Res.string.editor_remove_cd),
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                        tint = DsTheme.colors.error.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -409,13 +409,13 @@ private fun ExerciseParamField(
         shape = RoundedCornerShape(6.dp),
         textStyle = MaterialTheme.typography.bodyMedium,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-            focusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
-            focusedLabelColor = MaterialTheme.colorScheme.onSurface,
-            unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-            cursorColor = MaterialTheme.colorScheme.onSurface,
+            focusedTextColor = DsTheme.colors.textPrimary,
+            unfocusedTextColor = DsTheme.colors.textPrimary,
+            focusedBorderColor = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
+            unfocusedBorderColor = DsTheme.colors.textPrimary.copy(alpha = 0.15f),
+            focusedLabelColor = DsTheme.colors.textPrimary,
+            unfocusedLabelColor = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
+            cursorColor = DsTheme.colors.textPrimary,
         )
     )
 }

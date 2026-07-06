@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.onboarding.screens
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,8 +36,8 @@ fun GoalStep(state: OnboardingState, onSelectAdvance: (OnboardingIntent) -> Unit
         modifier = modifier
     ) { goal ->
         Column {
-            Text(titles.getValue(goal), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
-            Text(descs.getValue(goal), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(titles.getValue(goal), style = MaterialTheme.typography.titleMedium, color = DsTheme.colors.textPrimary)
+            Text(descs.getValue(goal), style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
         }
     }
 }

@@ -64,14 +64,14 @@ fun SetTableHeader(modifier: Modifier = Modifier) {
             .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(stringResource(Res.string.set_row_set_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(32.dp))
-        Text(stringResource(Res.string.set_row_prev_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(64.dp))
-        Text(stringResource(Res.string.set_row_kg_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
-        Text(stringResource(Res.string.set_row_reps_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
+        Text(stringResource(Res.string.set_row_set_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(32.dp))
+        Text(stringResource(Res.string.set_row_prev_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(64.dp))
+        Text(stringResource(Res.string.set_row_kg_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
+        Text(stringResource(Res.string.set_row_reps_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
         Spacer(Modifier.weight(1f))
-        Text("✓", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(DsTheme.sizes.touchTarget), textAlign = TextAlign.Center)
+        Text("✓", style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(DsTheme.sizes.touchTarget), textAlign = TextAlign.Center)
         Spacer(Modifier.width(DsTheme.sizes.touchTarget))
-        Text(stringResource(Res.string.set_row_save_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(76.dp), textAlign = TextAlign.End)
+        Text(stringResource(Res.string.set_row_save_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(76.dp), textAlign = TextAlign.End)
     }
 }
 
@@ -103,13 +103,13 @@ fun SetRow(
         }
     }
     val completedBg by animateColorAsState(
-        targetValue = if (setDraft.completed) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        targetValue = if (setDraft.completed) DsTheme.colors.actionPrimary.copy(alpha = 0.12f)
         else Color.Transparent,
         animationSpec = tween(200),
         label = "setRowBg",
     )
     val borderColor = when {
-        isNextSet && !setDraft.completed -> MaterialTheme.colorScheme.primary
+        isNextSet && !setDraft.completed -> DsTheme.colors.actionPrimary
         else -> Color.Transparent
     }
 
@@ -121,10 +121,10 @@ fun SetRow(
         SetType.FAILURE -> "F"
     }
     val setColor = when (setDraft.setType) {
-        SetType.NORMAL -> MaterialTheme.colorScheme.onSurface
+        SetType.NORMAL -> DsTheme.colors.textPrimary
         SetType.WARMUP -> DsTheme.colors.warning
         SetType.DROP_SET -> DsTheme.colors.warningStrong
-        SetType.FAILURE -> MaterialTheme.colorScheme.error // red
+        SetType.FAILURE -> DsTheme.colors.error // red
     }
 
     // Fitts's Law: entire row is a tap target to mark set complete
@@ -179,7 +179,7 @@ fun SetRow(
         Text(
             text = prevText,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = DsTheme.colors.textSecondary,
             modifier = Modifier.width(64.dp),
         )
 
@@ -240,15 +240,15 @@ fun SetRow(
                     }
                     .clip(RoundedCornerShape(6.dp))
                     .background(
-                        if (setDraft.completed) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceVariant
+                        if (setDraft.completed) DsTheme.colors.actionPrimary
+                        else DsTheme.colors.surfaceElevated
                     ),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = if (setDraft.completed) "✓" else "",
-                    color = if (setDraft.completed) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (setDraft.completed) DsTheme.colors.onActionPrimary
+                    else DsTheme.colors.textSecondary,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                 )
@@ -264,9 +264,9 @@ fun SetRow(
                 imageVector = Icons.Default.DeleteOutline,
                 contentDescription = stringResource(Res.string.remove_set_cd),
                 tint = if (onRemove != null) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    DsTheme.colors.textSecondary
                 } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.24f)
+                    DsTheme.colors.textSecondary.copy(alpha = 0.24f)
                 },
             )
         }
@@ -293,8 +293,8 @@ private fun SetSaveStateLabel(
     }
     val color = when (saveState) {
         SetSaveState.Saved -> DsTheme.colors.successSoft
-        SetSaveState.Failed -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+        SetSaveState.Failed -> DsTheme.colors.error
+        else -> DsTheme.colors.textSecondary
     }
     Text(
         text = text,

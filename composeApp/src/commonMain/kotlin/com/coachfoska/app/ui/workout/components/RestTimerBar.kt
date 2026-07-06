@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -71,7 +72,7 @@ fun RestTimerBar(
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.Bold,
                             ),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = DsTheme.colors.actionPrimary,
                         )
                     }
 
@@ -104,7 +105,7 @@ fun RestTimerBar(
                         .fillMaxWidth()
                         .height(4.dp)
                         .padding(horizontal = 4.dp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = DsTheme.colors.actionPrimary,
                     trackColor = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.3f),
                 )
             }

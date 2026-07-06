@@ -46,12 +46,12 @@ fun FrequencyStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
         Text(
             stringResource(Res.string.ob_frequency_title),
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground
+            color = DsTheme.colors.textPrimary
         )
         Text(
             stringResource(Res.string.ob_frequency_subtitle),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = DsTheme.colors.textSecondary,
             modifier = Modifier.padding(top = DsTheme.spacing.sm, bottom = DsTheme.spacing.xl)
         )
         WeekdayPicker(
@@ -62,7 +62,7 @@ fun FrequencyStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
         Text(
             countCaption,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = DsTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = DsTheme.spacing.lg)
         )
@@ -89,7 +89,7 @@ fun FrequencyStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
             Text(
                 stringResource(Res.string.ob_days_notify),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
                 modifier = Modifier.padding(start = DsTheme.spacing.sm)
             )
         }

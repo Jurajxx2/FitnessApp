@@ -43,7 +43,7 @@ fun ServingsAdjuster(
         Text(
             text = stringResource(Res.string.recipe_servings_label),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
             letterSpacing = 1.5.sp,
             modifier = Modifier.weight(1f),
         )
@@ -52,7 +52,7 @@ fun ServingsAdjuster(
             modifier = Modifier.size(DsTheme.sizes.touchTarget),
             enabled = servings > minServings,
             colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                containerColor = DsTheme.colors.actionPrimary.copy(alpha = 0.1f),
             ),
         ) {
             Icon(Icons.Filled.Remove, contentDescription = stringResource(Res.string.recipe_fewer_servings_cd), modifier = Modifier.size(18.dp))
@@ -61,14 +61,14 @@ fun ServingsAdjuster(
             text = servings.toString(),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
         )
         IconButton(
             onClick = { if (servings < maxServings) onServingsChange(servings + 1) },
             modifier = Modifier.size(DsTheme.sizes.touchTarget),
             enabled = servings < maxServings,
             colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                containerColor = DsTheme.colors.actionPrimary.copy(alpha = 0.1f),
             ),
         ) {
             Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.recipe_more_servings_cd), modifier = Modifier.size(18.dp))

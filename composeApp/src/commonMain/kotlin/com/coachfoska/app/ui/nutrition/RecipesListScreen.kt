@@ -90,7 +90,7 @@ fun RecipesListScreen(
             }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsTheme.colors.background)) {
         DsTopBar(title = stringResource(Res.string.recipes_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
         Column(
@@ -106,13 +106,13 @@ fun RecipesListScreen(
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    focusedBorderColor = MaterialTheme.colorScheme.onBackground,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f),
-                    focusedLabelColor = MaterialTheme.colorScheme.onBackground,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                    cursorColor = MaterialTheme.colorScheme.onBackground,
+                    focusedTextColor = DsTheme.colors.textPrimary,
+                    unfocusedTextColor = DsTheme.colors.textPrimary,
+                    focusedBorderColor = DsTheme.colors.textPrimary,
+                    unfocusedBorderColor = DsTheme.colors.textPrimary.copy(alpha = 0.12f),
+                    focusedLabelColor = DsTheme.colors.textPrimary,
+                    unfocusedLabelColor = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
+                    cursorColor = DsTheme.colors.textPrimary,
                 ),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
@@ -190,10 +190,10 @@ private fun RecipesListCard(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = DsTheme.colors.surface,
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
+            DsTheme.colors.textPrimary.copy(alpha = 0.08f)
         )
     ) {
         Column(
@@ -210,7 +210,7 @@ private fun RecipesListCard(
                 Text(
                     text = recipe.name,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
@@ -223,7 +223,7 @@ private fun RecipesListCard(
                         } else {
                             stringResource(Res.string.recipes_add_favorite_cd)
                         },
-                        tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        tint = if (isFavorite) DsTheme.colors.error else DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -232,7 +232,7 @@ private fun RecipesListCard(
                 text = recipe.description.ifBlank { recipe.tags.joinToString(" + ") }
                     .ifBlank { stringResource(Res.string.recipes_fallback_description) },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(end = 12.dp),
@@ -253,7 +253,7 @@ private fun RecipesListCard(
                 Text(
                     text = timeText,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.42f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.42f),
                     modifier = Modifier.padding(end = 12.dp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -267,13 +267,13 @@ private fun RecipesListCard(
 private fun RecipeMacroChip(text: String) {
     Surface(
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+        color = DsTheme.colors.actionPrimary.copy(alpha = 0.08f),
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
+            color = DsTheme.colors.actionPrimary,
         )
     }
 }

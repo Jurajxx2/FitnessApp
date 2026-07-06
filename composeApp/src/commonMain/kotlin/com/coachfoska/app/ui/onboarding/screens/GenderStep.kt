@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.onboarding.screens
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,6 +28,6 @@ fun GenderStep(state: OnboardingState, onSelectAdvance: (OnboardingIntent) -> Un
         onSelect = { onSelectAdvance(OnboardingIntent.SelectGender(it)) },
         modifier = modifier
     ) { gender ->
-        Text(labels.getValue(gender), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.fillMaxWidth())
+        Text(labels.getValue(gender), style = MaterialTheme.typography.titleMedium, color = DsTheme.colors.textPrimary, modifier = Modifier.fillMaxWidth())
     }
 }

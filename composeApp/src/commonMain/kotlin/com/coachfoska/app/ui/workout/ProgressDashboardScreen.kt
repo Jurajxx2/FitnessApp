@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -83,9 +84,9 @@ fun ProgressDashboardScreen(
                         Text(
                             text = formatWeightKg(state.totalVolumeThisWeek),
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = DsTheme.colors.actionPrimary,
                         )
-                        Text(stringResource(Res.string.progress_kg_this_week), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(Res.string.progress_kg_this_week), style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
                     }
                 }
                 Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
@@ -97,7 +98,7 @@ fun ProgressDashboardScreen(
                             text = "🔥 ${state.currentStreak}",
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         )
-                        Text(stringResource(Res.string.progress_week_streak), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(Res.string.progress_week_streak), style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
                     }
                 }
             }

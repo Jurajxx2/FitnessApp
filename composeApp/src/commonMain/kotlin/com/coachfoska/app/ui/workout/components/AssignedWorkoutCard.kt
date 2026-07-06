@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,7 +45,7 @@ fun AssignedWorkoutCard(
         modifier = modifier
             .width(260.dp)
             .height(180.dp)
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), SquareShape)
+            .border(BorderStroke(1.dp, DsTheme.colors.outlineSubtle), SquareShape)
             .clickable(onClick = onClick)
             .padding(20.dp),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -57,16 +58,16 @@ fun AssignedWorkoutCard(
             Text(
                 text = categoryLabel,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DsTheme.colors.textSecondary,
                 letterSpacing = 1.sp,
                 modifier = Modifier
-                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), SquareShape)
+                    .border(BorderStroke(1.dp, DsTheme.colors.outlineSubtle), SquareShape)
                     .padding(horizontal = 8.dp, vertical = 4.dp),
             )
             Icon(
                 imageVector = Icons.Filled.FitnessCenter,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground,
+                tint = DsTheme.colors.textPrimary,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -75,7 +76,7 @@ fun AssignedWorkoutCard(
                 text = workout.name.uppercase(),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
             )
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -85,7 +86,7 @@ fun AssignedWorkoutCard(
                 Text(
                     text = stringResource(Res.string.workout_card_exercises_count, workout.exercises.size),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = DsTheme.colors.textSecondary,
                 )
             }
         }
@@ -98,7 +99,7 @@ private fun MetaItem(icon: ImageVector, text: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-        Text(text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(icon, contentDescription = null, tint = DsTheme.colors.textSecondary, modifier = Modifier.size(16.dp))
+        Text(text, style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary)
     }
 }

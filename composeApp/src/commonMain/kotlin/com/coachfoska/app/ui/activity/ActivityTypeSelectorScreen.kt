@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.activity
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -59,7 +60,7 @@ fun ActivityTypeSelectorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(DsTheme.colors.background)
         ) {
             Text(
                 text = stringResource(Res.string.activity_what_did_you_do),
@@ -104,7 +105,7 @@ private fun ActivityTypeCard(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = DsTheme.colors.surfaceElevated,
         modifier = Modifier.aspectRatio(1f)
     ) {
         Column(
@@ -116,7 +117,7 @@ private fun ActivityTypeCard(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = DsTheme.colors.actionPrimary
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(

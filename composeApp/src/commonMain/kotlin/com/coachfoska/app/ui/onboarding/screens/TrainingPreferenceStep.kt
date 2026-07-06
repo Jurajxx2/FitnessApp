@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.onboarding.screens
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,8 +34,8 @@ fun TrainingPreferenceStep(state: OnboardingState, onSelectAdvance: (OnboardingI
         modifier = modifier
     ) { pref ->
         Column {
-            Text(titles.getValue(pref), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
-            Text(descs.getValue(pref), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(titles.getValue(pref), style = MaterialTheme.typography.titleMedium, color = DsTheme.colors.textPrimary)
+            Text(descs.getValue(pref), style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
         }
     }
 }

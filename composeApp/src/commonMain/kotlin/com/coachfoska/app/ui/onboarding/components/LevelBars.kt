@@ -1,12 +1,12 @@
 package com.coachfoska.app.ui.onboarding.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,7 +24,7 @@ fun LevelBars(filled: Int, modifier: Modifier = Modifier) {
                     .width(5.dp)
                     .height((10 + i * 4).dp)
                     .background(
-                        if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        if (on) DsTheme.colors.actionPrimary else DsTheme.colors.outline,
                         RectangleShape
                     )
             )

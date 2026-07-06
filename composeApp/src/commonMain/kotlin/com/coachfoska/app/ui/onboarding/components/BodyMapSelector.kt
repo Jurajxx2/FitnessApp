@@ -77,8 +77,8 @@ fun BodyMapSelector(
 
     // Derive from onBackground so contrast holds in both themes (surfaceVariant is nearly
     // invisible on the dark background). Tiers: faint silhouette < visible base < bright selected.
-    val onBg = MaterialTheme.colorScheme.onBackground
-    val selectedColor = MaterialTheme.colorScheme.primary
+    val onBg = DsTheme.colors.textPrimary
+    val selectedColor = DsTheme.colors.actionPrimary
     val baseColor = onBg.copy(alpha = 0.20f)
     val silhouetteColor = onBg.copy(alpha = 0.08f)
     val outlineColor = onBg.copy(alpha = 0.38f)
@@ -131,7 +131,7 @@ private fun ViewToggle(view: BodyView, onViewChange: (BodyView) -> Unit) {
     Row(
         Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .background(DsTheme.colors.surfaceElevated.copy(alpha = 0.4f))
             .padding(2.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
@@ -143,11 +143,11 @@ private fun ViewToggle(view: BodyView, onViewChange: (BodyView) -> Unit) {
 @Composable
 private fun ToggleSegment(label: String, active: Boolean, onClick: () -> Unit) {
     val bg by animateColorAsState(
-        if (active) MaterialTheme.colorScheme.primary else Color.Transparent,
+        if (active) DsTheme.colors.actionPrimary else Color.Transparent,
         animationSpec = tween(150),
     )
-    val fg = if (active) MaterialTheme.colorScheme.onPrimary
-    else MaterialTheme.colorScheme.onSurfaceVariant
+    val fg = if (active) DsTheme.colors.onActionPrimary
+    else DsTheme.colors.textSecondary
     Text(
         text = label,
         style = MaterialTheme.typography.labelMedium,

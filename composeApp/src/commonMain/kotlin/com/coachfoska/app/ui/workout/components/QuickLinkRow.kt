@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,25 +31,25 @@ fun QuickLinkRow(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(color = DsTheme.colors.outlineSubtle)
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+            Icon(icon, contentDescription = null, tint = DsTheme.colors.textSecondary, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(16.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
                 letterSpacing = 1.sp,
                 modifier = Modifier.weight(1f),
             )
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = DsTheme.colors.textSecondary,
                 modifier = Modifier.size(20.dp),
             )
         }

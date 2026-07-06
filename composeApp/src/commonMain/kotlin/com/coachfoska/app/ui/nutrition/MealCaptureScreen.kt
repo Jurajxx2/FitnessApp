@@ -216,14 +216,14 @@ fun MealCaptureScreen(
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = if (mediaUri != null)
-                        MaterialTheme.colorScheme.onBackground
-                    else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        DsTheme.colors.textPrimary
+                    else DsTheme.colors.textPrimary.copy(alpha = 0.6f)
                 ),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
                     if (mediaUri != null)
-                        MaterialTheme.colorScheme.onBackground
-                    else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f)
+                        DsTheme.colors.textPrimary
+                    else DsTheme.colors.textPrimary.copy(alpha = 0.15f)
                 )
             ) {
                 Icon(
@@ -279,8 +279,8 @@ fun MealCaptureScreen(
                 onClick = { foods = foods + FoodEntry("") },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = DsTheme.colors.textPrimary),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.1f))
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
@@ -296,7 +296,7 @@ fun MealCaptureScreen(
         )
 
         state.error?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            Text(it, style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.error)
         }
 
         DsButton(
@@ -335,18 +335,18 @@ fun MealCaptureScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f)),
+                    .background(DsTheme.colors.background.copy(alpha = 0.85f)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    CircularProgressIndicator(color = DsTheme.colors.actionPrimary)
                     Text(
                         stringResource(Res.string.meal_analyzing_photo),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = DsTheme.colors.textPrimary,
                         letterSpacing = 1.sp
                     )
                 }
@@ -368,7 +368,7 @@ fun FoodSearchDialog(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = DsTheme.colors.background
     ) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f).padding(24.dp)) {
             Text(stringResource(Res.string.meal_search_food_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -393,7 +393,7 @@ fun FoodSearchDialog(
                     Surface(
                         onClick = { onSelect(food) },
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f)
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.03f)
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -403,10 +403,10 @@ fun FoodSearchDialog(
                             Column {
                                 Text(food.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                                 if (food.brand != null) {
-                                    Text(food.brand, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f))
+                                    Text(food.brand, style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textPrimary.copy(alpha = 0.4f))
                                 }
                             }
-                            Text(stringResource(Res.string.meal_kcal_format, food.calories.toInt()), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(Res.string.meal_kcal_format, food.calories.toInt()), style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.actionPrimary)
                         }
                     }
                 }
@@ -425,10 +425,10 @@ private fun FoodEntryRow(
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = DsTheme.colors.surface,
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f),
+            DsTheme.colors.textPrimary.copy(alpha = 0.06f),
         ),
     ) {
         Column(
@@ -436,8 +436,8 @@ private fun FoodEntryRow(
                 .background(
                     androidx.compose.ui.graphics.Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
-                            MaterialTheme.colorScheme.surface,
+                            DsTheme.colors.actionPrimary.copy(alpha = 0.04f),
+                            DsTheme.colors.surface,
                         ),
                     ),
                 )
@@ -452,7 +452,7 @@ private fun FoodEntryRow(
                 Text(
                     text = stringResource(Res.string.food_label, index),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                     letterSpacing = 1.sp,
                 )
                 if (onRemove != null) {
@@ -460,7 +460,7 @@ private fun FoodEntryRow(
                         Icon(
                             Icons.Default.Close,
                             contentDescription = stringResource(Res.string.remove_cd),
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                            tint = DsTheme.colors.textPrimary.copy(alpha = 0.3f),
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -481,13 +481,13 @@ private fun FoodEntryRow(
                     onClick = onSearch,
                     modifier = Modifier.size(48.dp).padding(top = 8.dp),
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        containerColor = DsTheme.colors.actionPrimary.copy(alpha = 0.1f),
                     ),
                 ) {
                     Icon(
                         Icons.Default.Search,
                         contentDescription = stringResource(Res.string.common_search_cd),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = DsTheme.colors.actionPrimary,
                     )
                 }
             }
@@ -506,13 +506,13 @@ private fun FoodEntryRow(
                 Text(
                     text = stringResource(Res.string.meal_kcal_format, food.calories.toInt()),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = DsTheme.colors.actionPrimary,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
                     text = stringResource(Res.string.meal_macro_summary, food.protein.toInt(), food.carbs.toInt(), food.fat.toInt()),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                 )
             }
         }

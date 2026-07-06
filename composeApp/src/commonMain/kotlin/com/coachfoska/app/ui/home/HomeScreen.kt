@@ -87,7 +87,7 @@ fun HomeScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = DsTheme.colors.background
     ) {
         Column(
             modifier = Modifier
@@ -106,14 +106,14 @@ fun HomeScreen(
                     Text(
                         text = stringResource(Res.string.welcome_back),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                         letterSpacing = 1.sp
                     )
                     Text(
                         text = (state.user?.fullName?.split(" ")?.firstOrNull()
                             ?: stringResource(Res.string.default_athlete_name)).uppercase(),
                         style = MaterialTheme.typography.displayMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = DsTheme.colors.textPrimary,
                         letterSpacing = (-0.5).sp
                     )
                 }
@@ -197,13 +197,13 @@ fun HomeScreen(
                     Text(
                         text = stringResource(Res.string.daily_nutrition),
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = DsTheme.colors.textPrimary,
                         letterSpacing = 1.5.sp
                     )
 
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.03f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -212,7 +212,7 @@ fun HomeScreen(
                             } ?: Text(
                                 text = stringResource(Res.string.start_logging_meals),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                color = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
                             )
                             WaterProgressRow(
                                 consumedMl = state.waterConsumedMl,
@@ -227,7 +227,7 @@ fun HomeScreen(
                                 Text(
                                     text = stringResource(Res.string.log_meal_button),
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = DsTheme.colors.actionPrimary,
                                     letterSpacing = 1.sp
                                 )
                             }
@@ -239,7 +239,7 @@ fun HomeScreen(
             }
 
             state.error?.let {
-                Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                Text(text = it, style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.error)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -258,7 +258,7 @@ private fun NotificationBell(hasUnread: Boolean, onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Outlined.Notifications,
                 contentDescription = stringResource(Res.string.home_notifications_cd),
-                tint = MaterialTheme.colorScheme.onBackground,
+                tint = DsTheme.colors.textPrimary,
             )
         }
         if (hasUnread) {
@@ -281,7 +281,7 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
             .clickable(onClick = onClick)
     ) {
         HorizontalDivider(
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Row(
@@ -293,7 +293,7 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
             Text(
                 text = stringResource(Res.string.home_water_label),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
                 letterSpacing = 1.sp,
                 modifier = Modifier.weight(1f)
             )
@@ -301,14 +301,14 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
                 text = stringResource(Res.string.home_water_amount, consumedMl, goalMl),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = DsTheme.colors.textPrimary
             )
             Spacer(Modifier.width(8.dp))
             IconButton(onClick = onQuickAdd, modifier = Modifier.size(DsTheme.sizes.touchTarget)) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = stringResource(Res.string.quick_add_water),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = DsTheme.colors.actionPrimary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -321,8 +321,8 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
                 .fillMaxWidth()
                 .height(5.dp)
                 .clip(RoundedCornerShape(50)),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
+            color = DsTheme.colors.actionPrimary,
+            trackColor = DsTheme.colors.textPrimary.copy(alpha = 0.08f)
         )
     }
 }
@@ -349,27 +349,27 @@ private fun MacroItem(
         Text(
             text = "${value.toInt()}$suffix",
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground
+            color = DsTheme.colors.textPrimary
         )
         if (target != null && target > 0f) {
             Text(
                 text = "/ ${target.toInt()}$suffix",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
             )
             Spacer(Modifier.height(4.dp))
             LinearProgressIndicator(
                 progress = { (value / target).coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(50)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
+                color = DsTheme.colors.actionPrimary,
+                trackColor = DsTheme.colors.textPrimary.copy(alpha = 0.08f)
             )
         }
         Spacer(Modifier.height(2.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
             letterSpacing = 1.sp
         )
     }

@@ -38,19 +38,19 @@ fun BodyStatsStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
     val bmiText = ((d.bmi * 10).toInt() / 10f).toString()
 
     Column(modifier.fillMaxSize().padding(top = DsTheme.spacing.lg, bottom = DsTheme.spacing.xl)) {
-        Text(stringResource(Res.string.ob_body_title), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
-        Text(stringResource(Res.string.ob_body_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = DsTheme.spacing.sm, bottom = DsTheme.spacing.lg))
+        Text(stringResource(Res.string.ob_body_title), style = MaterialTheme.typography.headlineMedium, color = DsTheme.colors.textPrimary)
+        Text(stringResource(Res.string.ob_body_subtitle), style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.textSecondary, modifier = Modifier.padding(top = DsTheme.spacing.sm, bottom = DsTheme.spacing.lg))
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(Res.string.ob_body_age), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.ob_body_age), style = MaterialTheme.typography.labelMedium, color = DsTheme.colors.textSecondary)
                 ScrollWheelPicker(values = (14..100).toList(), selected = d.age, onSelected = { onIntent(OnboardingIntent.SetAge(it)) }, label = { "$it" })
             }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(Res.string.ob_body_height), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.ob_body_height), style = MaterialTheme.typography.labelMedium, color = DsTheme.colors.textSecondary)
                 ScrollWheelPicker(values = (120..220).toList(), selected = d.heightCm, onSelected = { onIntent(OnboardingIntent.SetHeight(it)) }, label = { "$it cm" })
             }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(Res.string.ob_body_weight), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.ob_body_weight), style = MaterialTheme.typography.labelMedium, color = DsTheme.colors.textSecondary)
                 ScrollWheelPicker(values = (40..200).toList(), selected = d.weightKg.toInt(), onSelected = { onIntent(OnboardingIntent.SetWeight(it.toFloat())) }, label = { "$it kg" })
             }
         }
@@ -59,7 +59,7 @@ fun BodyStatsStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
             Text(
                 "  ${stringResource(Res.string.ob_bmi_label)}: $bmiText — $bmiCategoryLabel",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                color = DsTheme.colors.textPrimary
             )
         }
         DsButton(text = stringResource(Res.string.ob_continue), onClick = { onIntent(OnboardingIntent.NextStep) }, shape = RectangleShape, modifier = Modifier.fillMaxWidth())

@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -43,7 +43,7 @@ fun ExerciseAnimatedImage(
             modifier = modifier
                 .aspectRatio(1f)
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                .background(DsTheme.colors.surfaceElevated.copy(alpha = 0.2f))
         ) { content() }
     }
 

@@ -209,8 +209,8 @@ private fun LogWorkoutContent(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-                        contentColor = MaterialTheme.colorScheme.onBackground,
+                        containerColor = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
+                        contentColor = DsTheme.colors.textPrimary,
                     ),
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
@@ -250,8 +250,8 @@ private fun ManualExerciseCard(
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)),
+        color = DsTheme.colors.surface,
+        border = BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.05f)),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
@@ -262,7 +262,7 @@ private fun ManualExerciseCard(
                 Text(
                     text = stringResource(Res.string.exercise_label, index + 1),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     IconButton(
@@ -270,14 +270,14 @@ private fun ManualExerciseCard(
                         modifier = Modifier.size(DsTheme.sizes.touchTarget),
                         colors = IconButtonDefaults.iconButtonColors(
                             containerColor = if (exercise.videoUrl != null) {
-                                MaterialTheme.colorScheme.onBackground
+                                DsTheme.colors.textPrimary
                             } else {
-                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
+                                DsTheme.colors.textPrimary.copy(alpha = 0.05f)
                             },
                             contentColor = if (exercise.videoUrl != null) {
-                                MaterialTheme.colorScheme.background
+                                DsTheme.colors.background
                             } else {
-                                MaterialTheme.colorScheme.onBackground
+                                DsTheme.colors.textPrimary
                             },
                         ),
                     ) {
@@ -292,7 +292,7 @@ private fun ManualExerciseCard(
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = stringResource(Res.string.remove_cd),
-                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                                tint = DsTheme.colors.textPrimary.copy(alpha = 0.3f),
                                 modifier = Modifier.size(16.dp),
                             )
                         }

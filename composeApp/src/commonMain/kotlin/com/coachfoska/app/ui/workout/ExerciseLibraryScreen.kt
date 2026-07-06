@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -91,7 +92,7 @@ fun ExerciseLibraryScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsTheme.colors.background)) {
         DsTopBar(title = stringResource(Res.string.exercise_library_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
         OutlinedTextField(
@@ -104,7 +105,7 @@ fun ExerciseLibraryScreen(
             placeholder = {
                 Text(
                     stringResource(Res.string.exercise_library_search_placeholder),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                     fontSize = 14.sp
                 )
             },
@@ -112,7 +113,7 @@ fun ExerciseLibraryScreen(
                 Icon(
                     Icons.Default.Search,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    tint = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
                 )
             },
             trailingIcon = {
@@ -121,7 +122,7 @@ fun ExerciseLibraryScreen(
                         Icon(
                             Icons.Default.Close,
                             contentDescription = stringResource(Res.string.common_clear_cd),
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                            tint = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -129,10 +130,10 @@ fun ExerciseLibraryScreen(
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f),
-                focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                focusedBorderColor = DsTheme.colors.textPrimary.copy(alpha = 0.3f),
+                unfocusedBorderColor = DsTheme.colors.textPrimary.copy(alpha = 0.15f),
+                focusedTextColor = DsTheme.colors.textPrimary,
+                unfocusedTextColor = DsTheme.colors.textPrimary
             )
         )
 
@@ -224,7 +225,7 @@ fun ExerciseLibraryScreen(
                             ) {
                                 Text(
                                     text = if (state.showOnlyFavorites) stringResource(Res.string.exercise_library_no_favorites) else stringResource(Res.string.exercise_library_no_exercises),
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                                     fontSize = 14.sp
                                 )
                             }
@@ -247,7 +248,7 @@ private fun ExerciseListItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+            .background(DsTheme.colors.textPrimary.copy(alpha = 0.05f))
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -260,7 +261,7 @@ private fun ExerciseListItem(
                     .width(72.dp)
                     .height(64.dp)
                     .clip(RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                    .background(DsTheme.colors.surfaceElevated.copy(alpha = 0.2f))
             )
         }
         Row(
@@ -276,7 +277,7 @@ private fun ExerciseListItem(
             ) {
                 Text(
                     text = exercise.name,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -295,7 +296,7 @@ private fun ExerciseListItem(
                 if (exercise.muscles.isNotEmpty()) {
                     Text(
                         text = exercise.muscles.joinToString(", "),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                         fontSize = 12.sp
                     )
                 }
@@ -304,7 +305,7 @@ private fun ExerciseListItem(
                 Icon(
                     imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (isFavorite) stringResource(Res.string.recipes_remove_favorite_cd) else stringResource(Res.string.recipes_add_favorite_cd),
-                    tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                    tint = if (isFavorite) DsTheme.colors.actionPrimary else DsTheme.colors.textPrimary.copy(alpha = 0.3f),
                     modifier = Modifier.size(20.dp)
                 )
             }

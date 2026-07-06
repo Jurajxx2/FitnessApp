@@ -81,7 +81,7 @@ fun ChatHubScreen(
             icon = { Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(28.dp)) },
             onClick = onHumanCoachClick
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
+        HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.08f))
 
         if (BuildKonfig.AI_COACH_ENABLED && DsTheme.features.aiCoach) {
             val aiSummary = summaries.firstOrNull { it.chatType == ChatType.Ai }
@@ -97,7 +97,7 @@ fun ChatHubScreen(
                 icon = { Icon(Icons.Default.SmartToy, contentDescription = null, modifier = Modifier.size(28.dp)) },
                 onClick = onAiCoachClick
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
+            HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.08f))
         }
     }
 }
@@ -128,8 +128,8 @@ private fun ConversationRow(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                color = DsTheme.colors.surfaceElevated,
+                contentColor = DsTheme.colors.textSecondary
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -152,7 +152,7 @@ private fun ConversationRow(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.55f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 fontSize = 13.sp

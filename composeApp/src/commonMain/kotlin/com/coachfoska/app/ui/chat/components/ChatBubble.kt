@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.chat.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,8 +56,8 @@ fun ChatBubble(
                         )
                     )
                     .background(
-                        if (isOwn) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceVariant
+                        if (isOwn) DsTheme.colors.actionPrimary
+                        else DsTheme.colors.surfaceElevated
                     )
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
@@ -64,8 +65,8 @@ fun ChatBubble(
                     is MessageContent.Text -> Text(
                         text = content.text,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (isOwn) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isOwn) DsTheme.colors.onActionPrimary
+                                else DsTheme.colors.textSecondary
                     )
                     is MessageContent.Image -> AsyncImage(
                         model = content.url,
@@ -85,7 +86,7 @@ fun ChatBubble(
                 text = timeStr,
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                 modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp)
             )
         }

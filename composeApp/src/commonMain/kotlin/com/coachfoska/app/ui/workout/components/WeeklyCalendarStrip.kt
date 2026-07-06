@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,12 +38,12 @@ fun WeeklyCalendarStrip(
             Text(
                 text = stringResource(Res.string.progress_this_week),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DsTheme.colors.textSecondary,
             )
             Text(
                 text = stringResource(Res.string.progress_workouts_count, completedCount, totalDays),
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary,
+                color = DsTheme.colors.actionPrimary,
             )
         }
 
@@ -55,15 +56,15 @@ fun WeeklyCalendarStrip(
             completions.forEach { day ->
                 val label = day.dayOfWeek.localizedShortName()
                 val bgColor = when (day.status) {
-                    CompletionStatus.COMPLETED -> MaterialTheme.colorScheme.primary
-                    CompletionStatus.TODAY -> MaterialTheme.colorScheme.primaryContainer
-                    CompletionStatus.MISSED -> MaterialTheme.colorScheme.surfaceVariant
+                    CompletionStatus.COMPLETED -> DsTheme.colors.actionPrimary
+                    CompletionStatus.TODAY -> DsTheme.colors.surfaceElevated
+                    CompletionStatus.MISSED -> DsTheme.colors.surfaceElevated
                     CompletionStatus.UPCOMING -> Color.Transparent
                 }
                 val textColor = when (day.status) {
-                    CompletionStatus.COMPLETED -> MaterialTheme.colorScheme.onPrimary
-                    CompletionStatus.TODAY -> MaterialTheme.colorScheme.onPrimaryContainer
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    CompletionStatus.COMPLETED -> DsTheme.colors.onActionPrimary
+                    CompletionStatus.TODAY -> DsTheme.colors.textPrimary
+                    else -> DsTheme.colors.textSecondary.copy(alpha = 0.5f)
                 }
                 val symbol = when (day.status) {
                     CompletionStatus.COMPLETED -> "✓"

@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.auth
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -94,7 +95,7 @@ fun WelcomeScreen(
         }
     }
 
-    val backgroundColor = MaterialTheme.colorScheme.background
+    val backgroundColor = DsTheme.colors.background
 
     Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
         // -- Image Pager (full bleed behind everything) --
@@ -156,8 +157,8 @@ fun WelcomeScreen(
                             .size(if (isSelected) 10.dp else 7.dp)
                             .clip(CircleShape)
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f)
+                                if (isSelected) DsTheme.colors.actionPrimary
+                                else DsTheme.colors.textPrimary.copy(alpha = 0.35f)
                             )
                     )
                 }
@@ -168,14 +169,14 @@ fun WelcomeScreen(
             Text(
                 text = stringResource(Res.string.welcome_title),
                 style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
                 letterSpacing = 4.sp
             )
 
             Text(
                 text = stringResource(Res.string.welcome_tagline),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
                 lineHeight = 24.sp
             )
@@ -196,8 +197,8 @@ fun WelcomeScreen(
                     .height(56.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    containerColor = DsTheme.colors.surfaceElevated,
+                    contentColor = DsTheme.colors.textSecondary
                 ),
                 elevation = null,
                 enabled = !state.isLoading
@@ -205,7 +206,7 @@ fun WelcomeScreen(
                 if (state.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = DsTheme.colors.textSecondary,
                         strokeWidth = 2.dp
                     )
                 } else {
@@ -222,7 +223,7 @@ fun WelcomeScreen(
                 Text(
                     text = error,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = DsTheme.colors.error,
                     textAlign = TextAlign.Center
                 )
             }

@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.hydration.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -63,7 +64,7 @@ fun ManageContainersSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = DsTheme.colors.background,
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Text(
@@ -79,7 +80,7 @@ fun ManageContainersSheet(
                 items(items = containers, key = { it.id }) { c ->
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.04f),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(
@@ -89,14 +90,14 @@ fun ManageContainersSheet(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(c.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                 Text(stringResource(Res.string.hydration_amount_ml_format, c.volumeMl), style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f))
                             }
                             IconButton(onClick = { onToggleFavorite(c.id, !c.isFavorite) }) {
                                 Icon(
                                     imageVector = if (c.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                                     contentDescription = favoriteLabel,
-                                    tint = if (c.isFavorite) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                                    tint = if (c.isFavorite) DsTheme.colors.actionPrimary
+                                    else DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                                     modifier = Modifier.size(20.dp),
                                 )
                             }
@@ -104,7 +105,7 @@ fun ManageContainersSheet(
                                 Icon(
                                     Icons.Filled.Delete,
                                     contentDescription = deleteLabel,
-                                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                                    tint = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
@@ -117,7 +118,7 @@ fun ManageContainersSheet(
             Text(
                 stringResource(Res.string.hydration_add_new),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
             )
             Spacer(Modifier.height(8.dp))
 

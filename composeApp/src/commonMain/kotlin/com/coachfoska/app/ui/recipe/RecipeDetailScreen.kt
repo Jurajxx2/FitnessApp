@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.recipe
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -90,7 +91,7 @@ fun RecipeDetailRoute(
                     Icon(
                         imageVector = if (state.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = if (state.isFavorite) stringResource(Res.string.recipes_remove_favorite_cd) else stringResource(Res.string.recipes_add_favorite_cd),
-                        tint = if (state.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
+                        tint = if (state.isFavorite) DsTheme.colors.error else DsTheme.colors.textPrimary,
                     )
                 }
             }
@@ -98,7 +99,7 @@ fun RecipeDetailRoute(
         when {
             state.isLoading -> DsLoadingBox(Modifier.weight(1f))
             state.error != null -> Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text(state.error!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                Text(state.error!!, style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.error)
             }
             state.recipe != null -> Column(modifier = Modifier.weight(1f)) {
                 RecipeDetailScreen(
@@ -132,7 +133,7 @@ fun RecipeDetailScreen(
     )
 
     LazyColumn(
-        modifier = modifier.background(MaterialTheme.colorScheme.background),
+        modifier = modifier.background(DsTheme.colors.background),
         contentPadding = PaddingValues(bottom = 40.dp),
     ) {
         if (recipe.imageUrl != null) {
@@ -153,14 +154,14 @@ fun RecipeDetailScreen(
                 Text(
                     text = recipe.name.uppercase(),
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     letterSpacing = 0.5.sp,
                 )
                 if (recipe.description.isNotBlank()) {
                     Text(
                         text = recipe.description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
                     )
                 }
             }
@@ -172,7 +173,7 @@ fun RecipeDetailScreen(
             ScrollableTabRow(
                 selectedTabIndex = tabIndex,
                 edgePadding = 24.dp,
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = DsTheme.colors.background,
             ) {
                 tabs.forEachIndexed { i, label ->
                     Tab(
@@ -212,7 +213,7 @@ private fun LazyListScope.ingredientsItems(
                 text = stringResource(Res.string.recipe_no_ingredients),
                 modifier = Modifier.padding(24.dp),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
             )
         }
     } else {
@@ -231,7 +232,7 @@ private fun LazyListScope.directionsItems(
                 text = stringResource(Res.string.recipe_no_steps),
                 modifier = Modifier.padding(24.dp),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
             )
         }
     } else {
@@ -273,13 +274,13 @@ private fun MetaChip(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
             letterSpacing = 1.sp
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -296,12 +297,12 @@ private fun TagsRow(tags: List<String>) {
         tags.forEach { tag ->
             Surface(
                 shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.07f)
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.07f)
             ) {
                 Text(
                     text = tag,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                 )
             }
@@ -316,7 +317,7 @@ private fun MacrosBand(recipe: Recipe) {
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 16.dp)
             .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                DsTheme.colors.textPrimary.copy(alpha = 0.05f),
                 RoundedCornerShape(12.dp)
             )
             .padding(16.dp),
@@ -335,13 +336,13 @@ private fun MacroItem(value: String, label: String) {
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
         )
     }
 }
@@ -358,7 +359,7 @@ private fun IngredientRow(ingredient: RecipeIngredient) {
         Text(
             text = ingredient.name,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             modifier = Modifier.weight(1f)
         )
         val qty = buildString {
@@ -369,7 +370,7 @@ private fun IngredientRow(ingredient: RecipeIngredient) {
             Text(
                 text = qty,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
             )
         }
     }

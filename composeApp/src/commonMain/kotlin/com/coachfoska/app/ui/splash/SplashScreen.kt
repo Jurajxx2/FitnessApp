@@ -8,7 +8,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,7 +67,7 @@ fun SplashScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(DsTheme.colors.background),
         contentAlignment = Alignment.Center
     ) {
         AnimatedVisibility(
@@ -84,14 +83,14 @@ fun SplashScreen() {
             ) {
                 Text(
                     text = stringResource(Res.string.splash_coach),
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     fontSize = 40.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 8.sp
                 )
                 Text(
                     text = stringResource(Res.string.splash_foska),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = DsTheme.colors.actionPrimary,
                     fontSize = 40.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 8.sp

@@ -144,7 +144,7 @@ fun WorkoutDetailScreen(
                                     Text(
                                         text = w.name,
                                         style = MaterialTheme.typography.displayMedium,
-                                        color = MaterialTheme.colorScheme.onBackground
+                                        color = DsTheme.colors.textPrimary
                                     )
 
                                     if (w.notes != null) {
@@ -152,7 +152,7 @@ fun WorkoutDetailScreen(
                                         Text(
                                             text = w.notes,
                                             style = MaterialTheme.typography.bodyLarge,
-                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                            color = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
                                         )
                                     }
 
@@ -160,13 +160,13 @@ fun WorkoutDetailScreen(
                                     if (isCoachPlan) {
                                         Spacer(modifier = Modifier.height(DsTheme.spacing.md))
                                         Surface(
-                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            color = DsTheme.colors.surfaceElevated,
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
                                             Text(
                                                 text = stringResource(Res.string.detail_coach_readonly),
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                color = DsTheme.colors.textSecondary,
                                                 modifier = Modifier.padding(DsTheme.spacing.md)
                                             )
                                         }
@@ -183,7 +183,7 @@ fun WorkoutDetailScreen(
                                 )
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = DsTheme.spacing.xl),
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
+                                    color = DsTheme.colors.textPrimary.copy(alpha = 0.05f)
                                 )
                             }
                         }
@@ -192,7 +192,7 @@ fun WorkoutDetailScreen(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(DsTheme.spacing.xl),
-                            color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
+                            color = DsTheme.colors.background.copy(alpha = 0.9f)
                         ) {
                             DsButton(
                                 text = stringResource(Res.string.detail_start_workout),
@@ -230,7 +230,7 @@ private fun ExerciseRow(
 ) {
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.background,
+        color = DsTheme.colors.background,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -241,13 +241,13 @@ private fun ExerciseRow(
             Box(
                 modifier = Modifier
                     .size(32.dp)
-                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f), RoundedCornerShape(8.dp)),
+                    .background(DsTheme.colors.textPrimary.copy(alpha = 0.05f), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "$index",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = DsTheme.colors.textPrimary
                 )
             }
 
@@ -255,27 +255,27 @@ private fun ExerciseRow(
                 Text(
                     text = exercise.name,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = DsTheme.colors.textPrimary
                 )
                 exercise.muscleGroup?.let {
                     Text(
                         text = it.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                         letterSpacing = 0.5.sp
                     )
                 }
             }
 
             Surface(
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
                 shape = RoundedCornerShape(4.dp)
             ) {
                 Text(
                     text = "${exercise.sets} × ${exercise.reps}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     modifier = Modifier.padding(horizontal = DsTheme.spacing.sm, vertical = DsTheme.spacing.xs)
                 )
             }
@@ -288,7 +288,7 @@ private fun ExerciseRow(
                 Icon(
                     imageVector = Icons.Default.SwapHoriz,
                     contentDescription = stringResource(Res.string.substitute_swap_icon_cd),
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                    tint = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
                 )
             }
         }

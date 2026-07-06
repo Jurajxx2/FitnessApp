@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.chat
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -116,7 +117,7 @@ fun ChatScreen(
         if (state.isLoading) {
             LinearProgressIndicator(
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary
+                color = DsTheme.colors.actionPrimary
             )
         }
 
@@ -188,7 +189,7 @@ private fun EmptyChat(chatType: ChatType) {
                 ChatType.Ai -> "No messages yet.\nAsk your AI coach anything."
             },
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(32.dp)
         )

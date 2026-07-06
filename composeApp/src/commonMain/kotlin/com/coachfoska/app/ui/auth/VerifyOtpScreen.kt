@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.auth
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
@@ -85,8 +86,8 @@ fun VerifyOtpScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                    containerColor = DsTheme.colors.background,
+                    navigationIconContentColor = DsTheme.colors.textPrimary
                 ),
                 windowInsets = WindowInsets(0)
             )
@@ -101,7 +102,7 @@ fun VerifyOtpScreen(
             Text(
                 text = stringResource(Res.string.verify_code_title),
                 style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                color = DsTheme.colors.textPrimary
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -109,7 +110,7 @@ fun VerifyOtpScreen(
             Text(
                 text = stringResource(Res.string.verify_otp_desc, state.email),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
             )
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -151,7 +152,7 @@ fun VerifyOtpScreen(
                 Text(
                     text = error,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
+                    color = DsTheme.colors.error
                 )
             }
 
@@ -177,7 +178,7 @@ fun VerifyOtpScreen(
                 Text(
                     text = stringResource(Res.string.resend_code),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                     letterSpacing = 1.sp
                 )
             }

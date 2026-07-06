@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -77,7 +78,7 @@ fun PostWorkoutSummaryScreen(
                 Text(
                     text = state.dateDisplay,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = DsTheme.colors.textSecondary,
                 )
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -92,7 +93,7 @@ fun PostWorkoutSummaryScreen(
                     Text(
                         text = stringResource(Res.string.progress_personal_records_format, state.personalRecords.size),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = DsTheme.colors.actionPrimary,
                     )
                     state.personalRecords.forEach { pr ->
                         Text(

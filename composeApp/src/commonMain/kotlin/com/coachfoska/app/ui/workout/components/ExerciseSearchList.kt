@@ -68,24 +68,24 @@ fun ExerciseSearchList(
             placeholder = {
                 Text(
                     placeholderText,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
                 )
             },
             leadingIcon = {
                 Icon(
                     Icons.Default.Search,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    tint = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
                 )
             },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             shape = RoundedCornerShape(8.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedBorderColor = DsTheme.colors.textPrimary.copy(alpha = 0.3f),
+                unfocusedBorderColor = DsTheme.colors.textPrimary.copy(alpha = 0.15f),
+                focusedTextColor = DsTheme.colors.textPrimary,
+                unfocusedTextColor = DsTheme.colors.textPrimary,
             )
         )
 
@@ -101,7 +101,7 @@ fun ExerciseSearchList(
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(28.dp),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = DsTheme.colors.actionPrimary,
                         strokeWidth = 2.dp
                     )
                 }
@@ -119,7 +119,7 @@ fun ExerciseSearchList(
                             onClick = { onExerciseClick(exercise) }
                         )
                         HorizontalDivider(
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+                            color = DsTheme.colors.textPrimary.copy(alpha = 0.06f)
                         )
                     }
                 }
@@ -128,7 +128,7 @@ fun ExerciseSearchList(
                 Text(
                     text = stringResource(Res.string.editor_picker_search_prompt),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = DsTheme.spacing.xl)
@@ -138,7 +138,7 @@ fun ExerciseSearchList(
                 Text(
                     text = stringResource(Res.string.editor_picker_no_results),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = DsTheme.spacing.xl)
@@ -178,14 +178,14 @@ fun ExerciseSearchRow(
             Text(
                 text = exercise.name,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = DsTheme.colors.textPrimary
             )
             val subtitle = exercise.muscles.firstOrNull() ?: exercise.category?.name
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
                 )
             }
         }

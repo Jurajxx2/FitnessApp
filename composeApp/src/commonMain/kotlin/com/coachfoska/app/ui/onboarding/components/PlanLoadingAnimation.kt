@@ -46,8 +46,8 @@ fun PlanLoadingAnimation(
 ) {
     val progress = remember { Animatable(0f) }
     var visibleRows by remember { mutableStateOf(0) }
-    val accent = MaterialTheme.colorScheme.primary
-    val track = MaterialTheme.colorScheme.surfaceVariant
+    val accent = DsTheme.colors.actionPrimary
+    val track = DsTheme.colors.surfaceElevated
 
     LaunchedEffect(Unit) {
         rows.indices.forEach { i ->
@@ -69,7 +69,7 @@ fun PlanLoadingAnimation(
             if (progress.value >= 1f) {
                 Icon(Icons.Filled.Check, contentDescription = null, tint = accent, modifier = Modifier.size(48.dp))
             } else {
-                Text("${(progress.value * 100).toInt()}%", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
+                Text("${(progress.value * 100).toInt()}%", style = MaterialTheme.typography.titleLarge, color = DsTheme.colors.textPrimary)
             }
         }
         Column(Modifier.padding(top = DsTheme.spacing.xxl).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)) {
@@ -77,7 +77,7 @@ fun PlanLoadingAnimation(
                 AnimatedVisibility(visible = i < visibleRows, enter = fadeIn() + slideInVertically()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Check, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
-                        Text(row, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(start = 10.dp))
+                        Text(row, style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.textPrimary, modifier = Modifier.padding(start = 10.dp))
                     }
                 }
             }

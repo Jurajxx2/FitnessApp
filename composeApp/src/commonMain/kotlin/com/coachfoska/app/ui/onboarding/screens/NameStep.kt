@@ -32,7 +32,7 @@ fun NameStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, onDon
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     Column(modifier.fillMaxSize().padding(DsTheme.spacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
-        Text(stringResource(Res.string.ob_name_title), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
+        Text(stringResource(Res.string.ob_name_title), style = MaterialTheme.typography.headlineMedium, color = DsTheme.colors.textPrimary, textAlign = TextAlign.Center)
         TextField(
             value = state.data.name,
             onValueChange = { onIntent(OnboardingIntent.SetName(it)) },
@@ -42,10 +42,10 @@ fun NameStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, onDon
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
-                focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                focusedIndicatorColor = DsTheme.colors.actionPrimary,
+                unfocusedIndicatorColor = DsTheme.colors.outline,
+                focusedTextColor = DsTheme.colors.textPrimary,
+                unfocusedTextColor = DsTheme.colors.textPrimary
             ),
             modifier = Modifier.fillMaxWidth().padding(vertical = DsTheme.spacing.xl).focusRequester(focus)
         )

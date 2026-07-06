@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.auth
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
@@ -70,8 +71,8 @@ fun EmailOtpScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                    containerColor = DsTheme.colors.background,
+                    navigationIconContentColor = DsTheme.colors.textPrimary
                 ),
                 windowInsets = WindowInsets(0)
             )
@@ -86,7 +87,7 @@ fun EmailOtpScreen(
             Text(
                 text = stringResource(Res.string.enter_email_title),
                 style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                color = DsTheme.colors.textPrimary
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -94,7 +95,7 @@ fun EmailOtpScreen(
             Text(
                 text = stringResource(Res.string.enter_email_desc),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
             )
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -121,7 +122,7 @@ fun EmailOtpScreen(
                 Text(
                     text = error,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
+                    color = DsTheme.colors.error
                 )
             }
 

@@ -91,7 +91,7 @@ fun WorkoutPlanScreen(
     val myPlans = state.workouts.filter { it.source == WorkoutSource.USER }
     val allEmpty = coachPlans.isEmpty() && myPlans.isEmpty()
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsTheme.colors.background)) {
         DsTopBar(
             title = stringResource(Res.string.plan_title),
             onBackClick = onBackClick,
@@ -209,10 +209,10 @@ private fun WorkoutPlanCard(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = DsTheme.colors.surface,
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
+            DsTheme.colors.textPrimary.copy(alpha = 0.08f)
         )
     ) {
         Column(
@@ -243,7 +243,7 @@ private fun WorkoutPlanCard(
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                tint = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
                             )
                         }
                         DropdownMenu(
@@ -273,7 +273,7 @@ private fun WorkoutPlanCard(
                 Text(
                     text = it.localizedName().uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                     letterSpacing = 1.sp
                 )
             }
@@ -281,7 +281,7 @@ private fun WorkoutPlanCard(
             Text(
                 text = workout.name,
                 style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground
+                color = DsTheme.colors.textPrimary
             )
 
             Row(
@@ -291,21 +291,21 @@ private fun WorkoutPlanCard(
                 Text(
                     text = stringResource(Res.string.plan_exercise_count, workout.exercises.size),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
                 )
                 if (workout.durationMinutes > 0) {
                     Box(
                         modifier = Modifier
                             .size(3.dp)
                             .background(
-                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
+                                DsTheme.colors.textPrimary.copy(alpha = 0.2f),
                                 RoundedCornerShape(50)
                             )
                     )
                     Text(
                         text = stringResource(Res.string.workout_card_duration_format, workout.durationMinutes),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
                     )
                 }
             }
@@ -319,7 +319,7 @@ private fun WorkoutPlanCard(
             Text(
                 text = lastPerformedText,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
             )
         }
     }

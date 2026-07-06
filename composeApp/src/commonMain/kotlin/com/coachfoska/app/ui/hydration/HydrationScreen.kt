@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.hydration
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -88,7 +89,7 @@ fun HydrationScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(DsTheme.colors.background)
     ) {
         DsTopBar(title = stringResource(Res.string.home_water_label), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
@@ -114,7 +115,7 @@ fun HydrationScreen(
             }
             ReminderSettingsSection(settings = state.settings, onUpdate = { onIntent(HydrationIntent.UpdateSettings(it)) })
             state.error?.let {
-                Text(text = it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(text = it, color = DsTheme.colors.error, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -127,13 +128,13 @@ private fun TodayLogSection(logs: List<WaterLog>, onDelete: (String) -> Unit) {
         Text(
             text = stringResource(Res.string.hydration_todays_log),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
             letterSpacing = 2.sp
         )
         logs.forEach { log ->
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.03f),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -150,13 +151,13 @@ private fun TodayLogSection(logs: List<WaterLog>, onDelete: (String) -> Unit) {
                     Text(
                         text = "${local.hour.toString().padStart(2,'0')}:${local.minute.toString().padStart(2,'0')}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
                     )
                     IconButton(onClick = { onDelete(log.id) }) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = deleteLabel,
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                            tint = DsTheme.colors.textPrimary.copy(alpha = 0.3f),
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -172,13 +173,13 @@ private fun ReminderSettingsSection(settings: HydrationSettings, onUpdate: (Hydr
         Text(
             text = stringResource(Res.string.hydration_reminders),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
             letterSpacing = 2.sp
         )
         Spacer(Modifier.height(10.dp))
         Surface(
             shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.03f),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
@@ -252,12 +253,12 @@ private fun SettingsToggleRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = if (enabled) 1f else 0.4f))
-                subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)) }
+                Text(label, style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.textPrimary.copy(alpha = if (enabled) 1f else 0.4f))
+                subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)) }
             }
             Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
         }
-        if (showDivider) HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+        if (showDivider) HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.05f))
     }
 }
 
@@ -279,10 +280,10 @@ private fun <T> SettingsPickerRow(
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = if (enabled) 1f else 0.4f))
+            Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.textPrimary.copy(alpha = if (enabled) 1f else 0.4f))
             Box {
                 TextButton(onClick = { if (enabled) expanded = true }) {
-                    Text(value, color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f))
+                    Text(value, color = if (enabled) DsTheme.colors.actionPrimary else DsTheme.colors.textPrimary.copy(alpha = 0.3f))
                 }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     options.forEach { option ->
@@ -294,7 +295,7 @@ private fun <T> SettingsPickerRow(
                 }
             }
         }
-        if (showDivider) HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+        if (showDivider) HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.05f))
     }
 }
 
@@ -314,7 +315,7 @@ private fun ContainerQuickAddSection(
             Text(
                 text = stringResource(Res.string.hydration_quick_add),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                 letterSpacing = 2.sp,
             )
             TextButton(onClick = { onIntent(HydrationIntent.ShowManageContainersSheet) }) {

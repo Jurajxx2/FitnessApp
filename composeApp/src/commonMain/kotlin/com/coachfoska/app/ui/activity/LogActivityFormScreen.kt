@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.activity
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -103,7 +104,7 @@ fun LogActivityFormScreen(
         ActivityType.SWIMMING,
     )
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsTheme.colors.background)) {
         DsTopBar(
             title = stringResource(Res.string.activity_log_type_title, state.selectedType.displayName.uppercase()),
             onBackClick = onBackClick,
@@ -118,14 +119,14 @@ fun LogActivityFormScreen(
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = DsTheme.colors.surfaceElevated,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
                     text = state.selectedType.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(12.dp),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = DsTheme.colors.textPrimary,
                 )
             }
             Spacer(Modifier.height(16.dp))
@@ -186,7 +187,7 @@ fun LogActivityFormScreen(
 
             if (state.error != null) {
                 Spacer(Modifier.height(12.dp))
-                Text(state.error, color = MaterialTheme.colorScheme.error)
+                Text(state.error, color = DsTheme.colors.error)
             }
         }
 

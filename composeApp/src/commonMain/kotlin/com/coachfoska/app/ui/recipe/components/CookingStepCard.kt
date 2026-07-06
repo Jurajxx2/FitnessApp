@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.recipe.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
@@ -23,10 +24,10 @@ import androidx.compose.ui.unit.sp
 fun CookingStepCard(stepNumber: Int, instruction: String, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = DsTheme.colors.surface,
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+            DsTheme.colors.textPrimary.copy(alpha = 0.05f),
         ),
         modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 6.dp),
     ) {
@@ -34,12 +35,12 @@ fun CookingStepCard(stepNumber: Int, instruction: String, modifier: Modifier = M
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    .background(DsTheme.colors.actionPrimary, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = stepNumber.toString(),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = DsTheme.colors.onActionPrimary,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                 )
@@ -48,7 +49,7 @@ fun CookingStepCard(stepNumber: Int, instruction: String, modifier: Modifier = M
                 text = instruction,
                 modifier = Modifier.padding(top = 12.dp),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.85f),
                 lineHeight = 26.sp,
             )
         }

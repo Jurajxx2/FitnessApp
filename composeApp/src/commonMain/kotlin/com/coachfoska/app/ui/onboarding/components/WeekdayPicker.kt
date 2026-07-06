@@ -34,8 +34,8 @@ fun WeekdayPicker(
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         dayLabels.forEach { (day, label) ->
             val isSelected = day in selected
-            val bg = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
-            val fg = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onBackground
+            val bg = if (isSelected) DsTheme.colors.actionPrimary else DsTheme.colors.surface
+            val fg = if (isSelected) DsTheme.colors.onActionPrimary else DsTheme.colors.textPrimary
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
@@ -45,7 +45,7 @@ fun WeekdayPicker(
                     .weight(1f)
                     .defaultMinSize(minHeight = DsTheme.sizes.touchTarget)
                     .background(bg, RectangleShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
+                    .border(1.dp, DsTheme.colors.outline, RectangleShape)
                     .toggleable(
                         value = isSelected,
                         role = Role.Checkbox,

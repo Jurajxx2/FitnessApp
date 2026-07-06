@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,14 +40,14 @@ fun ExercisePreviewCard(
     Column(
         modifier = modifier
             .width(160.dp)
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), SquareShape)
+            .border(BorderStroke(1.dp, DsTheme.colors.outlineSubtle), SquareShape)
             .clickable(onClick = onClick),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(110.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
+                .background(DsTheme.colors.surfaceElevated.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center,
         ) {
             if (exercise.imageUrl != null) {
@@ -60,7 +61,7 @@ fun ExercisePreviewCard(
                 Icon(
                     imageVector = Icons.Filled.FitnessCenter,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = DsTheme.colors.textSecondary,
                     modifier = Modifier.width(28.dp).height(28.dp),
                 )
             }
@@ -73,7 +74,7 @@ fun ExercisePreviewCard(
                 text = exercise.name,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -81,7 +82,7 @@ fun ExercisePreviewCard(
                 Text(
                     text = cat.name.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = DsTheme.colors.textSecondary,
                     letterSpacing = 1.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.nutrition.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -49,7 +50,7 @@ fun PortionPicker(
                 Text(
                     text = unit,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = DsTheme.colors.actionPrimary,
                 )
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.home
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -62,7 +63,7 @@ fun DayDetailBottomSheet(
                 Text(
                     text = day.dayOfWeek.localizedName().uppercase(),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     letterSpacing = 1.5.sp,
                 )
                 StatusChip(status = day.status)
@@ -75,7 +76,7 @@ fun DayDetailBottomSheet(
                     Text(
                         text = day.plannedWorkout.name.uppercase(),
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = DsTheme.colors.textPrimary,
                     )
                     day.plannedWorkout.exercises.forEach { exercise ->
                         SheetExerciseRow(
@@ -88,19 +89,19 @@ fun DayDetailBottomSheet(
                 Text(
                     text = stringResource(Res.string.day_sheet_rest_day),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                 )
             }
 
             // Done section
             if (day.completedLog != null) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
+                HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.08f))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SheetSectionHeader(stringResource(Res.string.day_sheet_done))
                     Text(
                         text = day.completedLog.workoutName.uppercase(),
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = DsTheme.colors.textPrimary,
                     )
                     day.completedLog.exerciseLogs.forEach { log ->
                         SheetExerciseRow(
@@ -110,13 +111,13 @@ fun DayDetailBottomSheet(
                     }
                 }
             } else if (day.status == DayActivityStatus.COMPLETED) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
+                HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.08f))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SheetSectionHeader(stringResource(Res.string.day_sheet_done))
                     Text(
                         text = stringResource(Res.string.day_sheet_workout_completed),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                     )
                 }
             }
@@ -131,7 +132,7 @@ private fun SheetSectionHeader(label: String) {
     Text(
         text = label,
         style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = DsTheme.colors.textSecondary,
         letterSpacing = 1.sp,
     )
 }
@@ -146,13 +147,13 @@ private fun SheetExerciseRow(name: String, detail: String) {
         Text(
             text = name,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             modifier = Modifier.weight(1f),
         )
         Text(
             text = detail,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
         )
     }
 }
@@ -162,18 +163,18 @@ private fun StatusChip(status: DayActivityStatus) {
     val (label, containerColor, contentColor) = when (status) {
         DayActivityStatus.COMPLETED -> Triple(
             "DONE",
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-            MaterialTheme.colorScheme.primary,
+            DsTheme.colors.actionPrimary.copy(alpha = 0.15f),
+            DsTheme.colors.actionPrimary,
         )
         DayActivityStatus.TODAY -> Triple(
             "TODAY",
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-            MaterialTheme.colorScheme.primary,
+            DsTheme.colors.actionPrimary.copy(alpha = 0.15f),
+            DsTheme.colors.actionPrimary,
         )
         DayActivityStatus.SCHEDULED -> Triple(
             "SCHEDULED",
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant,
+            DsTheme.colors.surfaceElevated,
+            DsTheme.colors.textSecondary,
         )
         DayActivityStatus.MISSED -> Triple(
             "MISSED",
@@ -182,8 +183,8 @@ private fun StatusChip(status: DayActivityStatus) {
         )
         DayActivityStatus.REST -> Triple(
             "REST",
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant,
+            DsTheme.colors.surfaceElevated,
+            DsTheme.colors.textSecondary,
         )
     }
     Surface(

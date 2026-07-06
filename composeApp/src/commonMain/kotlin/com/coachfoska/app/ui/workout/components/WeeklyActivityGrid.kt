@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,16 +56,16 @@ private fun WeekDayCell(day: WeekDayActivity, onClick: () -> Unit, modifier: Mod
     val isToday = day.status == DayActivityStatus.TODAY
     val dimmed = day.status == DayActivityStatus.REST || day.status == DayActivityStatus.MISSED
     val border = if (isToday) {
-        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        BorderStroke(2.dp, DsTheme.colors.actionPrimary)
     } else {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        BorderStroke(1.dp, DsTheme.colors.outlineSubtle)
     }
     val bg = when (day.status) {
-        DayActivityStatus.TODAY -> MaterialTheme.colorScheme.surfaceContainerHighest
-        DayActivityStatus.COMPLETED -> MaterialTheme.colorScheme.surface
-        else -> MaterialTheme.colorScheme.background
+        DayActivityStatus.TODAY -> DsTheme.colors.surfaceHighest
+        DayActivityStatus.COMPLETED -> DsTheme.colors.surface
+        else -> DsTheme.colors.background
     }
-    val accent = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val accent = if (isToday) DsTheme.colors.actionPrimary else DsTheme.colors.textSecondary
     Column(
         modifier = modifier
             .border(border, SquareShape)

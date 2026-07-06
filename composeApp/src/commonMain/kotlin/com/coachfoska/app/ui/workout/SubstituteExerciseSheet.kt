@@ -100,7 +100,7 @@ fun SubstituteExerciseSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = DsTheme.colors.surface,
     ) {
         Column(
             modifier = Modifier
@@ -118,7 +118,7 @@ fun SubstituteExerciseSheet(
                 Text(
                     text = stringResource(Res.string.substitute_suggested),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = DsTheme.colors.actionPrimary,
                     modifier = Modifier.padding(bottom = DsTheme.spacing.sm)
                 )
                 suggestions.forEach { exercise ->
@@ -132,7 +132,7 @@ fun SubstituteExerciseSheet(
                 }
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = DsTheme.spacing.md),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.08f)
                 )
             }
 

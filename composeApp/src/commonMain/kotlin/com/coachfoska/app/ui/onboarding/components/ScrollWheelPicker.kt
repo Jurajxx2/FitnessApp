@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.onboarding.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Box
@@ -75,7 +76,7 @@ fun <T> ScrollWheelPicker(
                 .fillMaxWidth()
                 .height(itemHeight)
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                .background(DsTheme.colors.surfaceElevated.copy(alpha = 0.4f))
         )
         LazyColumn(
             state = listState,
@@ -96,8 +97,8 @@ fun <T> ScrollWheelPicker(
                         maxLines = 1,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = if (isCenter) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isCenter) MaterialTheme.colorScheme.onBackground
-                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        color = if (isCenter) DsTheme.colors.textPrimary
+                                else DsTheme.colors.textSecondary.copy(alpha = 0.5f),
                         modifier = Modifier.graphicsLayer {
                             val scale = if (isCenter) 1f else 0.82f
                             scaleX = scale

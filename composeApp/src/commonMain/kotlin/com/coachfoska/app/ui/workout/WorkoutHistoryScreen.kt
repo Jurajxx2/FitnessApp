@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -80,7 +81,7 @@ fun WorkoutHistoryScreen(
                     Card(
                         onClick = onProgressClick,
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        colors = CardDefaults.cardColors(containerColor = DsTheme.colors.surfaceElevated),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(
@@ -93,12 +94,12 @@ fun WorkoutHistoryScreen(
                                 Text(
                                     stringResource(Res.string.workout_history_your_progress),
                                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    color = DsTheme.colors.textPrimary,
                                 )
                                 Text(
                                     stringResource(Res.string.workout_history_progress_desc),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                                    color = DsTheme.colors.textPrimary.copy(alpha = 0.7f),
                                 )
                             }
                         }
@@ -113,7 +114,7 @@ fun WorkoutHistoryScreen(
                         Text(
                             text = stringResource(Res.string.workout_history_no_workouts),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
                         )
                     }
                 }
@@ -127,8 +128,8 @@ private fun WorkoutHistoryDetailCard(log: WorkoutLog, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
+        color = DsTheme.colors.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.08f))
     ) {
         Column(
             modifier = Modifier
@@ -140,13 +141,13 @@ private fun WorkoutHistoryDetailCard(log: WorkoutLog, onClick: () -> Unit) {
                 Text(
                     text = log.workoutName,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
                     text = log.loggedAt.toDisplayDateTime(),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
                 )
             }
 
@@ -157,13 +158,13 @@ private fun WorkoutHistoryDetailCard(log: WorkoutLog, onClick: () -> Unit) {
                 Text(
                     text = stringResource(Res.string.duration_min, log.durationMinutes),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
                 )
-                Box(modifier = Modifier.size(3.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)))
+                Box(modifier = Modifier.size(3.dp).background(DsTheme.colors.textPrimary.copy(alpha = 0.2f), RoundedCornerShape(50)))
                 Text(
                     text = stringResource(Res.string.exercises_count, log.exerciseLogs.size),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
                 )
             }
 
@@ -177,7 +178,7 @@ private fun WorkoutHistoryDetailCard(log: WorkoutLog, onClick: () -> Unit) {
                 Text(
                     text = stringResource(Res.string.workout_history_volume_format, formatWeightKg(totalVolume)),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                 )
             }
         }

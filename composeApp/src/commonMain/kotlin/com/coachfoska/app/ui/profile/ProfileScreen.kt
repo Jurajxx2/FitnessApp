@@ -66,7 +66,7 @@ fun ProfileScreen(
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = DsTheme.colors.background
     ) {
         Column(
             modifier = Modifier
@@ -83,18 +83,18 @@ fun ProfileScreen(
                 Text(
                     text = stringResource(Res.string.profile_label),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                     letterSpacing = 2.sp
                 )
                 Text(
                     text = (state.user?.fullName ?: stringResource(Res.string.default_athlete_name)).uppercase(),
                     style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = DsTheme.colors.textPrimary
                 )
                 Text(
                     text = state.user?.email?.lowercase() ?: "",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
                 )
             }
 
@@ -125,27 +125,27 @@ fun ProfileScreen(
 
             // Menu Items
             Column(modifier = Modifier.fillMaxWidth()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.05f))
                 ProfileMenuItem(label = stringResource(Res.string.my_progress), onClick = onProgressClick)
                 HorizontalDivider(
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
                 ProfileMenuItem(label = stringResource(Res.string.settings_title), onClick = onSettingsClick)
                 HorizontalDivider(
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
                 ProfileMenuItem(label = stringResource(Res.string.about_foska), onClick = onAboutCoachClick)
                 HorizontalDivider(
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
                 ProfileThemeToggleRow(
                     isDarkTheme = state.isDarkTheme,
                     onToggle = { onIntent(ProfileIntent.ToggleTheme) }
                 )
-                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.05f))
             }
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -165,7 +165,7 @@ fun ProfileScreen(
                     Text(
                         text = stringResource(Res.string.log_out),
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.tertiary, // Accent red for logout
+                        color = DsTheme.colors.accent, // Accent red for logout
                         letterSpacing = 1.sp
                     )
                 }
@@ -175,7 +175,7 @@ fun ProfileScreen(
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = DsTheme.colors.error,
                     modifier = Modifier.padding(24.dp)
                 )
             }
@@ -190,8 +190,8 @@ private fun ProfileStatCard(label: String, value: String, modifier: Modifier = M
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+        color = DsTheme.colors.surfaceElevated.copy(alpha = 0.2f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.05f))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -200,13 +200,13 @@ private fun ProfileStatCard(label: String, value: String, modifier: Modifier = M
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                 letterSpacing = 1.sp
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -225,17 +225,17 @@ private fun ProfileThemeToggleRow(isDarkTheme: Boolean, onToggle: () -> Unit) {
         Text(
             text = if (isDarkTheme) "DARK MODE" else "LIGHT MODE",
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             letterSpacing = 1.sp
         )
         Switch(
             checked = isDarkTheme,
             onCheckedChange = { onToggle() },
             colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.background,
-                checkedTrackColor = MaterialTheme.colorScheme.onBackground,
-                uncheckedThumbColor = MaterialTheme.colorScheme.onBackground,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                checkedThumbColor = DsTheme.colors.background,
+                checkedTrackColor = DsTheme.colors.textPrimary,
+                uncheckedThumbColor = DsTheme.colors.textPrimary,
+                uncheckedTrackColor = DsTheme.colors.surfaceElevated
             )
         )
     }
@@ -245,7 +245,7 @@ private fun ProfileThemeToggleRow(isDarkTheme: Boolean, onToggle: () -> Unit) {
 private fun ProfileMenuItem(label: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.background,
+        color = DsTheme.colors.background,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -257,13 +257,13 @@ private fun ProfileMenuItem(label: String, onClick: () -> Unit) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
                 letterSpacing = 1.sp
             )
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+                tint = DsTheme.colors.textPrimary.copy(alpha = 0.2f)
             )
         }
     }

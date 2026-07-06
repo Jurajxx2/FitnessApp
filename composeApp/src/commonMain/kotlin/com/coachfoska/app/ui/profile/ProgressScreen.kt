@@ -112,14 +112,14 @@ fun ProgressScreen(
                         Text(
                             text = stringResource(Res.string.weight_evolution),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                             letterSpacing = 1.5.sp
                         )
                         
                         Surface(
                             shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.onBackground,
-                            contentColor = MaterialTheme.colorScheme.background,
+                            color = DsTheme.colors.textPrimary,
+                            contentColor = DsTheme.colors.background,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -138,15 +138,15 @@ fun ProgressScreen(
                                         verticalAlignment = Alignment.Bottom
                                     ) {
                                         Column {
-                                            Text(stringResource(Res.string.progress_start), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
+                                            Text(stringResource(Res.string.progress_start), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.background.copy(alpha = 0.5f))
                                             Text(stringResource(Res.string.weight_kg_format, first.toString()), style = MaterialTheme.typography.titleMedium)
                                         }
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text(stringResource(Res.string.progress_current), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
+                                            Text(stringResource(Res.string.progress_current), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.background.copy(alpha = 0.5f))
                                             Text(stringResource(Res.string.weight_kg_format, last.toString()), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                                         }
                                         Column(horizontalAlignment = Alignment.End) {
-                                            Text(stringResource(Res.string.progress_change), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
+                                            Text(stringResource(Res.string.progress_change), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.background.copy(alpha = 0.5f))
                                             Text(
                                                 text = "${if (diff < 0) "" else "+"}${stringResource(Res.string.weight_kg_format, diff.toString())}",
                                                 style = MaterialTheme.typography.titleMedium,
@@ -174,23 +174,23 @@ fun ProgressScreen(
                         Text(
                             text = stringResource(Res.string.body_composition),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                             letterSpacing = 1.5.sp
                         )
                         
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)),
+                            color = DsTheme.colors.surfaceElevated.copy(alpha = 0.2f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.05f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                 user.heightCm?.let { ProgressStatRow(stringResource(Res.string.stat_height), stringResource(Res.string.height_cm_format, it.toInt())) }
-                                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                                HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.05f))
                                 user.weightKg?.let { ProgressStatRow(stringResource(Res.string.stat_last_weight), stringResource(Res.string.weight_kg_upper_format, it.toString())) }
-                                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                                HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.05f))
                                 user.goal?.let { ProgressStatRow(stringResource(Res.string.stat_target_goal), it.displayName.uppercase()) }
-                                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                                HorizontalDivider(color = DsTheme.colors.textPrimary.copy(alpha = 0.05f))
                                 user.activityLevel?.let { ProgressStatRow(stringResource(Res.string.stat_activity), it.displayName.uppercase()) }
                             }
                         }
@@ -242,13 +242,13 @@ private fun ProgressStatRow(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
             letterSpacing = 1.sp
         )
         Text(
             text = value,
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             fontWeight = FontWeight.Bold
         )
     }

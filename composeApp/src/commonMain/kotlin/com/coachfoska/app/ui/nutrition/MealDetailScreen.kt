@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.nutrition
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -62,7 +63,7 @@ fun MealDetailScreen(
     onBackClick: () -> Unit,
     onLogMeal: () -> Unit = {},
 ) {
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = Modifier.fillMaxSize().background(DsTheme.colors.background)) {
         DsTopBar(title = stringResource(Res.string.meal_detail_screen_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
         when {
@@ -79,7 +80,7 @@ fun MealDetailScreen(
                 Text(
                     text = stringResource(Res.string.meal_not_found),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f)
                 )
             }
         }
@@ -89,7 +90,7 @@ fun MealDetailScreen(
 @Composable
 private fun MealContent(meal: Meal, modifier: Modifier = Modifier) {
     LazyColumn(
-        modifier = modifier.background(MaterialTheme.colorScheme.background),
+        modifier = modifier.background(DsTheme.colors.background),
         contentPadding = PaddingValues(bottom = 40.dp),
     ) {
         item("title") {
@@ -100,14 +101,14 @@ private fun MealContent(meal: Meal, modifier: Modifier = Modifier) {
                 Text(
                     text = meal.name.uppercase(),
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     letterSpacing = 0.5.sp,
                 )
                 meal.timeOfDay?.let {
                     Text(
                         text = it.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                         letterSpacing = 1.sp,
                     )
                 }
@@ -120,7 +121,7 @@ private fun MealContent(meal: Meal, modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(Res.string.meal_ingredients_section),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
                 letterSpacing = 1.5.sp,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
             )
@@ -137,13 +138,13 @@ private fun MealContent(meal: Meal, modifier: Modifier = Modifier) {
                 Text(
                     text = food.name,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = stringResource(Res.string.common_grams_format, food.amountGrams.toInt()),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
                 )
             }
         }
@@ -157,7 +158,7 @@ private fun MacrosBand(meal: Meal) {
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 16.dp)
             .background(
-                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
+                DsTheme.colors.textPrimary.copy(alpha = 0.05f),
                 RoundedCornerShape(12.dp)
             )
             .padding(16.dp),
@@ -176,13 +177,13 @@ private fun MacroItem(value: String, label: String) {
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
             fontWeight = FontWeight.Bold,
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
         )
     }
 }

@@ -32,11 +32,11 @@ fun <T> SingleSelectStep(
     rowContent: @Composable RowScope.(T) -> Unit
 ) {
     Column(modifier.fillMaxSize().padding(top = DsTheme.spacing.lg, bottom = DsTheme.spacing.xl)) {
-        Text(title, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
+        Text(title, style = MaterialTheme.typography.headlineMedium, color = DsTheme.colors.textPrimary)
         Text(
             subtitle,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = DsTheme.colors.textSecondary,
             modifier = Modifier.padding(top = DsTheme.spacing.sm, bottom = DsTheme.spacing.xl)
         )
         Column(

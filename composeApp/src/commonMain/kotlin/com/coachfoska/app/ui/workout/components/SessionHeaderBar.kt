@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -70,12 +71,12 @@ fun SessionHeaderBar(
                     },
                     singleLine = true,
                     textStyle = TextStyle(
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = DsTheme.colors.textPrimary,
                         fontWeight = FontWeight.Bold,
                         fontSize = MaterialTheme.typography.titleMedium.fontSize,
                         letterSpacing = MaterialTheme.typography.titleMedium.letterSpacing,
                     ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    cursorBrush = SolidColor(DsTheme.colors.actionPrimary),
                     decorationBox = { innerTextField ->
                         Box {
                             if (textFieldValue.text.isEmpty()) {
@@ -84,7 +85,7 @@ fun SessionHeaderBar(
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    color = DsTheme.colors.textSecondary.copy(alpha = 0.5f),
                                 )
                             }
                             innerTextField()
@@ -100,17 +101,17 @@ fun SessionHeaderBar(
                     Text(
                         text = timerText,
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = DsTheme.colors.actionPrimary,
                     )
                     Text(
                         text = "·",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = DsTheme.colors.textSecondary,
                     )
                     Text(
                         text = volumeText,
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = DsTheme.colors.textSecondary,
                     )
                 }
             }
@@ -145,7 +146,7 @@ fun SessionHeaderBar(
                     onDismissRequest = { menuExpanded = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.session_discard), color = MaterialTheme.colorScheme.error) },
+                        text = { Text(stringResource(Res.string.session_discard), color = DsTheme.colors.error) },
                         onClick = { menuExpanded = false; onDiscardClick() },
                     )
                 }

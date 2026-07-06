@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.hydration.components
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,14 +36,14 @@ fun ContainerQuickAddButton(
 ) {
     val gradient = Brush.verticalGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+            DsTheme.colors.actionPrimary.copy(alpha = 0.18f),
+            DsTheme.colors.actionPrimary.copy(alpha = 0.06f),
         ),
     )
     Surface(
         shape = RoundedCornerShape(14.dp),
         modifier = modifier.clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surface,
+        color = DsTheme.colors.surface,
     ) {
         Column(
             modifier = Modifier
@@ -55,25 +56,25 @@ fun ContainerQuickAddButton(
             Icon(
                 imageVector = Icons.Outlined.LocalDrink,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = DsTheme.colors.actionPrimary,
                 modifier = Modifier.size(28.dp),
             )
             Text(
                 text = container.name,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = DsTheme.colors.textPrimary,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
                 text = stringResource(Res.string.hydration_amount_ml_format, container.volumeMl),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
             )
             if (container.isFavorite) {
                 Icon(
                     imageVector = Icons.Filled.Star,
                     contentDescription = stringResource(Res.string.common_favorite_cd),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = DsTheme.colors.actionPrimary,
                     modifier = Modifier.size(12.dp),
                 )
             }

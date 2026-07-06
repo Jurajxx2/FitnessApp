@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.nutrition
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -67,7 +68,7 @@ fun MealHistoryScreen(
                     Text(
                         text = stringResource(Res.string.meal_history_your_logs),
                         style = MaterialTheme.typography.displayMedium,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = DsTheme.colors.textPrimary
                     )
                 }
 
@@ -80,7 +81,7 @@ fun MealHistoryScreen(
                         Text(
                             text = stringResource(Res.string.meal_history_no_meals),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
                         )
                     }
                 }
@@ -94,8 +95,8 @@ private fun MealLogCard(log: MealLog, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
+        color = DsTheme.colors.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, DsTheme.colors.textPrimary.copy(alpha = 0.08f))
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -105,13 +106,13 @@ private fun MealLogCard(log: MealLog, onClick: () -> Unit) {
                 Text(
                     text = log.mealName,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = DsTheme.colors.textPrimary,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
                     text = log.loggedAt.toDisplayDateTime(),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
                 )
             }
 
@@ -123,13 +124,13 @@ private fun MealLogCard(log: MealLog, onClick: () -> Unit) {
                     text = stringResource(Res.string.meal_history_kcal_format, log.totalCalories.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
                 )
-                Box(modifier = Modifier.size(3.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), RoundedCornerShape(50)))
+                Box(modifier = Modifier.size(3.dp).background(DsTheme.colors.textPrimary.copy(alpha = 0.2f), RoundedCornerShape(50)))
                 Text(
                     text = stringResource(Res.string.meal_history_protein_format, log.totalProtein.toInt()),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
                 )
             }
         }

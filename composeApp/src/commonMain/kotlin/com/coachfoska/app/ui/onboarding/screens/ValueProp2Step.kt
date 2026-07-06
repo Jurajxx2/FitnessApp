@@ -19,8 +19,8 @@ import coachfoska.composeapp.generated.resources.*
 fun ValueProp2Step(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().padding(DsTheme.spacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
-        Text(stringResource(Res.string.ob_valueprop2_title), style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
-        Text(stringResource(Res.string.ob_valueprop2_subtitle), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.padding(top = DsTheme.spacing.md))
+        Text(stringResource(Res.string.ob_valueprop2_title), style = MaterialTheme.typography.displaySmall, color = DsTheme.colors.textPrimary, textAlign = TextAlign.Center)
+        Text(stringResource(Res.string.ob_valueprop2_subtitle), style = MaterialTheme.typography.bodyLarge, color = DsTheme.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.padding(top = DsTheme.spacing.md))
         Spacer(Modifier.weight(1f))
         DsButton(text = stringResource(Res.string.ob_continue), onClick = onContinue, shape = RectangleShape)
     }

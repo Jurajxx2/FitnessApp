@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -77,7 +78,7 @@ fun ActiveSessionRoute(
             text = { Text(stringResource(Res.string.session_discard_confirm)) },
             confirmButton = {
                 TextButton(onClick = { showDiscardDialog = false; viewModel.onIntent(ActiveSessionIntent.DiscardSession) }) {
-                    Text(stringResource(Res.string.session_discard), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(Res.string.session_discard), color = DsTheme.colors.error)
                 }
             },
             dismissButton = {
@@ -155,7 +156,7 @@ fun ActiveSessionScreen(
                     Text(
                         text = stringResource(Res.string.session_save_degraded),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                        color = DsTheme.colors.error,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
@@ -268,7 +269,7 @@ private fun SessionProgressBar(draft: SessionDraft, modifier: Modifier = Modifie
         Text(
             text = stringResource(Res.string.session_sets_progress, doneSets, totalSets),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = DsTheme.colors.textSecondary,
         )
         LinearProgressIndicator(
             progress = { progress },
@@ -276,7 +277,7 @@ private fun SessionProgressBar(draft: SessionDraft, modifier: Modifier = Modifie
                 .fillMaxWidth()
                 .height(4.dp)
                 .clip(RoundedCornerShape(2.dp)),
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            trackColor = DsTheme.colors.surfaceElevated,
         )
     }
 }

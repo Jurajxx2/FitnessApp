@@ -1,5 +1,6 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -130,7 +131,7 @@ fun ActivityHubScreen(
         state.workouts.firstOrNull { it.dayOfWeek?.index == today.dayOfWeek.ordinal }
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = DsTheme.colors.background) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -162,7 +163,7 @@ fun ActivityHubScreen(
                     Text(
                         text = stringResource(Res.string.activity_hub_no_workouts),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = DsTheme.colors.textSecondary,
                     )
                 }
 
@@ -205,7 +206,7 @@ fun ActivityHubScreen(
                 }
 
                 state.error?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.error)
                 }
             }
             Spacer(Modifier.height(24.dp))
@@ -219,7 +220,7 @@ private fun ResumeSessionBanner(
     onResumeSession: (workoutId: String, logId: String) -> Unit,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = DsTheme.colors.surfaceElevated,
         shape = RoundedCornerShape(8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -233,12 +234,12 @@ private fun ResumeSessionBanner(
                     text = stringResource(Res.string.session_resume_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = DsTheme.colors.textPrimary,
                 )
                 Text(
                     text = session.workoutName,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = DsTheme.colors.textSecondary,
                 )
             }
             Button(
@@ -258,7 +259,7 @@ private fun BrandHeader() {
             text = stringResource(Res.string.activity_hub_title),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = DsTheme.colors.textPrimary,
         )
     }
 }
@@ -290,8 +291,8 @@ private fun StartWorkoutButton(
         modifier = Modifier.fillMaxWidth().height(56.dp),
         shape = SquareShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = DsTheme.colors.actionPrimary,
+            contentColor = DsTheme.colors.onActionPrimary,
         ),
     ) {
         Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))

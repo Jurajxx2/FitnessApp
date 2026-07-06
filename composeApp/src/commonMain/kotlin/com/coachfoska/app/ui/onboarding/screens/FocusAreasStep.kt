@@ -33,8 +33,8 @@ fun FocusAreasStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit,
         MuscleGroup.FULL_BODY to stringResource(Res.string.ob_focus_full_body)
     )
     Column(modifier.fillMaxSize().padding(top = DsTheme.spacing.lg, bottom = DsTheme.spacing.xl)) {
-        Text(stringResource(Res.string.ob_focus_title), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
-        Text(stringResource(Res.string.ob_focus_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = DsTheme.spacing.sm, bottom = DsTheme.spacing.lg))
+        Text(stringResource(Res.string.ob_focus_title), style = MaterialTheme.typography.headlineMedium, color = DsTheme.colors.textPrimary)
+        Text(stringResource(Res.string.ob_focus_subtitle), style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.textSecondary, modifier = Modifier.padding(top = DsTheme.spacing.sm, bottom = DsTheme.spacing.lg))
         Row(Modifier.weight(1f)) {
             BodyMapSelector(
                 selected = state.data.focusAreas,
