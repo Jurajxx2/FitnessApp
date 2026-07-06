@@ -40,6 +40,8 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(projects.designsystem)
+
             // Compose Multiplatform (explicit artifact refs — compose.* accessors removed in 2.3)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
