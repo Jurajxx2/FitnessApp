@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.onboarding.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.coachfoska.app.theme.Spacing
 
 /**
  * A title/subtitle + a vertical list of selectable option rows. [rowContent] is `RowScope`-scoped so
@@ -30,17 +31,17 @@ fun <T> SingleSelectStep(
     modifier: Modifier = Modifier,
     rowContent: @Composable RowScope.(T) -> Unit
 ) {
-    Column(modifier.fillMaxSize().padding(top = Spacing.lg, bottom = Spacing.xl)) {
+    Column(modifier.fillMaxSize().padding(top = DsTheme.spacing.lg, bottom = DsTheme.spacing.xl)) {
         Text(title, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
         Text(
             subtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.xl)
+            modifier = Modifier.padding(top = DsTheme.spacing.sm, bottom = DsTheme.spacing.xl)
         )
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)
         ) {
             options.forEach { option ->
                 SelectableCard(selected = option == selected, onClick = { onSelect(option) }) {

@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.profile
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,7 +25,6 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsMetricCard
-import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -76,8 +77,8 @@ fun ProfileScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.xl, vertical = 40.dp),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    .padding(horizontal = DsTheme.spacing.xl, vertical = 40.dp),
+                verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)
             ) {
                 Text(
                     text = stringResource(Res.string.profile_label),
@@ -102,8 +103,8 @@ fun ProfileScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = Spacing.xl),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                        .padding(horizontal = DsTheme.spacing.xl),
+                    horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)
                 ) {
                     DsMetricCard(
                         label = stringResource(Res.string.stat_weight),

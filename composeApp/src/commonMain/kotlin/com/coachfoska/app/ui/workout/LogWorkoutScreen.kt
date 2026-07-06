@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -63,7 +65,6 @@ import com.coachfoska.app.presentation.workout.SetDraft
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
-import com.coachfoska.app.theme.Sizes
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsSectionLabel
 import com.coachfoska.designsystem.components.DsTextField
@@ -266,7 +267,7 @@ private fun ManualExerciseCard(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     IconButton(
                         onClick = onAddVideo,
-                        modifier = Modifier.size(Sizes.touchTarget),
+                        modifier = Modifier.size(DsTheme.sizes.touchTarget),
                         colors = IconButtonDefaults.iconButtonColors(
                             containerColor = if (exercise.videoUrl != null) {
                                 MaterialTheme.colorScheme.onBackground
@@ -287,7 +288,7 @@ private fun ManualExerciseCard(
                         )
                     }
                     if (onRemove != null) {
-                        IconButton(onClick = onRemove, modifier = Modifier.size(Sizes.touchTarget)) {
+                        IconButton(onClick = onRemove, modifier = Modifier.size(DsTheme.sizes.touchTarget)) {
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = stringResource(Res.string.remove_cd),

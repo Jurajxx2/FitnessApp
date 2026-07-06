@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,7 +39,6 @@ import coachfoska.composeapp.generated.resources.editor_picker_no_results
 import coachfoska.composeapp.generated.resources.editor_picker_search_prompt
 import coachfoska.composeapp.generated.resources.substitute_search_hint
 import com.coachfoska.app.domain.model.Exercise
-import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -88,7 +89,7 @@ fun ExerciseSearchList(
             )
         )
 
-        Spacer(modifier = Modifier.height(Spacing.md))
+        Spacer(modifier = Modifier.height(DsTheme.spacing.md))
 
         when {
             isSearching -> {
@@ -130,7 +131,7 @@ fun ExerciseSearchList(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = Spacing.xl)
+                        .padding(vertical = DsTheme.spacing.xl)
                 )
             }
             else -> {
@@ -140,7 +141,7 @@ fun ExerciseSearchList(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = Spacing.xl)
+                        .padding(vertical = DsTheme.spacing.xl)
                 )
             }
         }
@@ -156,7 +157,7 @@ fun ExerciseSearchRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = Spacing.md),
+            .padding(vertical = DsTheme.spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (exercise.imageUrl != null) {
@@ -168,9 +169,9 @@ fun ExerciseSearchRow(
                     .clip(RoundedCornerShape(6.dp)),
                 contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.width(Spacing.md))
+            Spacer(modifier = Modifier.width(DsTheme.spacing.md))
         } else {
-            Spacer(modifier = Modifier.width(Spacing.xxl))
+            Spacer(modifier = Modifier.width(DsTheme.spacing.xxl))
         }
 
         Column(modifier = Modifier.weight(1f)) {

@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.onboarding.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -35,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coachfoska.app.domain.model.MuscleGroup
-import com.coachfoska.app.theme.Spacing
 import kotlin.math.min
 
 /** A region with its SVG path pre-parsed into a [Path] (in 0..724 / 0..1448 viewBox space). */
@@ -89,7 +90,7 @@ fun BodyMapSelector(
         Canvas(
             Modifier
                 .weight(1f)
-                .padding(top = Spacing.sm)
+                .padding(top = DsTheme.spacing.sm)
                 // Size from the available height so the tall figure never overflows its row.
                 .aspectRatio(BODY_VIEWBOX_WIDTH / BODY_VIEWBOX_HEIGHT, matchHeightConstraintsFirst = true)
                 .pointerInput(regions) {

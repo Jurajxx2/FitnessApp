@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.chat.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -23,7 +25,6 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.chat_remove_image_cd
 import coachfoska.composeapp.generated.resources.chat_selected_image_cd
 import coil3.compose.AsyncImage
-import com.coachfoska.app.theme.Sizes
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -48,7 +49,7 @@ fun ImageMessagePreview(
             onClick = onRemove,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .size(Sizes.touchTarget)
+                .size(DsTheme.sizes.touchTarget)
                 .background(
                     color = MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
                     shape = CircleShape

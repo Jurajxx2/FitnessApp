@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.profile
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -65,7 +67,6 @@ import coachfoska.composeapp.generated.resources.store_compliance_ready
 import coachfoska.composeapp.generated.resources.terms_of_service
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.settings.SettingsViewModel
-import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -122,10 +123,10 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.xl, vertical = Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xl)
+                .padding(horizontal = DsTheme.spacing.xl, vertical = DsTheme.spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.xl)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
                 Text(
                     text = stringResource(Res.string.settings_title),
                     style = MaterialTheme.typography.displaySmall,
@@ -166,7 +167,7 @@ fun SettingsScreen(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)) {
                 SectionTitle(stringResource(Res.string.settings_privacy_data))
                 SettingsSection {
                     SettingsRow(
@@ -196,7 +197,7 @@ fun SettingsScreen(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)) {
                 SectionTitle(stringResource(Res.string.settings_about))
                 SettingsSection {
                     SettingsRow(
@@ -207,7 +208,7 @@ fun SettingsScreen(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)) {
                 SectionTitle(stringResource(Res.string.settings_debug))
                 SettingsSection {
                     DebugRow(
@@ -246,7 +247,7 @@ fun SettingsScreen(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
-                        modifier = Modifier.padding(Spacing.lg)
+                        modifier = Modifier.padding(DsTheme.spacing.lg)
                     )
                 }
             }
@@ -266,7 +267,7 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(Spacing.xl))
+            Spacer(modifier = Modifier.height(DsTheme.spacing.xl))
         }
     }
 }
@@ -302,13 +303,13 @@ private fun SettingsRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
+                .padding(horizontal = DsTheme.spacing.lg, vertical = DsTheme.spacing.xl),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.xs)
             ) {
                 Text(
                     text = title,
@@ -342,7 +343,7 @@ private fun SettingsRow(
 private fun SettingsDivider() {
     HorizontalDivider(
         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f),
-        modifier = Modifier.padding(horizontal = Spacing.lg)
+        modifier = Modifier.padding(horizontal = DsTheme.spacing.lg)
     )
 }
 
@@ -374,13 +375,13 @@ private fun DebugRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
+                .padding(horizontal = DsTheme.spacing.lg, vertical = DsTheme.spacing.xl),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.xs)
             ) {
                 Text(
                     text = title,

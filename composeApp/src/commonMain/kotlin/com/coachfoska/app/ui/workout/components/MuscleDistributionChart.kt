@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.progress_volume_by_muscle
 import com.coachfoska.app.domain.model.MuscleVolumeEntry
-import com.coachfoska.app.theme.muscleGroupColor
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -26,7 +27,7 @@ fun MuscleDistributionChart(
             style = MaterialTheme.typography.titleSmall,
         )
         entries.forEachIndexed { index, entry ->
-            val color = muscleGroupColor(entry.muscleGroup)
+            val color = DsTheme.colors.categoricalFor(entry.muscleGroup)
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

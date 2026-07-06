@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +26,6 @@ import coachfoska.composeapp.generated.resources.substitute_suggested
 import coachfoska.composeapp.generated.resources.substitute_title
 import com.coachfoska.app.domain.model.Exercise
 import com.coachfoska.app.domain.repository.ExerciseRepository
-import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.ui.workout.components.ExerciseSearchList
 import com.coachfoska.app.ui.workout.components.ExerciseSearchRow
 import kotlinx.coroutines.FlowPreview
@@ -104,12 +105,12 @@ fun SubstituteExerciseSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.xl)
+                .padding(horizontal = DsTheme.spacing.xl)
         ) {
             Text(
                 text = stringResource(Res.string.substitute_title),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = Spacing.md)
+                modifier = Modifier.padding(bottom = DsTheme.spacing.md)
             )
 
             // Suggestions section — only if we resolved suggestions
@@ -118,7 +119,7 @@ fun SubstituteExerciseSheet(
                     text = stringResource(Res.string.substitute_suggested),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = Spacing.sm)
+                    modifier = Modifier.padding(bottom = DsTheme.spacing.sm)
                 )
                 suggestions.forEach { exercise ->
                     ExerciseSearchRow(
@@ -130,7 +131,7 @@ fun SubstituteExerciseSheet(
                     )
                 }
                 HorizontalDivider(
-                    modifier = Modifier.padding(vertical = Spacing.md),
+                    modifier = Modifier.padding(vertical = DsTheme.spacing.md),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                 )
             }
@@ -150,7 +151,7 @@ fun SubstituteExerciseSheet(
                 },
             )
 
-            Spacer(modifier = Modifier.height(Spacing.xxl))
+            Spacer(modifier = Modifier.height(DsTheme.spacing.xxl))
         }
     }
 }

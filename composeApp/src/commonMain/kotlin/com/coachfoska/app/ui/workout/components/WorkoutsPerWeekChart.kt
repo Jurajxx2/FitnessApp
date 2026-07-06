@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.progress_workouts_per_week
 import com.coachfoska.app.domain.model.WeeklyCount
-import com.coachfoska.app.theme.ChartLine
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -45,7 +46,7 @@ fun WorkoutsPerWeekChart(
                         modifier = Modifier
                             .fillMaxWidth()
                             .fillMaxHeight(fraction.coerceIn(0.05f, 1f))
-                            .background(ChartLine, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)),
+                            .background(DsTheme.colors.chartLine, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)),
                     )
                 }
             }

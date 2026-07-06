@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.recipe.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -23,7 +25,6 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.recipe_fewer_servings_cd
 import coachfoska.composeapp.generated.resources.recipe_more_servings_cd
 import coachfoska.composeapp.generated.resources.recipe_servings_label
-import com.coachfoska.app.theme.Sizes
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -48,7 +49,7 @@ fun ServingsAdjuster(
         )
         IconButton(
             onClick = { if (servings > minServings) onServingsChange(servings - 1) },
-            modifier = Modifier.size(Sizes.touchTarget),
+            modifier = Modifier.size(DsTheme.sizes.touchTarget),
             enabled = servings > minServings,
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
@@ -64,7 +65,7 @@ fun ServingsAdjuster(
         )
         IconButton(
             onClick = { if (servings < maxServings) onServingsChange(servings + 1) },
-            modifier = Modifier.size(Sizes.touchTarget),
+            modifier = Modifier.size(DsTheme.sizes.touchTarget),
             enabled = servings < maxServings,
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),

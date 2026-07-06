@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -67,8 +69,6 @@ import com.coachfoska.app.presentation.workout.EditorExercise
 import com.coachfoska.app.presentation.workout.WorkoutEditorIntent
 import com.coachfoska.app.presentation.workout.WorkoutEditorState
 import com.coachfoska.app.presentation.workout.WorkoutEditorViewModel
-import com.coachfoska.app.theme.Spacing
-import com.coachfoska.app.theme.Sizes
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.designsystem.components.DsChip
@@ -143,7 +143,7 @@ fun WorkoutEditorScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.xl, vertical = Spacing.lg)
+                    .padding(horizontal = DsTheme.spacing.xl, vertical = DsTheme.spacing.lg)
             ) {
                 DsButton(
                     text = stringResource(Res.string.editor_save),
@@ -158,10 +158,10 @@ fun WorkoutEditorScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
             contentPadding = PaddingValues(
-                horizontal = Spacing.xl,
-                vertical = Spacing.lg
+                horizontal = DsTheme.spacing.xl,
+                vertical = DsTheme.spacing.lg
             ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+            verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg)
         ) {
             // ── Name field ────────────────────────────────────────────────────
             item {
@@ -194,14 +194,14 @@ fun WorkoutEditorScreen(
 
             // ── Day-of-week selector ──────────────────────────────────────────
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
                     Text(
                         text = stringResource(Res.string.editor_day_label),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)
                     ) {
                         items(DAY_ORDER.size) { idx ->
                             val day = DAY_ORDER[idx]
@@ -288,7 +288,7 @@ private fun ExerciseEditorCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
+        Column(modifier = Modifier.padding(DsTheme.spacing.md)) {
             // Header row: name + reorder + remove
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -311,7 +311,7 @@ private fun ExerciseEditorCard(
                 // Up button — 48dp touch target
                 IconButton(
                     onClick = { onIntent(WorkoutEditorIntent.MoveExercise(index, -1)) },
-                    modifier = Modifier.size(Sizes.touchTarget),
+                    modifier = Modifier.size(DsTheme.sizes.touchTarget),
                     enabled = !isFirst,
                 ) {
                     Icon(
@@ -324,7 +324,7 @@ private fun ExerciseEditorCard(
                 // Down button — 48dp touch target
                 IconButton(
                     onClick = { onIntent(WorkoutEditorIntent.MoveExercise(index, 1)) },
-                    modifier = Modifier.size(Sizes.touchTarget),
+                    modifier = Modifier.size(DsTheme.sizes.touchTarget),
                     enabled = !isLast,
                 ) {
                     Icon(
@@ -337,7 +337,7 @@ private fun ExerciseEditorCard(
                 // Remove button — 48dp touch target
                 IconButton(
                     onClick = { onIntent(WorkoutEditorIntent.RemoveExercise(index)) },
-                    modifier = Modifier.size(Sizes.touchTarget),
+                    modifier = Modifier.size(DsTheme.sizes.touchTarget),
                 ) {
                     Icon(
                         Icons.Default.Delete,
@@ -347,12 +347,12 @@ private fun ExerciseEditorCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(Spacing.sm))
+            Spacer(modifier = Modifier.height(DsTheme.spacing.sm))
 
             // Sets / Reps / Rest inputs row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Sets (numeric)

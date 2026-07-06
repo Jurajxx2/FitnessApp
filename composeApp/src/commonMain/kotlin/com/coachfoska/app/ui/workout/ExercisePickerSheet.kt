@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,7 +20,6 @@ import coachfoska.composeapp.generated.resources.editor_picker_title
 import coachfoska.composeapp.generated.resources.editor_search_exercises
 import com.coachfoska.app.presentation.workout.WorkoutEditorIntent
 import com.coachfoska.app.presentation.workout.WorkoutEditorState
-import com.coachfoska.app.theme.Spacing
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.app.ui.workout.components.ExerciseSearchList
 import org.jetbrains.compose.resources.stringResource
@@ -39,12 +40,12 @@ fun ExercisePickerSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.xl)
+                .padding(horizontal = DsTheme.spacing.xl)
         ) {
             Text(
                 text = stringResource(Res.string.editor_picker_title),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = Spacing.md)
+                modifier = Modifier.padding(bottom = DsTheme.spacing.md)
             )
 
             ExerciseSearchList(
@@ -56,7 +57,7 @@ fun ExercisePickerSheet(
                 placeholderText = stringResource(Res.string.editor_search_exercises),
             )
 
-            Spacer(modifier = Modifier.height(Spacing.md))
+            Spacer(modifier = Modifier.height(DsTheme.spacing.md))
 
             DsButton(
                 text = stringResource(Res.string.editor_picker_done),
@@ -64,7 +65,7 @@ fun ExercisePickerSheet(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(Spacing.xl))
+            Spacer(modifier = Modifier.height(DsTheme.spacing.xl))
         }
     }
 }

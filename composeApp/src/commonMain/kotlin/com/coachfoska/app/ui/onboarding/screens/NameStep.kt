@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.onboarding.screens
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -20,7 +22,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
-import com.coachfoska.app.theme.Spacing
 import com.coachfoska.designsystem.components.DsButton
 import org.jetbrains.compose.resources.stringResource
 import coachfoska.composeapp.generated.resources.*
@@ -29,7 +30,7 @@ import coachfoska.composeapp.generated.resources.*
 fun NameStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    Column(modifier.fillMaxSize().padding(Spacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier.fillMaxSize().padding(DsTheme.spacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
         Text(stringResource(Res.string.ob_name_title), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
         TextField(
@@ -46,7 +47,7 @@ fun NameStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, onDon
                 focusedTextColor = MaterialTheme.colorScheme.onBackground,
                 unfocusedTextColor = MaterialTheme.colorScheme.onBackground
             ),
-            modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xl).focusRequester(focus)
+            modifier = Modifier.fillMaxWidth().padding(vertical = DsTheme.spacing.xl).focusRequester(focus)
         )
         Spacer(Modifier.weight(1f))
         DsButton(text = stringResource(Res.string.ob_name_cta), onClick = onDone, enabled = state.data.name.isNotBlank(), shape = RectangleShape)

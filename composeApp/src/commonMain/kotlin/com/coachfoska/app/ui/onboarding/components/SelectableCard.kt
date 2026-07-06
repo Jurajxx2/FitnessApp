@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.onboarding.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -20,8 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
-import com.coachfoska.app.theme.Sizes
-import com.coachfoska.app.theme.Spacing
 
 /** Sharp-edged selectable surface. White border + slight scale when selected. */
 @Composable
@@ -47,7 +47,7 @@ fun SelectableCard(
             .background(MaterialTheme.colorScheme.surface, RectangleShape)
             .border(BorderStroke(if (selected) 2.dp else 1.dp, border), RectangleShape)
             .clickable(onClick = onClick)
-            .heightIn(min = Sizes.touchTarget)
-            .padding(Spacing.lg + Spacing.xs)
+            .heightIn(min = DsTheme.sizes.touchTarget)
+            .padding(DsTheme.spacing.lg + DsTheme.spacing.xs)
     ) { content() }
 }

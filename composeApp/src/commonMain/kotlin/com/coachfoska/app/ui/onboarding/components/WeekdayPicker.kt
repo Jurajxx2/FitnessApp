@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.onboarding.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +18,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.coachfoska.app.theme.Sizes
 import kotlinx.datetime.DayOfWeek
 
 /**
@@ -42,7 +43,7 @@ fun WeekdayPicker(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .weight(1f)
-                    .defaultMinSize(minHeight = Sizes.touchTarget)
+                    .defaultMinSize(minHeight = DsTheme.sizes.touchTarget)
                     .background(bg, RectangleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
                     .toggleable(

@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.nutrition
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,7 +39,6 @@ import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
-import com.coachfoska.app.theme.Sizes
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.meal_plan_assigned_meals
@@ -166,7 +167,7 @@ private fun DayStrip(
             val textColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             Box(
                 modifier = Modifier
-                    .size(Sizes.touchTarget)
+                    .size(DsTheme.sizes.touchTarget)
                     .clickable { onSelectDay(index) },
                 contentAlignment = Alignment.Center,
             ) {

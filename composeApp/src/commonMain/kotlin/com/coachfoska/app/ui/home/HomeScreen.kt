@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.home
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -34,8 +36,6 @@ import com.coachfoska.app.domain.usecase.workout.deriveTodayVolumeKg
 import com.coachfoska.app.presentation.home.HomeIntent
 import com.coachfoska.app.presentation.home.HomeState
 import com.coachfoska.app.presentation.home.HomeViewModel
-import com.coachfoska.app.theme.Sizes
-import com.coachfoska.app.theme.Spacing
 import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsEmptyState
 import com.coachfoska.designsystem.components.DsMetricCard
@@ -125,7 +125,7 @@ fun HomeScreen(
 
             // Metrics row (or skeleton while loading, or first-run guidance)
             if (state.isLoading) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)) {
                     DsMetricCardSkeleton(Modifier.weight(1f))
                     DsMetricCardSkeleton(Modifier.weight(1f))
                     DsMetricCardSkeleton(Modifier.weight(1f))
@@ -139,8 +139,8 @@ fun HomeScreen(
                     onAction = onGoToActivity,
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)) {
                         DsMetricCard(
                             value = state.weekWorkoutsDone.toString(),
                             label = stringResource(Res.string.home_metric_week_workouts),
@@ -304,7 +304,7 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(Modifier.width(8.dp))
-            IconButton(onClick = onQuickAdd, modifier = Modifier.size(Sizes.touchTarget)) {
+            IconButton(onClick = onQuickAdd, modifier = Modifier.size(DsTheme.sizes.touchTarget)) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = stringResource(Res.string.quick_add_water),

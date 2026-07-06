@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.nutrition
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,7 +37,6 @@ import com.coachfoska.designsystem.components.DsSectionLabel
 import com.coachfoska.designsystem.components.DsTextField
 import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
-import com.coachfoska.app.theme.Sizes
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.*
@@ -455,7 +456,7 @@ private fun FoodEntryRow(
                     letterSpacing = 1.sp,
                 )
                 if (onRemove != null) {
-                    IconButton(onClick = onRemove, modifier = Modifier.size(Sizes.touchTarget)) {
+                    IconButton(onClick = onRemove, modifier = Modifier.size(DsTheme.sizes.touchTarget)) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = stringResource(Res.string.remove_cd),

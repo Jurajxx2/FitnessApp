@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.onboarding
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -18,7 +20,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingStep
 import com.coachfoska.app.presentation.onboarding.OnboardingViewModel
-import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.ui.onboarding.components.OnboardingTopBar
 import com.coachfoska.app.ui.onboarding.screens.*
 import org.koin.compose.viewmodel.koinViewModel
@@ -66,7 +67,7 @@ fun OnboardingRoute(
             label = "ob-step"
         ) { current ->
             Box(Modifier.fillMaxSize()) {
-                val bodyModifier = Modifier.padding(horizontal = Spacing.xl)
+                val bodyModifier = Modifier.padding(horizontal = DsTheme.spacing.xl)
                 when (current) {
                     OnboardingStep.GENDER -> GenderStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)
                     OnboardingStep.GOAL -> GoalStep(state, viewModel::onSingleSelectAndAdvance, bodyModifier)

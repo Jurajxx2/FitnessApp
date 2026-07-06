@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.nutrition
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -40,8 +42,6 @@ import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.designsystem.components.DsEmptyState
 import com.coachfoska.designsystem.components.DsChip
 import com.coachfoska.designsystem.components.DsShimmerBox
-import com.coachfoska.app.theme.Sizes
-import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -94,8 +94,8 @@ fun RecipesListScreen(
         DsTopBar(title = stringResource(Res.string.recipes_title), onBackClick = onBackClick, backContentDescription = stringResource(Res.string.back_cd))
 
         Column(
-            modifier = Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            modifier = Modifier.padding(horizontal = DsTheme.spacing.xl, vertical = DsTheme.spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.md),
         ) {
             OutlinedTextField(
                 value = query,
@@ -115,7 +115,7 @@ fun RecipesListScreen(
                     cursorColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
                 DsChip(
                     selected = state.showOnlyFavorites,
                     onClick = onToggleFavoritesFilter,
@@ -129,7 +129,7 @@ fun RecipesListScreen(
                 )
             }
             if (tags.isNotEmpty()) {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
                     items(tags.size) { index ->
                         val tag = tags[index]
                         DsChip(
@@ -145,9 +145,9 @@ fun RecipesListScreen(
         if (state.isRecipesLoading) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(horizontal = Spacing.xl, vertical = Spacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                contentPadding = PaddingValues(horizontal = DsTheme.spacing.xl, vertical = DsTheme.spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.md),
+                verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.md),
             ) {
                 items(4) {
                     DsShimmerBox(Modifier.fillMaxWidth().height(160.dp))
@@ -158,14 +158,14 @@ fun RecipesListScreen(
                 icon = Icons.Outlined.SearchOff,
                 title = stringResource(Res.string.recipes_empty_title),
                 message = stringResource(Res.string.recipes_empty_message),
-                modifier = Modifier.padding(top = Spacing.xl),
+                modifier = Modifier.padding(top = DsTheme.spacing.xl),
             )
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(horizontal = Spacing.xl, vertical = Spacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                contentPadding = PaddingValues(horizontal = DsTheme.spacing.xl, vertical = DsTheme.spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.md),
+                verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)
             ) {
                 items(filteredRecipes, key = { it.id }) { recipe ->
                     RecipesListCard(
@@ -215,7 +215,7 @@ private fun RecipesListCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(Sizes.touchTarget)) {
+                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(DsTheme.sizes.touchTarget)) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = if (isFavorite) {

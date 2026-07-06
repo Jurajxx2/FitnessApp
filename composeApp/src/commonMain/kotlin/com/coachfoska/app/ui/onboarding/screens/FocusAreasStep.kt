@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.onboarding.screens
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.MaterialTheme
@@ -11,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import com.coachfoska.app.domain.model.MuscleGroup
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
-import com.coachfoska.app.theme.Spacing
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.app.ui.onboarding.components.BodyMapSelector
 import com.coachfoska.app.ui.onboarding.components.SelectableChip
@@ -31,16 +32,16 @@ fun FocusAreasStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit,
         MuscleGroup.GLUTES to stringResource(Res.string.ob_focus_glutes),
         MuscleGroup.FULL_BODY to stringResource(Res.string.ob_focus_full_body)
     )
-    Column(modifier.fillMaxSize().padding(top = Spacing.lg, bottom = Spacing.xl)) {
+    Column(modifier.fillMaxSize().padding(top = DsTheme.spacing.lg, bottom = DsTheme.spacing.xl)) {
         Text(stringResource(Res.string.ob_focus_title), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
-        Text(stringResource(Res.string.ob_focus_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.lg))
+        Text(stringResource(Res.string.ob_focus_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = DsTheme.spacing.sm, bottom = DsTheme.spacing.lg))
         Row(Modifier.weight(1f)) {
             BodyMapSelector(
                 selected = state.data.focusAreas,
                 onToggle = { onIntent(OnboardingIntent.ToggleFocusArea(it)) },
                 modifier = Modifier.weight(1f)
             )
-            FlowRow(Modifier.weight(1f).padding(start = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            FlowRow(Modifier.weight(1f).padding(start = DsTheme.spacing.md), horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm), verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
                 MuscleGroup.entries.forEach { group ->
                     SelectableChip(
                         text = labels.getValue(group),
@@ -55,7 +56,7 @@ fun FocusAreasStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit,
             onClick = { onIntent(OnboardingIntent.NextStep) },
             enabled = state.data.focusAreas.isNotEmpty(),
             shape = RectangleShape,
-            modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg)
+            modifier = Modifier.fillMaxWidth().padding(top = DsTheme.spacing.lg)
         )
     }
 }

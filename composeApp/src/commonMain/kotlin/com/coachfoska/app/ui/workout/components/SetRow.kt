@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.workout.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -45,7 +47,6 @@ import coachfoska.composeapp.generated.resources.set_row_prev_header
 import coachfoska.composeapp.generated.resources.set_row_reps_header
 import coachfoska.composeapp.generated.resources.set_row_save_header
 import coachfoska.composeapp.generated.resources.set_row_set_header
-import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.SetDraft
@@ -68,8 +69,8 @@ fun SetTableHeader(modifier: Modifier = Modifier) {
         Text(stringResource(Res.string.set_row_kg_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
         Text(stringResource(Res.string.set_row_reps_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
         Spacer(Modifier.weight(1f))
-        Text("✓", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(Sizes.touchTarget), textAlign = TextAlign.Center)
-        Spacer(Modifier.width(Sizes.touchTarget))
+        Text("✓", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(DsTheme.sizes.touchTarget), textAlign = TextAlign.Center)
+        Spacer(Modifier.width(DsTheme.sizes.touchTarget))
         Text(stringResource(Res.string.set_row_save_header), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(76.dp), textAlign = TextAlign.End)
     }
 }
@@ -223,7 +224,7 @@ fun SetRow(
         // 48dp outer box is the touch target; 32dp inner box is the visual element.
         Box(
             modifier = Modifier
-                .size(Sizes.touchTarget)
+                .size(DsTheme.sizes.touchTarget)
                 .clickable {
                     if (!setDraft.completed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                     onCompleted()
@@ -257,7 +258,7 @@ fun SetRow(
         IconButton(
             onClick = { onRemove?.invoke() },
             enabled = onRemove != null,
-            modifier = Modifier.size(Sizes.touchTarget),
+            modifier = Modifier.size(DsTheme.sizes.touchTarget),
         ) {
             Icon(
                 imageVector = Icons.Default.DeleteOutline,
@@ -301,7 +302,7 @@ private fun SetSaveStateLabel(
         color = color,
         textAlign = TextAlign.End,
         modifier = modifier
-            .heightIn(min = Sizes.touchTarget)
+            .heightIn(min = DsTheme.sizes.touchTarget)
             .then(if (saveState == SetSaveState.Failed) Modifier.clickable(onClick = onRetrySave) else Modifier),
     )
 }

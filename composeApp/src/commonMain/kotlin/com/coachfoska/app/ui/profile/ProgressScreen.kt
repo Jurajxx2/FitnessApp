@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.profile
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -31,8 +33,6 @@ import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.designsystem.components.DsEmptyState
-import com.coachfoska.app.theme.ChartLine
-import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -103,12 +103,12 @@ fun ProgressScreen(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.xl, vertical = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xxl)
+                    .padding(horizontal = DsTheme.spacing.xl, vertical = DsTheme.spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.xxl)
             ) {
                 // Weight Progress Card
                 if (state.weightHistory.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg)) {
                         Text(
                             text = stringResource(Res.string.weight_evolution),
                             style = MaterialTheme.typography.labelMedium,
@@ -125,7 +125,7 @@ fun ProgressScreen(
                             Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                                 WeightChart(
                                     entries = state.weightHistory.take(12).reversed(),
-                                    color = ChartLine
+                                    color = DsTheme.colors.chartLine
                                 )
                                 
                                 val first = state.weightHistory.lastOrNull()?.weightKg

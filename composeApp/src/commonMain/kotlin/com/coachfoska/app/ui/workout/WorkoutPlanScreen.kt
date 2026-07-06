@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,7 +41,6 @@ import com.coachfoska.app.domain.model.WorkoutSource
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
-import com.coachfoska.app.theme.Spacing
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsTopBar
@@ -113,8 +114,8 @@ fun WorkoutPlanScreen(
         Column(modifier = Modifier.weight(1f)) {
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = Spacing.xl, vertical = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+                contentPadding = PaddingValues(horizontal = DsTheme.spacing.xl, vertical = DsTheme.spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg)
             ) {
                 if (allEmpty) {
                     item {
@@ -145,7 +146,7 @@ fun WorkoutPlanScreen(
                         item {
                             DsSectionHeader(
                                 title = stringResource(Res.string.plan_mine_badge),
-                                modifier = if (coachPlans.isNotEmpty()) Modifier.padding(top = Spacing.lg) else Modifier
+                                modifier = if (coachPlans.isNotEmpty()) Modifier.padding(top = DsTheme.spacing.lg) else Modifier
                             )
                         }
                         items(myPlans) { workout ->
@@ -166,7 +167,7 @@ fun WorkoutPlanScreen(
                 onClick = onLogWorkoutClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.xl, vertical = Spacing.xl)
+                    .padding(horizontal = DsTheme.spacing.xl, vertical = DsTheme.spacing.xl)
             )
         }
     }
@@ -217,8 +218,8 @@ private fun WorkoutPlanCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                .padding(DsTheme.spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -284,7 +285,7 @@ private fun WorkoutPlanCard(
             )
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(

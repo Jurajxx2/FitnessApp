@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.workout
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,7 +32,6 @@ import com.coachfoska.app.domain.model.WorkoutSource
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
-import com.coachfoska.app.theme.Spacing
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsTopBar
@@ -129,14 +130,14 @@ fun WorkoutDetailScreen(
                             contentPadding = PaddingValues(bottom = 100.dp)
                         ) {
                             item {
-                                Column(modifier = Modifier.padding(Spacing.xl)) {
+                                Column(modifier = Modifier.padding(DsTheme.spacing.xl)) {
                                     // Coach badge for coach plans
                                     if (isCoachPlan) {
                                         DsChip(
                                             selected = true,
                                             label = stringResource(Res.string.plan_coach_badge),
                                             onClick = {},
-                                            modifier = Modifier.padding(bottom = Spacing.sm)
+                                            modifier = Modifier.padding(bottom = DsTheme.spacing.sm)
                                         )
                                     }
 
@@ -147,7 +148,7 @@ fun WorkoutDetailScreen(
                                     )
 
                                     if (w.notes != null) {
-                                        Spacer(modifier = Modifier.height(Spacing.md))
+                                        Spacer(modifier = Modifier.height(DsTheme.spacing.md))
                                         Text(
                                             text = w.notes,
                                             style = MaterialTheme.typography.bodyLarge,
@@ -157,7 +158,7 @@ fun WorkoutDetailScreen(
 
                                     // Coach-readonly note
                                     if (isCoachPlan) {
-                                        Spacer(modifier = Modifier.height(Spacing.md))
+                                        Spacer(modifier = Modifier.height(DsTheme.spacing.md))
                                         Surface(
                                             color = MaterialTheme.colorScheme.surfaceVariant,
                                             shape = RoundedCornerShape(8.dp)
@@ -166,7 +167,7 @@ fun WorkoutDetailScreen(
                                                 text = stringResource(Res.string.detail_coach_readonly),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.padding(Spacing.md)
+                                                modifier = Modifier.padding(DsTheme.spacing.md)
                                             )
                                         }
                                     }
@@ -181,7 +182,7 @@ fun WorkoutDetailScreen(
                                     onSubstitute = { substituteIndex = index }
                                 )
                                 HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = Spacing.xl),
+                                    modifier = Modifier.padding(horizontal = DsTheme.spacing.xl),
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f)
                                 )
                             }
@@ -190,7 +191,7 @@ fun WorkoutDetailScreen(
                         Surface(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .padding(Spacing.xl),
+                                .padding(DsTheme.spacing.xl),
                             color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
                         ) {
                             DsButton(
@@ -233,9 +234,9 @@ private fun ExerciseRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.lg + Spacing.sm),
+            modifier = Modifier.padding(horizontal = DsTheme.spacing.xl, vertical = DsTheme.spacing.lg + DsTheme.spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.lg + Spacing.sm)
+            horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg + DsTheme.spacing.sm)
         ) {
             Box(
                 modifier = Modifier
@@ -275,7 +276,7 @@ private fun ExerciseRow(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                    modifier = Modifier.padding(horizontal = DsTheme.spacing.sm, vertical = DsTheme.spacing.xs)
                 )
             }
 

@@ -1,5 +1,7 @@
 package com.coachfoska.app.ui.onboarding.components
 
+import com.coachfoska.designsystem.theme.DsTheme
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -28,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
-import com.coachfoska.app.theme.Spacing
 import kotlinx.coroutines.delay
 
 /**
@@ -59,7 +60,7 @@ fun PlanLoadingAnimation(
         onFinished()
     }
 
-    Column(modifier.fillMaxWidth().padding(Spacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier.fillMaxWidth().padding(DsTheme.spacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(120.dp)) {
             Canvas(Modifier.size(120.dp)) {
                 drawArc(color = track, startAngle = -90f, sweepAngle = 360f, useCenter = false, style = Stroke(width = 10f))
@@ -71,7 +72,7 @@ fun PlanLoadingAnimation(
                 Text("${(progress.value * 100).toInt()}%", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
             }
         }
-        Column(Modifier.padding(top = Spacing.xxl).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Column(Modifier.padding(top = DsTheme.spacing.xxl).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)) {
             rows.forEachIndexed { i, row ->
                 AnimatedVisibility(visible = i < visibleRows, enter = fadeIn() + slideInVertically()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
