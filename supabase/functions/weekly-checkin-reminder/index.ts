@@ -44,7 +44,7 @@ serve(async (_req) => {
 
     const { data: tokens, error: dErr } = await supabase
       .from("device_tokens")
-      .select("token, user_id")
+      .select("token")
       .in("user_id", targetIds)
     if (dErr) {
       console.error("device_tokens query failed:", dErr)
@@ -68,7 +68,9 @@ serve(async (_req) => {
       }),
     )
     const results = await Promise.allSettled(sends)
-    const failures = results.filter((r) => r.status === "rejected").length
+    const failures = results.filter(
+      (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok),
+    ).length
     if (failures > 0) console.error(`${failures}/${sends.length} FCM sends failed`)
     return new Response("ok", { status: 200 })
   } catch (err) {

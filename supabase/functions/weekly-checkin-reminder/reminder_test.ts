@@ -15,6 +15,11 @@ Deno.test("mondayOf handles Sunday as end of week", () => {
   assertEquals(mondayOf(new Date("2026-07-12T23:00:00Z")), "2026-07-06")
 })
 
+Deno.test("mondayOf handles Saturday", () => {
+  // 2026-07-11 is a Saturday -> Monday 2026-07-06
+  assertEquals(mondayOf(new Date("2026-07-11T00:00:00Z")), "2026-07-06")
+})
+
 Deno.test("usersNeedingReminder excludes users who checked in", () => {
   const trainees = [{ id: "a" }, { id: "b" }, { id: "c" }]
   const checkedIn = new Set(["b"])
