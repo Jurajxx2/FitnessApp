@@ -24,6 +24,8 @@ import coachfoska.composeapp.generated.resources.splash_foska
 import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.presentation.splash.SplashNavState
 import com.coachfoska.app.presentation.splash.SplashViewModel
+import com.coachfoska.designsystem.generated.resources.Res as DsRes
+import com.coachfoska.designsystem.theme.DsTheme
 import io.github.alexzhirkevich.compottie.Compottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import io.github.alexzhirkevich.compottie.rememberLottieComposition
@@ -56,9 +58,10 @@ fun SplashScreen() {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
+    val lottiePath = DsTheme.assets.loaderLottiePath
     val composition by rememberLottieComposition {
         LottieCompositionSpec.JsonString(
-            Res.readBytes("files/barbell_loader.json").decodeToString()
+            DsRes.readBytes(lottiePath).decodeToString()
         )
     }
 

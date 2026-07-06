@@ -21,7 +21,7 @@ import com.coachfoska.app.presentation.profile.ProfileState
 import com.coachfoska.app.presentation.profile.ProfileViewModel
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.MetricCard
 import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
@@ -151,7 +151,7 @@ fun ProfileScreen(
 
             // Logout
             if (state.isSigningOut) {
-                CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(52.dp))
+                DsLoadingBox(modifier = Modifier.fillMaxWidth().height(52.dp))
             } else {
                 TextButton(
                     onClick = { onIntent(ProfileIntent.SignOut) },

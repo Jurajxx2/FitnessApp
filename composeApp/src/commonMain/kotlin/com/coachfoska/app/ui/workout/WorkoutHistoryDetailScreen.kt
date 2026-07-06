@@ -57,7 +57,7 @@ import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import kotlinx.datetime.Instant
 import androidx.compose.ui.tooling.preview.Preview
@@ -96,7 +96,7 @@ fun WorkoutHistoryDetailScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(title = stringResource(Res.string.workout_history_detail_title), onBackClick = onBackClick)
         if (state.isHistoryLoading && state.selectedWorkoutLog == null) {
-            CoachLoadingBox(Modifier.weight(1f))
+            DsLoadingBox(Modifier.weight(1f))
         } else {
             state.selectedWorkoutLog?.let { log ->
                 LazyColumn(

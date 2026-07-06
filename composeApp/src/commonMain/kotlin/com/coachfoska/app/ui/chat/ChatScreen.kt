@@ -38,7 +38,7 @@ import com.coachfoska.app.presentation.chat.ChatState
 import com.coachfoska.app.presentation.chat.ChatViewModel
 import com.coachfoska.app.ui.chat.components.ChatBubble
 import com.coachfoska.app.ui.chat.components.ChatInputBar
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
 import org.koin.compose.viewmodel.koinViewModel
@@ -118,7 +118,7 @@ fun ChatScreen(
 
         Box(modifier = Modifier.weight(1f)) {
             when {
-                state.isLoading && state.messages.isEmpty() -> CoachLoadingBox()
+                state.isLoading && state.messages.isEmpty() -> DsLoadingBox()
                 state.messages.isEmpty() && !state.isLoading -> EmptyChat(chatType)
                 else -> LazyColumn(
                     state = listState,

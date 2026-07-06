@@ -38,7 +38,7 @@ import com.coachfoska.app.presentation.exercise.ExerciseIntent
 import com.coachfoska.app.presentation.exercise.ExerciseSortOrder
 import com.coachfoska.app.presentation.exercise.ExerciseState
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
@@ -190,7 +190,7 @@ fun ExerciseLibraryScreen(
 
         Box(modifier = Modifier.weight(1f)) {
             if (state.isLoadingExercises && state.exercises.isEmpty()) {
-                CoachLoadingBox()
+                DsLoadingBox()
             } else {
                 LazyColumn(
                     state = listState,

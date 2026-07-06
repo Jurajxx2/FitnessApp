@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.coachfoska.app.theme.Spacing
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import org.jetbrains.compose.resources.stringResource
 import coachfoska.composeapp.generated.resources.*
 
@@ -21,6 +21,6 @@ fun ValueProp1Step(onContinue: () -> Unit, modifier: Modifier = Modifier) {
         Text(stringResource(Res.string.ob_valueprop1_title), style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
         Text(stringResource(Res.string.ob_valueprop1_subtitle), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.padding(top = Spacing.md))
         Spacer(Modifier.weight(1f))
-        CoachButton(text = stringResource(Res.string.ob_continue), onClick = onContinue, shape = RectangleShape)
+        DsButton(text = stringResource(Res.string.ob_continue), onClick = onContinue, shape = RectangleShape)
     }
 }

@@ -51,7 +51,7 @@ import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.SetDraft
 import com.coachfoska.app.presentation.workout.SetSaveState
 import com.coachfoska.app.presentation.workout.SetType
-import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.designsystem.components.DsTextField
 import com.coachfoska.designsystem.theme.LocalReduceMotion
 import org.jetbrains.compose.resources.stringResource
 
@@ -183,7 +183,7 @@ fun SetRow(
         )
 
         // Weight input — ImeAction.Next moves focus to reps field
-        CoachTextField(
+        DsTextField(
             value = setDraft.actualWeightKg?.let { formatWeightKg(it) } ?: "",
             onValueChange = { onWeightChange(it.toFloatOrNull()) },
             label = "",
@@ -201,7 +201,7 @@ fun SetRow(
         )
 
         // Reps input — ImeAction.Done triggers onNextAfterReps callback
-        CoachTextField(
+        DsTextField(
             value = setDraft.actualReps?.toString() ?: "",
             onValueChange = { onRepsChange(it.toIntOrNull()) },
             label = "",

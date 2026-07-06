@@ -63,7 +63,7 @@ import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsSectionHeader
 import com.coachfoska.app.ui.workout.components.AssignedWorkoutCard
 import com.coachfoska.app.ui.workout.components.ExercisePreviewCard
@@ -142,7 +142,7 @@ fun ActivityHubScreen(
             BrandHeader()
 
             if (state.isLoading && state.workouts.isEmpty()) {
-                CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
+                DsLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
             } else {
                 state.inProgressSession?.let { session ->
                     ResumeSessionBanner(session = session, onResumeSession = onResumeSession)

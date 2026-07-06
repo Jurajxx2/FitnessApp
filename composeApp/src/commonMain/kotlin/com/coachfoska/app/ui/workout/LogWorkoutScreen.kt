@@ -63,9 +63,9 @@ import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.theme.Sizes
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsSectionLabel
-import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.designsystem.components.DsTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
 import org.jetbrains.compose.resources.stringResource
@@ -173,12 +173,12 @@ private fun LogWorkoutContent(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                CoachTextField(
+                DsTextField(
                     value = workoutName,
                     onValueChange = onWorkoutName,
                     label = stringResource(Res.string.log_session_workout_name),
                 )
-                CoachTextField(
+                DsTextField(
                     value = durationMinutes,
                     onValueChange = onDurationMinutes,
                     label = stringResource(Res.string.log_session_duration_mins),
@@ -218,7 +218,7 @@ private fun LogWorkoutContent(
             }
 
             DsSectionLabel(text = stringResource(Res.string.log_session_notes))
-            CoachTextField(
+            DsTextField(
                 value = notes,
                 onValueChange = onNotes,
                 label = stringResource(Res.string.log_session_notes_label),
@@ -226,7 +226,7 @@ private fun LogWorkoutContent(
                 singleLine = false,
             )
 
-            CoachButton(
+            DsButton(
                 text = stringResource(Res.string.log_session_save_workout),
                 onClick = onSave,
                 modifier = Modifier.fillMaxWidth().height(56.dp).navigationBarsPadding(),
@@ -298,7 +298,7 @@ private fun ManualExerciseCard(
                 }
             }
 
-            CoachTextField(
+            DsTextField(
                 value = exercise.name,
                 onValueChange = { onUpdate(exercise.copy(name = it)) },
                 label = stringResource(Res.string.log_session_exercise_name),

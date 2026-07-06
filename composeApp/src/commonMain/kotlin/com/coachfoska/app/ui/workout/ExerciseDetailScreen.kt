@@ -45,7 +45,7 @@ import com.coachfoska.app.domain.usecase.workout.GetExerciseRecordsUseCase
 import com.coachfoska.app.presentation.exercise.ExerciseIntent
 import com.coachfoska.app.presentation.exercise.ExerciseState
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -101,7 +101,7 @@ fun ExerciseDetailScreen(
         )
 
         if (state.isLoadingDetail) {
-            CoachLoadingBox(Modifier.weight(1f))
+            DsLoadingBox(Modifier.weight(1f))
             return@Column
         }
 
@@ -221,7 +221,7 @@ private fun HistoryTab(userId: String, exerciseName: String) {
     }
 
     if (isLoading) {
-        CoachLoadingBox(Modifier.fillMaxSize())
+        DsLoadingBox(Modifier.fillMaxSize())
         return
     }
 
@@ -274,7 +274,7 @@ private fun ChartsTab(userId: String, exerciseName: String) {
     }
 
     if (isLoading) {
-        CoachLoadingBox(Modifier.fillMaxSize())
+        DsLoadingBox(Modifier.fillMaxSize())
         return
     }
 
@@ -403,7 +403,7 @@ private fun RecordsTab(userId: String, exerciseName: String) {
     }
 
     if (isLoading) {
-        CoachLoadingBox(Modifier.fillMaxSize())
+        DsLoadingBox(Modifier.fillMaxSize())
         return
     }
 

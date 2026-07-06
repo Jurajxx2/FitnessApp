@@ -17,7 +17,7 @@ import com.coachfoska.app.theme.BrandRed
 import com.coachfoska.app.theme.Error
 import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.theme.Success
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.app.ui.onboarding.components.ScrollWheelPicker
 import org.jetbrains.compose.resources.stringResource
 import coachfoska.composeapp.generated.resources.*
@@ -64,6 +64,6 @@ fun BodyStatsStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, 
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
-        CoachButton(text = stringResource(Res.string.ob_continue), onClick = { onIntent(OnboardingIntent.NextStep) }, shape = RectangleShape, modifier = Modifier.fillMaxWidth())
+        DsButton(text = stringResource(Res.string.ob_continue), onClick = { onIntent(OnboardingIntent.NextStep) }, shape = RectangleShape, modifier = Modifier.fillMaxWidth())
     }
 }

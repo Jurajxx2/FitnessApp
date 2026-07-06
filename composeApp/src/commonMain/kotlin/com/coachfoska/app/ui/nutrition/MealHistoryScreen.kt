@@ -24,7 +24,7 @@ import coachfoska.composeapp.generated.resources.meal_history_no_meals
 import coachfoska.composeapp.generated.resources.meal_history_protein_format
 import coachfoska.composeapp.generated.resources.meal_history_screen_title
 import coachfoska.composeapp.generated.resources.meal_history_your_logs
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -55,7 +55,7 @@ fun MealHistoryScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(title = stringResource(Res.string.meal_history_screen_title), onBackClick = onBackClick)
         if (state.isHistoryLoading) {
-            CoachLoadingBox(Modifier.weight(1f))
+            DsLoadingBox(Modifier.weight(1f))
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),

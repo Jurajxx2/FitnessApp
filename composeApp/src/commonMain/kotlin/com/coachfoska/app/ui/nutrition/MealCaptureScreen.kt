@@ -30,9 +30,9 @@ import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsSectionLabel
-import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.designsystem.components.DsTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
 import com.coachfoska.app.theme.Sizes
@@ -197,7 +197,7 @@ fun MealCaptureScreen(
                 .padding(horizontal = 24.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
-        CoachTextField(
+        DsTextField(
             value = mealName,
             onValueChange = { mealName = it },
             label = stringResource(Res.string.meal_name_label)
@@ -286,7 +286,7 @@ fun MealCaptureScreen(
             }
         }
 
-        CoachTextField(
+        DsTextField(
             value = notes,
             onValueChange = { notes = it },
             label = stringResource(Res.string.notes_optional),
@@ -297,7 +297,7 @@ fun MealCaptureScreen(
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         }
 
-        CoachButton(
+        DsButton(
             text = stringResource(Res.string.save_meal),
             onClick = {
                 val mealLogFoods = foods.filter { it.name.isNotBlank() }.map {
@@ -371,7 +371,7 @@ fun FoodSearchDialog(
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f).padding(24.dp)) {
             Text(stringResource(Res.string.meal_search_food_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(16.dp))
-            CoachTextField(
+            DsTextField(
                 value = query,
                 onValueChange = { 
                     query = it
@@ -469,7 +469,7 @@ private fun FoodEntryRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CoachTextField(
+                DsTextField(
                     value = food.name,
                     onValueChange = { onUpdate(food.copy(name = it)) },
                     label = stringResource(Res.string.food_name_label),

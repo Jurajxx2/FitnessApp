@@ -43,8 +43,8 @@ import com.coachfoska.app.domain.model.RecipeIngredient
 import com.coachfoska.app.domain.model.RecipeStep
 import com.coachfoska.app.presentation.recipe.RecipeDetailIntent
 import com.coachfoska.app.presentation.recipe.RecipeDetailViewModel
-import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsButton
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.recipe.components.CookingStepCard
 import com.coachfoska.app.ui.recipe.components.ServingsAdjuster
@@ -94,7 +94,7 @@ fun RecipeDetailRoute(
             }
         )
         when {
-            state.isLoading -> CoachLoadingBox(Modifier.weight(1f))
+            state.isLoading -> DsLoadingBox(Modifier.weight(1f))
             state.error != null -> Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(state.error!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
             }
@@ -105,7 +105,7 @@ fun RecipeDetailRoute(
                     onIntent = viewModel::onIntent,
                     modifier = Modifier.weight(1f),
                 )
-                CoachButton(
+                DsButton(
                     text = stringResource(Res.string.log_this_meal),
                     onClick = onLogMeal,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp)

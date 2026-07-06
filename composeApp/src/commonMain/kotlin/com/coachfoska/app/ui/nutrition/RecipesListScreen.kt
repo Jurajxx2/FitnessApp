@@ -36,7 +36,7 @@ import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachTopBar
-import com.coachfoska.app.ui.components.EmptyState
+import com.coachfoska.designsystem.components.DsEmptyState
 import com.coachfoska.designsystem.components.DsChip
 import com.coachfoska.designsystem.components.DsShimmerBox
 import com.coachfoska.app.theme.Sizes
@@ -153,7 +153,7 @@ fun RecipesListScreen(
                 }
             }
         } else if (filteredRecipes.isEmpty()) {
-            EmptyState(
+            DsEmptyState(
                 icon = Icons.Outlined.SearchOff,
                 title = stringResource(Res.string.recipes_empty_title),
                 message = stringResource(Res.string.recipes_empty_message),

@@ -59,7 +59,7 @@ import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.HubImageCard
 import com.coachfoska.app.ui.nutrition.components.FeaturedRecipeCard
 import org.koin.compose.viewmodel.koinViewModel
@@ -172,7 +172,7 @@ fun NutritionHubScreen(
             val featured = remember(state.allRecipes) { state.featuredRecipes }
             when {
                 state.isRecipesLoading && state.allRecipes.isEmpty() ->
-                    CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(150.dp))
+                    DsLoadingBox(modifier = Modifier.fillMaxWidth().height(150.dp))
                 featured.isEmpty() ->
                     Text(
                         text = stringResource(Res.string.nutrition_hub_no_recipes),

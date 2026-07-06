@@ -34,7 +34,7 @@ import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -67,7 +67,7 @@ fun WorkoutHistoryScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(title = stringResource(Res.string.activity_hub_workout_history), onBackClick = onBackClick)
         if (state.isHistoryLoading) {
-            CoachLoadingBox(Modifier.weight(1f))
+            DsLoadingBox(Modifier.weight(1f))
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),

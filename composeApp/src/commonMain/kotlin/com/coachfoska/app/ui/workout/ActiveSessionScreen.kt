@@ -27,7 +27,7 @@ import com.coachfoska.app.presentation.workout.ActiveSessionIntent
 import com.coachfoska.app.presentation.workout.ActiveSessionState
 import com.coachfoska.app.presentation.workout.ActiveSessionViewModel
 import com.coachfoska.app.presentation.workout.SessionDraft
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.app.ui.workout.components.*
 import com.coachfoska.designsystem.theme.LocalReduceMotion
 import kotlinx.coroutines.delay
@@ -212,7 +212,7 @@ fun ActiveSessionScreen(
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
                         )
-                        CoachButton(
+                        DsButton(
                             text = stringResource(Res.string.finish_workout),
                             onClick = { onFinishClick(notes.takeIf { it.isNotBlank() }) },
                             modifier = Modifier.fillMaxWidth(),

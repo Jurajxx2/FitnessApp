@@ -68,7 +68,7 @@ import com.coachfoska.app.presentation.workout.WorkoutEditorState
 import com.coachfoska.app.presentation.workout.WorkoutEditorViewModel
 import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.theme.Sizes
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.designsystem.components.DsChip
 import com.coachfoska.app.ui.components.localizedShortName
@@ -143,7 +143,7 @@ fun WorkoutEditorScreen(
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.xl, vertical = Spacing.lg)
             ) {
-                CoachButton(
+                DsButton(
                     text = stringResource(Res.string.editor_save),
                     onClick = { onIntent(WorkoutEditorIntent.Save) },
                     isLoading = state.isSaving,
@@ -242,7 +242,7 @@ fun WorkoutEditorScreen(
 
             // ── Add exercise button ───────────────────────────────────────────
             item {
-                CoachButton(
+                DsButton(
                     text = stringResource(Res.string.editor_add_exercise),
                     onClick = {
                         showPicker = true

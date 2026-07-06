@@ -45,8 +45,8 @@ import coachfoska.composeapp.generated.resources.hydration_container_name_label
 import coachfoska.composeapp.generated.resources.hydration_container_volume_label
 import coachfoska.composeapp.generated.resources.hydration_my_containers
 import com.coachfoska.app.domain.model.WaterContainer
-import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.designsystem.components.DsButton
+import com.coachfoska.designsystem.components.DsTextField
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,16 +124,16 @@ fun ManageContainersSheet(
             var name by remember { mutableStateOf("") }
             var volume by remember { mutableStateOf("") }
 
-            CoachTextField(value = name, onValueChange = { name = it }, label = stringResource(Res.string.hydration_container_name_label))
+            DsTextField(value = name, onValueChange = { name = it }, label = stringResource(Res.string.hydration_container_name_label))
             Spacer(Modifier.height(8.dp))
-            CoachTextField(
+            DsTextField(
                 value = volume,
                 onValueChange = { volume = it.filter { c -> c.isDigit() }.take(5) },
                 label = stringResource(Res.string.hydration_container_volume_label),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
             Spacer(Modifier.height(12.dp))
-            CoachButton(
+            DsButton(
                 text = stringResource(Res.string.hydration_add_container),
                 onClick = {
                     val ml = volume.toIntOrNull() ?: 0

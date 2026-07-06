@@ -24,7 +24,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
-import com.coachfoska.app.ui.components.coachTextFieldColors
+import com.coachfoska.designsystem.components.DsTextFieldDefaults
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -60,7 +60,7 @@ fun ChatInputBar(
             singleLine = false,
             maxLines = 4,
             shape = MaterialTheme.shapes.extraLarge,
-            colors = coachTextFieldColors(),
+            colors = DsTextFieldDefaults.colors(),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
             keyboardActions = KeyboardActions.Default
         )

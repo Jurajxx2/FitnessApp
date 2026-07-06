@@ -39,10 +39,10 @@ import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.theme.Spacing
-import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsButton
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
-import com.coachfoska.app.ui.components.EmptyState
+import com.coachfoska.designsystem.components.DsEmptyState
 import com.coachfoska.designsystem.components.DsChip
 import com.coachfoska.designsystem.components.DsSectionHeader
 import com.coachfoska.app.ui.components.localizedName
@@ -104,7 +104,7 @@ fun WorkoutPlanScreen(
         )
 
         if (state.isLoading) {
-            CoachLoadingBox()
+            DsLoadingBox()
             return@Column
         }
 
@@ -116,7 +116,7 @@ fun WorkoutPlanScreen(
             ) {
                 if (allEmpty) {
                     item {
-                        EmptyState(
+                        DsEmptyState(
                             icon = Icons.Default.FitnessCenter,
                             title = stringResource(Res.string.plan_create_first_title),
                             message = stringResource(Res.string.plan_create_first_message),
@@ -159,7 +159,7 @@ fun WorkoutPlanScreen(
                 }
             }
 
-            CoachButton(
+            DsButton(
                 text = stringResource(Res.string.plan_log_session),
                 onClick = onLogWorkoutClick,
                 modifier = Modifier

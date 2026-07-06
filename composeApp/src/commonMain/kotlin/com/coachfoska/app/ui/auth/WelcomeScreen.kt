@@ -29,7 +29,7 @@ import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.presentation.auth.AuthIntent
 import com.coachfoska.app.presentation.auth.AuthState
 import com.coachfoska.app.presentation.auth.AuthViewModel
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -182,7 +182,7 @@ fun WelcomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            CoachButton(
+            DsButton(
                 text = stringResource(Res.string.continue_with_email),
                 onClick = onNavigateToEmailOtp,
                 enabled = !state.isLoading,

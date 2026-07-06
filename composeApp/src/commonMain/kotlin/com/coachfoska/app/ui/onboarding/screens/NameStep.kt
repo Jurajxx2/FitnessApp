@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
 import com.coachfoska.app.theme.Spacing
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import org.jetbrains.compose.resources.stringResource
 import coachfoska.composeapp.generated.resources.*
 
@@ -49,6 +49,6 @@ fun NameStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit, onDon
             modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xl).focusRequester(focus)
         )
         Spacer(Modifier.weight(1f))
-        CoachButton(text = stringResource(Res.string.ob_name_cta), onClick = onDone, enabled = state.data.name.isNotBlank(), shape = RectangleShape)
+        DsButton(text = stringResource(Res.string.ob_name_cta), onClick = onDone, enabled = state.data.name.isNotBlank(), shape = RectangleShape)
     }
 }

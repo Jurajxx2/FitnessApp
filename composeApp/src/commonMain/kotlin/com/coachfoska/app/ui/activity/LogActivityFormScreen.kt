@@ -56,9 +56,9 @@ import com.coachfoska.app.domain.model.ActivityType
 import com.coachfoska.app.presentation.activity.ActivityLogIntent
 import com.coachfoska.app.presentation.activity.ActivityLogState
 import com.coachfoska.app.presentation.activity.ActivityLogViewModel
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsSectionLabel
-import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.designsystem.components.DsTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.datetime.LocalDate
@@ -128,7 +128,7 @@ fun LogActivityFormScreen(
             }
             Spacer(Modifier.height(16.dp))
 
-            CoachTextField(
+            DsTextField(
                 value = state.durationMinutesText,
                 onValueChange = { onIntent(ActivityLogIntent.UpdateDuration(it)) },
                 label = stringResource(Res.string.activity_duration_label),
@@ -138,7 +138,7 @@ fun LogActivityFormScreen(
 
             if (showDistance) {
                 Spacer(Modifier.height(12.dp))
-                CoachTextField(
+                DsTextField(
                     value = state.distanceKmText,
                     onValueChange = { onIntent(ActivityLogIntent.UpdateDistance(it)) },
                     label = stringResource(Res.string.activity_distance_label),
@@ -174,7 +174,7 @@ fun LogActivityFormScreen(
             )
 
             Spacer(Modifier.height(16.dp))
-            CoachTextField(
+            DsTextField(
                 value = state.notes,
                 onValueChange = { onIntent(ActivityLogIntent.UpdateNotes(it)) },
                 label = stringResource(Res.string.activity_notes_label),
@@ -188,7 +188,7 @@ fun LogActivityFormScreen(
             }
         }
 
-        CoachButton(
+        DsButton(
             text = stringResource(Res.string.activity_save),
             onClick = { onIntent(ActivityLogIntent.Submit) },
             isLoading = state.isLogging,

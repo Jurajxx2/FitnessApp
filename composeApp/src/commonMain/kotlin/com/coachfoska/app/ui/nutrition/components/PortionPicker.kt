@@ -19,7 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.designsystem.components.DsTextField
 
 val PORTION_UNITS: List<String> = listOf("g", "ml", "oz", "piece", "slice", "cup", "tbsp", "tsp")
 
@@ -37,7 +37,7 @@ fun PortionPicker(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CoachTextField(
+        DsTextField(
             value = amount,
             onValueChange = { onAmountChange(it.filter { c -> c.isDigit() || c == '.' }) },
             label = "Amount",

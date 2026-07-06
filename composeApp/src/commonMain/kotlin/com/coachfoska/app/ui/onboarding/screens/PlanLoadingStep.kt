@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.coachfoska.app.presentation.onboarding.OnboardingIntent
 import com.coachfoska.app.presentation.onboarding.OnboardingState
 import com.coachfoska.app.theme.Spacing
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.app.ui.onboarding.components.PlanLoadingAnimation
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
@@ -55,7 +55,7 @@ fun PlanLoadingStep(state: OnboardingState, onIntent: (OnboardingIntent) -> Unit
         Text(headline, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = Spacing.xl))
         if (state.error != null) {
             Text(stringResource(Res.string.ob_loading_error), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-            CoachButton(text = stringResource(Res.string.ob_loading_retry), onClick = { animationDone = false; onIntent(OnboardingIntent.CompleteOnboarding) }, shape = RectangleShape, modifier = Modifier.padding(top = Spacing.lg))
+            DsButton(text = stringResource(Res.string.ob_loading_retry), onClick = { animationDone = false; onIntent(OnboardingIntent.CompleteOnboarding) }, shape = RectangleShape, modifier = Modifier.padding(top = Spacing.lg))
         } else {
             PlanLoadingAnimation(rows = rows, onFinished = { animationDone = true })
         }

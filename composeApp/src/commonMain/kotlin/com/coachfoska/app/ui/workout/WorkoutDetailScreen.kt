@@ -30,8 +30,8 @@ import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.theme.Spacing
-import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsButton
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.designsystem.components.DsChip
 import org.jetbrains.compose.resources.stringResource
@@ -118,7 +118,7 @@ fun WorkoutDetailScreen(
             )
 
             if (state.isLoading) {
-                CoachLoadingBox(Modifier.weight(1f))
+                DsLoadingBox(Modifier.weight(1f))
             } else {
                 workout?.let { w ->
                     Box(modifier = Modifier.weight(1f)) {
@@ -191,7 +191,7 @@ fun WorkoutDetailScreen(
                                 .padding(Spacing.xl),
                             color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
                         ) {
-                            CoachButton(
+                            DsButton(
                                 text = stringResource(Res.string.detail_start_workout),
                                 onClick = { onStartWorkout(w.id) }
                             )

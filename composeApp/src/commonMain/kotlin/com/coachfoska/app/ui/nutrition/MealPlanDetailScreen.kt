@@ -50,8 +50,8 @@ import coachfoska.composeapp.generated.resources.meal_plan_no_meals_for_day
 import coachfoska.composeapp.generated.resources.meal_plan_no_plan
 import coachfoska.composeapp.generated.resources.meal_plan_record_meal
 import coachfoska.composeapp.generated.resources.meal_plan_screen_title
-import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsButton
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -89,7 +89,7 @@ fun MealPlanDetailScreen(
         CoachTopBar(title = stringResource(Res.string.meal_plan_screen_title), onBackClick = onBackClick)
 
         if (state.isLoading) {
-            CoachLoadingBox()
+            DsLoadingBox()
             return@Column
         }
 
@@ -139,7 +139,7 @@ fun MealPlanDetailScreen(
                 color = MaterialTheme.colorScheme.background,
                 shadowElevation = 8.dp,
             ) {
-                CoachButton(
+                DsButton(
                     text = stringResource(Res.string.meal_plan_record_meal),
                     onClick = onRecordMealClick,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 18.dp),

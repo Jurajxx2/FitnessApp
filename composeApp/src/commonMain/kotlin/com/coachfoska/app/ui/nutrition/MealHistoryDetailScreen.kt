@@ -42,7 +42,7 @@ import coachfoska.composeapp.generated.resources.meal_macro_label_fat
 import coachfoska.composeapp.generated.resources.meal_macro_label_kcal
 import coachfoska.composeapp.generated.resources.meal_macro_label_protein
 import coachfoska.composeapp.generated.resources.meal_macro_summary
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -73,7 +73,7 @@ fun MealHistoryDetailRoute(
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(title = stringResource(Res.string.meal_history_detail_screen_title), onBackClick = onBackClick)
         when {
-            state.isHistoryLoading -> CoachLoadingBox(Modifier.weight(1f))
+            state.isHistoryLoading -> DsLoadingBox(Modifier.weight(1f))
             state.selectedMealLog != null -> MealHistoryDetailScreen(
                 log = state.selectedMealLog!!,
                 modifier = Modifier.weight(1f)

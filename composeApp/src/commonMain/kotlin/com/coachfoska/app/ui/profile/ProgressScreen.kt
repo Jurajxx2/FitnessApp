@@ -27,9 +27,9 @@ import com.coachfoska.app.presentation.profile.ProfileState
 import com.coachfoska.app.presentation.profile.ProfileViewModel
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
-import com.coachfoska.app.ui.components.CoachLoadingBox
+import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
-import com.coachfoska.app.ui.components.EmptyState
+import com.coachfoska.designsystem.components.DsEmptyState
 import com.coachfoska.app.theme.ChartLine
 import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
@@ -96,7 +96,7 @@ fun ProgressScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         CoachTopBar(title = stringResource(Res.string.progress_screen_title), onBackClick = onBackClick)
         if (state.isWeightHistoryLoading) {
-            CoachLoadingBox(Modifier.weight(1f))
+            DsLoadingBox(Modifier.weight(1f))
         } else {
             Column(
                 modifier = Modifier
@@ -158,7 +158,7 @@ fun ProgressScreen(
                         }
                     }
                 } else {
-                    EmptyState(
+                    DsEmptyState(
                         icon = Icons.AutoMirrored.Filled.TrendingUp,
                         title = stringResource(Res.string.progress_empty_title),
                         message = stringResource(Res.string.progress_empty_message),

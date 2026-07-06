@@ -22,7 +22,7 @@ import coachfoska.composeapp.generated.resources.actual_weight_label
 import coachfoska.composeapp.generated.resources.set_input_rpe_format
 import coachfoska.composeapp.generated.resources.set_number_format
 import com.coachfoska.app.presentation.workout.SetDraft
-import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.designsystem.components.DsTextField
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -42,7 +42,7 @@ internal fun SetInputRow(
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.width(56.dp),
         )
-        CoachTextField(
+        DsTextField(
             value = setDraft.actualReps?.toString() ?: "",
             onValueChange = { onActualReps(it.toIntOrNull()) },
             label = stringResource(Res.string.actual_reps_label),
@@ -50,7 +50,7 @@ internal fun SetInputRow(
             modifier = Modifier.width(72.dp),
         )
         Spacer(Modifier.width(8.dp))
-        CoachTextField(
+        DsTextField(
             value = setDraft.actualWeightKg?.toString() ?: "",
             onValueChange = { onActualWeight(it.toFloatOrNull()) },
             label = stringResource(Res.string.actual_weight_label),

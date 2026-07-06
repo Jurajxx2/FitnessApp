@@ -36,8 +36,8 @@ import com.coachfoska.app.presentation.home.HomeState
 import com.coachfoska.app.presentation.home.HomeViewModel
 import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.theme.Spacing
-import com.coachfoska.app.ui.components.CoachLoadingBox
-import com.coachfoska.app.ui.components.EmptyState
+import com.coachfoska.designsystem.components.DsLoadingBox
+import com.coachfoska.designsystem.components.DsEmptyState
 import com.coachfoska.app.ui.components.MetricCard
 import com.coachfoska.designsystem.components.DsMetricCardSkeleton
 import com.coachfoska.app.ui.workout.components.WeeklyActivitySection
@@ -131,7 +131,7 @@ fun HomeScreen(
                     DsMetricCardSkeleton(Modifier.weight(1f))
                 }
             } else if (state.isFirstRun) {
-                EmptyState(
+                DsEmptyState(
                     icon = Icons.Default.FitnessCenter,
                     title = stringResource(Res.string.home_first_run_title),
                     message = stringResource(Res.string.home_first_run_message),
@@ -235,7 +235,7 @@ fun HomeScreen(
                     }
                 }
             } else if (state.isLoading) {
-                CoachLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
+                DsLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
             }
 
             state.error?.let {

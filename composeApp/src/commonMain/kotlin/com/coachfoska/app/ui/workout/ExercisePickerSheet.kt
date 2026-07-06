@@ -19,7 +19,7 @@ import coachfoska.composeapp.generated.resources.editor_search_exercises
 import com.coachfoska.app.presentation.workout.WorkoutEditorIntent
 import com.coachfoska.app.presentation.workout.WorkoutEditorState
 import com.coachfoska.app.theme.Spacing
-import com.coachfoska.app.ui.components.CoachButton
+import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.app.ui.workout.components.ExerciseSearchList
 import org.jetbrains.compose.resources.stringResource
 
@@ -58,7 +58,7 @@ fun ExercisePickerSheet(
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            CoachButton(
+            DsButton(
                 text = stringResource(Res.string.editor_picker_done),
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth()

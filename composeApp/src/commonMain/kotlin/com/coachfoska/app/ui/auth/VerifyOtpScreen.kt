@@ -24,8 +24,8 @@ import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.presentation.auth.AuthIntent
 import com.coachfoska.app.presentation.auth.AuthState
 import com.coachfoska.app.presentation.auth.AuthViewModel
-import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachTextField
+import com.coachfoska.designsystem.components.DsButton
+import com.coachfoska.designsystem.components.DsTextField
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -113,7 +113,7 @@ fun VerifyOtpScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            CoachTextField(
+            DsTextField(
                 value = state.otp,
                 onValueChange = { input ->
                     // Sanitize input: keep only digits and limit to 6 characters
@@ -156,7 +156,7 @@ fun VerifyOtpScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            CoachButton(
+            DsButton(
                 text = stringResource(Res.string.verify_button),
                 onClick = {
                     keyboardController?.hide()
