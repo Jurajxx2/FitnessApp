@@ -56,6 +56,7 @@ import kotlinx.serialization.Serializable
 @Serializable object Progress
 @Serializable object AboutCoach
 @Serializable object Settings
+@Serializable object Gallery
 
 // Workout analytics
 @Serializable object ProgressDashboard

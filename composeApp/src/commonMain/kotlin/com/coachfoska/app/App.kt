@@ -66,6 +66,7 @@ import com.coachfoska.app.ui.hydration.HydrationRoute
 import com.coachfoska.designsystem.brand.BrandRegistry
 import com.coachfoska.designsystem.components.DsBottomNav
 import com.coachfoska.designsystem.components.DsBottomNavItem
+import com.coachfoska.designsystem.gallery.GalleryScreen
 import com.coachfoska.designsystem.theme.DsTheme
 import org.jetbrains.compose.resources.stringResource
 
@@ -638,9 +639,14 @@ fun App(openHumanChat: Boolean = false) {
                             onBackClick = { navController.popBackStack() },
                             onLaunchOnboarding = {
                                 navController.navigate(Onboarding(currentUserId))
-                            }
+                            },
+                            onOpenGallery = { navController.navigate(Gallery) }
                         )
                     }
+                }
+
+                composable<Gallery> {
+                    GalleryScreen(onBackClick = { navController.popBackStack() })
                 }
             }
         }

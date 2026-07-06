@@ -66,6 +66,7 @@ import coachfoska.composeapp.generated.resources.settings_units_desc
 import coachfoska.composeapp.generated.resources.store_compliance_ready
 import coachfoska.composeapp.generated.resources.terms_of_service
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.coachfoska.app.BuildKonfig
 import com.coachfoska.app.presentation.settings.SettingsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -74,6 +75,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun SettingsRoute(
     onBackClick: () -> Unit,
     onLaunchOnboarding: () -> Unit,
+    onOpenGallery: () -> Unit = {},
     viewModel: SettingsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -86,6 +88,7 @@ fun SettingsRoute(
         debugError = state.error,
         onDebugResetOnboarding = viewModel::debugResetOnboarding,
         onDebugLaunchOnboarding = onLaunchOnboarding,
+        onOpenGallery = onOpenGallery,
         onBackClick = onBackClick
     )
 }
@@ -100,6 +103,7 @@ fun SettingsScreen(
     debugError: String? = null,
     onDebugResetOnboarding: () -> Unit = {},
     onDebugLaunchOnboarding: () -> Unit = {},
+    onOpenGallery: () -> Unit = {},
     onBackClick: () -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
@@ -234,6 +238,17 @@ fun SettingsScreen(
                         isError = false,
                         onClick = onDebugLaunchOnboarding
                     )
+                    if (BuildKonfig.DEBUG) {
+                        SettingsDivider()
+                        DebugRow(
+                            title = "Design System Gallery",
+                            description = "All components, brands, light/dark",
+                            isLoading = false,
+                            isSuccess = false,
+                            isError = false,
+                            onClick = onOpenGallery
+                        )
+                    }
                 }
             }
 
