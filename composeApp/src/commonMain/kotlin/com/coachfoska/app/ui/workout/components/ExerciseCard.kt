@@ -21,14 +21,18 @@ fun ExerciseCardHeader(
     onSwapExercise: () -> Unit,
     onViewHistory: () -> Unit,
     modifier: Modifier = Modifier,
+    leading: (@Composable () -> Unit)? = null,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
-    
+
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (leading != null) {
+            leading()
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = exercise.exerciseName,

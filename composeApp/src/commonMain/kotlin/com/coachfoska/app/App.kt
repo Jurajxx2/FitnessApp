@@ -7,17 +7,20 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import com.coachfoska.app.core.theme.ThemeRepository
 import org.koin.compose.koinInject
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.coachfoska.app.core.logging.AppLogger
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.SessionAuthState
 import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
@@ -80,10 +83,10 @@ fun App(openHumanChat: Boolean = false) {
         // restores the back stack — previously leaving Home/Chat to query Postgres with id="").
         val observeSession = koinInject<ObserveSessionUseCase>()
         val sessionState by observeSession().collectAsState()
-        val currentUserId = (sessionState as? SessionAuthState.Authenticated)?.user?.id.orEmpty()
+        val authenticatedUserId = (sessionState as? SessionAuthState.Authenticated)?.user?.id
 
-        LaunchedEffect(openHumanChat, currentUserId) {
-            if (openHumanChat && currentUserId.isNotEmpty()) {
+        LaunchedEffect(openHumanChat, authenticatedUserId) {
+            if (openHumanChat && authenticatedUserId != null) {
                 navController.navigate(HumanCoachChat) {
                     launchSingleTop = true
                 }
@@ -92,6 +95,10 @@ fun App(openHumanChat: Boolean = false) {
 
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
+
+        LaunchedEffect(currentRoute) {
+            AppLogger.screenViewed(currentRoute)
+        }
 
         val authRoutes = listOf(
             Splash::class.qualifiedName,
@@ -245,21 +252,23 @@ fun App(openHumanChat: Boolean = false) {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    HomeRoute(
-                        userId = currentUserId,
-                        onChatClick = { navController.navigate(HumanCoachChat) },
-                        onWaterClick = { navController.navigate(Hydration) },
-                        onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
-                        onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
-                        onLogMealClick = { navController.navigate(MealCapture()) },
-                        onGoToActivity = {
-                            navController.navigate(WorkoutList) {
-                                popUpTo<Home> { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        HomeRoute(
+                            userId = currentUserId,
+                            onChatClick = { navController.navigate(HumanCoachChat) },
+                            onWaterClick = { navController.navigate(Hydration) },
+                            onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
+                            onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
+                            onLogMealClick = { navController.navigate(MealCapture()) },
+                            onGoToActivity = {
+                                navController.navigate(WorkoutList) {
+                                    popUpTo<Home> { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                        )
+                    }
                 }
 
                 // ── Workout ───────────────────────────────────────────────
@@ -269,146 +278,174 @@ fun App(openHumanChat: Boolean = false) {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    ActivityHubRoute(
-                        userId = currentUserId,
-                        onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
-                        onResumeSession = { workoutId, logId -> navController.navigate(ActiveSession(workoutId, resumeLogId = logId)) },
-                        onPlanClick = { navController.navigate(WorkoutPlan) },
-                        onHistoryClick = { navController.navigate(WorkoutHistory) },
-                        onLibraryClick = { navController.navigate(ExerciseLibrary) },
-                        onProgressClick = { navController.navigate(ProgressDashboard) },
-                        onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
-                        onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
-                        onLogGeneralActivityClick = { navController.navigate(ActivityTypeSelector) }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        ActivityHubRoute(
+                            userId = currentUserId,
+                            onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
+                            onResumeSession = { workoutId, logId -> navController.navigate(ActiveSession(workoutId, resumeLogId = logId)) },
+                            onPlanClick = { navController.navigate(WorkoutPlan) },
+                            onHistoryClick = { navController.navigate(WorkoutHistory) },
+                            onLibraryClick = { navController.navigate(ExerciseLibrary) },
+                            onProgressClick = { navController.navigate(ProgressDashboard) },
+                            onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
+                            onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
+                            onLogGeneralActivityClick = { navController.navigate(ActivityTypeSelector) }
+                        )
+                    }
                 }
 
                 composable<WorkoutDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<WorkoutDetail>()
-                    WorkoutDetailRoute(
-                        workoutId = route.workoutId,
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() },
-                        onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
-                        onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
-                        onEditWorkout = { workoutId -> navController.navigate(WorkoutEditor(workoutId)) }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        WorkoutDetailRoute(
+                            workoutId = route.workoutId,
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() },
+                            onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
+                            onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
+                            onEditWorkout = { workoutId -> navController.navigate(WorkoutEditor(workoutId)) }
+                        )
+                    }
                 }
 
                 composable<ActiveSession> { backStackEntry ->
                     val route = backStackEntry.toRoute<ActiveSession>()
-                    ActiveSessionRoute(
-                        workoutId = route.workoutId,
-                        resumeLogId = route.resumeLogId,
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() },
-                        onWorkoutComplete = { logId ->
-                            navController.navigate(PostWorkoutSummary(logId)) {
-                                popUpTo<ActiveSession> { inclusive = true }
-                            }
-                        },
-                        onExerciseDetailClick = { exerciseId ->
-                            navController.navigate(ExerciseDetail(exerciseId))
-                        },
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        ActiveSessionRoute(
+                            workoutId = route.workoutId,
+                            resumeLogId = route.resumeLogId,
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() },
+                            onWorkoutComplete = { logId ->
+                                navController.navigate(PostWorkoutSummary(logId)) {
+                                    popUpTo<ActiveSession> { inclusive = true }
+                                }
+                            },
+                            onExerciseDetailClick = { exerciseId ->
+                                navController.navigate(ExerciseDetail(exerciseId))
+                            },
+                        )
+                    }
                 }
 
                 composable<PostWorkoutSummary> { backStackEntry ->
                     val route = backStackEntry.toRoute<PostWorkoutSummary>()
-                    PostWorkoutSummaryRoute(
-                        userId = currentUserId,
-                        logId = route.logId,
-                        onDone = { navController.popBackStack() },
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        PostWorkoutSummaryRoute(
+                            userId = currentUserId,
+                            logId = route.logId,
+                            onDone = { navController.popBackStack() },
+                        )
+                    }
                 }
 
                 composable<ExerciseDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<ExerciseDetail>()
-                    ExerciseDetailRoute(
-                        userId = currentUserId,
-                        exerciseId = route.exerciseId,
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        ExerciseDetailRoute(
+                            userId = currentUserId,
+                            exerciseId = route.exerciseId,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable<LogWorkout> {
-                    LogWorkoutRoute(
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        LogWorkoutRoute(
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable<ActivityTypeSelector> {
-                    ActivityTypeSelectorRoute(
-                        onBackClick = { navController.popBackStack() },
-                        onTypeSelected = { type -> navController.navigate(LogActivity(type.name)) }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) {
+                        ActivityTypeSelectorRoute(
+                            onBackClick = { navController.popBackStack() },
+                            onTypeSelected = { type -> navController.navigate(LogActivity(type.name)) }
+                        )
+                    }
                 }
 
                 composable<LogActivity> { backStackEntry ->
                     val route: LogActivity = backStackEntry.toRoute()
-                    LogActivityFormRoute(
-                        userId = currentUserId,
-                        type = ActivityType.fromStorageValue(route.type),
-                        onBackClick = { navController.popBackStack() },
-                        onSaved = {
-                            navController.popBackStack()
-                            navController.popBackStack()
-                        }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        LogActivityFormRoute(
+                            userId = currentUserId,
+                            type = ActivityType.fromStorageValue(route.type),
+                            onBackClick = { navController.popBackStack() },
+                            onSaved = {
+                                navController.popBackStack()
+                                navController.popBackStack()
+                            }
+                        )
+                    }
                 }
 
                 composable<WorkoutHistory> {
-                    WorkoutHistoryRoute(
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() },
-                        onLogClick = { logId -> navController.navigate(WorkoutHistoryDetail(logId)) },
-                        onProgressClick = { navController.navigate(ProgressDashboard) },
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        WorkoutHistoryRoute(
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() },
+                            onLogClick = { logId -> navController.navigate(WorkoutHistoryDetail(logId)) },
+                            onProgressClick = { navController.navigate(ProgressDashboard) },
+                        )
+                    }
                 }
 
                 composable<ProgressDashboard> {
-                    ProgressDashboardRoute(
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() },
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        ProgressDashboardRoute(
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() },
+                        )
+                    }
                 }
 
                 composable<WorkoutHistoryDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<WorkoutHistoryDetail>()
-                    WorkoutHistoryDetailRoute(
-                        logId = route.logId,
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        WorkoutHistoryDetailRoute(
+                            logId = route.logId,
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable<WorkoutPlan> {
-                    WorkoutPlanRoute(
-                        userId = currentUserId,
-                        onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
-                        onLogWorkoutClick = { navController.navigate(LogWorkout) },
-                        onCreateWorkout = { navController.navigate(WorkoutEditor()) },
-                        onEditWorkout = { workoutId -> navController.navigate(WorkoutEditor(workoutId)) },
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        WorkoutPlanRoute(
+                            userId = currentUserId,
+                            onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
+                            onLogWorkoutClick = { navController.navigate(LogWorkout) },
+                            onCreateWorkout = { navController.navigate(WorkoutEditor()) },
+                            onEditWorkout = { workoutId -> navController.navigate(WorkoutEditor(workoutId)) },
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable<WorkoutEditor> { backStackEntry ->
                     val route = backStackEntry.toRoute<WorkoutEditor>()
-                    WorkoutEditorRoute(
-                        userId = currentUserId,
-                        workoutId = route.workoutId,
-                        onDone = { navController.popBackStack() },
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        WorkoutEditorRoute(
+                            userId = currentUserId,
+                            workoutId = route.workoutId,
+                            onDone = { navController.popBackStack() },
+                        )
+                    }
                 }
 
                 composable<ExerciseLibrary> {
-                    ExerciseLibraryRoute(
-                        userId = currentUserId,
-                        onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        ExerciseLibraryRoute(
+                            userId = currentUserId,
+                            onExerciseClick = { exerciseId -> navController.navigate(ExerciseDetail(exerciseId)) },
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 // ── Nutrition ─────────────────────────────────────────────
@@ -418,89 +455,107 @@ fun App(openHumanChat: Boolean = false) {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    NutritionHubRoute(
-                        userId = currentUserId,
-                        onPlanClick = { navController.navigate(MealPlanDetail) },
-                        onManualLog = { navController.navigate(MealCapture()) },
-                        onPhotoLog = { uri -> navController.navigate(MealCapture(photoUri = uri, analyze = true)) },
-                        onHistoryClick = { navController.navigate(MealHistory) },
-                        onRecipesClick = { navController.navigate(RecipesList) },
-                        onRecipeClick = { recipeId -> navController.navigate(RecipeDetail(recipeId)) },
-                        onWaterClick = { navController.navigate(Hydration) }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        NutritionHubRoute(
+                            userId = currentUserId,
+                            onPlanClick = { navController.navigate(MealPlanDetail) },
+                            onManualLog = { navController.navigate(MealCapture()) },
+                            onPhotoLog = { uri -> navController.navigate(MealCapture(photoUri = uri, analyze = true)) },
+                            onHistoryClick = { navController.navigate(MealHistory) },
+                            onRecipesClick = { navController.navigate(RecipesList) },
+                            onRecipeClick = { recipeId -> navController.navigate(RecipeDetail(recipeId)) },
+                            onWaterClick = { navController.navigate(Hydration) }
+                        )
+                    }
                 }
 
                 composable<MealDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<MealDetail>()
-                    MealDetailRoute(
-                        mealId = route.mealId,
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() },
-                        onLogMeal = { navController.navigate(MealCapture(mealId = route.mealId)) }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        MealDetailRoute(
+                            mealId = route.mealId,
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() },
+                            onLogMeal = { navController.navigate(MealCapture(mealId = route.mealId)) }
+                        )
+                    }
                 }
 
                 composable<MealCapture> { backStackEntry ->
                     val route = backStackEntry.toRoute<MealCapture>()
-                    MealCaptureRoute(
-                        userId = currentUserId,
-                        recipeId = route.recipeId,
-                        mealId = route.mealId,
-                        photoUri = route.photoUri,
-                        analyze = route.analyze,
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        MealCaptureRoute(
+                            userId = currentUserId,
+                            recipeId = route.recipeId,
+                            mealId = route.mealId,
+                            photoUri = route.photoUri,
+                            analyze = route.analyze,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable<MealHistory> {
-                    MealHistoryRoute(
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() },
-                        onLogClick = { logId -> navController.navigate(MealHistoryDetail(logId)) }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        MealHistoryRoute(
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() },
+                            onLogClick = { logId -> navController.navigate(MealHistoryDetail(logId)) }
+                        )
+                    }
                 }
 
                 composable<MealPlanDetail> {
-                    MealPlanDetailRoute(
-                        userId = currentUserId,
-                        onMealClick = { mealId -> navController.navigate(MealDetail(mealId)) },
-                        onRecordMealClick = { navController.navigate(MealCapture()) },
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        MealPlanDetailRoute(
+                            userId = currentUserId,
+                            onMealClick = { mealId -> navController.navigate(MealDetail(mealId)) },
+                            onRecordMealClick = { navController.navigate(MealCapture()) },
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable<RecipesList> {
-                    RecipesListRoute(
-                        userId = currentUserId,
-                        onRecipeClick = { recipeId -> navController.navigate(RecipeDetail(recipeId)) },
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        RecipesListRoute(
+                            userId = currentUserId,
+                            onRecipeClick = { recipeId -> navController.navigate(RecipeDetail(recipeId)) },
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable<MealHistoryDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<MealHistoryDetail>()
-                    MealHistoryDetailRoute(
-                        logId = route.logId,
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        MealHistoryDetailRoute(
+                            logId = route.logId,
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable<RecipeDetail> { backStackEntry ->
                     val route = backStackEntry.toRoute<RecipeDetail>()
-                    RecipeDetailRoute(
-                        recipeId = route.recipeId,
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() },
-                        onLogMeal = { navController.navigate(MealCapture(recipeId = route.recipeId)) }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        RecipeDetailRoute(
+                            recipeId = route.recipeId,
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() },
+                            onLogMeal = { navController.navigate(MealCapture(recipeId = route.recipeId)) }
+                        )
+                    }
                 }
 
                 composable<Hydration> {
-                    HydrationRoute(
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        HydrationRoute(
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 // ── Chat ─────────────────────────────────────────────────
@@ -510,27 +565,33 @@ fun App(openHumanChat: Boolean = false) {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    ChatHubRoute(
-                        userId = currentUserId,
-                        onHumanCoachClick = { navController.navigate(HumanCoachChat) },
-                        onAiCoachClick = { navController.navigate(AiCoachChat) }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        ChatHubRoute(
+                            userId = currentUserId,
+                            onHumanCoachClick = { navController.navigate(HumanCoachChat) },
+                            onAiCoachClick = { navController.navigate(AiCoachChat) }
+                        )
+                    }
                 }
 
                 composable<HumanCoachChat> {
-                    ChatRoute(
-                        userId = currentUserId,
-                        chatType = ChatType.Human,
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        ChatRoute(
+                            userId = currentUserId,
+                            chatType = ChatType.Human,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable<AiCoachChat> {
-                    ChatRoute(
-                        userId = currentUserId,
-                        chatType = ChatType.Ai,
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        ChatRoute(
+                            userId = currentUserId,
+                            chatType = ChatType.Ai,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 // ── Profile ───────────────────────────────────────────────
@@ -540,38 +601,72 @@ fun App(openHumanChat: Boolean = false) {
                     popEnterTransition = { fadeIn(tween(150)) },
                     popExitTransition = { fadeOut(tween(150)) }
                 ) {
-                    ProfileRoute(
-                        userId = currentUserId,
-                        onProgressClick = { navController.navigate(Progress) },
-                        onAboutCoachClick = { navController.navigate(AboutCoach) },
-                        onSettingsClick = { navController.navigate(Settings) },
-                        onLogoutComplete = {
-                            navController.navigate(Welcome) { popUpTo(Home) { inclusive = true } }
-                        }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        ProfileRoute(
+                            userId = currentUserId,
+                            onProgressClick = { navController.navigate(Progress) },
+                            onAboutCoachClick = { navController.navigate(AboutCoach) },
+                            onSettingsClick = { navController.navigate(Settings) },
+                            onLogoutComplete = {
+                                navController.navigate(Welcome) { popUpTo(Home) { inclusive = true } }
+                            }
+                        )
+                    }
                 }
 
                 composable<Progress> {
-                    ProgressRoute(
-                        userId = currentUserId,
-                        onBackClick = { navController.popBackStack() }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        ProgressRoute(
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable<AboutCoach> {
-                    AboutCoachScreen(onBackClick = { navController.popBackStack() })
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) {
+                        AboutCoachScreen(onBackClick = { navController.popBackStack() })
+                    }
                 }
 
                 composable<Settings> {
-                    SettingsRoute(
-                        onBackClick = { navController.popBackStack() },
-                        onLaunchOnboarding = {
-                            navController.navigate(Onboarding(currentUserId))
-                        }
-                    )
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        SettingsRoute(
+                            onBackClick = { navController.popBackStack() },
+                            onLaunchOnboarding = {
+                                navController.navigate(Onboarding(currentUserId))
+                            }
+                        )
+                    }
                 }
             }
         }
         } // CompositionLocalProvider
+    }
+}
+
+@Composable
+private fun RequireAuthenticatedUser(
+    sessionState: SessionAuthState,
+    onUnauthenticated: () -> Unit,
+    content: @Composable (String) -> Unit
+) {
+    when (sessionState) {
+        is SessionAuthState.Authenticated -> content(sessionState.user.id)
+        SessionAuthState.Loading -> AuthResumeLoading()
+        SessionAuthState.NotAuthenticated -> {
+            LaunchedEffect(Unit) { onUnauthenticated() }
+            AuthResumeLoading()
+        }
+    }
+}
+
+@Composable
+private fun AuthResumeLoading() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
     }
 }

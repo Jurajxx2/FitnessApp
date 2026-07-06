@@ -1,6 +1,7 @@
 package com.coachfoska.app.core.di
 
 import com.coachfoska.app.core.network.SupabaseClientProvider
+import com.coachfoska.app.core.logging.AppLogger
 import com.coachfoska.app.data.remote.datasource.ActivityRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.AppConfigRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.AuthRemoteDataSource
@@ -118,6 +119,7 @@ import com.coachfoska.app.domain.usecase.hydration.ToggleFavoriteWaterContainerU
 import com.coachfoska.app.presentation.hydration.HydrationViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModel
@@ -140,6 +142,11 @@ val networkModule = module {
                     isLenient = true
                     coerceInputValues = true
                 })
+            }
+            install(Logging) {
+                logger = AppLogger.ktorLogger
+                level = AppLogger.networkLogLevel
+                sanitizeHeader { header -> AppLogger.shouldRedactHeader(header) }
             }
         }
     }

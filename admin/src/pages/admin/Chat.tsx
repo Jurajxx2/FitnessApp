@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import { logger } from '../../lib/logger'
 import type { ChatMessage, Profile } from '../../types/database'
 
 // ─── Pure helpers (exported for tests) ──────────────────────────────────────
@@ -120,7 +121,7 @@ export default function Chat() {
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-chat-messages'] }),
-    onError: (err) => console.error('Failed to mark messages as read:', err),
+    onError: (err) => logger.error('Failed to mark messages as read', err),
   })
 
   function selectUser(userId: string) {

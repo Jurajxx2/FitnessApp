@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { logger } from '../lib/logger'
 import type { Profile } from '../types/database'
 
 interface AuthState {
@@ -41,8 +42,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const profile = await fetchProfile(session.user.id)
       setState({ session, user: session.user, profile, isAdmin: profile?.is_admin ?? false, isLoading: false })
+      logger.info('Admin session resolved', { isAdmin: profile?.is_admin ?? false })
     } catch (err) {
-      console.error('AuthProvider: error in resolveSession', err)
+      logger.error('AuthProvider: error in resolveSession', err)
       setState({ ...initialState, isLoading: false })
     }
   }
@@ -52,12 +54,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       resolveSession(session)
     }).catch(err => {
-      console.error('AuthProvider: getSession failed', err)
+      logger.error('AuthProvider: getSession failed', err)
       setState(s => ({ ...s, isLoading: false }))
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      logger.info('Auth state changed', { event, hasSession: Boolean(session) })
       resolveSession(session)
     })
 

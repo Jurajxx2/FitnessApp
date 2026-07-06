@@ -2,6 +2,7 @@ package com.coachfoska.app
 
 import android.app.Application
 import com.coachfoska.app.core.di.appModules
+import com.coachfoska.app.core.logging.AppLogger
 import com.coachfoska.app.di.androidModule
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
@@ -13,9 +14,8 @@ import org.koin.core.logger.Level
 class CoachFoskaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        if (BuildKonfig.DEBUG) {
-            Napier.base(DebugAntilog())
-        }
+        Napier.base(DebugAntilog())
+        AppLogger.appStarted(platform = "android")
         startKoin {
             if (BuildKonfig.DEBUG) {
                 androidLogger(Level.DEBUG)

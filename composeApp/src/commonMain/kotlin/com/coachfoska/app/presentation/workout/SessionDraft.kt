@@ -70,7 +70,10 @@ fun WorkoutExercise.toDraft(): ExerciseDraft {
             SetDraft(
                 sortOrder = order,
                 targetReps = repsGoal,
-                actualReps = null,
+                // Prefill reps with the plan target so the user rarely types — they just
+                // confirm or tweak. Weight is prefilled later from the previous session
+                // (see ActiveSessionViewModel.loadPreviousData).
+                actualReps = repsGoal,
                 targetWeightKg = null,
                 actualWeightKg = null,
                 rpe = null,

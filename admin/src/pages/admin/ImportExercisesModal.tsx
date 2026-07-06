@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Modal, Button } from '../../components/ui'
+import { logger } from '../../lib/logger'
+import { loggingFetch } from '../../lib/loggingFetch'
 import { supabase } from '../../lib/supabase'
 
 interface ImportExercisesModalProps {
@@ -52,14 +54,14 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
       if (error) throw error
       return data.translatedText
     } catch (e) {
-      console.warn('Translation failed:', e)
+      logger.warn('Exercise translation failed', e)
       return null
     }
   }
 
   async function uploadImageToSupabase(githubUrl: string, fileName: string): Promise<string | null> {
     try {
-      const res = await fetch(githubUrl)
+      const res = await loggingFetch(githubUrl)
       if (!res.ok) return null
       const blob = await res.blob()
       
@@ -69,14 +71,14 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
         .upload(filePath, blob, { upsert: true, contentType: 'image/jpeg' })
 
       if (uploadError) {
-        console.warn(`Failed to upload ${fileName}:`, uploadError)
+        logger.warn('Exercise image upload failed', { fileName, error: uploadError })
         return null
       }
 
       const { data: { publicUrl } } = supabase.storage.from('exercises').getPublicUrl(filePath)
       return publicUrl
     } catch (e) {
-      console.error(`Error proxying ${fileName}:`, e)
+      logger.error('Exercise image proxy failed', { fileName, error: e })
       return null
     }
   }
@@ -85,7 +87,7 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
     setLoading(true)
     setStatus('Fetching data from repository...')
     try {
-      const res = await fetch(JSON_URL)
+      const res = await loggingFetch(JSON_URL)
       if (!res.ok) throw new Error('Failed to fetch source data')
       const exercises: any[] = await res.json()
       setProgress({ current: 0, total: exercises.length })
@@ -155,7 +157,7 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
     setLoading(true)
     setStatus('Fetching source data...')
     try {
-      const res = await fetch(JSON_URL)
+      const res = await loggingFetch(JSON_URL)
       if (!res.ok) throw new Error('Failed to fetch source data')
       const exercises: any[] = await res.json()
 

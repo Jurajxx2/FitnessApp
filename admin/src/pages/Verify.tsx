@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { logger } from '../lib/logger'
 import { Button } from '../components/ui'
 
 export default function Verify() {
@@ -80,14 +81,14 @@ export default function Verify() {
         .single()
 
       if (profileError) {
-        console.error('Error fetching profile:', profileError)
+        logger.error('Error fetching profile during verification', profileError)
       }
 
       sessionStorage.removeItem('otp-email')
       navigate(profile?.is_admin ? '/admin' : '/403', { replace: true })
-    } catch (err: any) {
-      console.error('Unexpected verification error:', err)
-      setError(err.message || 'An unexpected error occurred. Please try again.')
+    } catch (err) {
+      logger.error('Unexpected verification error', err)
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }

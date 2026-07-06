@@ -305,6 +305,50 @@ class ActiveSessionViewModelTest {
         assertEquals(SetSaveState.Saved, set?.saveState)
     }
 
+    @Test
+    fun `init_prefills_reps_from_plan_target`() = runTest {
+        // aWorkoutWithSingleExercise has reps = "8", sets = 3
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise())
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        val sets = vm.state.value.sessionDraft?.exercises?.single()?.sets
+        assertNotNull(sets)
+        assertEquals(3, sets.size)
+        sets.forEach { assertEquals(8, it.actualReps, "reps should be prefilled from plan target") }
+    }
+
+    @Test
+    fun `init_prefills_weight_from_previous_session`() = runTest {
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise())
+        coEvery { repo.getLastLogsForExercises("user-1", any()) } returns Result.success(
+            mapOf(
+                "Bench Press" to listOf(
+                    aPreviousSet(sortOrder = 1, weight = 60f),
+                    aPreviousSet(sortOrder = 2, weight = 62.5f),
+                )
+            )
+        )
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        val sets = vm.state.value.sessionDraft?.exercises?.single()?.sets
+        assertNotNull(sets)
+        assertEquals(60f, sets[0].actualWeightKg, "set 1 weight prefilled from previous session")
+        assertEquals(62.5f, sets[1].actualWeightKg, "set 2 weight prefilled from previous session")
+        assertNull(sets[2].actualWeightKg, "set 3 has no previous data, stays empty")
+    }
+
+    private fun aPreviousSet(sortOrder: Int, weight: Float) = SetLog(
+        id = "prev-$sortOrder", exerciseLogId = "", sortOrder = sortOrder,
+        targetReps = 8, actualReps = 8, targetWeightKg = null, actualWeightKg = weight,
+        rpe = null, targetRestSeconds = null, actualRestSeconds = null, completed = true,
+    )
+
     private fun aWorkoutWithSingleExercise() = aWorkout(
         id = "w1",
         exercises = listOf(

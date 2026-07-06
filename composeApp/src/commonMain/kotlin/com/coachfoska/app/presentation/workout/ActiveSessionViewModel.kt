@@ -126,11 +126,33 @@ class ActiveSessionViewModel(
     private fun loadPreviousData(exerciseNames: List<String>) {
         viewModelScope.launch {
             getPreviousLogsUseCase(userId, exerciseNames).onSuccess { data ->
-                _state.update { it.copy(previousData = data) }
+                _state.update { s ->
+                    val draft = s.sessionDraft ?: return@update s.copy(previousData = data)
+                    s.copy(previousData = data, sessionDraft = draft.copy(exercises = prefillWeights(draft.exercises, data)))
+                }
             }.onFailure { e ->
                 Napier.e("Failed to load PREVIOUS data", e, tag = TAG)
             }
         }
+    }
+
+    /**
+     * Seeds each not-yet-completed set's weight with what the user lifted last time (matched by
+     * position), so they rarely have to type a number. Only fills sets whose weight is still empty,
+     * never overwriting anything the user has already entered.
+     */
+    private fun prefillWeights(
+        exercises: List<ExerciseDraft>,
+        previousData: Map<String, List<SetLog>>,
+    ): List<ExerciseDraft> = exercises.map { ex ->
+        val previousSets = previousData[ex.exerciseName].orEmpty()
+        if (previousSets.isEmpty()) return@map ex
+        val sets = ex.sets.mapIndexed { index, set ->
+            val previousWeight = previousSets.getOrNull(index)?.actualWeightKg
+            if (set.completed || set.actualWeightKg != null || previousWeight == null) set
+            else set.copy(actualWeightKg = previousWeight)
+        }
+        ex.copy(sets = sets)
     }
 
     private fun switchExercise(index: Int) {

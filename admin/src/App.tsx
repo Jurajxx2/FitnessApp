@@ -5,6 +5,7 @@ import { AuthProvider } from './hooks/useAuth'
 import { queryClient } from './lib/queryClient'
 import { AdminRouteGuard } from './components/RouteGuard'
 import { AdminLayout } from './components/AdminLayout'
+import { PageViewLogger } from './components/PageViewLogger'
 
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -27,6 +28,7 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <BrowserRouter>
+            <PageViewLogger />
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Login />} />

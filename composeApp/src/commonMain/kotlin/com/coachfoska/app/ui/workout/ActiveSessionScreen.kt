@@ -1,38 +1,34 @@
 package com.coachfoska.app.ui.workout
 
-import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
-import coachfoska.composeapp.generated.resources.add_set
-import coachfoska.composeapp.generated.resources.exercise_preview_cd
-import coachfoska.composeapp.generated.resources.exercise_form_guide_cta
 import coachfoska.composeapp.generated.resources.finish_workout
-import coachfoska.composeapp.generated.resources.next_exercise
 import coachfoska.composeapp.generated.resources.notes_optional
 import coachfoska.composeapp.generated.resources.common_keep_working
 import coachfoska.composeapp.generated.resources.session_discard
 import coachfoska.composeapp.generated.resources.session_discard_confirm
 import coachfoska.composeapp.generated.resources.session_save_degraded
-import coachfoska.composeapp.generated.resources.session_volume_format
+import coachfoska.composeapp.generated.resources.session_sets_progress
 import coachfoska.composeapp.generated.resources.substitute_applied
 import com.coachfoska.app.core.util.LocalReduceMotion
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.presentation.workout.ActiveSessionIntent
 import com.coachfoska.app.presentation.workout.ActiveSessionState
 import com.coachfoska.app.presentation.workout.ActiveSessionViewModel
-import com.coachfoska.app.theme.MetricSmall
+import com.coachfoska.app.presentation.workout.SessionDraft
 import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachCard
-import com.coachfoska.app.ui.components.CoachOutlinedButton
 import com.coachfoska.app.ui.workout.components.*
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
@@ -130,205 +126,92 @@ fun ActiveSessionScreen(
         onIntent(ActiveSessionIntent.DismissSubstitution)
     }
 
+    // Auto-advance: when the ViewModel moves to the next incomplete exercise
+    // (e.g. after all sets of one are done), scroll its card into view.
+    val listState = rememberLazyListState()
+    LaunchedEffect(state.currentExerciseIndex) {
+        val exercises = state.sessionDraft?.exercises ?: return@LaunchedEffect
+        if (state.currentExerciseIndex in exercises.indices) {
+            listState.animateScrollToItem(state.currentExerciseIndex)
+        }
+    }
+
     Scaffold(
+        // The root Scaffold in App.kt already applies system-bar insets to this screen; consuming
+        // them again here previously left a dead band above the toolbar. Consume nothing.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            Column {
+                SessionHeaderBar(
+                    draft = draft,
+                    elapsedSeconds = elapsedSeconds,
+                    onBackClick = onBackClick,
+                    onFinishClick = { onFinishClick(notes.takeIf { it.isNotBlank() }) },
+                    onDiscardClick = onBackClick,
+                    onWorkoutNameChange = { onIntent(ActiveSessionIntent.RenameSession(it)) },
+                )
+                if (state.sessionSaveDegraded) {
+                    Text(
+                        text = stringResource(Res.string.session_save_degraded),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+                if (draft != null) {
+                    SessionProgressBar(draft)
+                }
+            }
+        },
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            SessionHeaderBar(
-                draft = draft,
-                elapsedSeconds = elapsedSeconds,
-                onBackClick = onBackClick,
-                onFinishClick = { onFinishClick(notes.takeIf { it.isNotBlank() }) },
-                onDiscardClick = onBackClick,
-                onWorkoutNameChange = { onIntent(ActiveSessionIntent.RenameSession(it)) },
-            )
-
-            if (state.sessionSaveDegraded) {
-                Text(
-                    text = stringResource(Res.string.session_save_degraded),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            }
-
             if (draft == null || state.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                return@Column
+                return@Box
             }
 
-            ExerciseTabStrip(
-                exercises = draft.exercises,
-                currentIndex = state.currentExerciseIndex,
-                onExerciseSelected = { onIntent(ActiveSessionIntent.SwitchExercise(it)) },
-            )
-
-            HorizontalDivider()
-
-            val volume = draft.exercises.sumOf { exercise ->
-                exercise.sets
-                    .filter { it.completed }
-                    .sumOf { (((it.actualWeightKg ?: 0f) * (it.actualReps ?: 0)).toInt()) }
-            }
-            val animatedVolume by animateIntAsState(
-                targetValue = volume,
-                label = "session-volume",
-            )
-            val displayedVolume = if (LocalReduceMotion.current) volume else animatedVolume
-            Text(
-                text = stringResource(Res.string.session_volume_format, displayedVolume),
-                style = MetricSmall,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-
-            val currentExercise = draft.exercises.getOrNull(state.currentExerciseIndex) ?: return@Column
-            val previousSets = state.previousData[currentExercise.exerciseName].orEmpty()
-
-            Box(modifier = Modifier.weight(1f)) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp)
-                        .padding(bottom = if (state.restTimer.isActive) 80.dp else 0.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    // Exercise Card Header
-                    ExerciseCardHeader(
-                        exercise = currentExercise,
-                        onSwapExercise = { substituteIndex = state.currentExerciseIndex },
-                        onViewHistory = { currentExercise.exerciseId?.let { onExerciseDetailClick(it) } },
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 10.dp,
+                    end = 10.dp,
+                    top = 12.dp,
+                    bottom = if (state.restTimer.isActive) 96.dp else 24.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                itemsIndexed(
+                    items = draft.exercises,
+                    key = { index, exercise -> "ex-$index-${exercise.exerciseName}" },
+                ) { index, exercise ->
+                    ExerciseLogCard(
+                        exercise = exercise,
+                        exerciseIndex = index,
+                        previousSets = state.previousData[exercise.exerciseName].orEmpty(),
+                        prBanner = state.activePRBanner?.takeIf { it.exerciseName == exercise.exerciseName },
+                        onIntent = onIntent,
+                        onSwapClick = { substituteIndex = index },
+                        onExerciseDetailClick = onExerciseDetailClick,
                     )
+                }
 
-                    currentExercise.tips?.let { tips ->
-                        Text(
-                            text = tips,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    if (animatedImageMode(currentExercise.imageUrl, currentExercise.imageUrl2) != AnimatedImageMode.NONE) {
-                        ExerciseAnimatedImage(
-                            startUrl = currentExercise.imageUrl,
-                            endUrl = currentExercise.imageUrl2,
-                            contentDescription = stringResource(Res.string.exercise_preview_cd),
-                            modifier = Modifier
-                                .fillMaxWidth(0.72f)
-                                .align(Alignment.CenterHorizontally),
-                        )
-                    }
-
-                    PRBanner(pr = state.activePRBanner)
-
-                    SetTableHeader()
-                    HorizontalDivider()
-
-                    val firstIncompleteIndex = currentExercise.sets.indexOfFirst { !it.completed }
-                    val weightFocusRequesters = remember(currentExercise.sets.size) { List(currentExercise.sets.size) { FocusRequester() } }
-                    val repsFocusRequesters = remember(currentExercise.sets.size) { List(currentExercise.sets.size) { FocusRequester() } }
-
-                    currentExercise.sets.forEachIndexed { setIndex, setDraft ->
-                        val previousSet = previousSets.getOrNull(setIndex)
-                        val isNext = setIndex == firstIncompleteIndex
-
-                        SetRow(
-                            setDraft = setDraft,
-                            previousSetLog = previousSet,
-                            isNextSet = isNext,
-                            onWeightChange = { weight ->
-                                onIntent(ActiveSessionIntent.UpdateSetActual(
-                                    state.currentExerciseIndex, setIndex, setDraft.actualReps, weight,
-                                ))
-                            },
-                            onRepsChange = { reps ->
-                                onIntent(ActiveSessionIntent.UpdateSetActual(
-                                    state.currentExerciseIndex, setIndex, reps, setDraft.actualWeightKg,
-                                ))
-                            },
-                            onCompleted = {
-                                onIntent(ActiveSessionIntent.MarkSetComplete(
-                                    state.currentExerciseIndex, setIndex, !setDraft.completed,
-                                ))
-                            },
-                            onSetTypeChange = { newType ->
-                                onIntent(ActiveSessionIntent.ChangeSetType(
-                                    state.currentExerciseIndex, setIndex, newType,
-                                ))
-                            },
-                            onRemove = if (currentExercise.sets.size > 1) {
-                                { onIntent(ActiveSessionIntent.RemoveSet(state.currentExerciseIndex, setIndex)) }
-                            } else {
-                                null
-                            },
-                            onRetrySave = {
-                                onIntent(ActiveSessionIntent.RetrySetSave(state.currentExerciseIndex, setIndex))
-                            },
-                            onNextAfterReps = {
-                                if (!setDraft.completed && setDraft.actualWeightKg != null && setDraft.actualReps != null) {
-                                    onIntent(ActiveSessionIntent.MarkSetComplete(state.currentExerciseIndex, setIndex, true))
-                                }
-                                if (setIndex + 1 < currentExercise.sets.size) {
-                                    try {
-                                        weightFocusRequesters[setIndex + 1].requestFocus()
-                                    } catch (e: Exception) {
-                                        // Ignore focus errors
-                                    }
-                                }
-                            },
-                            weightFocusRequester = weightFocusRequesters[setIndex],
-                            repsFocusRequester = repsFocusRequesters[setIndex],
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        CoachOutlinedButton(
-                            text = stringResource(Res.string.add_set),
-                            onClick = { onIntent(ActiveSessionIntent.AddExtraSet(state.currentExerciseIndex)) },
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (state.currentExerciseIndex < draft.exercises.lastIndex) {
-                            CoachOutlinedButton(
-                                text = stringResource(Res.string.next_exercise),
-                                onClick = { onIntent(ActiveSessionIntent.SkipToNextExercise(state.currentExerciseIndex)) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        label = { Text(stringResource(Res.string.notes_optional)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                    )
-
-                    currentExercise.exerciseId?.let { exId ->
-                        CoachCard(
-                            onClick = { onExerciseDetailClick(exId) },
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                item(key = "session-footer") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = notes,
+                            onValueChange = { notes = it },
+                            label = { Text(stringResource(Res.string.notes_optional)) },
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.exercise_form_guide_cta),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(12.dp),
-                            )
-                        }
-                    }
-
-                    if (state.currentExerciseIndex == draft.exercises.lastIndex) {
+                            minLines = 2,
+                        )
                         CoachButton(
                             text = stringResource(Res.string.finish_workout),
                             onClick = { onFinishClick(notes.takeIf { it.isNotBlank() }) },
@@ -338,16 +221,16 @@ fun ActiveSessionScreen(
                         )
                     }
                 }
-
-                RestTimerBar(
-                    timerState = state.restTimer,
-                    onAdjust = { onIntent(ActiveSessionIntent.AdjustRestTimer(it)) },
-                    onSkip = { onIntent(ActiveSessionIntent.SkipRestTimer) },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp),
-                )
             }
+
+            RestTimerBar(
+                timerState = state.restTimer,
+                onAdjust = { onIntent(ActiveSessionIntent.AdjustRestTimer(it)) },
+                onSkip = { onIntent(ActiveSessionIntent.SkipRestTimer) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp),
+            )
         }
 
         // Substitute exercise sheet
@@ -364,5 +247,36 @@ fun ActiveSessionScreen(
                 onDismiss = { substituteIndex = null },
             )
         }
+    }
+}
+
+/** Slim session-wide progress: how many sets are done across all exercises. */
+@Composable
+private fun SessionProgressBar(draft: SessionDraft, modifier: Modifier = Modifier) {
+    val totalSets = draft.exercises.sumOf { it.sets.size }
+    val doneSets = draft.exercises.sumOf { exercise -> exercise.sets.count { it.completed } }
+    val target = if (totalSets > 0) doneSets.toFloat() / totalSets else 0f
+    val progress = if (LocalReduceMotion.current) target
+    else animateFloatAsState(targetValue = target, label = "session-progress").value
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = stringResource(Res.string.session_sets_progress, doneSets, totalSets),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp)),
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+        )
     }
 }
