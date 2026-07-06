@@ -41,6 +41,7 @@ import com.coachfoska.app.domain.model.ChatConversationSummary
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.MessageContent
 import com.coachfoska.app.presentation.chat.ChatHubViewModel
+import com.coachfoska.designsystem.theme.DsTheme
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -82,7 +83,7 @@ fun ChatHubScreen(
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
 
-        if (BuildKonfig.AI_COACH_ENABLED) {
+        if (BuildKonfig.AI_COACH_ENABLED && DsTheme.features.aiCoach) {
             val aiSummary = summaries.firstOrNull { it.chatType == ChatType.Ai }
             ConversationRow(
                 title = stringResource(Res.string.chat_ai_coach_title),
