@@ -57,7 +57,7 @@ import com.coachfoska.app.presentation.activity.ActivityLogIntent
 import com.coachfoska.app.presentation.activity.ActivityLogState
 import com.coachfoska.app.presentation.activity.ActivityLogViewModel
 import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachSectionHeader
+import com.coachfoska.designsystem.components.DsSectionLabel
 import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import androidx.compose.ui.tooling.preview.Preview
@@ -148,7 +148,7 @@ fun LogActivityFormScreen(
             }
 
             Spacer(Modifier.height(16.dp))
-            CoachSectionHeader(stringResource(Res.string.activity_effort_section))
+            DsSectionLabel(stringResource(Res.string.activity_effort_section))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(Res.string.activity_easy), style = MaterialTheme.typography.labelSmall)
                 Slider(
@@ -167,7 +167,7 @@ fun LogActivityFormScreen(
             )
 
             Spacer(Modifier.height(16.dp))
-            CoachSectionHeader(stringResource(Res.string.activity_when_section))
+            DsSectionLabel(stringResource(Res.string.activity_when_section))
             LoggedAtPicker(
                 loggedAt = state.loggedAt,
                 onChange = { onIntent(ActivityLogIntent.UpdateLoggedAt(it)) },

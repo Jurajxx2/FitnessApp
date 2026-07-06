@@ -37,8 +37,8 @@ import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.EmptyState
-import com.coachfoska.app.ui.components.FoskaFilterChip
-import com.coachfoska.app.ui.components.ShimmerBox
+import com.coachfoska.designsystem.components.DsChip
+import com.coachfoska.designsystem.components.DsShimmerBox
 import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.theme.Spacing
 import org.jetbrains.compose.resources.stringResource
@@ -115,7 +115,7 @@ fun RecipesListScreen(
                 ),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                FoskaFilterChip(
+                DsChip(
                     selected = state.showOnlyFavorites,
                     onClick = onToggleFavoritesFilter,
                     label = stringResource(Res.string.recipes_favorites_filter),
@@ -131,7 +131,7 @@ fun RecipesListScreen(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     items(tags.size) { index ->
                         val tag = tags[index]
-                        FoskaFilterChip(
+                        DsChip(
                             selected = selectedTag == tag,
                             label = tag,
                             onClick = { selectedTag = if (selectedTag == tag) null else tag },
@@ -149,7 +149,7 @@ fun RecipesListScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 items(4) {
-                    ShimmerBox(Modifier.fillMaxWidth().height(160.dp))
+                    DsShimmerBox(Modifier.fillMaxWidth().height(160.dp))
                 }
             }
         } else if (filteredRecipes.isEmpty()) {

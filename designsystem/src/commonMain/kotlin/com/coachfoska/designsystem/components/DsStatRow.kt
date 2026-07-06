@@ -1,24 +1,23 @@
-package com.coachfoska.app.ui.components
+package com.coachfoska.designsystem.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.coachfoska.app.theme.Spacing
+import com.coachfoska.designsystem.theme.DsTheme
 
 @Composable
-fun StatRow(label: String, value: String, modifier: Modifier = Modifier) {
+fun DsStatRow(label: String, value: String, modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = Spacing.sm),
+        modifier = modifier.fillMaxWidth().padding(vertical = DsTheme.spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, style = DsTheme.type.bodyMedium, color = DsTheme.colors.textSecondary)
+        Text(value, style = DsTheme.type.titleMedium, color = DsTheme.colors.textPrimary)
     }
 }

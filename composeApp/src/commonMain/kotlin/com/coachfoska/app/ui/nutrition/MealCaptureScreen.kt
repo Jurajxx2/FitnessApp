@@ -31,7 +31,7 @@ import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachSectionHeader
+import com.coachfoska.designsystem.components.DsSectionLabel
 import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
@@ -256,7 +256,7 @@ fun MealCaptureScreen(
             fatG = foods.sumOf { it.fat.toDouble() }.toFloat(),
         )
 
-        CoachSectionHeader(text = stringResource(Res.string.food_items_section))
+        DsSectionLabel(text = stringResource(Res.string.food_items_section))
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             foods.forEachIndexed { i, food ->

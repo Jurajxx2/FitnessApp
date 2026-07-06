@@ -64,7 +64,7 @@ import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.ui.components.CoachButton
-import com.coachfoska.app.ui.components.CoachSectionHeader
+import com.coachfoska.designsystem.components.DsSectionLabel
 import com.coachfoska.app.ui.components.CoachTextField
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.MediaCaptureBottomSheet
@@ -186,7 +186,7 @@ private fun LogWorkoutContent(
                 )
             }
 
-            CoachSectionHeader(text = stringResource(Res.string.exercises_section))
+            DsSectionLabel(text = stringResource(Res.string.exercises_section))
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 exercises.forEachIndexed { index, exercise ->
                     ManualExerciseCard(
@@ -217,7 +217,7 @@ private fun LogWorkoutContent(
                 }
             }
 
-            CoachSectionHeader(text = stringResource(Res.string.log_session_notes))
+            DsSectionLabel(text = stringResource(Res.string.log_session_notes))
             CoachTextField(
                 value = notes,
                 onValueChange = onNotes,

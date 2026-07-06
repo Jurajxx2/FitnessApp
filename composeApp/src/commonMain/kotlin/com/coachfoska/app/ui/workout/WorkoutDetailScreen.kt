@@ -33,7 +33,7 @@ import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
-import com.coachfoska.app.ui.components.FoskaFilterChip
+import com.coachfoska.designsystem.components.DsChip
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -130,7 +130,7 @@ fun WorkoutDetailScreen(
                                 Column(modifier = Modifier.padding(Spacing.xl)) {
                                     // Coach badge for coach plans
                                     if (isCoachPlan) {
-                                        FoskaFilterChip(
+                                        DsChip(
                                             selected = true,
                                             label = stringResource(Res.string.plan_coach_badge),
                                             onClick = {},

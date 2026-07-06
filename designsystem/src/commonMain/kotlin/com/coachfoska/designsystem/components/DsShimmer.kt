@@ -1,4 +1,4 @@
-package com.coachfoska.app.ui.components
+package com.coachfoska.designsystem.components
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -20,35 +19,40 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
-import com.coachfoska.app.theme.Spacing
+import com.coachfoska.designsystem.theme.DsTheme
 import com.coachfoska.designsystem.theme.LocalReduceMotion
 
 /** Single shimmer recipe (spec §2.3). Static placeholder under reduce-motion. */
 @Composable
-fun ShimmerBox(modifier: Modifier) {
-    val base = MaterialTheme.colorScheme.surfaceVariant
+fun DsShimmerBox(modifier: Modifier) {
+    val base = DsTheme.colors.shimmerBase
     if (LocalReduceMotion.current) {
-        Spacer(modifier.clip(MaterialTheme.shapes.medium).background(base))
+        Spacer(modifier.clip(DsTheme.shapes.md).background(base))
         return
     }
     val transition = rememberInfiniteTransition(label = "shimmer")
     val x by transition.animateFloat(
-        initialValue = -300f, targetValue = 900f,
-        animationSpec = infiniteRepeatable(tween(1100, easing = LinearEasing), RepeatMode.Restart),
+        initialValue = -300f,
+        targetValue = 900f,
+        animationSpec = infiniteRepeatable(
+            tween(DsTheme.motion.shimmerCycleMs, easing = LinearEasing),
+            RepeatMode.Restart,
+        ),
         label = "shimmer-x",
     )
     val brush = Brush.linearGradient(
-        colors = listOf(base, base.copy(alpha = 0.4f), base),
-        start = Offset(x, 0f), end = Offset(x + 300f, 80f),
+        colors = listOf(base, DsTheme.colors.shimmerHighlight, base),
+        start = Offset(x, 0f),
+        end = Offset(x + 300f, 80f),
     )
-    Spacer(modifier.clip(MaterialTheme.shapes.medium).background(brush))
+    Spacer(modifier.clip(DsTheme.shapes.md).background(brush))
 }
 
 @Composable
-fun MetricCardSkeleton(modifier: Modifier = Modifier) {
-    Column(modifier = modifier.padding(Spacing.lg)) {
-        ShimmerBox(Modifier.fillMaxWidth(0.5f).height(32.dp))
-        Spacer(Modifier.height(Spacing.sm))
-        ShimmerBox(Modifier.fillMaxWidth(0.8f).height(12.dp))
+fun DsMetricCardSkeleton(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.padding(DsTheme.spacing.lg)) {
+        DsShimmerBox(Modifier.fillMaxWidth(0.5f).height(32.dp))
+        Spacer(Modifier.height(DsTheme.spacing.sm))
+        DsShimmerBox(Modifier.fillMaxWidth(0.8f).height(12.dp))
     }
 }

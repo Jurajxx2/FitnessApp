@@ -43,8 +43,8 @@ import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.CoachTopBar
 import com.coachfoska.app.ui.components.EmptyState
-import com.coachfoska.app.ui.components.FoskaFilterChip
-import com.coachfoska.app.ui.components.SectionHeader
+import com.coachfoska.designsystem.components.DsChip
+import com.coachfoska.designsystem.components.DsSectionHeader
 import com.coachfoska.app.ui.components.localizedName
 import kotlinx.datetime.Instant
 import org.jetbrains.compose.resources.stringResource
@@ -127,7 +127,7 @@ fun WorkoutPlanScreen(
                 } else {
                     if (coachPlans.isNotEmpty()) {
                         item {
-                            SectionHeader(title = stringResource(Res.string.plan_coach_badge))
+                            DsSectionHeader(title = stringResource(Res.string.plan_coach_badge))
                         }
                         items(coachPlans) { workout ->
                             WorkoutPlanCard(
@@ -141,7 +141,7 @@ fun WorkoutPlanScreen(
                     }
                     if (myPlans.isNotEmpty()) {
                         item {
-                            SectionHeader(
+                            DsSectionHeader(
                                 title = stringResource(Res.string.plan_mine_badge),
                                 modifier = if (coachPlans.isNotEmpty()) Modifier.padding(top = Spacing.lg) else Modifier
                             )
@@ -224,7 +224,7 @@ private fun WorkoutPlanCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Source badge chip
-                FoskaFilterChip(
+                DsChip(
                     selected = workout.source == WorkoutSource.COACH,
                     label = if (workout.source == WorkoutSource.COACH)
                         stringResource(Res.string.plan_coach_badge)

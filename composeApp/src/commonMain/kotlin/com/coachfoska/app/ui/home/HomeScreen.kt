@@ -39,7 +39,7 @@ import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.ui.components.CoachLoadingBox
 import com.coachfoska.app.ui.components.EmptyState
 import com.coachfoska.app.ui.components.MetricCard
-import com.coachfoska.app.ui.components.MetricCardSkeleton
+import com.coachfoska.designsystem.components.DsMetricCardSkeleton
 import com.coachfoska.app.ui.workout.components.WeeklyActivitySection
 import kotlinx.datetime.TimeZone
 import org.koin.compose.viewmodel.koinViewModel
@@ -126,9 +126,9 @@ fun HomeScreen(
             // Metrics row (or skeleton while loading, or first-run guidance)
             if (state.isLoading) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    MetricCardSkeleton(Modifier.weight(1f))
-                    MetricCardSkeleton(Modifier.weight(1f))
-                    MetricCardSkeleton(Modifier.weight(1f))
+                    DsMetricCardSkeleton(Modifier.weight(1f))
+                    DsMetricCardSkeleton(Modifier.weight(1f))
+                    DsMetricCardSkeleton(Modifier.weight(1f))
                 }
             } else if (state.isFirstRun) {
                 EmptyState(

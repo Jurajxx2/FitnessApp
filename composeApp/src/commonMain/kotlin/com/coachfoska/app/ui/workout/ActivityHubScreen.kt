@@ -64,7 +64,7 @@ import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.app.ui.components.CoachLoadingBox
-import com.coachfoska.app.ui.components.SectionHeader
+import com.coachfoska.designsystem.components.DsSectionHeader
 import com.coachfoska.app.ui.workout.components.AssignedWorkoutCard
 import com.coachfoska.app.ui.workout.components.ExercisePreviewCard
 import com.coachfoska.app.ui.workout.components.QuickLinkRow
@@ -151,7 +151,7 @@ fun ActivityHubScreen(
 
                 if (state.workouts.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SectionHeader(
+                        DsSectionHeader(
                             title = stringResource(Res.string.activity_hub_your_workouts),
                             actionLabel = stringResource(Res.string.common_see_all),
                             onAction = onPlanClick,
@@ -168,7 +168,7 @@ fun ActivityHubScreen(
 
                 if (state.allWorkouts.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SectionHeader(
+                        DsSectionHeader(
                             title = stringResource(Res.string.activity_hub_all_workouts),
                             actionLabel = stringResource(Res.string.common_see_all),
                             onAction = onPlanClick,
@@ -179,7 +179,7 @@ fun ActivityHubScreen(
 
                 if (exercises.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SectionHeader(
+                        DsSectionHeader(
                             title = stringResource(Res.string.activity_hub_exercises),
                             actionLabel = stringResource(Res.string.common_see_all),
                             onAction = onLibraryClick,

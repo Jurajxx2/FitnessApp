@@ -70,7 +70,7 @@ import com.coachfoska.app.theme.Spacing
 import com.coachfoska.app.theme.Sizes
 import com.coachfoska.app.ui.components.CoachButton
 import com.coachfoska.app.ui.components.CoachTopBar
-import com.coachfoska.app.ui.components.FoskaFilterChip
+import com.coachfoska.designsystem.components.DsChip
 import com.coachfoska.app.ui.components.localizedShortName
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -203,7 +203,7 @@ fun WorkoutEditorScreen(
                     ) {
                         items(DAY_ORDER.size) { idx ->
                             val day = DAY_ORDER[idx]
-                            FoskaFilterChip(
+                            DsChip(
                                 selected = state.dayOfWeek == day,
                                 label = day.localizedShortName().uppercase(),
                                 onClick = {
