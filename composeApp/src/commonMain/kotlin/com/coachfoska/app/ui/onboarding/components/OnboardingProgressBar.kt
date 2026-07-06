@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
-import com.coachfoska.app.theme.CoachFoskaTheme
+import com.coachfoska.designsystem.brand.foska.FoskaBrand
 
 @Composable
 fun OnboardingProgressBar(progress: Float, modifier: Modifier = Modifier) {
@@ -44,5 +44,5 @@ fun OnboardingProgressBar(progress: Float, modifier: Modifier = Modifier) {
 @Preview
 @Composable
 private fun OnboardingProgressBarPreview() {
-    CoachFoskaTheme { OnboardingProgressBar(progress = 0.4f) }
+    DsTheme(brand = FoskaBrand, darkTheme = true) { OnboardingProgressBar(progress = 0.4f) }
 }
