@@ -18,11 +18,11 @@ import androidx.compose.ui.unit.dp
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.add_set
 import coachfoska.composeapp.generated.resources.exercise_preview_cd
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.SessionPR
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.presentation.workout.ActiveSessionIntent
 import com.coachfoska.app.presentation.workout.ExerciseDraft
-import com.coachfoska.designsystem.components.DsCard
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsButtonVariant
 import com.coachfoska.app.ui.workout.AnimatedImageMode
@@ -31,9 +31,9 @@ import com.coachfoska.app.ui.workout.animatedImageMode
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * A single exercise rendered as a self-contained card in the active-session list: header with an
- * optional animated thumbnail, coaching tip, PR banner, and the full set table with prefilled
- * inputs. All exercises are shown at once (no tabs) so the user just scrolls through the workout.
+ * A single exercise section in the active-session list: header with an optional animated thumbnail,
+ * coaching tip, PR banner, and the full set table with prefilled inputs. All exercises are shown at
+ * once so the user just scrolls through the workout.
  */
 @Composable
 fun ExerciseLogCard(
@@ -44,24 +44,24 @@ fun ExerciseLogCard(
     onIntent: (ActiveSessionIntent) -> Unit,
     onSwapClick: () -> Unit,
     onExerciseDetailClick: (exerciseId: String) -> Unit,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val allSetsDone = exercise.sets.isNotEmpty() && exercise.sets.all { it.completed }
-    val containerColor = if (allSetsDone) {
-        DsTheme.colors.actionPrimary.copy(alpha = 0.06f)
-    } else {
-        DsTheme.colors.surface
-    }
-
-    DsCard(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        containerColor = containerColor,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Vertical padding only on the card; horizontal insets are applied per section so the set
-        // table (a tight, fixed-width grid) can span nearly the full card width, while the header
-        // and buttons stay comfortably inset.
+        if (exerciseIndex > 0) {
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 2.dp),
+                color = DsTheme.colors.outlineSubtle,
+                thickness = 1.dp,
+            )
+        }
+
         Column(
-            modifier = Modifier.padding(vertical = 14.dp),
+            modifier = Modifier.padding(top = if (exerciseIndex > 0) 8.dp else 0.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Column(
@@ -74,6 +74,14 @@ fun ExerciseLogCard(
                     exercise = exercise,
                     onSwapExercise = onSwapClick,
                     onViewHistory = { exercise.exerciseId?.let(onExerciseDetailClick) },
+                    onMoveUp = {
+                        onIntent(ActiveSessionIntent.MoveExercise(exerciseIndex, direction = -1))
+                    },
+                    onMoveDown = {
+                        onIntent(ActiveSessionIntent.MoveExercise(exerciseIndex, direction = 1))
+                    },
+                    canMoveUp = canMoveUp,
+                    canMoveDown = canMoveDown,
                     leading = if (imageMode != AnimatedImageMode.NONE) {
                         {
                             ExerciseAnimatedImage(
@@ -113,11 +121,12 @@ fun ExerciseLogCard(
                 modifier = Modifier.padding(horizontal = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                SetTableHeader()
+                SetTableHeader(logType = exercise.logType)
                 HorizontalDivider()
                 exercise.sets.forEachIndexed { setIndex, setDraft ->
                     SetRow(
                         setDraft = setDraft,
+                        logType = exercise.logType,
                         previousSetLog = previousSets.getOrNull(setIndex),
                         isNextSet = setIndex == firstIncompleteIndex,
                         onWeightChange = { weight ->
@@ -125,6 +134,9 @@ fun ExerciseLogCard(
                         },
                         onRepsChange = { reps ->
                             onIntent(ActiveSessionIntent.UpdateSetActual(exerciseIndex, setIndex, reps, setDraft.actualWeightKg))
+                        },
+                        onDurationChange = { durationSeconds ->
+                            onIntent(ActiveSessionIntent.UpdateSetDuration(exerciseIndex, setIndex, durationSeconds))
                         },
                         onCompleted = {
                             onIntent(ActiveSessionIntent.MarkSetComplete(exerciseIndex, setIndex, !setDraft.completed))
@@ -141,7 +153,7 @@ fun ExerciseLogCard(
                             onIntent(ActiveSessionIntent.RetrySetSave(exerciseIndex, setIndex))
                         },
                         onNextAfterReps = {
-                            if (!setDraft.completed && setDraft.actualWeightKg != null && setDraft.actualReps != null) {
+                            if (!setDraft.completed && setDraft.canComplete(exercise.logType)) {
                                 onIntent(ActiveSessionIntent.MarkSetComplete(exerciseIndex, setIndex, true))
                             }
                             if (setIndex + 1 < exercise.sets.size) {
@@ -168,4 +180,12 @@ fun ExerciseLogCard(
             )
         }
     }
+}
+
+private fun com.coachfoska.app.presentation.workout.SetDraft.canComplete(
+    logType: ExerciseLogType,
+): Boolean = when (logType) {
+    ExerciseLogType.WEIGHT_REPS -> actualWeightKg != null && actualReps != null
+    ExerciseLogType.BODYWEIGHT_REPS -> actualReps != null
+    ExerciseLogType.TIME -> actualRestSeconds != null
 }

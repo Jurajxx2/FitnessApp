@@ -1,100 +1,135 @@
 package com.coachfoska.app.ui.workout
 
 import com.coachfoska.designsystem.theme.DsTheme
-
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coachfoska.composeapp.generated.resources.Res
-import coachfoska.composeapp.generated.resources.substitute_suggested
-import coachfoska.composeapp.generated.resources.substitute_title
+import coachfoska.composeapp.generated.resources.common_clear_cd
+import coachfoska.composeapp.generated.resources.exercise_library_no_exercises
+import coachfoska.composeapp.generated.resources.substitute_search_hint
 import com.coachfoska.app.domain.model.Exercise
+import com.coachfoska.app.domain.model.ExerciseCategory
 import com.coachfoska.app.domain.repository.ExerciseRepository
-import com.coachfoska.app.ui.workout.components.ExerciseSearchList
+import com.coachfoska.app.domain.usecase.exercise.GetExercisesUseCase.Companion.PAGE_SIZE
 import com.coachfoska.app.ui.workout.components.ExerciseSearchRow
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
-/**
- * Bottom sheet for selecting a replacement exercise.
- *
- * - Shows a "Same muscle group" suggestions section when [currentExerciseId] is non-null and
- *   its category can be resolved; skips suggestions otherwise.
- * - Shows a search field powered by [ExerciseRepository.searchExercises].
- * - Calls [onExerciseSelected] and [onDismiss] when an exercise is tapped.
- *
- * Session-scope vs. plan-forward behaviour is decided entirely by the caller; this sheet is
- * agnostic about scope.
- */
-@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubstituteExerciseSheet(
     currentExerciseId: String?,
+    title: String,
     sheetState: SheetState,
     onExerciseSelected: (Exercise) -> Unit,
     onDismiss: () -> Unit,
     exerciseRepository: ExerciseRepository = koinInject(),
 ) {
-    val scope = rememberCoroutineScope()
+    var categories by remember { mutableStateOf<List<ExerciseCategory>>(emptyList()) }
+    var selectedCategoryId by remember(currentExerciseId) { mutableStateOf<Int?>(null) }
+    var searchText by remember { mutableStateOf("") }
+    var debouncedQuery by remember { mutableStateOf("") }
+    var exercises by remember { mutableStateOf<List<Exercise>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var isLoadingMore by remember { mutableStateOf(false) }
+    var hasMore by remember { mutableStateOf(true) }
+    val listState = rememberLazyListState()
 
-    var suggestions by remember { mutableStateOf<List<Exercise>>(emptyList()) }
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearching by remember { mutableStateOf(false) }
-    var searchResults by remember { mutableStateOf<List<Exercise>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        exerciseRepository.getCategories().onSuccess { categories = it }
+    }
 
-    // Load category suggestions when we have an exerciseId
     LaunchedEffect(currentExerciseId) {
         if (currentExerciseId == null) return@LaunchedEffect
         exerciseRepository.getExerciseById(currentExerciseId).onSuccess { exercise ->
-            val categoryId = exercise.category?.id ?: return@onSuccess
-            exerciseRepository.getExercisesByCategory(categoryId).onSuccess { list ->
-                // Exclude the current exercise itself from suggestions
-                suggestions = list.filter { it.id != currentExerciseId }.take(6)
-            }
+            selectedCategoryId = exercise.category?.id
         }
     }
 
-    // Debounced search
-    val queryFlow = remember { MutableStateFlow("") }
-    LaunchedEffect(Unit) {
-        queryFlow
-            .debounce(300L)
-            .distinctUntilChanged()
-            .collect { q ->
-                if (q.isBlank()) {
-                    isSearching = false
-                    searchResults = emptyList()
-                } else {
-                    isSearching = true
-                    exerciseRepository.searchExercises(q).onSuccess { results ->
-                        searchResults = results
-                    }.onFailure {
-                        searchResults = emptyList()
-                    }
-                    isSearching = false
-                }
-            }
+    LaunchedEffect(searchText) {
+        delay(350)
+        debouncedQuery = searchText
+    }
+
+    suspend fun loadPage(reset: Boolean) {
+        if (!reset && (!hasMore || isLoading || isLoadingMore)) return
+        if (reset) {
+            isLoading = true
+            hasMore = true
+        } else {
+            isLoadingMore = true
+        }
+        val offset = if (reset) 0 else exercises.size
+        exerciseRepository.getExercises(
+            offset = offset,
+            limit = PAGE_SIZE,
+            categoryId = selectedCategoryId,
+            query = debouncedQuery.takeIf { it.isNotBlank() },
+        ).onSuccess { result ->
+            val filtered = result.filter { it.id != currentExerciseId }
+            exercises = if (reset) filtered else exercises + filtered
+            hasMore = result.size == PAGE_SIZE
+        }.onFailure {
+            if (reset) exercises = emptyList()
+            hasMore = false
+        }
+        isLoading = false
+        isLoadingMore = false
+    }
+
+    LaunchedEffect(selectedCategoryId, debouncedQuery, currentExerciseId) {
+        loadPage(reset = true)
+        listState.scrollToItem(0)
+    }
+
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= listState.layoutInfo.totalItemsCount - 5
+        }
+    }
+    LaunchedEffect(shouldLoadMore, hasMore, isLoadingMore, isLoading) {
+        if (shouldLoadMore && hasMore && !isLoadingMore && !isLoading) {
+            loadPage(reset = false)
+        }
     }
 
     ModalBottomSheet(
@@ -105,53 +140,117 @@ fun SubstituteExerciseSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = DsTheme.spacing.xl)
+                .fillMaxHeight(0.9f)
+                .padding(horizontal = DsTheme.spacing.xl),
         ) {
             Text(
-                text = stringResource(Res.string.substitute_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = DsTheme.spacing.md)
+                text = title,
+                style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = DsTheme.spacing.md),
             )
 
-            // Suggestions section — only if we resolved suggestions
-            if (suggestions.isNotEmpty()) {
-                Text(
-                    text = stringResource(Res.string.substitute_suggested),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = DsTheme.colors.actionPrimary,
-                    modifier = Modifier.padding(bottom = DsTheme.spacing.sm)
-                )
-                suggestions.forEach { exercise ->
-                    ExerciseSearchRow(
-                        exercise = exercise,
-                        onClick = {
-                            onExerciseSelected(exercise)
-                            onDismiss()
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text(
+                        stringResource(Res.string.substitute_search_hint),
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = null,
+                        tint = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
+                    )
+                },
+                trailingIcon = {
+                    if (searchText.isNotEmpty()) {
+                        IconButton(onClick = { searchText = "" }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(Res.string.common_clear_cd),
+                                tint = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
+                            )
                         }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = DsTheme.colors.textPrimary.copy(alpha = 0.3f),
+                    unfocusedBorderColor = DsTheme.colors.textPrimary.copy(alpha = 0.15f),
+                    focusedTextColor = DsTheme.colors.textPrimary,
+                    unfocusedTextColor = DsTheme.colors.textPrimary,
+                ),
+            )
+
+            LazyRow(
+                contentPadding = PaddingValues(vertical = DsTheme.spacing.md),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(categories, key = { it.id }) { category ->
+                    FilterChip(
+                        selected = selectedCategoryId == category.id,
+                        onClick = {
+                            selectedCategoryId = if (selectedCategoryId == category.id) null else category.id
+                        },
+                        label = { Text(category.name, fontSize = 13.sp) },
                     )
                 }
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = DsTheme.spacing.md),
-                    color = DsTheme.colors.textPrimary.copy(alpha = 0.08f)
-                )
             }
 
-            // Search section
-            ExerciseSearchList(
-                query = searchQuery,
-                onQueryChange = { q ->
-                    searchQuery = q
-                    scope.launch { queryFlow.emit(q) }
-                },
-                isSearching = isSearching,
-                searchResults = searchResults,
-                onExerciseClick = { exercise ->
-                    onExerciseSelected(exercise)
-                    onDismiss()
-                },
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                if (isLoading && exercises.isEmpty()) {
+                    Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                    }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(bottom = DsTheme.spacing.xxl),
+                    ) {
+                        items(exercises, key = { it.id }) { exercise ->
+                            ExerciseSearchRow(
+                                exercise = exercise,
+                                onClick = {
+                                    onExerciseSelected(exercise)
+                                    onDismiss()
+                                },
+                            )
+                        }
+                        if (isLoadingMore) {
+                            item(key = "loading_more") {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = DsTheme.spacing.lg),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                }
+                            }
+                        }
+                        if (exercises.isEmpty() && !isLoading) {
+                            item(key = "empty") {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.exercise_library_no_exercises),
+                                        color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
+                                        fontSize = 14.sp,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
-            Spacer(modifier = Modifier.height(DsTheme.spacing.xxl))
+            Spacer(Modifier.height(DsTheme.spacing.md))
         }
     }
 }

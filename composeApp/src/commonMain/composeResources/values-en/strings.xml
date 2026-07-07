@@ -631,6 +631,7 @@
     <string name="set_row_prev_header">PREV</string>
     <string name="set_row_kg_header">KG</string>
     <string name="set_row_reps_header">REPS</string>
+    <string name="set_row_min_header">TIME</string>
     <string name="set_row_save_header">SAVE</string>
 
     <!-- Rest Timer -->

@@ -14,14 +14,18 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,15 +42,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coachfoska.composeapp.generated.resources.Res
-import coachfoska.composeapp.generated.resources.session_save_failed
-import coachfoska.composeapp.generated.resources.session_saved
-import coachfoska.composeapp.generated.resources.session_saving
 import coachfoska.composeapp.generated.resources.remove_set_cd
 import coachfoska.composeapp.generated.resources.set_row_kg_header
+import coachfoska.composeapp.generated.resources.set_row_min_header
 import coachfoska.composeapp.generated.resources.set_row_prev_header
 import coachfoska.composeapp.generated.resources.set_row_reps_header
-import coachfoska.composeapp.generated.resources.set_row_save_header
 import coachfoska.composeapp.generated.resources.set_row_set_header
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.SetDraft
@@ -54,10 +56,14 @@ import com.coachfoska.app.presentation.workout.SetSaveState
 import com.coachfoska.app.presentation.workout.SetType
 import com.coachfoska.designsystem.components.DsTextField
 import com.coachfoska.designsystem.theme.LocalReduceMotion
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun SetTableHeader(modifier: Modifier = Modifier) {
+fun SetTableHeader(
+    logType: ExerciseLogType,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -66,22 +72,40 @@ fun SetTableHeader(modifier: Modifier = Modifier) {
     ) {
         Text(stringResource(Res.string.set_row_set_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(32.dp))
         Text(stringResource(Res.string.set_row_prev_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(64.dp))
-        Text(stringResource(Res.string.set_row_kg_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
-        Text(stringResource(Res.string.set_row_reps_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(48.dp), textAlign = TextAlign.Center)
+        if (logType == ExerciseLogType.WEIGHT_REPS) {
+            Text(stringResource(Res.string.set_row_kg_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
+        }
+        Text(
+            text = stringResource(
+                if (logType == ExerciseLogType.TIME) Res.string.set_row_min_header
+                else Res.string.set_row_reps_header,
+            ),
+            style = MaterialTheme.typography.labelSmall,
+            color = DsTheme.colors.textSecondary,
+            modifier = Modifier.width(
+                when (logType) {
+                    ExerciseLogType.WEIGHT_REPS -> 48.dp
+                    ExerciseLogType.TIME -> 112.dp
+                    ExerciseLogType.BODYWEIGHT_REPS -> 64.dp
+                }
+            ),
+            textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.weight(1f))
         Text("✓", style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(DsTheme.sizes.touchTarget), textAlign = TextAlign.Center)
         Spacer(Modifier.width(DsTheme.sizes.touchTarget))
-        Text(stringResource(Res.string.set_row_save_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(76.dp), textAlign = TextAlign.End)
     }
 }
 
 @Composable
 fun SetRow(
     setDraft: SetDraft,
+    logType: ExerciseLogType,
     previousSetLog: SetLog?,
     isNextSet: Boolean,
     onWeightChange: (Float?) -> Unit,
     onRepsChange: (Int?) -> Unit,
+    onDurationChange: (Int?) -> Unit = {},
     onCompleted: () -> Unit,
     onSetTypeChange: (SetType) -> Unit = {},
     onRemove: (() -> Unit)? = null,
@@ -94,12 +118,34 @@ fun SetRow(
     val reduceMotion = LocalReduceMotion.current
     val haptics = LocalHapticFeedback.current
     val pulse = remember { Animatable(1f) }
+    var elapsedSeconds by remember(setDraft.setLogId, setDraft.sortOrder) {
+        mutableStateOf(setDraft.actualRestSeconds ?: 0)
+    }
+    var isTimerRunning by remember(setDraft.setLogId, setDraft.sortOrder) {
+        mutableStateOf(false)
+    }
     LaunchedEffect(setDraft.completed) {
+        if (setDraft.completed) {
+            isTimerRunning = false
+        }
         if (setDraft.completed && !reduceMotion) {
             pulse.snapTo(1.15f)
             pulse.animateTo(1f, animationSpec = tween(180))
         } else {
             pulse.snapTo(1f)
+        }
+    }
+    LaunchedEffect(setDraft.actualRestSeconds, isTimerRunning) {
+        val savedSeconds = setDraft.actualRestSeconds
+        if (!isTimerRunning && savedSeconds != null && savedSeconds != elapsedSeconds) {
+            elapsedSeconds = savedSeconds
+        }
+    }
+    LaunchedEffect(isTimerRunning, setDraft.completed) {
+        while (isTimerRunning && !setDraft.completed) {
+            delay(1000)
+            elapsedSeconds += 1
+            onDurationChange(elapsedSeconds)
         }
     }
     val completedBg by animateColorAsState(
@@ -126,6 +172,7 @@ fun SetRow(
         SetType.DROP_SET -> DsTheme.colors.warningStrong
         SetType.FAILURE -> DsTheme.colors.error // red
     }
+    val saveFailed = setDraft.saveState == SetSaveState.Failed
 
     // Fitts's Law: entire row is a tap target to mark set complete
     Row(
@@ -140,10 +187,7 @@ fun SetRow(
                 else Modifier
             )
             .clickable {
-                // Only mark done when both fields are filled; text fields consume
-                // their own taps so this won't fire when editing.
-                val hasBothValues = setDraft.actualWeightKg != null && setDraft.actualReps != null
-                if (hasBothValues) {
+                if (setDraft.completed || setDraft.canComplete(logType)) {
                     if (!setDraft.completed) {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                     }
@@ -171,11 +215,7 @@ fun SetRow(
                 },
         )
 
-        val prevText = previousSetLog?.let { prev ->
-            val w = prev.actualWeightKg?.let { formatWeightKg(it) } ?: "?"
-            val r = prev.actualReps?.toString() ?: "?"
-            "$w x $r"
-        } ?: "-"
+        val prevText = previousSetLog?.formatFor(logType) ?: "-"
         Text(
             text = prevText,
             style = MaterialTheme.typography.bodySmall,
@@ -183,41 +223,55 @@ fun SetRow(
             modifier = Modifier.width(64.dp),
         )
 
-        // Weight input — ImeAction.Next moves focus to reps field
-        DsTextField(
-            value = setDraft.actualWeightKg?.let { formatWeightKg(it) } ?: "",
-            onValueChange = { onWeightChange(it.toFloatOrNull()) },
-            label = "",
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Decimal,
-                imeAction = ImeAction.Next,
-            ),
-            keyboardActions = KeyboardActions(
-                onNext = { repsFocusRequester.requestFocus() },
-            ),
-            modifier = Modifier
-                .width(56.dp)
-                .focusRequester(weightFocusRequester),
-            singleLine = true,
-        )
+        if (logType == ExerciseLogType.WEIGHT_REPS) {
+            DsTextField(
+                value = setDraft.actualWeightKg?.let { formatWeightKg(it) } ?: "",
+                onValueChange = { onWeightChange(it.toFloatOrNull()) },
+                label = "",
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Next,
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { repsFocusRequester.requestFocus() },
+                ),
+                modifier = Modifier
+                    .width(56.dp)
+                    .focusRequester(weightFocusRequester),
+                singleLine = true,
+            )
+        }
 
-        // Reps input — ImeAction.Done triggers onNextAfterReps callback
-        DsTextField(
-            value = setDraft.actualReps?.toString() ?: "",
-            onValueChange = { onRepsChange(it.toIntOrNull()) },
-            label = "",
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Done,
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { onNextAfterReps() },
-            ),
-            modifier = Modifier
-                .width(48.dp)
-                .focusRequester(repsFocusRequester),
-            singleLine = true,
-        )
+        if (logType == ExerciseLogType.TIME) {
+            TimeTrackerCell(
+                elapsedSeconds = elapsedSeconds,
+                isRunning = isTimerRunning,
+                enabled = !setDraft.completed,
+                onToggle = {
+                    isTimerRunning = !isTimerRunning
+                    if (!isTimerRunning) {
+                        onDurationChange(elapsedSeconds.takeIf { it > 0 })
+                    }
+                },
+            )
+        } else {
+            DsTextField(
+                value = setDraft.actualReps?.toString() ?: "",
+                onValueChange = { onRepsChange(it.toIntOrNull()) },
+                label = "",
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { onNextAfterReps() },
+                ),
+                modifier = Modifier
+                    .width(if (logType == ExerciseLogType.WEIGHT_REPS) 48.dp else 64.dp)
+                    .focusRequester(repsFocusRequester),
+                singleLine = true,
+            )
+        }
 
         Spacer(Modifier.weight(1f))
 
@@ -226,8 +280,16 @@ fun SetRow(
             modifier = Modifier
                 .size(DsTheme.sizes.touchTarget)
                 .clickable {
-                    if (!setDraft.completed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onCompleted()
+                    if (saveFailed) {
+                        onRetrySave()
+                    } else {
+                        if (logType == ExerciseLogType.TIME) {
+                            isTimerRunning = false
+                            onDurationChange(elapsedSeconds.takeIf { it > 0 })
+                        }
+                        if (!setDraft.completed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onCompleted()
+                    }
                 },
             contentAlignment = Alignment.Center,
         ) {
@@ -240,15 +302,25 @@ fun SetRow(
                     }
                     .clip(RoundedCornerShape(6.dp))
                     .background(
-                        if (setDraft.completed) DsTheme.colors.actionPrimary
-                        else DsTheme.colors.surfaceElevated
+                        when {
+                            saveFailed -> DsTheme.colors.error
+                            setDraft.completed -> DsTheme.colors.actionPrimary
+                            else -> DsTheme.colors.surfaceElevated
+                        }
                     ),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = if (setDraft.completed) "✓" else "",
-                    color = if (setDraft.completed) DsTheme.colors.onActionPrimary
-                    else DsTheme.colors.textSecondary,
+                    text = when {
+                        saveFailed -> "!"
+                        setDraft.completed -> "✓"
+                        else -> ""
+                    },
+                    color = if (saveFailed || setDraft.completed) {
+                        DsTheme.colors.onActionPrimary
+                    } else {
+                        DsTheme.colors.textSecondary
+                    },
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                 )
@@ -270,39 +342,61 @@ fun SetRow(
                 },
             )
         }
-
-        SetSaveStateLabel(
-            saveState = setDraft.saveState,
-            onRetrySave = onRetrySave,
-            modifier = Modifier.width(76.dp),
-        )
     }
 }
 
 @Composable
-private fun SetSaveStateLabel(
-    saveState: SetSaveState,
-    onRetrySave: () -> Unit,
+private fun TimeTrackerCell(
+    elapsedSeconds: Int,
+    isRunning: Boolean,
+    enabled: Boolean,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val text = when (saveState) {
-        SetSaveState.Idle -> ""
-        SetSaveState.Saving -> stringResource(Res.string.session_saving)
-        SetSaveState.Saved -> stringResource(Res.string.session_saved)
-        SetSaveState.Failed -> stringResource(Res.string.session_save_failed)
+    Row(
+        modifier = modifier.width(112.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        IconButton(
+            onClick = onToggle,
+            enabled = enabled,
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = if (enabled) DsTheme.colors.actionPrimary else DsTheme.colors.textSecondary.copy(alpha = 0.35f),
+            )
+        }
+        Text(
+            text = formatElapsedTime(elapsedSeconds),
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = DsTheme.colors.textPrimary,
+            modifier = Modifier.width(64.dp),
+            textAlign = TextAlign.Center,
+        )
     }
-    val color = when (saveState) {
-        SetSaveState.Saved -> DsTheme.colors.successSoft
-        SetSaveState.Failed -> DsTheme.colors.error
-        else -> DsTheme.colors.textSecondary
+}
+
+private fun SetDraft.canComplete(logType: ExerciseLogType): Boolean = when (logType) {
+    ExerciseLogType.WEIGHT_REPS -> actualWeightKg != null && actualReps != null
+    ExerciseLogType.BODYWEIGHT_REPS -> actualReps != null
+    ExerciseLogType.TIME -> actualRestSeconds != null
+}
+
+private fun SetLog.formatFor(logType: ExerciseLogType): String = when (logType) {
+    ExerciseLogType.WEIGHT_REPS -> {
+        val weight = actualWeightKg?.let { formatWeightKg(it) } ?: "?"
+        val reps = actualReps?.toString() ?: "?"
+        "$weight x $reps"
     }
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = color,
-        textAlign = TextAlign.End,
-        modifier = modifier
-            .heightIn(min = DsTheme.sizes.touchTarget)
-            .then(if (saveState == SetSaveState.Failed) Modifier.clickable(onClick = onRetrySave) else Modifier),
-    )
+    ExerciseLogType.BODYWEIGHT_REPS -> actualReps?.let { "$it reps" } ?: "-"
+    ExerciseLogType.TIME -> actualRestSeconds?.let { formatElapsedTime(it) } ?: "-"
+}
+
+private fun formatElapsedTime(seconds: Int): String {
+    val minutes = seconds / 60
+    val remainingSeconds = seconds % 60
+    return "${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}"
 }

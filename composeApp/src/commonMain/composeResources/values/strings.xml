@@ -631,6 +631,7 @@
     <string name="set_row_prev_header">MINULE</string>
     <string name="set_row_kg_header">KG</string>
     <string name="set_row_reps_header">OPAK.</string>
+    <string name="set_row_min_header">ČAS</string>
     <string name="set_row_save_header">ULOŽIT</string>
 
     <!-- Rest Timer -->

@@ -10,6 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.editor_move_down_cd
+import coachfoska.composeapp.generated.resources.editor_move_up_cd
 import coachfoska.composeapp.generated.resources.exercise_options_cd
 import coachfoska.composeapp.generated.resources.exercise_swap
 import coachfoska.composeapp.generated.resources.exercise_view_history
@@ -21,6 +23,10 @@ fun ExerciseCardHeader(
     exercise: ExerciseDraft,
     onSwapExercise: () -> Unit,
     onViewHistory: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
     modifier: Modifier = Modifier,
     leading: (@Composable () -> Unit)? = null,
 ) {
@@ -65,6 +71,16 @@ fun ExerciseCardHeader(
                 DropdownMenuItem(
                     text = { Text(stringResource(Res.string.exercise_swap)) },
                     onClick = { menuExpanded = false; onSwapExercise() },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.editor_move_up_cd)) },
+                    enabled = canMoveUp,
+                    onClick = { menuExpanded = false; onMoveUp() },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.editor_move_down_cd)) },
+                    enabled = canMoveDown,
+                    onClick = { menuExpanded = false; onMoveDown() },
                 )
                 DropdownMenuItem(
                     text = { Text(stringResource(Res.string.exercise_view_history)) },

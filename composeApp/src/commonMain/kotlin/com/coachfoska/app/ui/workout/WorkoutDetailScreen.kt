@@ -27,6 +27,7 @@ import coachfoska.composeapp.generated.resources.detail_title
 import coachfoska.composeapp.generated.resources.plan_coach_badge
 import coachfoska.composeapp.generated.resources.substitute_applied
 import coachfoska.composeapp.generated.resources.substitute_swap_icon_cd
+import coachfoska.composeapp.generated.resources.substitute_title
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.domain.model.WorkoutSource
 import com.coachfoska.app.presentation.workout.WorkoutIntent
@@ -210,6 +211,7 @@ fun WorkoutDetailScreen(
             val exercise = ordered.getOrNull(exIndex)
             SubstituteExerciseSheet(
                 currentExerciseId = exercise?.exerciseId,
+                title = stringResource(Res.string.substitute_title),
                 sheetState = substituteSheetState,
                 onExerciseSelected = { replacement ->
                     onIntent(WorkoutIntent.SubstitutePlanExercise(exIndex, replacement))

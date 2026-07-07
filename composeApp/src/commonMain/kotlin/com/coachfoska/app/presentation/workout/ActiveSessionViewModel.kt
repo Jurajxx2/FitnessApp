@@ -2,9 +2,11 @@ package com.coachfoska.app.presentation.workout
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WorkoutLog
+import com.coachfoska.app.domain.model.inferExerciseLogType
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.workout.CheckPersonalRecordUseCase
 import com.coachfoska.app.domain.usecase.exercise.GetExerciseByIdUseCase
@@ -44,6 +46,7 @@ class ActiveSessionViewModel(
             is ActiveSessionIntent.InitSession -> initSession(intent.workoutId, intent.resumeLogId)
             is ActiveSessionIntent.SwitchExercise -> switchExercise(intent.index)
             is ActiveSessionIntent.UpdateSetActual -> updateSet(intent)
+            is ActiveSessionIntent.UpdateSetDuration -> updateSetDuration(intent)
             is ActiveSessionIntent.MarkSetComplete -> markSetComplete(intent)
             is ActiveSessionIntent.AddExtraSet -> addExtraSet(intent.exerciseIndex)
             is ActiveSessionIntent.RemoveSet -> removeSet(intent.exerciseIndex, intent.setIndex)
@@ -57,6 +60,8 @@ class ActiveSessionViewModel(
             is ActiveSessionIntent.RetrySetSave -> retrySetSave(intent.exerciseIndex, intent.setIndex)
             ActiveSessionIntent.DiscardSession -> discardSession()
             ActiveSessionIntent.DismissError -> _state.update { it.copy(error = null) }
+            is ActiveSessionIntent.AddExercise -> addExercise(intent.exercise)
+            is ActiveSessionIntent.MoveExercise -> moveExercise(intent.exerciseIndex, intent.direction)
             is ActiveSessionIntent.SubstituteExercise -> substituteExercise(intent)
             ActiveSessionIntent.DismissSubstitution -> _state.update { it.copy(lastSubstitution = null) }
             is ActiveSessionIntent.RenameSession -> renameSession(intent.name)
@@ -145,6 +150,7 @@ class ActiveSessionViewModel(
         exercises: List<ExerciseDraft>,
         previousData: Map<String, List<SetLog>>,
     ): List<ExerciseDraft> = exercises.map { ex ->
+        if (ex.logType != ExerciseLogType.WEIGHT_REPS) return@map ex
         val previousSets = previousData[ex.exerciseName].orEmpty()
         if (previousSets.isEmpty()) return@map ex
         val sets = ex.sets.mapIndexed { index, set ->
@@ -172,6 +178,19 @@ class ActiveSessionViewModel(
                 actualReps = intent.reps,
                 actualWeightKg = intent.weight,
             )
+            updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
+            s.copy(sessionDraft = draft.copy(exercises = updatedEx))
+        }
+    }
+
+    private fun updateSetDuration(intent: ActiveSessionIntent.UpdateSetDuration) {
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            val updatedEx = draft.exercises.toMutableList()
+            val ex = updatedEx.getOrNull(intent.exerciseIndex) ?: return@update s
+            val updatedSets = ex.sets.toMutableList()
+            val set = updatedSets.getOrNull(intent.setIndex) ?: return@update s
+            updatedSets[intent.setIndex] = set.copy(actualRestSeconds = intent.durationSeconds)
             updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
             s.copy(sessionDraft = draft.copy(exercises = updatedEx))
         }
@@ -444,6 +463,35 @@ class ActiveSessionViewModel(
         }
     }
 
+    private fun addExercise(exercise: com.coachfoska.app.domain.model.Exercise) {
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            s.copy(sessionDraft = draft.copy(exercises = draft.exercises + exercise.toSessionDraft()))
+        }
+        viewModelScope.launch {
+            getPreviousLogsUseCase(userId, listOf(exercise.name)).onSuccess { data ->
+                _state.update { it.copy(previousData = it.previousData + data) }
+            }
+        }
+    }
+
+    private fun moveExercise(exerciseIndex: Int, direction: Int) {
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            val targetIndex = exerciseIndex + direction
+            if (exerciseIndex !in draft.exercises.indices || targetIndex !in draft.exercises.indices) {
+                return@update s
+            }
+            val exercises = draft.exercises.toMutableList()
+            val item = exercises.removeAt(exerciseIndex)
+            exercises.add(targetIndex, item)
+            s.copy(
+                sessionDraft = draft.copy(exercises = exercises),
+                currentExerciseIndex = targetIndex,
+            )
+        }
+    }
+
     private fun substituteExercise(intent: ActiveSessionIntent.SubstituteExercise) {
         val draft = _state.value.sessionDraft ?: return
         val index = intent.exerciseIndex
@@ -463,6 +511,7 @@ class ActiveSessionViewModel(
             imageUrl = replacement.imageUrl,
             imageUrl2 = replacement.imageUrl2,
             videoUrl = replacement.videoUrl,
+            logType = replacement.logType,
             substitutedFromExerciseId = originId,
             substitutedFromName = originName,
         )
@@ -596,6 +645,7 @@ class ActiveSessionViewModel(
                     exerciseId = logged.exerciseId,
                     exerciseLogId = logged.id,
                     videoUrl = logged.videoUrl,
+                    logType = inferExerciseLogType(logged.exerciseName),
                     substitutedFromExerciseId = logged.substitutedFromExerciseId,
                     substitutedFromName = logged.substitutedFromName,
                     sets = logged.sets.sortedBy { it.sortOrder }.map { it.toDraft() },
@@ -625,6 +675,7 @@ class ActiveSessionViewModel(
                 imageUrl = exercise.imageUrl ?: domainExercise.imageUrl,
                 imageUrl2 = exercise.imageUrl2 ?: domainExercise.imageUrl2,
                 videoUrl = exercise.videoUrl ?: domainExercise.videoUrl,
+                logType = domainExercise.logType,
             )
         }
         return draft.copy(exercises = exercises)
@@ -664,6 +715,35 @@ class ActiveSessionViewModel(
         setLogId = id,
         saveState = SetSaveState.Saved,
     )
+
+    private fun com.coachfoska.app.domain.model.Exercise.toSessionDraft(): ExerciseDraft {
+        val setCount = if (logType == ExerciseLogType.TIME) 1 else 3
+        val repsGoal = if (logType == ExerciseLogType.TIME) null else 10
+        return ExerciseDraft(
+            exerciseName = name,
+            imageUrl = imageUrl,
+            imageUrl2 = imageUrl2,
+            videoUrl = videoUrl,
+            muscleGroup = muscles.firstOrNull() ?: category?.name,
+            exerciseId = id,
+            logType = logType,
+            initialSetsGoal = setCount,
+            initialRepsGoal = repsGoal?.toString() ?: "time",
+            sets = (1..setCount).map { order ->
+                SetDraft(
+                    sortOrder = order,
+                    targetReps = repsGoal,
+                    actualReps = repsGoal,
+                    targetWeightKg = null,
+                    actualWeightKg = null,
+                    rpe = null,
+                    targetRestSeconds = null,
+                    actualRestSeconds = null,
+                    setType = SetType.NORMAL,
+                )
+            },
+        )
+    }
 
     override fun onCleared() {
         super.onCleared()

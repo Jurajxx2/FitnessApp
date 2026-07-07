@@ -2,6 +2,8 @@ package com.coachfoska.app.presentation.workout
 
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
+import com.coachfoska.app.domain.model.ExerciseLogType
+import com.coachfoska.app.domain.model.inferExerciseLogType
 
 data class SessionDraft(
     val workoutId: String?,
@@ -22,6 +24,7 @@ data class ExerciseDraft(
     val tips: String? = null,
     val exerciseId: String? = null,
     val exerciseLogId: String? = null,
+    val logType: ExerciseLogType = ExerciseLogType.WEIGHT_REPS,
     val initialSetsGoal: Int = 3,
     val initialRepsGoal: String = "10",
     val substitutedFromExerciseId: String? = null,
@@ -64,6 +67,11 @@ fun WorkoutExercise.toDraft(): ExerciseDraft {
         muscleGroup = muscleGroup,
         tips = tips,
         exerciseId = exerciseId,
+        logType = inferExerciseLogType(
+            name = name,
+            categoryName = muscleGroup,
+            reps = reps,
+        ),
         substitutedFromExerciseId = substitutedFromExerciseId,
         substitutedFromName = substitutedFromName,
         sets = (1..sets).map { order ->

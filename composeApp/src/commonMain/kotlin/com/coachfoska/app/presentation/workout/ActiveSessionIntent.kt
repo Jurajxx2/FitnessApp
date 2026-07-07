@@ -11,6 +11,11 @@ sealed interface ActiveSessionIntent {
         val reps: Int?,
         val weight: Float?,
     ) : ActiveSessionIntent
+    data class UpdateSetDuration(
+        val exerciseIndex: Int,
+        val setIndex: Int,
+        val durationSeconds: Int?,
+    ) : ActiveSessionIntent
     data class MarkSetComplete(
         val exerciseIndex: Int,
         val setIndex: Int,
@@ -28,6 +33,8 @@ sealed interface ActiveSessionIntent {
     data class RetrySetSave(val exerciseIndex: Int, val setIndex: Int) : ActiveSessionIntent
     data object DiscardSession : ActiveSessionIntent
     data object DismissError : ActiveSessionIntent
+    data class AddExercise(val exercise: Exercise) : ActiveSessionIntent
+    data class MoveExercise(val exerciseIndex: Int, val direction: Int) : ActiveSessionIntent
     data class SubstituteExercise(val exerciseIndex: Int, val replacement: Exercise) : ActiveSessionIntent
     data object DismissSubstitution : ActiveSessionIntent
     data class RenameSession(val name: String) : ActiveSessionIntent

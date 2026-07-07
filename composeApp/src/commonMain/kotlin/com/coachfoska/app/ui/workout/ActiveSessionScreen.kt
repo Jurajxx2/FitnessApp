@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.editor_add_exercise
 import coachfoska.composeapp.generated.resources.finish_workout
 import coachfoska.composeapp.generated.resources.notes_optional
 import coachfoska.composeapp.generated.resources.common_keep_working
@@ -23,12 +24,14 @@ import coachfoska.composeapp.generated.resources.session_discard_confirm
 import coachfoska.composeapp.generated.resources.session_save_degraded
 import coachfoska.composeapp.generated.resources.session_sets_progress
 import coachfoska.composeapp.generated.resources.substitute_applied
+import coachfoska.composeapp.generated.resources.substitute_title
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.presentation.workout.ActiveSessionIntent
 import com.coachfoska.app.presentation.workout.ActiveSessionState
 import com.coachfoska.app.presentation.workout.ActiveSessionViewModel
 import com.coachfoska.app.presentation.workout.SessionDraft
 import com.coachfoska.designsystem.components.DsButton
+import com.coachfoska.designsystem.components.DsButtonVariant
 import com.coachfoska.app.ui.workout.components.*
 import com.coachfoska.designsystem.theme.LocalReduceMotion
 import kotlinx.coroutines.delay
@@ -112,6 +115,7 @@ fun ActiveSessionScreen(
 
     // Substitute sheet state
     var substituteIndex by remember { mutableStateOf<Int?>(null) }
+    var showAddExerciseSheet by remember { mutableStateOf(false) }
     val substituteSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Snackbar for substitution confirmation
@@ -201,11 +205,19 @@ fun ActiveSessionScreen(
                         onIntent = onIntent,
                         onSwapClick = { substituteIndex = index },
                         onExerciseDetailClick = onExerciseDetailClick,
+                        canMoveUp = index > 0,
+                        canMoveDown = index < draft.exercises.lastIndex,
                     )
                 }
 
                 item(key = "session-footer") {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        DsButton(
+                            text = stringResource(Res.string.editor_add_exercise),
+                            onClick = { showAddExerciseSheet = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = DsButtonVariant.Outlined,
+                        )
                         OutlinedTextField(
                             value = notes,
                             onValueChange = { notes = it },
@@ -240,12 +252,26 @@ fun ActiveSessionScreen(
             val exercise = draft?.exercises?.getOrNull(exIndex)
             SubstituteExerciseSheet(
                 currentExerciseId = exercise?.exerciseId,
+                title = stringResource(Res.string.substitute_title),
                 sheetState = substituteSheetState,
                 onExerciseSelected = { replacement ->
                     onIntent(ActiveSessionIntent.SubstituteExercise(exIndex, replacement))
                     substituteIndex = null
                 },
                 onDismiss = { substituteIndex = null },
+            )
+        }
+
+        if (showAddExerciseSheet) {
+            SubstituteExerciseSheet(
+                currentExerciseId = null,
+                title = stringResource(Res.string.editor_add_exercise),
+                sheetState = substituteSheetState,
+                onExerciseSelected = { exercise ->
+                    onIntent(ActiveSessionIntent.AddExercise(exercise))
+                    showAddExerciseSheet = false
+                },
+                onDismiss = { showAddExerciseSheet = false },
             )
         }
     }
