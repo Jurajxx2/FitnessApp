@@ -3,8 +3,8 @@
 -- Requires: pg_cron + pg_net, and two DB settings holding the project URL + service key
 -- (set during deploy — see 2026-07-07-weekly-check-in-DEPLOY.md). Idempotent.
 
-CREATE EXTENSION IF NOT EXISTS pg_cron  WITH SCHEMA extensions;
-CREATE EXTENSION IF NOT EXISTS pg_net   WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+CREATE EXTENSION IF NOT EXISTS pg_net;
 
 -- Remove any previous definition so re-running the migration is safe.
 SELECT cron.unschedule('weekly-checkin-reminder')
@@ -15,10 +15,10 @@ SELECT cron.schedule(
   '0 17 * * 0',  -- Sundays 17:00 UTC
   $$
   SELECT net.http_post(
-    url     := current_setting('app.settings.project_url') || '/functions/v1/weekly-checkin-reminder',
+    url     := current_setting('app.settings.project_url', true) || '/functions/v1/weekly-checkin-reminder',
     headers := jsonb_build_object(
                  'Content-Type', 'application/json',
-                 'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+                 'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true)
                ),
     body    := '{}'::jsonb
   );
