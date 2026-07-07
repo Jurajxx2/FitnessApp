@@ -313,4 +313,5 @@ export interface CheckIn {
   coach_response: string | null
   coach_response_at: string | null
   created_at: string
+  updated_at: string
 }
