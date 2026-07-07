@@ -269,7 +269,7 @@ val viewModelModule = module {
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> ActivityLogViewModel(get(), get(), userId) }
-    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (recipeId: String, userId: String) -> RecipeDetailViewModel(get(), get(), get(), get(), recipeId, userId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }

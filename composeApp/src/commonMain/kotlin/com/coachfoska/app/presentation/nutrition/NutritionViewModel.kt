@@ -3,7 +3,9 @@ package com.coachfoska.app.presentation.nutrition
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.usecase.nutrition.AnalyzeMealPhotoUseCase
+import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
@@ -11,9 +13,11 @@ import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
+import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.core.util.todayDate
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +36,9 @@ class NutritionViewModel(
     private val getFavoriteRecipeIdsUseCase: GetFavoriteRecipeIdsUseCase,
     private val toggleFavoriteRecipeUseCase: ToggleFavoriteRecipeUseCase,
     private val getRecipeByIdUseCase: GetRecipeByIdUseCase,
+    private val getDailyNutritionSummaryUseCase: GetDailyNutritionSummaryUseCase,
+    private val calculateMacroTargetsUseCase: CalculateMacroTargetsUseCase,
+    private val getUserProfileUseCase: GetUserProfileUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -42,6 +49,7 @@ class NutritionViewModel(
 
     init {
         onIntent(NutritionIntent.LoadMealPlan)
+        loadDailySummary()
     }
 
     fun onIntent(intent: NutritionIntent) {
@@ -62,6 +70,7 @@ class NutritionViewModel(
             NutritionIntent.ToggleFavoritesFilter -> _state.update { it.copy(showOnlyFavorites = !it.showOnlyFavorites) }
             is NutritionIntent.LoadCapturePrefill -> loadCapturePrefill(intent.recipeId, intent.mealId)
             NutritionIntent.CapturePrefillConsumed -> _state.update { it.copy(capturePrefill = null) }
+            NutritionIntent.LoadDailySummary -> loadDailySummary()
         }
     }
 
@@ -249,6 +258,30 @@ class NutritionViewModel(
                         }
                     }
                     .onFailure { e -> Napier.e("prefill meal $mealId failed", e, tag = TAG) }
+            }
+        }
+    }
+
+    private fun loadDailySummary() {
+        viewModelScope.launch {
+            _state.update { it.copy(isSummaryLoading = true) }
+            val today = todayDate()
+            val summaryDeferred = async { getDailyNutritionSummaryUseCase(userId, today) }
+            val profileDeferred = async { getUserProfileUseCase(userId) }
+
+            val summaryResult = summaryDeferred.await()
+            val profileResult = profileDeferred.await()
+
+            summaryResult.onFailure { e -> Napier.e("loadDailySummary summary failed", e, tag = TAG) }
+            profileResult.onFailure { e -> Napier.e("loadDailySummary profile failed", e, tag = TAG) }
+
+            val targets = profileResult.getOrNull()?.let { calculateMacroTargetsUseCase(it) }
+            _state.update {
+                it.copy(
+                    isSummaryLoading = false,
+                    nutritionSummary = summaryResult.getOrNull() ?: it.nutritionSummary,
+                    macroTargets = targets ?: it.macroTargets,
+                )
             }
         }
     }

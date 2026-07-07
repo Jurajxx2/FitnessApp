@@ -1,6 +1,8 @@
 package com.coachfoska.app.presentation.nutrition
 
+import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.Food
+import com.coachfoska.app.domain.model.MacroTargets
 import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealPlan
@@ -39,6 +41,9 @@ data class NutritionState(
     val isAnalyzing: Boolean = false,
     val mealLoggedSuccess: Boolean = false,
     val capturePrefill: CapturePrefill? = null,
+    val nutritionSummary: DailyNutritionSummary? = null,
+    val macroTargets: MacroTargets? = null,
+    val isSummaryLoading: Boolean = false,
     val error: String? = null
 ) {
     val recipes: List<Recipe>

@@ -23,4 +23,5 @@ sealed interface NutritionIntent {
     data object ToggleFavoritesFilter : NutritionIntent
     data class LoadCapturePrefill(val recipeId: String?, val mealId: String?) : NutritionIntent
     data object CapturePrefillConsumed : NutritionIntent
+    data object LoadDailySummary : NutritionIntent
 }

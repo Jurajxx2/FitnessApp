@@ -1,13 +1,20 @@
 package com.coachfoska.app.presentation.nutrition
 
+import com.coachfoska.app.domain.model.ActivityLevel
+import com.coachfoska.app.domain.model.DailyNutritionSummary
+import com.coachfoska.app.domain.model.FitnessGoal
 import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.domain.model.MealFood
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealPlan
 import com.coachfoska.app.domain.model.RecipeIngredient
+import com.coachfoska.app.domain.model.User
 import com.coachfoska.app.domain.repository.MealRepository
+import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.usecase.nutrition.AnalyzeMealPhotoUseCase
+import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
@@ -15,8 +22,10 @@ import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
+import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.fixtures.aRecipe
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +48,7 @@ class NutritionViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val repo: MealRepository = mockk()
+    private val userRepo: UserRepository = mockk()
 
     private fun viewModel() = NutritionViewModel(
         getActiveMealPlanUseCase = GetActiveMealPlanUseCase(repo),
@@ -50,6 +60,9 @@ class NutritionViewModelTest {
         getFavoriteRecipeIdsUseCase = GetFavoriteRecipeIdsUseCase(repo),
         toggleFavoriteRecipeUseCase = ToggleFavoriteRecipeUseCase(repo),
         getRecipeByIdUseCase = GetRecipeByIdUseCase(repo),
+        getDailyNutritionSummaryUseCase = GetDailyNutritionSummaryUseCase(repo),
+        calculateMacroTargetsUseCase = CalculateMacroTargetsUseCase(),
+        getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         userId = "user-1"
     )
 
@@ -57,6 +70,9 @@ class NutritionViewModelTest {
         Dispatchers.setMain(testDispatcher)
         // Default stub — individual tests can override with coEvery
         coEvery { repo.getActiveMealPlan(any()) } returns Result.success(null)
+        coEvery { repo.getDailyNutritionSummary(any(), any()) } returns
+            Result.success(DailyNutritionSummary(1200f, 80f, 100f, 40f))
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
     }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
@@ -302,6 +318,46 @@ class NutritionViewModelTest {
 
         assertNull(vm.state.value.capturePrefill)
     }
+
+    @Test
+    fun `init loads daily summary and computes macro targets from profile`() = runTest {
+        val vm = viewModel()
+
+        val s = vm.state.value
+        assertNotNull(s.nutritionSummary)
+        assertEquals(1200f, s.nutritionSummary!!.calories)
+        assertNotNull(s.macroTargets)   // aUser() has complete stats
+        assertFalse(s.isSummaryLoading)
+    }
+
+    @Test
+    fun `incomplete profile leaves macro targets null but keeps summary`() = runTest {
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser(weightKg = null))
+
+        val vm = viewModel()
+
+        assertNotNull(vm.state.value.nutritionSummary)
+        assertNull(vm.state.value.macroTargets)
+    }
+
+    @Test
+    fun `LoadDailySummary reloads the summary`() = runTest {
+        val vm = viewModel()               // init -> 1 call
+        vm.onIntent(NutritionIntent.LoadDailySummary)   // -> 2nd call
+
+        coVerify(exactly = 2) { repo.getDailyNutritionSummary(any(), any()) }
+    }
+
+    @Test
+    fun `daily summary load failure is non-fatal`() = runTest {
+        coEvery { repo.getDailyNutritionSummary(any(), any()) } returns
+            Result.failure(RuntimeException("offline"))
+
+        val vm = viewModel()
+
+        assertNull(vm.state.value.nutritionSummary)
+        assertFalse(vm.state.value.isSummaryLoading)
+    }
 }
 
 private fun aMealPlan(meals: List<Meal> = emptyList()) = MealPlan(
@@ -321,4 +377,16 @@ private fun aMeal(
 private fun aMealLog() = MealLog(
     id = "log-1", userId = "user-1", mealName = "Lunch", notes = null,
     foods = emptyList(), loggedAt = Instant.parse("2026-04-03T12:00:00Z")
+)
+
+private fun aUser(
+    weightKg: Float? = 80f,
+    heightCm: Float? = 180f,
+    age: Int? = 30,
+    activityLevel: ActivityLevel? = ActivityLevel.MODERATELY_ACTIVE,
+    goal: FitnessGoal? = FitnessGoal.STAY_FIT,
+) = User(
+    id = "user-1", email = "u@e.com", fullName = "U",
+    age = age, heightCm = heightCm, weightKg = weightKg,
+    goal = goal, activityLevel = activityLevel, onboardingComplete = true,
 )
