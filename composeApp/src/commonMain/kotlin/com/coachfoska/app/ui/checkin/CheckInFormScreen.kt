@@ -1,7 +1,5 @@
 package com.coachfoska.app.ui.checkin
 
-import com.coachfoska.designsystem.theme.DsTheme
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.core.util.MediaCaptureMode
+import com.coachfoska.designsystem.theme.DsTheme
 import com.coachfoska.app.core.util.rememberGalleryPickerLauncher
 import com.coachfoska.app.core.util.rememberUriBytesReader
 import com.coachfoska.app.presentation.checkin.CheckInIntent
@@ -170,12 +169,14 @@ private fun CheckInFormContent(
                         isPicked = form.photoFrontPath != null,
                         modifier = Modifier.weight(1f),
                         onClick = { pickFront() },
+                        enabled = !state.isUploadingPhoto && !state.isSubmitting,
                     )
                     PhotoSlot(
                         label = "Side",
                         isPicked = form.photoSidePath != null,
                         modifier = Modifier.weight(1f),
                         onClick = { pickSide() },
+                        enabled = !state.isUploadingPhoto && !state.isSubmitting,
                     )
                 }
                 if (state.isUploadingPhoto) {
@@ -191,7 +192,7 @@ private fun CheckInFormContent(
                         Text(
                             text = "Uploading photo…",
                             style = DsTheme.type.labelMedium,
-                            color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
+                            color = DsTheme.colors.textSecondary,
                         )
                     }
                 }
@@ -261,7 +262,7 @@ private fun CheckInSuccessContent(onBackClick: () -> Unit) {
         Text(
             text = "Your coach will review it soon. Nice work staying consistent!",
             style = DsTheme.type.bodyMedium,
-            color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
+            color = DsTheme.colors.textSecondary,
         )
         Spacer(modifier = Modifier.height(DsTheme.spacing.xxl))
         DsButton(
@@ -303,9 +304,11 @@ private fun PhotoSlot(
     isPicked: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Surface(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier.height(120.dp),
         shape = DsTheme.shapes.md,
         color = if (isPicked) DsTheme.colors.actionPrimary.copy(alpha = 0.08f) else DsTheme.colors.surface,
@@ -328,9 +331,8 @@ private fun PhotoSlot(
             Spacer(modifier = Modifier.height(DsTheme.spacing.sm))
             Text(
                 text = if (isPicked) "$label photo added" else "Pick $label photo",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (isPicked) DsTheme.colors.actionPrimary else DsTheme.colors.textPrimary.copy(alpha = 0.5f),
-                letterSpacing = 0.5.sp,
+                style = DsTheme.type.labelSmall,
+                color = if (isPicked) DsTheme.colors.actionPrimary else DsTheme.colors.textSecondary,
             )
         }
     }
