@@ -1,5 +1,6 @@
 package com.coachfoska.app.data.remote.dto
 
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,5 +29,23 @@ class CheckInDtoTest {
         assertEquals("u-1/front.jpg", domain.photoFrontPath)
         assertNull(domain.photoSidePath)
         assertEquals("great work", domain.coachResponse)
+        assertEquals("u-1", domain.userId)
+        assertEquals(3, domain.sleepQuality)
+        assertEquals(2, domain.stressLevel)
+        assertEquals(3, domain.trainingAdherence)
+        assertEquals(5, domain.nutritionAdherence)
+        assertEquals(Instant.parse("2026-07-07T09:00:00Z"), domain.coachResponseAt)
+        assertEquals(Instant.parse("2026-07-06T08:00:00Z"), domain.createdAt)
+    }
+
+    @Test
+    fun `toDomain leaves null timestamps null`() {
+        val dto = CheckInDto(
+            id = "ci-2", userId = "u-1", weekOf = "2026-07-06",
+            coachResponseAt = null, createdAt = null,
+        )
+        val domain = dto.toDomain()
+        assertNull(domain.coachResponseAt)
+        assertNull(domain.createdAt)
     }
 }
