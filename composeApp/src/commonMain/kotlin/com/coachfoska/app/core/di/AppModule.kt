@@ -5,6 +5,7 @@ import com.coachfoska.app.core.logging.AppLogger
 import com.coachfoska.app.data.remote.datasource.ActivityRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.AppConfigRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.AuthRemoteDataSource
+import com.coachfoska.app.data.remote.datasource.CheckInRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.ExerciseSupabaseDataSource
 import com.coachfoska.app.data.remote.datasource.MealPhotoDataSource
 import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
@@ -14,6 +15,7 @@ import com.coachfoska.app.data.remote.datasource.WorkoutRemoteDataSource
 import com.coachfoska.app.data.repository.ActivityRepositoryImpl
 import com.coachfoska.app.data.repository.AppConfigRepositoryImpl
 import com.coachfoska.app.data.repository.AuthRepositoryImpl
+import com.coachfoska.app.data.repository.CheckInRepositoryImpl
 import com.coachfoska.app.data.repository.ExerciseRepositoryImpl
 import com.coachfoska.app.data.repository.MealRepositoryImpl
 import com.coachfoska.app.data.repository.OnboardingRepositoryImpl
@@ -22,6 +24,7 @@ import com.coachfoska.app.data.repository.WorkoutRepositoryImpl
 import com.coachfoska.app.domain.repository.ActivityRepository
 import com.coachfoska.app.domain.repository.AppConfigRepository
 import com.coachfoska.app.domain.repository.AuthRepository
+import com.coachfoska.app.domain.repository.CheckInRepository
 import com.coachfoska.app.domain.repository.ExerciseRepository
 import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.repository.OnboardingRepository
@@ -29,6 +32,11 @@ import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.activity.GetActivityHistoryUseCase
 import com.coachfoska.app.domain.usecase.activity.LogGeneralActivityUseCase
+import com.coachfoska.app.domain.usecase.checkin.GetCheckInHistoryUseCase
+import com.coachfoska.app.domain.usecase.checkin.GetCurrentWeekCheckInUseCase
+import com.coachfoska.app.domain.usecase.checkin.ResolveCheckInPhotoUrlUseCase
+import com.coachfoska.app.domain.usecase.checkin.SubmitCheckInUseCase
+import com.coachfoska.app.domain.usecase.checkin.UploadCheckInPhotoUseCase
 import com.coachfoska.app.domain.usecase.auth.GetCurrentUserUseCase
 import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.domain.usecase.auth.SendOtpUseCase
@@ -95,6 +103,7 @@ import com.coachfoska.app.presentation.workout.ProgressDashboardViewModel
 import com.coachfoska.app.presentation.workout.PostWorkoutSummaryViewModel
 import com.coachfoska.app.presentation.activity.ActivityLogViewModel
 import com.coachfoska.app.presentation.auth.AuthViewModel
+import com.coachfoska.app.presentation.checkin.CheckInViewModel
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.app.presentation.splash.SplashViewModel
 import com.coachfoska.app.presentation.home.HomeViewModel
@@ -156,6 +165,7 @@ val dataSourceModule = module {
     single { AuthRemoteDataSource(get(), get()) }
     single { UserRemoteDataSource(get()) }
     single { ActivityRemoteDataSource(get()) }
+    single { CheckInRemoteDataSource(get()) }
     single { WorkoutRemoteDataSource(get()) }
     single { ExerciseSupabaseDataSource(get()) }
     single { MealRemoteDataSource(get()) }
@@ -168,6 +178,7 @@ val repositoryModule = module {
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get()) }
     single<ActivityRepository> { ActivityRepositoryImpl(get()) }
+    single<CheckInRepository> { CheckInRepositoryImpl(get()) }
     single<WorkoutRepository> { WorkoutRepositoryImpl(get()) }
     single<ExerciseRepository> { ExerciseRepositoryImpl(get()) }
     single<MealRepository> { MealRepositoryImpl(get(), get()) }
@@ -207,6 +218,13 @@ val useCaseModule = module {
     // Activity
     factory { LogGeneralActivityUseCase(get()) }
     factory { GetActivityHistoryUseCase(get()) }
+
+    // Check-In
+    factory { SubmitCheckInUseCase(get(), get()) }
+    factory { GetCheckInHistoryUseCase(get()) }
+    factory { GetCurrentWeekCheckInUseCase(get()) }
+    factory { UploadCheckInPhotoUseCase(get()) }
+    factory { ResolveCheckInPhotoUrlUseCase(get()) }
 
     // Nutrition
     factory { GetActiveMealPlanUseCase(get()) }
@@ -256,6 +274,16 @@ val viewModelModule = module {
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
     viewModel { (userId: String) -> ExerciseViewModel(get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) ->
+        CheckInViewModel(
+            submitCheckInUseCase = get(),
+            getCheckInHistoryUseCase = get(),
+            getCurrentWeekCheckInUseCase = get(),
+            uploadCheckInPhotoUseCase = get(),
+            getUserProfileUseCase = get(),
+            userId = userId,
+        )
+    }
     viewModel { (userId: String) ->
         ActiveSessionViewModel(get(), get(), get(), get(), get(), get(), userId)
     }
