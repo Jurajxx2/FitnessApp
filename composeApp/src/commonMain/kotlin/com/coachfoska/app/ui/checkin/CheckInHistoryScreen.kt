@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.core.util.toDisplayDateTime
 import com.coachfoska.app.core.util.toDisplayString
 import com.coachfoska.app.domain.model.CheckIn
@@ -27,6 +29,7 @@ import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.designsystem.theme.DsTheme
 import kotlinx.datetime.Instant
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -47,16 +50,16 @@ fun CheckInHistoryScreen(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         DsTopBar(
-            title = "Check-in history",
+            title = stringResource(Res.string.checkin_history_title),
             onBackClick = onBackClick,
-            backContentDescription = "Back",
+            backContentDescription = stringResource(Res.string.back_cd),
         )
         when {
             state.isLoading -> DsLoadingBox(Modifier.weight(1f))
             state.history.isEmpty() -> DsEmptyState(
                 icon = Icons.Default.History,
-                title = "No check-ins yet",
-                message = "Submit your first weekly check-in to start building your history.",
+                title = stringResource(Res.string.checkin_empty_title),
+                message = stringResource(Res.string.checkin_empty_message),
                 modifier = Modifier.padding(top = DsTheme.spacing.xl),
             )
             else -> LazyColumn(
@@ -86,11 +89,26 @@ private fun CheckInHistoryCard(checkIn: CheckIn) {
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
-                MetricRow(label = "Energy", value = checkIn.energyLevel?.let { "$it/5" })
-                MetricRow(label = "Sleep quality", value = checkIn.sleepQuality?.let { "$it/5" })
-                MetricRow(label = "Stress", value = checkIn.stressLevel?.let { "$it/5" })
-                MetricRow(label = "Training adherence", value = checkIn.trainingAdherence?.let { "$it sessions" })
-                MetricRow(label = "Nutrition adherence", value = checkIn.nutritionAdherence?.let { "$it/5" })
+                MetricRow(
+                    label = stringResource(Res.string.checkin_label_energy),
+                    value = checkIn.energyLevel?.let { stringResource(Res.string.checkin_rating_format, it) },
+                )
+                MetricRow(
+                    label = stringResource(Res.string.checkin_label_sleep),
+                    value = checkIn.sleepQuality?.let { stringResource(Res.string.checkin_rating_format, it) },
+                )
+                MetricRow(
+                    label = stringResource(Res.string.checkin_label_stress),
+                    value = checkIn.stressLevel?.let { stringResource(Res.string.checkin_rating_format, it) },
+                )
+                MetricRow(
+                    label = stringResource(Res.string.checkin_label_training_adherence),
+                    value = checkIn.trainingAdherence?.let { stringResource(Res.string.checkin_sessions_format, it) },
+                )
+                MetricRow(
+                    label = stringResource(Res.string.checkin_label_nutrition_adherence),
+                    value = checkIn.nutritionAdherence?.let { stringResource(Res.string.checkin_rating_format, it) },
+                )
             }
 
             checkIn.notes?.takeIf { it.isNotBlank() }?.let { notes ->
@@ -103,7 +121,7 @@ private fun CheckInHistoryCard(checkIn: CheckIn) {
 
             if (checkIn.photoFrontPath != null || checkIn.photoSidePath != null) {
                 Text(
-                    text = "📷 Photos attached",
+                    text = stringResource(Res.string.checkin_photos_attached),
                     style = DsTheme.type.labelMedium,
                     color = DsTheme.colors.textSecondary,
                 )
@@ -146,7 +164,7 @@ private fun CoachResponseBlock(response: String, respondedAt: Instant?) {
             verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.xs),
         ) {
             Text(
-                text = "Coach response",
+                text = stringResource(Res.string.checkin_coach_response),
                 style = DsTheme.type.labelSmall,
                 color = DsTheme.colors.textAccent,
             )

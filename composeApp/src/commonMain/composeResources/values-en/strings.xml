@@ -391,6 +391,38 @@
     <string name="progress_checkin_subtitle">Log your weekly progress</string>
     <string name="progress_checkin_history">Check-in history</string>
 
+    <!-- Weekly check-in form + history screens -->
+    <string name="checkin_form_title">Weekly check-in</string>
+    <string name="checkin_history_cd">View check-in history</string>
+    <string name="checkin_section_body">Body</string>
+    <string name="checkin_label_weight">Weight (kg)</string>
+    <string name="checkin_label_training_sessions">Training sessions completed</string>
+    <string name="checkin_section_feeling">How are you feeling?</string>
+    <string name="checkin_label_energy">Energy</string>
+    <string name="checkin_label_sleep">Sleep quality</string>
+    <string name="checkin_label_stress">Stress</string>
+    <string name="checkin_label_nutrition_adherence">Nutrition adherence</string>
+    <string name="checkin_section_photos">Progress photos</string>
+    <string name="checkin_photo_front">Front</string>
+    <string name="checkin_photo_side">Side</string>
+    <string name="checkin_photo_added_format">%s photo added</string>
+    <string name="checkin_photo_pick_format">Pick %s photo</string>
+    <string name="checkin_uploading_photo">Uploading photo…</string>
+    <string name="checkin_section_notes">Notes</string>
+    <string name="checkin_notes_label">Anything you\'d like your coach to know?</string>
+    <string name="checkin_submit">Submit check-in</string>
+    <string name="checkin_submitted_title">Check-in submitted</string>
+    <string name="checkin_submitted_message">Your coach will review it soon. Nice work staying consistent!</string>
+    <string name="checkin_done">Done</string>
+    <string name="checkin_history_title">Check-in history</string>
+    <string name="checkin_empty_title">No check-ins yet</string>
+    <string name="checkin_empty_message">Submit your first weekly check-in to start building your history.</string>
+    <string name="checkin_label_training_adherence">Training adherence</string>
+    <string name="checkin_rating_format">%d/5</string>
+    <string name="checkin_sessions_format">%d sessions</string>
+    <string name="checkin_photos_attached">📷 Photos attached</string>
+    <string name="checkin_coach_response">Coach response</string>
+
     <!-- Common (shared across screens) -->
     <string name="common_see_all">SEE ALL</string>
     <string name="common_ok">OK</string>

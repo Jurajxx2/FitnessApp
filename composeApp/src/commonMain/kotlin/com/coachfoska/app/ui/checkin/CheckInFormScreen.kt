@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,8 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coachfoska.composeapp.generated.resources.Res
+import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.core.util.MediaCaptureMode
 import com.coachfoska.designsystem.theme.DsTheme
 import com.coachfoska.app.core.util.rememberGalleryPickerLauncher
@@ -46,6 +46,7 @@ import com.coachfoska.designsystem.components.DsChip
 import com.coachfoska.designsystem.components.DsSectionLabel
 import com.coachfoska.designsystem.components.DsTextField
 import com.coachfoska.designsystem.components.DsTopBar
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -74,14 +75,14 @@ private fun CheckInFormScreen(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         DsTopBar(
-            title = "Weekly check-in",
+            title = stringResource(Res.string.checkin_form_title),
             onBackClick = onBackClick,
-            backContentDescription = "Back",
+            backContentDescription = stringResource(Res.string.back_cd),
             actions = {
                 IconButton(onClick = onViewHistory, modifier = Modifier.size(DsTheme.sizes.touchTarget)) {
                     Icon(
                         imageVector = Icons.Default.History,
-                        contentDescription = "View check-in history",
+                        contentDescription = stringResource(Res.string.checkin_history_cd),
                         tint = DsTheme.colors.textPrimary,
                     )
                 }
@@ -119,60 +120,60 @@ private fun CheckInFormContent(
             verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.xxl),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg)) {
-                DsSectionLabel(text = "Body")
+                DsSectionLabel(text = stringResource(Res.string.checkin_section_body))
                 DsTextField(
                     value = form.weightKg,
                     onValueChange = { onIntent(CheckInIntent.WeightChanged(it)) },
-                    label = "Weight (kg)",
+                    label = stringResource(Res.string.checkin_label_weight),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
                 DsTextField(
                     value = form.trainingAdherence,
                     onValueChange = { onIntent(CheckInIntent.TrainingAdherenceChanged(it)) },
-                    label = "Training sessions completed",
+                    label = stringResource(Res.string.checkin_label_training_sessions),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg)) {
-                DsSectionLabel(text = "How are you feeling?")
+                DsSectionLabel(text = stringResource(Res.string.checkin_section_feeling))
                 RatingRow(
-                    label = "Energy",
+                    label = stringResource(Res.string.checkin_label_energy),
                     value = form.energyLevel,
                     onSelect = { onIntent(CheckInIntent.EnergyChanged(it)) },
                 )
                 RatingRow(
-                    label = "Sleep quality",
+                    label = stringResource(Res.string.checkin_label_sleep),
                     value = form.sleepQuality,
                     onSelect = { onIntent(CheckInIntent.SleepChanged(it)) },
                 )
                 RatingRow(
-                    label = "Stress",
+                    label = stringResource(Res.string.checkin_label_stress),
                     value = form.stressLevel,
                     onSelect = { onIntent(CheckInIntent.StressChanged(it)) },
                 )
                 RatingRow(
-                    label = "Nutrition adherence",
+                    label = stringResource(Res.string.checkin_label_nutrition_adherence),
                     value = form.nutritionAdherence,
                     onSelect = { onIntent(CheckInIntent.NutritionAdherenceChanged(it)) },
                 )
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg)) {
-                DsSectionLabel(text = "Progress photos")
+                DsSectionLabel(text = stringResource(Res.string.checkin_section_photos))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg),
                 ) {
                     PhotoSlot(
-                        label = "Front",
+                        label = stringResource(Res.string.checkin_photo_front),
                         isPicked = form.photoFrontPath != null,
                         modifier = Modifier.weight(1f),
                         onClick = { pickFront() },
                         enabled = !state.isUploadingPhoto && !state.isSubmitting,
                     )
                     PhotoSlot(
-                        label = "Side",
+                        label = stringResource(Res.string.checkin_photo_side),
                         isPicked = form.photoSidePath != null,
                         modifier = Modifier.weight(1f),
                         onClick = { pickSide() },
@@ -190,7 +191,7 @@ private fun CheckInFormContent(
                             strokeWidth = 2.dp,
                         )
                         Text(
-                            text = "Uploading photo…",
+                            text = stringResource(Res.string.checkin_uploading_photo),
                             style = DsTheme.type.labelMedium,
                             color = DsTheme.colors.textSecondary,
                         )
@@ -199,11 +200,11 @@ private fun CheckInFormContent(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg)) {
-                DsSectionLabel(text = "Notes")
+                DsSectionLabel(text = stringResource(Res.string.checkin_section_notes))
                 DsTextField(
                     value = form.notes,
                     onValueChange = { onIntent(CheckInIntent.NotesChanged(it)) },
-                    label = "Anything you'd like your coach to know?",
+                    label = stringResource(Res.string.checkin_notes_label),
                     singleLine = false,
                 )
             }
@@ -217,7 +218,7 @@ private fun CheckInFormContent(
             }
 
             DsButton(
-                text = "Submit check-in",
+                text = stringResource(Res.string.checkin_submit),
                 onClick = { onIntent(CheckInIntent.Submit) },
                 enabled = !state.isSubmitting && !state.isUploadingPhoto,
                 isLoading = state.isSubmitting,
@@ -253,20 +254,20 @@ private fun CheckInSuccessContent(onBackClick: () -> Unit) {
         }
         Spacer(modifier = Modifier.height(DsTheme.spacing.xl))
         Text(
-            text = "Check-in submitted",
+            text = stringResource(Res.string.checkin_submitted_title),
             style = DsTheme.type.titleMedium,
             fontWeight = FontWeight.Bold,
             color = DsTheme.colors.textPrimary,
         )
         Spacer(modifier = Modifier.height(DsTheme.spacing.sm))
         Text(
-            text = "Your coach will review it soon. Nice work staying consistent!",
+            text = stringResource(Res.string.checkin_submitted_message),
             style = DsTheme.type.bodyMedium,
             color = DsTheme.colors.textSecondary,
         )
         Spacer(modifier = Modifier.height(DsTheme.spacing.xxl))
         DsButton(
-            text = "Done",
+            text = stringResource(Res.string.checkin_done),
             onClick = onBackClick,
         )
     }
@@ -330,7 +331,11 @@ private fun PhotoSlot(
             )
             Spacer(modifier = Modifier.height(DsTheme.spacing.sm))
             Text(
-                text = if (isPicked) "$label photo added" else "Pick $label photo",
+                text = if (isPicked) {
+                    stringResource(Res.string.checkin_photo_added_format, label)
+                } else {
+                    stringResource(Res.string.checkin_photo_pick_format, label)
+                },
                 style = DsTheme.type.labelSmall,
                 color = if (isPicked) DsTheme.colors.actionPrimary else DsTheme.colors.textSecondary,
             )

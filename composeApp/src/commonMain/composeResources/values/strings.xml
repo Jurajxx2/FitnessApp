@@ -391,6 +391,38 @@
     <string name="progress_checkin_subtitle">Zapiš svůj týdenní pokrok</string>
     <string name="progress_checkin_history">Historie check-inů</string>
 
+    <!-- Weekly check-in form + history screens -->
+    <string name="checkin_form_title">Týdenní check-in</string>
+    <string name="checkin_history_cd">Zobrazit historii check-inů</string>
+    <string name="checkin_section_body">Tělo</string>
+    <string name="checkin_label_weight">Váha (kg)</string>
+    <string name="checkin_label_training_sessions">Absolvované tréninky</string>
+    <string name="checkin_section_feeling">Jak se cítíš?</string>
+    <string name="checkin_label_energy">Energie</string>
+    <string name="checkin_label_sleep">Spánek</string>
+    <string name="checkin_label_stress">Stres</string>
+    <string name="checkin_label_nutrition_adherence">Strava</string>
+    <string name="checkin_section_photos">Fotky pokroku</string>
+    <string name="checkin_photo_front">zepředu</string>
+    <string name="checkin_photo_side">z boku</string>
+    <string name="checkin_photo_added_format">Fotka %s přidána</string>
+    <string name="checkin_photo_pick_format">Vybrat fotku %s</string>
+    <string name="checkin_uploading_photo">Nahrávání fotky…</string>
+    <string name="checkin_section_notes">Poznámky</string>
+    <string name="checkin_notes_label">Chceš trenérce něco vzkázat?</string>
+    <string name="checkin_submit">Odeslat check-in</string>
+    <string name="checkin_submitted_title">Check-in odeslán</string>
+    <string name="checkin_submitted_message">Trenérka si ho brzy projde. Skvělá práce, že jsi konzistentní!</string>
+    <string name="checkin_done">Hotovo</string>
+    <string name="checkin_history_title">Historie check-inů</string>
+    <string name="checkin_empty_title">Zatím žádné check-iny</string>
+    <string name="checkin_empty_message">Odešli svůj první týdenní check-in a začni budovat historii.</string>
+    <string name="checkin_label_training_adherence">Trénink</string>
+    <string name="checkin_rating_format">%d/5</string>
+    <string name="checkin_sessions_format">%d tréninků</string>
+    <string name="checkin_photos_attached">📷 Fotky přiloženy</string>
+    <string name="checkin_coach_response">Odpověď trenérky</string>
+
     <!-- Common (shared across screens) -->
     <string name="common_see_all">ZOBRAZIT VŠE</string>
     <string name="common_ok">OK</string>
