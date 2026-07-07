@@ -86,7 +86,7 @@ class CheckInViewModel(
                 }
                 .onFailure { e ->
                     Napier.e("photo upload failed", e, tag = TAG)
-                    _state.update { it.copy(error = e.message) }
+                    _state.update { it.copy(error = e.message ?: "Photo upload failed") }
                 }
             _state.update { it.copy(isUploadingPhoto = false) }
         }
@@ -117,7 +117,7 @@ class CheckInViewModel(
                 }
                 .onFailure { e ->
                     Napier.e("submit failed", e, tag = TAG)
-                    _state.update { it.copy(isSubmitting = false, error = e.message) }
+                    _state.update { it.copy(isSubmitting = false, error = e.message ?: "Check-in submission failed") }
                 }
         }
     }

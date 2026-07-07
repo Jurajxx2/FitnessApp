@@ -93,4 +93,12 @@ class CheckInViewModelTest {
         vm.onIntent(CheckInIntent.Submit)
         assertEquals("nope", vm.state.value.error)
     }
+
+    @Test
+    fun `submit falls back to a generic error when exception message is null`() = runTest {
+        coEvery { checkInRepo.submit(any()) } returns Result.failure(RuntimeException(null as String?))
+        val vm = viewModel()
+        vm.onIntent(CheckInIntent.Submit)
+        assertTrue(vm.state.value.error != null)
+    }
 }
