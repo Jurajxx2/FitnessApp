@@ -152,13 +152,16 @@ val isSummaryLoading: Boolean = false,
 ### 4.3 ViewModel
 - Inject `GetDailyNutritionSummaryUseCase`, `CalculateMacroTargetsUseCase`, `GetUserProfileUseCase`
   into `NutritionViewModel`.
+- Add intent `object LoadDailySummary : NutritionIntent`.
 - Add `private fun loadDailySummary()`: sets `isSummaryLoading=true`; concurrently fetches
   today's summary (`todayDate()`) and the user profile; sets `nutritionSummary` and
   `macroTargets = user?.let { calculateMacroTargetsUseCase(it) }`; clears `isSummaryLoading`.
   Failures are non-fatal (log via Napier; leave fields null — the hub still renders).
-- Call `loadDailySummary()` in `init`.
-- **Refresh after logging:** on `LogMeal` success (where `mealLoggedSuccess` is set), also call
-  `loadDailySummary()` so the numbers update when the user returns to the hub.
+- Call `loadDailySummary()` in `init` (first paint) and on the `LoadDailySummary` intent.
+- **Refresh on return:** the hub route fires `LoadDailySummary` on each `ON_RESUME` (§4.4).
+  Meal logging happens in a *separate* `NutritionViewModel` instance (the capture screen is a
+  different nav destination), so a same-VM "after log" reload would not reach the hub. Resume-based
+  reload is what makes the numbers update after the user logs a meal and returns.
 
 ### 4.4 UI (`NutritionHubScreen`)
 - Insert a summary card at the **top of the content Column**, above the Log Meal button, in the
@@ -168,6 +171,9 @@ val isSummaryLoading: Boolean = false,
   - `nutritionSummary != null` → `MacroSummaryRow(nutritionSummary, macroTargets)`.
   - else → the `start_logging_meals` hint text (reuse existing string).
 - `NutritionHubRoute` already has `userId`; no new nav params.
+- **Resume reload:** add `LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onIntent(NutritionIntent.LoadDailySummary) }`
+  in `NutritionHubRoute` (from `androidx.lifecycle.compose`, already on the classpath via
+  `collectAsStateWithLifecycle`). Fires on first show and every return to the hub.
 
 ### 4.5 Edge cases
 - Profile incomplete → `macroTargets == null` → `MacroItem` shows values without bars (already handled).
@@ -225,13 +231,16 @@ val isSummaryLoading: Boolean = false,
 
 ### 5.4 MVI wiring
 - `NutritionIntent`: add `data class LookupBarcode(val barcode: String)` and `object BarcodeConsumed`.
-- `NutritionState`: add `val isLookingUpBarcode: Boolean = false` and `val barcodeFood: Food? = null` (one-shot).
+- `NutritionState`: add `val isLookingUpBarcode: Boolean = false`, `val barcodeFood: Food? = null`
+  (one-shot), `val barcodeNotFound: Boolean = false` (one-shot).
 - `NutritionViewModel`:
   - inject `LookupFoodByBarcodeUseCase`.
-  - `LookupBarcode` → set `isLookingUpBarcode=true`; on success non-null → `barcodeFood=food`;
-    on null → `error = <not-found string>`; on failure → `error = e.message`; always clear
-    `isLookingUpBarcode`.
-  - `BarcodeConsumed` → `barcodeFood = null`.
+  - `LookupBarcode` → set `isLookingUpBarcode=true`, clear `barcodeNotFound`; on success non-null →
+    `barcodeFood=food`; on success null → `barcodeNotFound=true`; on failure → `error = e.message`;
+    always clear `isLookingUpBarcode`.
+  - `BarcodeConsumed` → clear both `barcodeFood` and `barcodeNotFound`.
+  - Not-found is a **flag, not a VM-set string** — the UI renders the localized
+    `nutrition_barcode_not_found` resource (the VM can't read Compose string resources).
 
 ### 5.5 UI (`MealCaptureScreen` / `FoodSearchDialog`)
 - Add a "Scan barcode" button in the `FoodSearchDialog` header (next to the search field).
@@ -244,7 +253,8 @@ val isSummaryLoading: Boolean = false,
   `NutritionIntent.BarcodeConsumed`. The scan button lives only inside `FoodSearchDialog`, so
   `searchingIndex` is always non-null while scanning; treat a null index as a no-op (defensive).
 - Show `isLookingUpBarcode` as a small progress indicator in the dialog.
-- Not-found / error surfaces through the existing `state.error` text.
+- When `state.barcodeNotFound` is true, show the localized `nutrition_barcode_not_found` text in the
+  dialog. A network failure still surfaces through the existing `state.error` text.
 
 ### 5.6 DI, Gradle, Manifest
 - `AppModule.kt`: `single { OpenFoodFactsDataSource(get()) }`; `factory { LookupFoodByBarcodeUseCase(get()) }`;
