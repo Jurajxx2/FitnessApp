@@ -295,3 +295,22 @@ export interface ChatMessage {
   created_at: string
   read_at: string | null
 }
+
+export interface CheckIn {
+  id: string
+  user_id: string
+  week_of: string
+  weight_kg: number | null
+  energy_level: number | null
+  sleep_quality: number | null
+  stress_level: number | null
+  training_adherence: number | null
+  nutrition_adherence: number | null
+  notes: string | null
+  photo_front_path: string | null
+  photo_side_path: string | null
+  coach_id: string | null
+  coach_response: string | null
+  coach_response_at: string | null
+  created_at: string
+}
