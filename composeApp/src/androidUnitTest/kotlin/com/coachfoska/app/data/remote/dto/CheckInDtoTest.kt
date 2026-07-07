@@ -2,9 +2,12 @@ package com.coachfoska.app.data.remote.dto
 
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class CheckInDtoTest {
 
@@ -47,5 +50,21 @@ class CheckInDtoTest {
         val domain = dto.toDomain()
         assertNull(domain.coachResponseAt)
         assertNull(domain.createdAt)
+    }
+
+    @Test
+    fun `CheckInUpsertDto serializes cleared fields as explicit nulls`() {
+        val dto = CheckInUpsertDto(
+            userId = "u-1", weekOf = "2026-07-06",
+            weightKg = null, energyLevel = 4, sleepQuality = 3, stressLevel = 2,
+            trainingAdherence = 3, nutritionAdherence = 5, notes = null,
+            photoFrontPath = "u-1/front.jpg", photoSidePath = null,
+        )
+
+        val encoded = Json.encodeToString(dto)
+
+        assertTrue(encoded.contains("\"notes\":null"), "expected explicit null for notes in: $encoded")
+        assertTrue(encoded.contains("\"weight_kg\":null"), "expected explicit null for weight_kg in: $encoded")
+        assertTrue(encoded.contains("\"photo_side_path\":null"), "expected explicit null for photo_side_path in: $encoded")
     }
 }
