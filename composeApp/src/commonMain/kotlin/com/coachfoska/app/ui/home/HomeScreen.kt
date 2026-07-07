@@ -26,8 +26,6 @@ import androidx.compose.foundation.clickable
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import com.coachfoska.app.domain.model.DailyNutritionSummary
-import com.coachfoska.app.domain.model.MacroTargets
 import com.coachfoska.app.domain.model.WeekDayActivity
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.core.util.todayDate
@@ -40,6 +38,7 @@ import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsEmptyState
 import com.coachfoska.designsystem.components.DsMetricCard
 import com.coachfoska.designsystem.components.DsMetricCardSkeleton
+import com.coachfoska.app.ui.components.MacroSummaryRow
 import com.coachfoska.app.ui.workout.components.WeeklyActivitySection
 import kotlinx.datetime.TimeZone
 import org.koin.compose.viewmodel.koinViewModel
@@ -208,7 +207,7 @@ fun HomeScreen(
                     ) {
                         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                             state.nutritionSummary?.let { nutrition ->
-                                MacroRow(nutrition, state.macroTargets)
+                                MacroSummaryRow(nutrition, state.macroTargets)
                             } ?: Text(
                                 text = stringResource(Res.string.start_logging_meals),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -327,50 +326,3 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
     }
 }
 
-@Composable
-private fun MacroRow(summary: DailyNutritionSummary, targets: MacroTargets?) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        MacroItem(stringResource(Res.string.macro_kcal), summary.calories, targets?.calories, modifier = Modifier.weight(1f))
-        MacroItem(stringResource(Res.string.macro_protein), summary.proteinG, targets?.proteinG, suffix = "g", modifier = Modifier.weight(1f))
-        MacroItem(stringResource(Res.string.macro_carbs), summary.carbsG, targets?.carbsG, suffix = "g", modifier = Modifier.weight(1f))
-        MacroItem(stringResource(Res.string.macro_fat), summary.fatG, targets?.fatG, suffix = "g", modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun MacroItem(
-    label: String,
-    value: Float,
-    target: Float?,
-    suffix: String = "",
-    modifier: Modifier = Modifier
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier.padding(horizontal = 4.dp)) {
-        Text(
-            text = "${value.toInt()}$suffix",
-            style = MaterialTheme.typography.headlineMedium,
-            color = DsTheme.colors.textPrimary
-        )
-        if (target != null && target > 0f) {
-            Text(
-                text = "/ ${target.toInt()}$suffix",
-                style = MaterialTheme.typography.labelSmall,
-                color = DsTheme.colors.textPrimary.copy(alpha = 0.4f)
-            )
-            Spacer(Modifier.height(4.dp))
-            LinearProgressIndicator(
-                progress = { (value / target).coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(50)),
-                color = DsTheme.colors.actionPrimary,
-                trackColor = DsTheme.colors.textPrimary.copy(alpha = 0.08f)
-            )
-        }
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = DsTheme.colors.textPrimary.copy(alpha = 0.4f),
-            letterSpacing = 1.sp
-        )
-    }
-}
