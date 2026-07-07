@@ -86,6 +86,7 @@
     <string name="nav_workout">Workout</string>
     <string name="nav_activity">Activity</string>
     <string name="nav_chat">Chat</string>
+    <string name="nav_coach">Coach</string>
     <string name="nav_nutrition">Nutrition</string>
     <string name="nav_profile">Profile</string>
 
@@ -147,6 +148,29 @@
     <string name="attach_image_cd">Attach image</string>
     <string name="message_placeholder">Message...</string>
     <string name="send_cd">Send</string>
+    <string name="coach_hub_eyebrow">COACH</string>
+    <string name="coach_hub_title">Your coaching desk</string>
+    <string name="coach_hub_subtitle">Messages, plan reviews, check-ins, and membership status in one place.</string>
+    <string name="coach_hub_membership_label">Membership</string>
+    <string name="coach_hub_membership_plan">Personal Coaching</string>
+    <string name="coach_hub_membership_status">Active</string>
+    <string name="coach_hub_membership_renewal">Next period: monthly</string>
+    <string name="coach_hub_checkin_label">Check-in</string>
+    <string name="coach_hub_checkin_value">Every Monday</string>
+    <string name="coach_hub_response_label">Response</string>
+    <string name="coach_hub_response_value">Within 24 hours</string>
+    <string name="coach_hub_coach_name">Coach Foška</string>
+    <string name="coach_hub_coach_title">Fitness, nutrition, and mental performance</string>
+    <string name="coach_hub_coach_about">View coach profile</string>
+    <string name="coach_hub_conversations">Messages</string>
+    <string name="coach_hub_human_chat_title">Personal coach</string>
+    <string name="coach_hub_human_chat_subtitle">Send an update, question, or training video.</string>
+    <string name="coach_hub_ai_chat_title">AI assistant</string>
+    <string name="coach_hub_ai_chat_subtitle">Fast help with meals, exercises, or routines.</string>
+    <string name="coach_hub_actions">Quick actions</string>
+    <string name="coach_hub_action_checkin">Send check-in</string>
+    <string name="coach_hub_action_plan_review">Plan review</string>
+    <string name="coach_hub_action_support">Support</string>
 
     <!-- Settings screen -->
     <string name="settings_title">SETTINGS</string>

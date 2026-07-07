@@ -86,6 +86,7 @@
     <string name="nav_workout">Trénink</string>
     <string name="nav_activity">Aktivita</string>
     <string name="nav_chat">Chat</string>
+    <string name="nav_coach">Trenér</string>
     <string name="nav_nutrition">Výživa</string>
     <string name="nav_profile">Profil</string>
 
@@ -147,6 +148,29 @@
     <string name="attach_image_cd">Přiložit obrázek</string>
     <string name="message_placeholder">Zpráva...</string>
     <string name="send_cd">Odeslat</string>
+    <string name="coach_hub_eyebrow">TRENÉR</string>
+    <string name="coach_hub_title">Tvoje centrum koučinku</string>
+    <string name="coach_hub_subtitle">Zprávy, plán, check-iny a stav členství na jednom místě.</string>
+    <string name="coach_hub_membership_label">Členství</string>
+    <string name="coach_hub_membership_plan">Personal Coaching</string>
+    <string name="coach_hub_membership_status">Aktivní</string>
+    <string name="coach_hub_membership_renewal">Další období: měsíčně</string>
+    <string name="coach_hub_checkin_label">Check-in</string>
+    <string name="coach_hub_checkin_value">Každé pondělí</string>
+    <string name="coach_hub_response_label">Odezva</string>
+    <string name="coach_hub_response_value">Do 24 hodin</string>
+    <string name="coach_hub_coach_name">Coach Foška</string>
+    <string name="coach_hub_coach_title">Fitness, výživa a mentální výkon</string>
+    <string name="coach_hub_coach_about">Zobrazit profil trenéra</string>
+    <string name="coach_hub_conversations">Zprávy</string>
+    <string name="coach_hub_human_chat_title">Osobní trenér</string>
+    <string name="coach_hub_human_chat_subtitle">Pošli update, otázku nebo video z tréninku.</string>
+    <string name="coach_hub_ai_chat_title">AI asistent</string>
+    <string name="coach_hub_ai_chat_subtitle">Rychlé otázky k jídlu, cvikům nebo rutině.</string>
+    <string name="coach_hub_actions">Rychlé akce</string>
+    <string name="coach_hub_action_checkin">Poslat check-in</string>
+    <string name="coach_hub_action_plan_review">Revize plánu</string>
+    <string name="coach_hub_action_support">Podpora</string>
 
     <!-- Settings screen -->
     <string name="settings_title">NASTAVENÍ</string>

@@ -126,7 +126,7 @@ fun App(openHumanChat: Boolean = false) {
                         currentRoute?.contains("Exercise", ignoreCase = true) == true ||
                         currentRoute?.contains("Activity", ignoreCase = true) == true -> BottomNavTab.Activity
                     currentRoute?.contains("Chat", ignoreCase = true) == true ||
-                        currentRoute?.contains("CoachChat") == true -> BottomNavTab.Chat
+                        currentRoute?.contains("CoachChat") == true -> BottomNavTab.Coach
                     currentRoute?.contains("Meal", ignoreCase = true) == true ||
                         currentRoute?.contains("Nutrition", ignoreCase = true) == true ||
                         currentRoute?.contains("Recipe", ignoreCase = true) == true ||
@@ -153,7 +153,7 @@ fun App(openHumanChat: Boolean = false) {
                             val route: Any = when (tab) {
                                 BottomNavTab.Home -> Home
                                 BottomNavTab.Activity -> WorkoutList
-                                BottomNavTab.Chat -> Chat
+                                BottomNavTab.Coach -> Chat
                                 BottomNavTab.Nutrition -> MealPlan
                                 BottomNavTab.Profile -> Profile
                             }
@@ -575,7 +575,8 @@ fun App(openHumanChat: Boolean = false) {
                         ChatHubRoute(
                             userId = currentUserId,
                             onHumanCoachClick = { navController.navigate(HumanCoachChat) },
-                            onAiCoachClick = { navController.navigate(AiCoachChat) }
+                            onAiCoachClick = { navController.navigate(AiCoachChat) },
+                            onCoachProfileClick = { navController.navigate(AboutCoach) }
                         )
                     }
                 }
