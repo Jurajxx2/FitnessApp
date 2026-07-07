@@ -61,3 +61,7 @@ import kotlinx.serialization.Serializable
 // Workout analytics
 @Serializable object ProgressDashboard
 @Serializable data class PostWorkoutSummary(val logId: String)
+
+// Weekly check-in
+@Serializable object CheckInForm
+@Serializable object CheckInHistory

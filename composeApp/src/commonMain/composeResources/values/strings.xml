@@ -387,6 +387,9 @@
     <string name="progress_screen_title">MŮJ POKROK</string>
     <string name="progress_weight_dialog_title">Přidat váhu</string>
     <string name="progress_weight_dialog_save">Uložit váhu</string>
+    <string name="progress_checkin_title">Týdenní check-in</string>
+    <string name="progress_checkin_subtitle">Zapiš svůj týdenní pokrok</string>
+    <string name="progress_checkin_history">Historie check-inů</string>
 
     <!-- Common (shared across screens) -->
     <string name="common_see_all">ZOBRAZIT VŠE</string>

@@ -40,6 +40,8 @@ import com.coachfoska.app.ui.recipe.RecipeDetailRoute
 import com.coachfoska.app.ui.onboarding.OnboardingRoute
 import com.coachfoska.app.ui.chat.ChatHubRoute
 import com.coachfoska.app.ui.chat.ChatRoute
+import com.coachfoska.app.ui.checkin.CheckInFormRoute
+import com.coachfoska.app.ui.checkin.CheckInHistoryRoute
 import com.coachfoska.app.ui.profile.AboutCoachScreen
 import com.coachfoska.app.ui.profile.ProfileRoute
 import com.coachfoska.app.ui.profile.ProgressRoute
@@ -622,7 +624,28 @@ fun App(openHumanChat: Boolean = false) {
                     RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
                         ProgressRoute(
                             userId = currentUserId,
-                            onBackClick = { navController.popBackStack() }
+                            onBackClick = { navController.popBackStack() },
+                            onCheckInClick = { navController.navigate(CheckInForm) },
+                            onCheckInHistoryClick = { navController.navigate(CheckInHistory) },
+                        )
+                    }
+                }
+
+                composable<CheckInForm> {
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        CheckInFormRoute(
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() },
+                            onViewHistory = { navController.navigate(CheckInHistory) },
+                        )
+                    }
+                }
+
+                composable<CheckInHistory> {
+                    RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
+                        CheckInHistoryRoute(
+                            userId = currentUserId,
+                            onBackClick = { navController.popBackStack() },
                         )
                     }
                 }

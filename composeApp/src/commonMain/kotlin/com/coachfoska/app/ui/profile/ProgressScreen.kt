@@ -9,7 +9,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +33,7 @@ import com.coachfoska.app.presentation.profile.ProfileViewModel
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.*
+import com.coachfoska.designsystem.components.DsCard
 import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsTopBar
 import com.coachfoska.designsystem.components.DsEmptyState
@@ -41,6 +45,8 @@ import org.koin.core.parameter.parametersOf
 fun ProgressRoute(
     userId: String,
     onBackClick: () -> Unit,
+    onCheckInClick: () -> Unit,
+    onCheckInHistoryClick: () -> Unit,
     viewModel: ProfileViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -49,14 +55,22 @@ fun ProgressRoute(
         viewModel.onIntent(ProfileIntent.LoadWeightHistory)
     }
 
-    ProgressScreen(state = state, onIntent = viewModel::onIntent, onBackClick = onBackClick)
+    ProgressScreen(
+        state = state,
+        onIntent = viewModel::onIntent,
+        onBackClick = onBackClick,
+        onCheckInClick = onCheckInClick,
+        onCheckInHistoryClick = onCheckInHistoryClick,
+    )
 }
 
 @Composable
 fun ProgressScreen(
     state: ProfileState,
     onIntent: (ProfileIntent) -> Unit = {},
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onCheckInClick: () -> Unit = {},
+    onCheckInHistoryClick: () -> Unit = {},
 ) {
     var showWeightDialog by remember { mutableStateOf(false) }
     var weightInput by remember { mutableStateOf("") }
@@ -106,6 +120,60 @@ fun ProgressScreen(
                     .padding(horizontal = DsTheme.spacing.xl, vertical = DsTheme.spacing.xl),
                 verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.xxl)
             ) {
+                // Weekly Check-in entry points
+                Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
+                    DsCard(
+                        onClick = onCheckInClick,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(DsTheme.spacing.lg),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Assignment,
+                                contentDescription = null,
+                                tint = DsTheme.colors.actionPrimary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(DsTheme.spacing.md))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(Res.string.progress_checkin_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DsTheme.colors.textPrimary,
+                                )
+                                Text(
+                                    text = stringResource(Res.string.progress_checkin_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = DsTheme.colors.textPrimary.copy(alpha = 0.6f),
+                                )
+                            }
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = DsTheme.colors.textSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    TextButton(onClick = onCheckInHistoryClick) {
+                        Icon(
+                            Icons.Filled.History,
+                            contentDescription = null,
+                            tint = DsTheme.colors.textSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(DsTheme.spacing.xs))
+                        Text(
+                            text = stringResource(Res.string.progress_checkin_history),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = DsTheme.colors.textSecondary,
+                        )
+                    }
+                }
+
                 // Weight Progress Card
                 if (state.weightHistory.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.lg)) {
