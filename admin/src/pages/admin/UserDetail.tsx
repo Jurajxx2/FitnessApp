@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { SlideOver, Button, Input, Badge } from '../../components/ui'
 import { BodyFocusMap } from '../../components/BodyFocusMap'
+import { CheckInsSection } from './CheckInsSection'
 import type {
   ExerciseLog,
   MealLog,
@@ -726,6 +727,8 @@ export default function UserDetail() {
           isLoading={mealLogs.isLoading}
           error={mealLogs.error}
         />
+
+        <CheckInsSection userId={id!} adminUserId={adminUser?.id} />
 
         {/* Profile info */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
