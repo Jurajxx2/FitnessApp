@@ -40,6 +40,21 @@ describe('CheckInsSection', () => {
     expect(screen.getByText('Week of 2026-07-06')).toBeDefined()
     expect(screen.getByText('good week')).toBeDefined()
     expect(screen.getByPlaceholderText('Write coach response…')).toBeDefined()
+    // Metric labels
+    expect(screen.getByText('Weight')).toBeDefined()
+    expect(screen.getByText('Energy')).toBeDefined()
+    expect(screen.getByText('Sleep')).toBeDefined()
+    expect(screen.getByText('Stress')).toBeDefined()
+    expect(screen.getByText('Training')).toBeDefined()
+    expect(screen.getByText('Nutrition')).toBeDefined()
+    // Metric values
+    expect(screen.getByText('74 kg')).toBeDefined()
+    expect(screen.getByText('4')).toBeDefined()
+    expect(screen.getByText('2')).toBeDefined()
+    expect(screen.getByText('5')).toBeDefined()
+    // Value '3' appears twice (sleep_quality and training_adherence)
+    const threeElements = screen.getAllByText('3')
+    expect(threeElements).toHaveLength(2)
   })
 
   it('submits a coach response', () => {
