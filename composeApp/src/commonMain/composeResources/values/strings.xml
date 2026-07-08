@@ -614,6 +614,19 @@
     <string name="activity_hub_workout_history">HISTORIE TRÉNINKŮ</string>
     <string name="activity_hub_progress_analytics">ANALYTIKA POKROKU</string>
     <string name="activity_hub_browse_workouts">PROCHÁZET TRÉNINKY</string>
+    <string name="activity_hub_this_week">TENTO TÝDEN</string>
+    <string name="activity_hub_compliance_format">%1$d/%2$d hotovo</string>
+    <string name="activity_hub_workout_plan">TRÉNINKOVÝ PLÁN</string>
+    <string name="activity_hub_workouts">TRÉNINKY</string>
+    <string name="activity_hub_todays_workout">DNEŠNÍ TRÉNINK</string>
+    <string name="activity_hub_today_done">DNES HOTOVO</string>
+    <string name="activity_hub_today_rest_title">Dnes je volno</string>
+    <string name="activity_hub_today_rest_desc">Žádný trénink dnes není v plánu.</string>
+    <string name="activity_hub_next_workout_format">Další: %1$s - %2$s</string>
+    <string name="activity_hub_workout_meta_format">%1$d min · %2$d cviků</string>
+    <string name="activity_hub_done_meta_format">%1$d min · %2$d sérií hotovo</string>
+    <string name="activity_hub_view_history">ZOBRAZIT HISTORII</string>
+    <string name="activity_hub_today_preview_more">+ %1$d dalších</string>
 
     <!-- Workout History -->
     <string name="workout_history_detail_title">DETAIL TRÉNINKU</string>

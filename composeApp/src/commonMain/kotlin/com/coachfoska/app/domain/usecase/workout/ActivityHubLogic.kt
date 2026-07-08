@@ -29,35 +29,72 @@ fun buildWeeklyActivity(
     val todayEpoch = today.toEpochDays()
     val weekStartEpoch = todayEpoch - todayDow
 
-    // Map day-of-week index → the log for that day this week (latest if multiple)
-    val logsByDow: Map<Int, WorkoutLog> = history
-        .map { log -> log to log.loggedAt.toLocalDateTime(zone).date }
-        .filter { (_, date) -> date.toEpochDays() in weekStartEpoch..todayEpoch }
-        .groupBy { (_, date) -> date.dayOfWeek.ordinal }
-        .mapValues { (_, entries) -> entries.maxBy { (log, _) -> log.loggedAt }.first }
-
-    val completedDows = logsByDow.keys
-
     // Map day-of-week index → assigned workout
     val workoutByDow: Map<Int, Workout> = workouts
         .mapNotNull { w -> w.dayOfWeek?.index?.let { it to w } }
         .toMap()
 
+    // Map day-of-week index → the log for that day this week (latest if multiple)
+    val logsByDow: Map<Int, WorkoutLog> = history
+        .map { log -> log to log.loggedAt.toLocalDateTime(zone).date }
+        .filter { (_, date) -> date.toEpochDays() in weekStartEpoch..todayEpoch }
+        .groupBy { (_, date) -> date.dayOfWeek.ordinal }
+        .mapValues { (dow, entries) ->
+            val plannedWorkout = workoutByDow[dow]
+            val matchingEntries = if (plannedWorkout != null) {
+                entries.filter { (log, _) -> log.matchesWorkout(plannedWorkout) }
+            } else {
+                emptyList()
+            }
+            (matchingEntries.ifEmpty { entries })
+                .maxBy { (log, _) -> log.loggedAt }
+                .first
+        }
+
     return DayOfWeek.entries.map { day ->
+        val plannedWorkout = workoutByDow[day.index]
+        val completedLog = logsByDow[day.index]
+        val completedForDay = completedLog != null && (
+            plannedWorkout == null || completedLog.matchesWorkout(plannedWorkout)
+        )
         val status = when {
-            day.index in completedDows -> DayActivityStatus.COMPLETED
+            completedForDay -> DayActivityStatus.COMPLETED
             day.index == todayDow -> DayActivityStatus.TODAY
-            day.index in workoutByDow && day.index < todayDow -> DayActivityStatus.MISSED
-            day.index in workoutByDow -> DayActivityStatus.SCHEDULED
+            plannedWorkout != null && day.index < todayDow -> DayActivityStatus.MISSED
+            plannedWorkout != null -> DayActivityStatus.SCHEDULED
             else -> DayActivityStatus.REST
         }
         WeekDayActivity(
             dayOfWeek = day,
             status = status,
-            plannedWorkout = workoutByDow[day.index],
-            completedLog = logsByDow[day.index],
+            plannedWorkout = plannedWorkout,
+            completedLog = completedLog,
         )
     }
+}
+
+data class WeeklyCompliance(
+    val completed: Int,
+    val assigned: Int,
+)
+
+/**
+ * Counts completed assigned workouts for the current week. Unplanned workout logs still show in
+ * the weekly grid, but they do not inflate plan compliance beyond what the coach assigned.
+ */
+fun deriveWeeklyCompliance(days: List<WeekDayActivity>): WeeklyCompliance {
+    val assignedDays = days.filter { it.plannedWorkout != null }
+    return WeeklyCompliance(
+        completed = assignedDays.count { day ->
+            val plannedWorkout = day.plannedWorkout ?: return@count false
+            day.completedLog?.matchesWorkout(plannedWorkout) == true
+        },
+        assigned = assignedDays.size,
+    )
+}
+
+fun WorkoutLog.matchesWorkout(workout: Workout): Boolean {
+    return workoutId == workout.id || (workoutId == null && workoutName == workout.name)
 }
 
 /**

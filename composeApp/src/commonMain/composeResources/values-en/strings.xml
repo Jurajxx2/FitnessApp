@@ -614,6 +614,19 @@
     <string name="activity_hub_workout_history">WORKOUT HISTORY</string>
     <string name="activity_hub_progress_analytics">PROGRESS ANALYTICS</string>
     <string name="activity_hub_browse_workouts">BROWSE WORKOUTS</string>
+    <string name="activity_hub_this_week">THIS WEEK</string>
+    <string name="activity_hub_compliance_format">%1$d/%2$d done</string>
+    <string name="activity_hub_workout_plan">WORKOUT PLAN</string>
+    <string name="activity_hub_workouts">WORKOUTS</string>
+    <string name="activity_hub_todays_workout">TODAY'S WORKOUT</string>
+    <string name="activity_hub_today_done">DONE TODAY</string>
+    <string name="activity_hub_today_rest_title">Rest day</string>
+    <string name="activity_hub_today_rest_desc">No workout scheduled for today.</string>
+    <string name="activity_hub_next_workout_format">Next: %1$s - %2$s</string>
+    <string name="activity_hub_workout_meta_format">%1$d min · %2$d exercises</string>
+    <string name="activity_hub_done_meta_format">%1$d min · %2$d sets done</string>
+    <string name="activity_hub_view_history">VIEW HISTORY</string>
+    <string name="activity_hub_today_preview_more">+ %1$d more</string>
 
     <!-- Workout History -->
     <string name="workout_history_detail_title">SESSION DETAIL</string>

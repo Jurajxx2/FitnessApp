@@ -1,7 +1,11 @@
 # AI tooling — local only
 .agents/
 .claude/
+.codex/
 .superpowers/
+.gemini/
+.junie/
+.kiro/
 .cursor/
 .aider*
 .continue/
@@ -56,6 +60,14 @@ DerivedData/
 # Compose Multiplatform generated
 composeApp/src/commonMain/composeResources/
 .worktrees/
+
+# Local planning/spec artifacts
+AGENTS.md
+DESIGN.md
+coach-foska-*.md
+design/
+docs/
+skills-lock.json
 
 # Supabase CLI local state
 supabase/.temp/

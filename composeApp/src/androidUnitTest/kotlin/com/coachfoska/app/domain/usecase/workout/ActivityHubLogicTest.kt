@@ -63,6 +63,70 @@ class ActivityHubLogicTest {
     }
 
     @Test
+    fun `deriveWeeklyCompliance counts assigned completions only`() {
+        val workouts = listOf(
+            aWorkout(id = "w-mon").copy(dayOfWeek = DayOfWeek.MONDAY),
+            aWorkout(id = "w-fri").copy(dayOfWeek = DayOfWeek.FRIDAY),
+        )
+        val history = listOf(
+            aWorkoutLog(id = "planned-done").copy(
+                workoutId = "w-mon",
+                loggedAt = Instant.parse("2026-04-06T10:00:00Z"),
+            ),
+            aWorkoutLog(id = "extra-done").copy(
+                workoutId = null,
+                workoutName = "Extra walk",
+                loggedAt = Instant.parse("2026-04-08T10:00:00Z"),
+            ),
+        )
+
+        val days = buildWeeklyActivity(workouts, history, today, zone)
+        val compliance = deriveWeeklyCompliance(days)
+
+        assertEquals(1, compliance.completed)
+        assertEquals(2, compliance.assigned)
+    }
+
+    @Test
+    fun `buildWeeklyActivity prefers matching assigned workout log over later extra log`() {
+        val workouts = listOf(aWorkout(id = "w-mon").copy(dayOfWeek = DayOfWeek.MONDAY))
+        val history = listOf(
+            aWorkoutLog(id = "planned-done").copy(
+                workoutId = "w-mon",
+                workoutName = "Assigned Push",
+                loggedAt = Instant.parse("2026-04-06T10:00:00Z"),
+            ),
+            aWorkoutLog(id = "extra-done").copy(
+                workoutId = null,
+                workoutName = "Extra walk",
+                loggedAt = Instant.parse("2026-04-06T18:00:00Z"),
+            ),
+        )
+
+        val days = buildWeeklyActivity(workouts, history, today, zone)
+
+        assertEquals("planned-done", days[0].completedLog?.id)
+        assertEquals(1, deriveWeeklyCompliance(days).completed)
+    }
+
+    @Test
+    fun `buildWeeklyActivity does not complete assigned day with unmatched extra log`() {
+        val workouts = listOf(aWorkout(id = "w-mon").copy(dayOfWeek = DayOfWeek.MONDAY))
+        val history = listOf(
+            aWorkoutLog(id = "extra-done").copy(
+                workoutId = null,
+                workoutName = "Extra walk",
+                loggedAt = Instant.parse("2026-04-06T18:00:00Z"),
+            ),
+        )
+
+        val days = buildWeeklyActivity(workouts, history, today, zone)
+
+        assertEquals(DayActivityStatus.MISSED, days[0].status)
+        assertEquals(0, deriveWeeklyCompliance(days).completed)
+    }
+
+    @Test
     fun `deriveTodayVolumeKg returns null when no matching log`() {
         val workout = aWorkout(id = "w-x")
         val history = listOf(aWorkoutLog(id = "l1").copy(workoutId = "w-y"))
