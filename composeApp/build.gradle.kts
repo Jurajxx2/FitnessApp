@@ -103,6 +103,7 @@ kotlin {
 
             // WorkManager
             implementation(libs.work.runtime.ktx)
+            implementation(libs.play.services.code.scanner)
         }
 
         iosMain.dependencies {
