@@ -10,6 +10,7 @@ import com.coachfoska.app.data.remote.datasource.ExerciseSupabaseDataSource
 import com.coachfoska.app.data.remote.datasource.MealPhotoDataSource
 import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.OnboardingRemoteDataSource
+import com.coachfoska.app.data.remote.datasource.OpenFoodFactsDataSource
 import com.coachfoska.app.data.remote.datasource.UserRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.WorkoutRemoteDataSource
 import com.coachfoska.app.data.repository.ActivityRepositoryImpl
@@ -60,6 +61,7 @@ import com.coachfoska.app.domain.usecase.nutrition.ScaleFoodToPortionUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.AnalyzeMealPhotoUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
+import com.coachfoska.app.domain.usecase.nutrition.LookupFoodByBarcodeUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.onboarding.SaveOnboardingUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
@@ -170,6 +172,7 @@ val dataSourceModule = module {
     single { ExerciseSupabaseDataSource(get()) }
     single { MealRemoteDataSource(get()) }
     single { MealPhotoDataSource(get(), get()) }
+    single { OpenFoodFactsDataSource(get()) }
     single { AppConfigRemoteDataSource(get()) }
     single { OnboardingRemoteDataSource(get()) }
 }
@@ -235,6 +238,7 @@ val useCaseModule = module {
     factory { GetRecipesUseCase(get()) }
     factory { GetRecipeByIdUseCase(get()) }
     factory { SearchFoodsUseCase(get()) }
+    factory { LookupFoodByBarcodeUseCase(get()) }
     factory { ScaleFoodToPortionUseCase() }
     factory { ScaleRecipeUseCase() }
     factory { GetFavoriteRecipeIdsUseCase(get()) }
