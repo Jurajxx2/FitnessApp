@@ -50,6 +50,7 @@ import coachfoska.composeapp.generated.resources.meal_search_type_food_label
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import com.coachfoska.app.core.util.rememberBarcodeScannerLauncher
 
 data class FoodEntry(
     val name: String,
@@ -132,6 +133,9 @@ fun MealCaptureScreen(
     var showMediaSheet by remember { mutableStateOf(false) }
     var searchingIndex by remember { mutableStateOf<Int?>(null) }
     val readBytes = com.coachfoska.app.core.util.rememberUriBytesReader()
+    val scanBarcode = rememberBarcodeScannerLauncher { code ->
+        if (code != null) onIntent(NutritionIntent.LookupBarcode(code))
+    }
 
     LaunchedEffect(state.capturePrefill) {
         val prefill = state.capturePrefill ?: return@LaunchedEffect
@@ -153,6 +157,28 @@ fun MealCaptureScreen(
             }
             onIntent(NutritionIntent.CapturePrefillConsumed)
         }
+    }
+
+    LaunchedEffect(state.barcodeFood) {
+        val food = state.barcodeFood ?: return@LaunchedEffect
+        val index = searchingIndex
+        if (index != null) {
+            foods = foods.toMutableList().also {
+                it[index] = FoodEntry(
+                    name = food.name,
+                    amount = food.servingSize.toString().trimEnd('0').trimEnd('.'),
+                    unit = food.servingUnit,
+                    baseCalories = food.calories,
+                    basePro = food.proteinG,
+                    baseCarbs = food.carbsG,
+                    baseFat = food.fatG,
+                    baseServingSize = food.servingSize,
+                    baseServingUnit = food.servingUnit,
+                )
+            }
+            searchingIndex = null
+        }
+        onIntent(NutritionIntent.BarcodeConsumed)
     }
 
     if (showMediaSheet) {
@@ -185,7 +211,8 @@ fun MealCaptureScreen(
                     }
                 }
                 searchingIndex = null
-            }
+            },
+            onScan = scanBarcode,
         )
     }
 
@@ -361,7 +388,8 @@ fun FoodSearchDialog(
     state: NutritionState,
     onSearch: (String) -> Unit,
     onDismiss: () -> Unit,
-    onSelect: (Food) -> Unit
+    onSelect: (Food) -> Unit,
+    onScan: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     
@@ -382,6 +410,29 @@ fun FoodSearchDialog(
                 label = stringResource(Res.string.meal_search_type_food_label),
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = onScan,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.nutrition_scan_barcode), style = MaterialTheme.typography.labelLarge)
+            }
+            if (state.isLookingUpBarcode) {
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            if (state.barcodeNotFound) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(Res.string.nutrition_barcode_not_found),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DsTheme.colors.error,
+                )
+            }
             Spacer(Modifier.height(16.dp))
             
             if (state.isSearching) {

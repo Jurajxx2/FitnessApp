@@ -521,6 +521,8 @@
     <string name="meal_capture_screen_title">LOG MEAL</string>
     <string name="meal_search_food_title">SEARCH FOOD</string>
     <string name="meal_search_type_food_label">Type food name…</string>
+    <string name="nutrition_scan_barcode">SCAN BARCODE</string>
+    <string name="nutrition_barcode_not_found">Product not found - enter manually.</string>
     <string name="meal_photo_cd">Meal photo</string>
     <string name="meal_analyzing_photo">ANALYZING PHOTO…</string>
     <string name="meal_kcal_format">%1$d kcal</string>

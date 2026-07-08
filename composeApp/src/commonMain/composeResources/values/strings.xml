@@ -521,6 +521,8 @@
     <string name="meal_capture_screen_title">ZAPSAT JÍDLO</string>
     <string name="meal_search_food_title">HLEDAT POTRAVINU</string>
     <string name="meal_search_type_food_label">Napiš název potraviny…</string>
+    <string name="nutrition_scan_barcode">NASKENOVAT KÓD</string>
+    <string name="nutrition_barcode_not_found">Produkt nenalezen - zadej ručně.</string>
     <string name="meal_photo_cd">Fotka jídla</string>
     <string name="meal_analyzing_photo">ANALYZUJI FOTKU…</string>
     <string name="meal_kcal_format">%1$d kcal</string>
