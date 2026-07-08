@@ -12,6 +12,7 @@ import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
+import com.coachfoska.app.domain.usecase.nutrition.LookupFoodByBarcodeUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.core.util.todayDate
@@ -39,6 +40,7 @@ class NutritionViewModel(
     private val getDailyNutritionSummaryUseCase: GetDailyNutritionSummaryUseCase,
     private val calculateMacroTargetsUseCase: CalculateMacroTargetsUseCase,
     private val getUserProfileUseCase: GetUserProfileUseCase,
+    private val lookupFoodByBarcodeUseCase: LookupFoodByBarcodeUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -46,6 +48,7 @@ class NutritionViewModel(
     val state: StateFlow<NutritionState> = _state.asStateFlow()
 
     private var loadFavoritesJob: Job? = null
+    private var loadDailySummaryJob: Job? = null
 
     init {
         onIntent(NutritionIntent.LoadMealPlan)
@@ -71,6 +74,8 @@ class NutritionViewModel(
             is NutritionIntent.LoadCapturePrefill -> loadCapturePrefill(intent.recipeId, intent.mealId)
             NutritionIntent.CapturePrefillConsumed -> _state.update { it.copy(capturePrefill = null) }
             NutritionIntent.LoadDailySummary -> loadDailySummary()
+            is NutritionIntent.LookupBarcode -> lookupBarcode(intent.barcode)
+            NutritionIntent.BarcodeConsumed -> _state.update { it.copy(barcodeFood = null, barcodeNotFound = false) }
         }
     }
 
@@ -263,7 +268,8 @@ class NutritionViewModel(
     }
 
     private fun loadDailySummary() {
-        viewModelScope.launch {
+        loadDailySummaryJob?.cancel()
+        loadDailySummaryJob = viewModelScope.launch {
             _state.update { it.copy(isSummaryLoading = true) }
             val today = todayDate()
             val summaryDeferred = async { getDailyNutritionSummaryUseCase(userId, today) }
@@ -283,6 +289,26 @@ class NutritionViewModel(
                     macroTargets = targets ?: it.macroTargets,
                 )
             }
+        }
+    }
+
+    private fun lookupBarcode(barcode: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLookingUpBarcode = true, barcodeNotFound = false, error = null) }
+            lookupFoodByBarcodeUseCase(barcode)
+                .onSuccess { food ->
+                    _state.update {
+                        if (food != null) {
+                            it.copy(isLookingUpBarcode = false, barcodeFood = food)
+                        } else {
+                            it.copy(isLookingUpBarcode = false, barcodeNotFound = true)
+                        }
+                    }
+                }
+                .onFailure { e ->
+                    Napier.e("lookupBarcode($barcode) failed", e, tag = TAG)
+                    _state.update { it.copy(isLookingUpBarcode = false, error = e.message) }
+                }
         }
     }
 

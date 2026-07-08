@@ -1,5 +1,9 @@
 package com.coachfoska.app.presentation.nutrition
 
+import com.coachfoska.app.data.remote.datasource.OpenFoodFactsDataSource
+import com.coachfoska.app.data.remote.dto.OpenFoodFactsNutriments
+import com.coachfoska.app.data.remote.dto.OpenFoodFactsProduct
+import com.coachfoska.app.data.remote.dto.OpenFoodFactsResponse
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.DailyNutritionSummary
 import com.coachfoska.app.domain.model.FitnessGoal
@@ -21,6 +25,7 @@ import com.coachfoska.app.domain.usecase.nutrition.GetRecipeByIdUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
+import com.coachfoska.app.domain.usecase.nutrition.LookupFoodByBarcodeUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.fixtures.aRecipe
@@ -49,6 +54,7 @@ class NutritionViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val repo: MealRepository = mockk()
     private val userRepo: UserRepository = mockk()
+    private val offDataSource: OpenFoodFactsDataSource = mockk()
 
     private fun viewModel() = NutritionViewModel(
         getActiveMealPlanUseCase = GetActiveMealPlanUseCase(repo),
@@ -63,6 +69,7 @@ class NutritionViewModelTest {
         getDailyNutritionSummaryUseCase = GetDailyNutritionSummaryUseCase(repo),
         calculateMacroTargetsUseCase = CalculateMacroTargetsUseCase(),
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
+        lookupFoodByBarcodeUseCase = LookupFoodByBarcodeUseCase(offDataSource),
         userId = "user-1"
     )
 
@@ -357,6 +364,68 @@ class NutritionViewModelTest {
 
         assertNull(vm.state.value.nutritionSummary)
         assertFalse(vm.state.value.isSummaryLoading)
+    }
+
+    @Test
+    fun `LookupBarcode success sets barcodeFood and clears loading`() = runTest {
+        coEvery { offDataSource.lookup("123") } returns OpenFoodFactsResponse(
+            status = 1,
+            code = "123",
+            product = OpenFoodFactsProduct(
+                productName = "Yogurt",
+                brands = "Farm",
+                servingSize = "150 g",
+                nutriments = OpenFoodFactsNutriments(
+                    energyKcal100g = 60f,
+                    proteins100g = 5f,
+                    carbohydrates100g = 7f,
+                    fat100g = 2f,
+                )
+            )
+        )
+        val vm = viewModel()
+
+        vm.onIntent(NutritionIntent.LookupBarcode("123"))
+
+        assertEquals("Yogurt", vm.state.value.barcodeFood?.name)
+        assertFalse(vm.state.value.isLookingUpBarcode)
+        assertFalse(vm.state.value.barcodeNotFound)
+    }
+
+    @Test
+    fun `LookupBarcode not found sets barcodeNotFound`() = runTest {
+        coEvery { offDataSource.lookup("000") } returns OpenFoodFactsResponse(status = 0, code = "000", product = null)
+        val vm = viewModel()
+
+        vm.onIntent(NutritionIntent.LookupBarcode("000"))
+
+        assertNull(vm.state.value.barcodeFood)
+        assertTrue(vm.state.value.barcodeNotFound)
+        assertFalse(vm.state.value.isLookingUpBarcode)
+    }
+
+    @Test
+    fun `LookupBarcode network failure sets error`() = runTest {
+        coEvery { offDataSource.lookup(any()) } throws RuntimeException("offline")
+        val vm = viewModel()
+
+        vm.onIntent(NutritionIntent.LookupBarcode("123"))
+
+        assertNotNull(vm.state.value.error)
+        assertFalse(vm.state.value.isLookingUpBarcode)
+    }
+
+    @Test
+    fun `BarcodeConsumed clears barcodeFood and barcodeNotFound`() = runTest {
+        coEvery { offDataSource.lookup("000") } returns OpenFoodFactsResponse(status = 0, product = null)
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LookupBarcode("000"))
+        assertTrue(vm.state.value.barcodeNotFound)
+
+        vm.onIntent(NutritionIntent.BarcodeConsumed)
+
+        assertNull(vm.state.value.barcodeFood)
+        assertFalse(vm.state.value.barcodeNotFound)
     }
 }
 

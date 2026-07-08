@@ -24,4 +24,6 @@ sealed interface NutritionIntent {
     data class LoadCapturePrefill(val recipeId: String?, val mealId: String?) : NutritionIntent
     data object CapturePrefillConsumed : NutritionIntent
     data object LoadDailySummary : NutritionIntent
+    data class LookupBarcode(val barcode: String) : NutritionIntent
+    data object BarcodeConsumed : NutritionIntent
 }

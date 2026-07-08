@@ -44,6 +44,9 @@ data class NutritionState(
     val nutritionSummary: DailyNutritionSummary? = null,
     val macroTargets: MacroTargets? = null,
     val isSummaryLoading: Boolean = false,
+    val isLookingUpBarcode: Boolean = false,
+    val barcodeFood: Food? = null,
+    val barcodeNotFound: Boolean = false,
     val error: String? = null
 ) {
     val recipes: List<Recipe>
