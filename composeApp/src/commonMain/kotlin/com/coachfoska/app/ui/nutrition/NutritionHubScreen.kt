@@ -26,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.common_see_all
@@ -56,10 +59,12 @@ import coachfoska.composeapp.generated.resources.nutrition_hub_track_eyebrow
 import coachfoska.composeapp.generated.resources.nutrition_hub_title
 import coachfoska.composeapp.generated.resources.nutrition_hub_water_subtitle
 import coachfoska.composeapp.generated.resources.nutrition_hub_water_title
+import coachfoska.composeapp.generated.resources.start_logging_meals
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
 import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
+import com.coachfoska.app.ui.components.MacroSummaryRow
 import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsHubImageCard
 import com.coachfoska.app.ui.nutrition.components.FeaturedRecipeCard
@@ -80,6 +85,9 @@ fun NutritionHubRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.onIntent(NutritionIntent.LoadRecipes) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.onIntent(NutritionIntent.LoadDailySummary)
+    }
     NutritionHubScreen(
         state = state,
         onPlanClick = onPlanClick,
@@ -128,6 +136,28 @@ fun NutritionHubScreen(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Daily macro summary
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.03f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    when {
+                        state.isSummaryLoading && state.nutritionSummary == null ->
+                            DsLoadingBox(modifier = Modifier.fillMaxWidth().height(72.dp))
+                        state.nutritionSummary != null ->
+                            MacroSummaryRow(state.nutritionSummary!!, state.macroTargets)
+                        else ->
+                            Text(
+                                text = stringResource(Res.string.start_logging_meals),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
+                            )
+                    }
+                }
+            }
+
             // Log meal — primary entry point
             Button(
                 onClick = { showLogSheet = true },
