@@ -7,5 +7,6 @@ data class SettingsState(
     val accountDeletionUrl: String = "",
     val error: String? = null,
     val debugResetOnboardingLoading: Boolean = false,
-    val debugResetOnboardingSuccess: Boolean = false
+    val debugResetOnboardingSuccess: Boolean = false,
+    val debugCoachSubscribed: Boolean = true
 )

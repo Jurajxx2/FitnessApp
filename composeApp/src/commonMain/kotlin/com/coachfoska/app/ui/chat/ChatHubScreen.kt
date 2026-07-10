@@ -1,6 +1,7 @@
 package com.coachfoska.app.ui.chat
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,9 +20,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EventAvailable
-import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.SupportAgent
@@ -38,7 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,13 +51,11 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.chat_image_preview
 import coachfoska.composeapp.generated.resources.chat_no_messages_yet
 import coachfoska.composeapp.generated.resources.coach_hub_action_checkin
-import coachfoska.composeapp.generated.resources.coach_hub_action_plan_review
-import coachfoska.composeapp.generated.resources.coach_hub_action_support
-import coachfoska.composeapp.generated.resources.coach_hub_actions
 import coachfoska.composeapp.generated.resources.coach_hub_ai_chat_subtitle
 import coachfoska.composeapp.generated.resources.coach_hub_ai_chat_title
 import coachfoska.composeapp.generated.resources.coach_hub_checkin_label
 import coachfoska.composeapp.generated.resources.coach_hub_checkin_value
+import coachfoska.composeapp.generated.resources.coach_hub_coach_image_cd
 import coachfoska.composeapp.generated.resources.coach_hub_coach_about
 import coachfoska.composeapp.generated.resources.coach_hub_coach_name
 import coachfoska.composeapp.generated.resources.coach_hub_coach_title
@@ -67,16 +67,26 @@ import coachfoska.composeapp.generated.resources.coach_hub_membership_label
 import coachfoska.composeapp.generated.resources.coach_hub_membership_plan
 import coachfoska.composeapp.generated.resources.coach_hub_membership_renewal
 import coachfoska.composeapp.generated.resources.coach_hub_membership_status
+import coachfoska.composeapp.generated.resources.coach_hub_unsubscribed_benefit_checkins
+import coachfoska.composeapp.generated.resources.coach_hub_unsubscribed_benefit_messages
+import coachfoska.composeapp.generated.resources.coach_hub_unsubscribed_benefit_reviews
+import coachfoska.composeapp.generated.resources.coach_hub_unsubscribed_cta
+import coachfoska.composeapp.generated.resources.coach_hub_unsubscribed_plan
+import coachfoska.composeapp.generated.resources.coach_hub_unsubscribed_status
+import coachfoska.composeapp.generated.resources.coach_hub_unsubscribed_subtitle
+import coachfoska.composeapp.generated.resources.coach_hub_unsubscribed_title
 import coachfoska.composeapp.generated.resources.coach_hub_response_label
 import coachfoska.composeapp.generated.resources.coach_hub_response_value
 import coachfoska.composeapp.generated.resources.coach_hub_subtitle
 import coachfoska.composeapp.generated.resources.coach_hub_title
+import coachfoska.composeapp.generated.resources.img_coach_foska
 import com.coachfoska.app.BuildKonfig
 import com.coachfoska.app.domain.model.ChatConversationSummary
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.MessageContent
 import com.coachfoska.app.presentation.chat.ChatHubViewModel
 import com.coachfoska.designsystem.theme.DsTheme
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -87,15 +97,18 @@ fun ChatHubRoute(
     onHumanCoachClick: () -> Unit,
     onAiCoachClick: () -> Unit,
     onCoachProfileClick: () -> Unit,
+    onCheckInClick: () -> Unit,
     viewModel: ChatHubViewModel = koinViewModel { parametersOf(userId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     ChatHubScreen(
         summaries = state.summaries,
         isLoading = state.isLoading,
+        isCoachSubscribed = state.isCoachSubscribed,
         onHumanCoachClick = onHumanCoachClick,
         onAiCoachClick = onAiCoachClick,
-        onCoachProfileClick = onCoachProfileClick
+        onCoachProfileClick = onCoachProfileClick,
+        onCheckInClick = onCheckInClick
     )
 }
 
@@ -103,9 +116,11 @@ fun ChatHubRoute(
 fun ChatHubScreen(
     summaries: List<ChatConversationSummary>,
     isLoading: Boolean,
+    isCoachSubscribed: Boolean,
     onHumanCoachClick: () -> Unit,
     onAiCoachClick: () -> Unit,
-    onCoachProfileClick: () -> Unit
+    onCoachProfileClick: () -> Unit,
+    onCheckInClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -122,6 +137,12 @@ fun ChatHubScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             CoachHubHeader()
+            if (!isCoachSubscribed) {
+                UnsubscribedCoachContent(onCoachProfileClick = onCoachProfileClick)
+                Spacer(Modifier.height(8.dp))
+                return@Column
+            }
+
             MembershipPanel()
             CoachProfilePanel(onClick = onCoachProfileClick)
 
@@ -148,12 +169,7 @@ fun ChatHubScreen(
                 )
             }
 
-            SectionLabel(text = stringResource(Res.string.coach_hub_actions))
-            QuickActionGrid(
-                onCheckInClick = onHumanCoachClick,
-                onPlanReviewClick = onHumanCoachClick,
-                onSupportClick = onHumanCoachClick
-            )
+            CheckInActionButton(onClick = onCheckInClick)
 
             Spacer(Modifier.height(8.dp))
         }
@@ -161,26 +177,177 @@ fun ChatHubScreen(
 }
 
 @Composable
-private fun CoachHubHeader() {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun UnsubscribedCoachContent(onCoachProfileClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = DsTheme.colors.surface,
+        border = BorderStroke(1.dp, DsTheme.colors.outlineSubtle)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(Res.string.coach_hub_membership_label).uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.45f),
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = stringResource(Res.string.coach_hub_unsubscribed_plan),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = DsTheme.colors.textPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = stringResource(Res.string.coach_hub_unsubscribed_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DsTheme.colors.textPrimary.copy(alpha = 0.58f),
+                        lineHeight = 18.sp
+                    )
+                }
+                LockedPill(text = stringResource(Res.string.coach_hub_unsubscribed_status))
+            }
+
+            HorizontalDivider(color = DsTheme.colors.outlineSubtle)
+
+            Text(
+                text = stringResource(Res.string.coach_hub_unsubscribed_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = DsTheme.colors.textPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                BenefitRow(text = stringResource(Res.string.coach_hub_unsubscribed_benefit_messages))
+                BenefitRow(text = stringResource(Res.string.coach_hub_unsubscribed_benefit_checkins))
+                BenefitRow(text = stringResource(Res.string.coach_hub_unsubscribed_benefit_reviews))
+            }
+
+            Surface(
+                onClick = onCoachProfileClick,
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = DsTheme.colors.actionPrimary,
+                contentColor = DsTheme.colors.onActionPrimary
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.SupportAgent, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Text(
+                        text = stringResource(Res.string.coach_hub_unsubscribed_cta),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LockedPill(text: String) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = DsTheme.colors.surfaceElevated,
+        contentColor = DsTheme.colors.textSecondary
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(14.dp))
+            Text(text = text, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun BenefitRow(text: String) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(28.dp),
+            shape = CircleShape,
+            color = DsTheme.colors.actionPrimary.copy(alpha = 0.12f),
+            contentColor = DsTheme.colors.actionPrimary
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(15.dp))
+            }
+        }
         Text(
-            text = stringResource(Res.string.coach_hub_eyebrow),
-            style = MaterialTheme.typography.labelSmall,
-            color = DsTheme.colors.textPrimary.copy(alpha = 0.45f),
-            letterSpacing = 2.sp
-        )
-        Text(
-            text = stringResource(Res.string.coach_hub_title),
-            style = MaterialTheme.typography.headlineLarge,
-            color = DsTheme.colors.textPrimary,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = stringResource(Res.string.coach_hub_subtitle),
+            text = text,
             style = MaterialTheme.typography.bodyMedium,
-            color = DsTheme.colors.textPrimary.copy(alpha = 0.62f),
+            color = DsTheme.colors.textPrimary.copy(alpha = 0.72f),
             lineHeight = 20.sp
         )
+    }
+}
+
+@Composable
+private fun CoachHubHeader() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(Res.string.coach_hub_eyebrow),
+                style = MaterialTheme.typography.labelSmall,
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.45f),
+                letterSpacing = 2.sp
+            )
+            Text(
+                text = stringResource(Res.string.coach_hub_title),
+                style = MaterialTheme.typography.headlineLarge,
+                color = DsTheme.colors.textPrimary,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = stringResource(Res.string.coach_hub_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = DsTheme.colors.textPrimary.copy(alpha = 0.62f),
+                lineHeight = 20.sp
+            )
+        }
+
+        Surface(
+            modifier = Modifier
+                .size(width = 112.dp, height = 136.dp),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, DsTheme.colors.outlineSubtle),
+            color = DsTheme.colors.surface
+        ) {
+            Image(
+                painter = painterResource(Res.drawable.img_coach_foska),
+                contentDescription = stringResource(Res.string.coach_hub_coach_image_cd),
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.TopCenter
+            )
+        }
     }
 }
 
@@ -419,49 +586,15 @@ private fun ConversationCard(
 }
 
 @Composable
-private fun QuickActionGrid(
-    onCheckInClick: () -> Unit,
-    onPlanReviewClick: () -> Unit,
-    onSupportClick: () -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickActionButton(
-                label = stringResource(Res.string.coach_hub_action_checkin),
-                icon = Icons.Default.EventAvailable,
-                onClick = onCheckInClick,
-                modifier = Modifier.weight(1f)
-            )
-            QuickActionButton(
-                label = stringResource(Res.string.coach_hub_action_plan_review),
-                icon = Icons.Default.FitnessCenter,
-                onClick = onPlanReviewClick,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        QuickActionButton(
-            label = stringResource(Res.string.coach_hub_action_support),
-            icon = Icons.Default.SupportAgent,
-            onClick = onSupportClick,
-            modifier = Modifier.fillMaxWidth(),
-            containerColor = DsTheme.colors.surfaceElevated.copy(alpha = 0.55f)
-        )
-    }
-}
-
-@Composable
-private fun QuickActionButton(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    containerColor: Color = DsTheme.colors.surface
-) {
+private fun CheckInActionButton(onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(58.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(58.dp),
         shape = RoundedCornerShape(8.dp),
-        color = containerColor,
+        color = DsTheme.colors.actionPrimary,
+        contentColor = DsTheme.colors.onActionPrimary,
         border = BorderStroke(1.dp, DsTheme.colors.outlineSubtle)
     ) {
         Row(
@@ -469,11 +602,10 @@ private fun QuickActionButton(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, contentDescription = null, tint = DsTheme.colors.actionPrimary, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(20.dp))
             Text(
-                text = label,
+                text = stringResource(Res.string.coach_hub_action_checkin),
                 style = MaterialTheme.typography.labelMedium,
-                color = DsTheme.colors.textPrimary,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

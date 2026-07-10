@@ -20,7 +20,7 @@ import kotlinx.serialization.Serializable
 @Serializable object WorkoutList
 @Serializable data class WorkoutDetail(val workoutId: String)
 @Serializable data class ActiveSession(val workoutId: String, val resumeLogId: String? = null)
-@Serializable data class ExerciseDetail(val exerciseId: String)
+@Serializable data class ExerciseDetail(val exerciseId: String? = null, val exerciseName: String? = null)
 @Serializable object LogWorkout
 @Serializable object ActivityTypeSelector
 @Serializable data class LogActivity(val type: String)
@@ -56,6 +56,7 @@ import kotlinx.serialization.Serializable
 @Serializable object Progress
 @Serializable object AboutCoach
 @Serializable object Settings
+@Serializable data class LegalDoc(val id: String)
 @Serializable object Gallery
 
 // Workout analytics
@@ -63,5 +64,5 @@ import kotlinx.serialization.Serializable
 @Serializable data class PostWorkoutSummary(val logId: String)
 
 // Weekly check-in
-@Serializable object CheckInForm
+@Serializable data class CheckInForm(val prefillExisting: Boolean = true)
 @Serializable object CheckInHistory

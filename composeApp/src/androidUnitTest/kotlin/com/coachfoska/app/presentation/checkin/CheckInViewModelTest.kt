@@ -39,13 +39,14 @@ class CheckInViewModelTest {
         activityLevel = ActivityLevel.ACTIVE,
     )
 
-    private fun viewModel() = CheckInViewModel(
+    private fun viewModel(prefillExisting: Boolean = true) = CheckInViewModel(
         submitCheckInUseCase = SubmitCheckInUseCase(checkInRepo, userRepo),
         getCheckInHistoryUseCase = GetCheckInHistoryUseCase(checkInRepo),
         getCurrentWeekCheckInUseCase = GetCurrentWeekCheckInUseCase(checkInRepo),
         uploadCheckInPhotoUseCase = UploadCheckInPhotoUseCase(checkInRepo),
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         userId = "u1",
+        prefillExisting = prefillExisting,
     )
 
     @BeforeTest
@@ -66,6 +67,46 @@ class CheckInViewModelTest {
     fun `load prefills weight from profile`() = runTest {
         val vm = viewModel()
         assertEquals("80.0", vm.state.value.form.weightKg)
+    }
+
+    @Test
+    fun `load prefills existing weekly check-in by default`() = runTest {
+        coEvery { checkInRepo.getForWeek(any(), any()) } returns Result.success(
+            CheckIn(
+                id = "ci1",
+                userId = "u1",
+                weekOf = com.coachfoska.app.core.util.todayDate(),
+                weightKg = 81f,
+                energyLevel = 4,
+                notes = "felt good",
+            )
+        )
+
+        val vm = viewModel()
+
+        assertEquals("81.0", vm.state.value.form.weightKg)
+        assertEquals(4, vm.state.value.form.energyLevel)
+        assertEquals("felt good", vm.state.value.form.notes)
+    }
+
+    @Test
+    fun `load keeps form empty when prefill is disabled`() = runTest {
+        coEvery { checkInRepo.getForWeek(any(), any()) } returns Result.success(
+            CheckIn(
+                id = "ci1",
+                userId = "u1",
+                weekOf = com.coachfoska.app.core.util.todayDate(),
+                weightKg = 81f,
+                energyLevel = 4,
+                notes = "felt good",
+            )
+        )
+
+        val vm = viewModel(prefillExisting = false)
+
+        assertEquals("", vm.state.value.form.weightKg)
+        assertEquals(null, vm.state.value.form.energyLevel)
+        assertEquals("", vm.state.value.form.notes)
     }
 
     @Test

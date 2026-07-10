@@ -42,6 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.activity_hub_browse_workouts
@@ -120,6 +122,10 @@ fun ActivityHubRoute(
     val exerciseState by exerciseViewModel.state.collectAsStateWithLifecycle()
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.onIntent(WorkoutIntent.LoadHistory)
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.onIntent(WorkoutIntent.LoadInProgressSession)
         viewModel.onIntent(WorkoutIntent.LoadHistory)
     }
 

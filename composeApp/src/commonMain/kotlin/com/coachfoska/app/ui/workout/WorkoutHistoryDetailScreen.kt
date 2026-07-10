@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -42,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.duration_min
+import coachfoska.composeapp.generated.resources.exercise_detail_title
 import coachfoska.composeapp.generated.resources.exercises_count
 import coachfoska.composeapp.generated.resources.workout_history_capture_video_cd
 import coachfoska.composeapp.generated.resources.workout_history_detail_title
@@ -72,6 +74,7 @@ fun WorkoutHistoryDetailRoute(
     logId: String,
     userId: String,
     onBackClick: () -> Unit,
+    onExerciseDetailClick: (exerciseId: String?, exerciseName: String) -> Unit = { _, _ -> },
     viewModel: WorkoutViewModel = koinViewModel { parametersOf(userId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -83,6 +86,7 @@ fun WorkoutHistoryDetailRoute(
     WorkoutHistoryDetailScreen(
         state = state,
         onBackClick = onBackClick,
+        onExerciseDetailClick = onExerciseDetailClick,
         onCaptureVideo = { exerciseLogId ->
             viewModel.onIntent(WorkoutIntent.AttachVideoToLog(exerciseLogId, byteArrayOf()))
         },
@@ -93,6 +97,7 @@ fun WorkoutHistoryDetailRoute(
 fun WorkoutHistoryDetailScreen(
     state: WorkoutState,
     onBackClick: () -> Unit,
+    onExerciseDetailClick: (exerciseId: String?, exerciseName: String) -> Unit = { _, _ -> },
     onCaptureVideo: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -109,6 +114,9 @@ fun WorkoutHistoryDetailScreen(
                     items(log.exerciseLogs) { exerciseLog ->
                         ExerciseLogDetailRow(
                             log = exerciseLog,
+                            onExerciseDetailClick = {
+                                onExerciseDetailClick(exerciseLog.exerciseId, exerciseLog.exerciseName)
+                            },
                             onCaptureVideo = { onCaptureVideo(exerciseLog.id) },
                         )
                         HorizontalDivider(
@@ -186,6 +194,7 @@ private fun WorkoutLogHeader(log: WorkoutLog) {
 @Composable
 private fun ExerciseLogDetailRow(
     log: ExerciseLog,
+    onExerciseDetailClick: () -> Unit,
     onCaptureVideo: () -> Unit,
 ) {
     var expanded by rememberSaveable(log.id) { mutableStateOf(false) }
@@ -235,6 +244,21 @@ private fun ExerciseLogDetailRow(
                     Spacer(Modifier.height(8.dp))
                     FeedbackList(feedback = log.feedback)
                 }
+            }
+
+            IconButton(
+                onClick = onExerciseDetailClick,
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = DsTheme.colors.textPrimary.copy(alpha = 0.05f),
+                    contentColor = DsTheme.colors.actionPrimary,
+                ),
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = stringResource(Res.string.exercise_detail_title),
+                    modifier = Modifier.size(20.dp),
+                )
             }
 
             IconButton(
@@ -314,6 +338,7 @@ private fun WorkoutHistoryDetailScreenPreviewNewFormat() {
     WorkoutHistoryDetailScreen(
         state = WorkoutState(selectedWorkoutLog = previewWorkoutLog(newFormat = true)),
         onBackClick = {},
+        onExerciseDetailClick = { _, _ -> },
         onCaptureVideo = {},
     )
 }
@@ -324,6 +349,7 @@ private fun WorkoutHistoryDetailScreenPreviewLegacyFallback() {
     WorkoutHistoryDetailScreen(
         state = WorkoutState(selectedWorkoutLog = previewWorkoutLog(newFormat = false)),
         onBackClick = {},
+        onExerciseDetailClick = { _, _ -> },
         onCaptureVideo = {},
     )
 }

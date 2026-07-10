@@ -27,6 +27,7 @@ class CheckInViewModel(
     private val uploadCheckInPhotoUseCase: UploadCheckInPhotoUseCase,
     private val getUserProfileUseCase: GetUserProfileUseCase,
     private val userId: String,
+    private val prefillExisting: Boolean = true,
 ) : ViewModel() {
 
     private companion object { const val TAG = "CheckInViewModel" }
@@ -64,13 +65,15 @@ class CheckInViewModel(
             getCheckInHistoryUseCase(userId)
                 .onSuccess { list -> _state.update { it.copy(history = list) } }
                 .onFailure { e -> Napier.e("history failed", e, tag = TAG) }
-            // Existing draft for this week, else prefill weight from profile.
-            val existing = getCurrentWeekCheckInUseCase(userId, weekOf).getOrNull()
-            if (existing != null) {
-                _state.update { it.copy(form = existing.toForm()) }
-            } else {
-                getUserProfileUseCase(userId).onSuccess { user ->
-                    user.weightKg?.let { w -> updateForm { f -> f.copy(weightKg = w.toString()) } }
+            if (prefillExisting) {
+                // Existing draft for this week, else prefill weight from profile.
+                val existing = getCurrentWeekCheckInUseCase(userId, weekOf).getOrNull()
+                if (existing != null) {
+                    _state.update { it.copy(form = existing.toForm()) }
+                } else {
+                    getUserProfileUseCase(userId).onSuccess { user ->
+                        user.weightKg?.let { w -> updateForm { f -> f.copy(weightKg = w.toString()) } }
+                    }
                 }
             }
             _state.update { it.copy(isLoading = false) }

@@ -36,33 +36,64 @@ fun inferExerciseLogType(
     equipment: List<String> = emptyList(),
     reps: String? = null,
 ): ExerciseLogType {
-    val haystack = buildString {
-        append(name.lowercase())
-        categoryName?.let { append(' ').append(it.lowercase()) }
-        reps?.let { append(' ').append(it.lowercase()) }
-        equipment.forEach { append(' ').append(it.lowercase()) }
+    val haystack = buildList {
+        add(name)
+        categoryName?.let(::add)
+        reps?.let(::add)
+        addAll(equipment)
+    }.joinToString(" ") { it.normalizedForLogTypeSearch() }
+    val paddedHaystack = " $haystack "
+
+    val bodyweightRepsOverrides = listOf(
+        "ab roller", "ab wheel", "ab rollout", "wheel rollout", "rollout",
+    )
+    if (bodyweightRepsOverrides.any { it.matchesLogTypeSignal(paddedHaystack) }) {
+        return ExerciseLogType.BODYWEIGHT_REPS
     }
 
     val timeSignals = listOf(
-        "run", "running", "jog", "sprint", "walk", "bike", "cycling", "row", "rowing",
-        "swim", "plank", "hold", "carry", "stretch", "cardio", "time", "min", "sec",
+        "run", "running", "jog", "sprint", "walk", "bike", "cycling", "rower", "rowing",
+        "erg", "swim", "plank", "hold", "carry", "stretch", "cardio", "time",
+        "min", "mins", "minute", "minutes", "sec", "secs", "second", "seconds",
         "běh", "chůze", "kolo", "plank", "výdrž", "protažení",
     )
-    if (timeSignals.any { it in haystack }) return ExerciseLogType.TIME
+    if (timeSignals.any { it.matchesLogTypeSignal(paddedHaystack) }) return ExerciseLogType.TIME
 
     val weightedEquipment = listOf(
-        "barbell", "dumbbell", "kettlebell", "machine", "cable", "smith", "plate",
-        "ez bar", "trap bar", "medicine ball", "činka", "kladka", "stroj",
+        "barbell", "barbells", "dumbbell", "dumbbells", "kettlebell", "kettlebells",
+        "machine", "machines", "cable", "cables", "smith", "plate", "plates",
+        "ez bar", "trap bar", "medicine ball", "medicine balls", "činka", "činky", "kladka", "stroj",
     )
-    if (weightedEquipment.any { it in haystack }) return ExerciseLogType.WEIGHT_REPS
+    if (weightedEquipment.any { it.matchesLogTypeSignal(paddedHaystack) }) return ExerciseLogType.WEIGHT_REPS
 
     val bodyweightSignals = listOf(
-        "push-up", "pushup", "pull-up", "pullup", "chin-up", "chinup", "dip", "burpee",
-        "crunch", "sit-up", "squat jump", "lunge jump", "mountain climber",
+        "push up", "push ups", "pushup", "pushups",
+        "pull up", "pull ups", "pullup", "pullups",
+        "chin up", "chin ups", "chinup", "chinups",
+        "dip", "dips", "burpee", "burpees",
+        "crunch", "crunches", "sit up", "sit ups", "squat jump", "lunge jump", "mountain climber",
         "bodyweight", "calisthenics", "no equipment", "none", "vlastní váha", "bez vybavení",
         "klik", "shyb", "dip",
     )
-    if (bodyweightSignals.any { it in haystack }) return ExerciseLogType.BODYWEIGHT_REPS
+    if (bodyweightSignals.any { it.matchesLogTypeSignal(paddedHaystack) }) return ExerciseLogType.BODYWEIGHT_REPS
 
     return ExerciseLogType.WEIGHT_REPS
 }
+
+private fun String.matchesLogTypeSignal(paddedHaystack: String): Boolean {
+    val signal = normalizedForLogTypeSearch()
+    return signal.isNotEmpty() && " $signal " in paddedHaystack
+}
+
+private fun String.normalizedForLogTypeSearch(): String = buildString {
+    var lastWasSpace = true
+    lowercase().forEach { char ->
+        if (char.isLetterOrDigit()) {
+            append(char)
+            lastWasSpace = false
+        } else if (!lastWasSpace) {
+            append(' ')
+            lastWasSpace = true
+        }
+    }
+}.trim()

@@ -17,7 +17,7 @@
 
     <!-- Auth — VerifyOtpScreen -->
     <string name="verify_code_title">VERIFY CODE</string>
-    <string name="verify_otp_desc">Enter the 6-digit code sent to\n%s</string>
+    <string name="verify_otp_desc">Enter the 6-digit code sent to\n%1$s</string>
     <string name="verification_code_label">Verification code</string>
     <string name="verify_button">VERIFY</string>
     <string name="resend_code">RESEND CODE</string>
@@ -70,8 +70,8 @@
     <string name="recovery_day">RECOVERY DAY</string>
     <string name="recovery_day_desc">Focus on mobility and nutrition today.</string>
     <string name="daily_nutrition">DAILY NUTRITION</string>
-    <string name="exercises_count">%d EXERCISES</string>
-    <string name="duration_min">%d MIN</string>
+    <string name="exercises_count">%1$d EXERCISES</string>
+    <string name="duration_min">%1$d MIN</string>
     <string name="start_logging_meals">Start logging your meals to track progress.</string>
     <string name="macro_kcal">KCAL</string>
     <string name="macro_protein">PRO</string>
@@ -108,9 +108,9 @@
     <string name="stat_last_weight">LAST WEIGHT</string>
     <string name="stat_target_goal">TARGET GOAL</string>
     <string name="stat_activity">ACTIVITY</string>
-    <string name="weight_kg_format">%skg</string>
-    <string name="height_cm_format">%d CM</string>
-    <string name="weight_kg_upper_format">%s KG</string>
+    <string name="weight_kg_format">%1$skg</string>
+    <string name="height_cm_format">%1$d CM</string>
+    <string name="weight_kg_upper_format">%1$s KG</string>
 
     <!-- About Coach -->
     <string name="certifications_section">CERTIFICATIONS</string>
@@ -125,7 +125,7 @@
     <string name="add_exercise">ADD EXERCISE</string>
     <string name="notes_optional">Notes (optional)</string>
     <string name="save_session">SAVE SESSION</string>
-    <string name="exercise_label">EXERCISE #%d</string>
+    <string name="exercise_label">EXERCISE #%1$d</string>
     <string name="add_video_cd">Add Video</string>
     <string name="remove_cd">Remove</string>
     <string name="exercise_name_label">Exercise Name</string>
@@ -139,7 +139,7 @@
     <string name="food_items_section">FOOD ITEMS</string>
     <string name="add_food">ADD FOOD</string>
     <string name="save_meal">SAVE MEAL</string>
-    <string name="food_label">FOOD #%d</string>
+    <string name="food_label">FOOD #%1$d</string>
     <string name="food_name_label">Food Name</string>
     <string name="kcal_label">kcal</string>
     <string name="protein_label">protein (g)</string>
@@ -155,10 +155,19 @@
     <string name="coach_hub_membership_plan">Personal Coaching</string>
     <string name="coach_hub_membership_status">Active</string>
     <string name="coach_hub_membership_renewal">Next period: monthly</string>
+    <string name="coach_hub_unsubscribed_plan">Coach membership</string>
+    <string name="coach_hub_unsubscribed_status">Not active</string>
+    <string name="coach_hub_unsubscribed_title">Unlock personal coaching</string>
+    <string name="coach_hub_unsubscribed_subtitle">Your activity, nutrition, and check-ins stay ready. Turn on coaching when you want personal feedback.</string>
+    <string name="coach_hub_unsubscribed_benefit_messages">Direct messages with Coach Foška</string>
+    <string name="coach_hub_unsubscribed_benefit_checkins">Weekly check-ins and progress reviews</string>
+    <string name="coach_hub_unsubscribed_benefit_reviews">Plan adjustments based on your logged training</string>
+    <string name="coach_hub_unsubscribed_cta">Meet the coach</string>
     <string name="coach_hub_checkin_label">Check-in</string>
     <string name="coach_hub_checkin_value">Every Monday</string>
     <string name="coach_hub_response_label">Response</string>
     <string name="coach_hub_response_value">Within 24 hours</string>
+    <string name="coach_hub_coach_image_cd">Coach Foska photo</string>
     <string name="coach_hub_coach_name">Coach Foška</string>
     <string name="coach_hub_coach_title">Fitness, nutrition, and mental performance</string>
     <string name="coach_hub_coach_about">View coach profile</string>
@@ -185,6 +194,11 @@
     <string name="settings_privacy_data">PRIVACY &amp; DATA</string>
     <string name="privacy_policy">Privacy Policy</string>
     <string name="terms_of_service">Terms of Service</string>
+    <string name="legal_sample_desc">In-app sample document — have counsel review before launch</string>
+    <string name="legal_health_safety">Health and Safety Notice</string>
+    <string name="legal_health_data_consent">Health Data Consent</string>
+    <string name="legal_withdrawal_refunds">Withdrawal and Refunds</string>
+    <string name="legal_ai_notice">AI Assistant Notice</string>
     <string name="export_my_data">Export My Data</string>
     <string name="export_my_data_desc">Download a copy of your data as JSON</string>
     <string name="delete_account">Delete Account</string>
@@ -201,6 +215,9 @@
     <string name="debug_reset_onboarding_success">Onboarding reset. Restart the app to trigger the flow.</string>
     <string name="debug_launch_onboarding">Launch Onboarding</string>
     <string name="debug_launch_onboarding_desc">Open the onboarding flow directly without resetting the DB flag</string>
+    <string name="debug_coach_subscription">Subscribed coach screen</string>
+    <string name="debug_coach_subscription_desc_active">Coach tab shows the subscribed experience.</string>
+    <string name="debug_coach_subscription_desc_inactive">Coach tab shows the not-subscribed experience.</string>
 
     <!-- Activity Logging -->
     <string name="log_activity_title">LOG ACTIVITY</string>
@@ -220,7 +237,7 @@
     <string name="hub_log_activity_subtitle">Walk, run, swim...</string>
     <string name="actual_reps_label">Reps</string>
     <string name="actual_weight_label">kg</string>
-    <string name="set_number_format">SET %d</string>
+    <string name="set_number_format">SET %1$d</string>
     <string name="add_set">+ ADD SET</string>
     <string name="finish_workout">FINISH WORKOUT</string>
     <string name="exercise_form_guide_cta">Tap to view form guide</string>
@@ -271,10 +288,10 @@
     <string name="ob_focus_glutes">Glutes</string>
     <string name="ob_focus_full_body">Full body</string>
 
-    <string name="ob_valueprop1_title">Your coach. Your plan.</string>
-    <string name="ob_valueprop1_subtitle">Coach Foška will build a training plan tailored to your goals, experience, and available equipment. No generic templates.</string>
-    <string name="ob_valueprop2_title">Personal approach that works.</string>
-    <string name="ob_valueprop2_subtitle">Book sessions with certified coaches. Track your progress and be guided step by step.</string>
+    <string name="ob_valueprop1_title">Your answers shape the plan.</string>
+    <string name="ob_valueprop1_subtitle">Coach Foška adapts training to your goals, experience, and available equipment, whether you train solo or with support.</string>
+    <string name="ob_valueprop2_title">Progress you can act on.</string>
+    <string name="ob_valueprop2_subtitle">Track workouts, nutrition, and check-ins in one place so every next step has context.</string>
     <string name="ob_continue">Continue</string>
 
     <string name="ob_frequency_title">Which days do you want to train?</string>
@@ -286,9 +303,9 @@
     <string name="ob_day_fri">Fr</string>
     <string name="ob_day_sat">Sa</string>
     <string name="ob_day_sun">Su</string>
-    <string name="ob_days_count_one">%d day a week</string>
-    <string name="ob_days_count_few">%d days a week</string>
-    <string name="ob_days_count_many">%d days a week</string>
+    <string name="ob_days_count_one">%1$d day a week</string>
+    <string name="ob_days_count_few">%1$d days a week</string>
+    <string name="ob_days_count_many">%1$d days a week</string>
     <string name="ob_days_notify">Remind me on training days</string>
 
     <string name="ob_equipment_title">What equipment do you have?</string>
@@ -303,7 +320,7 @@
     <string name="ob_equipment_full_gym_desc">Machines, weights, everything available</string>
 
     <string name="ob_body_title">Tell us about yourself</string>
-    <string name="ob_body_subtitle">We\'ll use your age, height, and weight to calculate the optimal load.</string>
+    <string name="ob_body_subtitle">We\'ll use your age, height, and weight to personalize targets and plan intensity.</string>
     <string name="ob_body_age">Age</string>
     <string name="ob_body_age_suffix">yrs</string>
     <string name="ob_body_height">Height</string>
@@ -429,8 +446,8 @@
     <string name="checkin_section_photos">Progress photos</string>
     <string name="checkin_photo_front">Front</string>
     <string name="checkin_photo_side">Side</string>
-    <string name="checkin_photo_added_format">%s photo added</string>
-    <string name="checkin_photo_pick_format">Pick %s photo</string>
+    <string name="checkin_photo_added_format">%1$s photo added</string>
+    <string name="checkin_photo_pick_format">Pick %1$s photo</string>
     <string name="checkin_uploading_photo">Uploading photo…</string>
     <string name="checkin_section_notes">Notes</string>
     <string name="checkin_notes_label">Anything you\'d like your coach to know?</string>
@@ -442,8 +459,8 @@
     <string name="checkin_empty_title">No check-ins yet</string>
     <string name="checkin_empty_message">Submit your first weekly check-in to start building your history.</string>
     <string name="checkin_label_training_adherence">Training adherence</string>
-    <string name="checkin_rating_format">%d/5</string>
-    <string name="checkin_sessions_format">%d sessions</string>
+    <string name="checkin_rating_format">%1$d/5</string>
+    <string name="checkin_sessions_format">%1$d sessions</string>
     <string name="checkin_photos_attached">📷 Photos attached</string>
     <string name="checkin_coach_response">Coach response</string>
 

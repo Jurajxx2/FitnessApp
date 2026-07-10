@@ -15,7 +15,9 @@ import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
 import com.coachfoska.app.fixtures.aWorkout
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -59,6 +61,7 @@ class ActiveSessionViewModelTest {
         coEvery { repo.getLastLogsForExercises(any(), any()) } returns Result.success(emptyMap())
         coEvery { repo.getExerciseRecords(any(), any()) } returns Result.failure(Exception("not checked"))
         coEvery { repo.startWorkoutSession(any(), any(), any()) } returns Result.success("live-log-1")
+        coEvery { repo.discardWorkoutSession(any()) } returns Result.success(Unit)
         coEvery { repo.deleteSetLog(any()) } returns Result.success(Unit)
         coEvery { exerciseRepo.getExerciseById(any()) } returns Result.failure(Exception("not found"))
     }
@@ -303,6 +306,25 @@ class ActiveSessionViewModelTest {
         assertEquals("set-log-1", set?.setLogId)
         assertEquals(true, set?.completed)
         assertEquals(SetSaveState.Saved, set?.saveState)
+    }
+
+    @Test
+    fun `discard_before_live_session_start_finishes_discards_late_created_log`() = runTest {
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise())
+        val startResult = CompletableDeferred<Result<String>>()
+        coEvery { repo.startWorkoutSession("user-1", "w1", any()) } coAnswers { startResult.await() }
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        vm.onIntent(ActiveSessionIntent.DiscardSession)
+        assertEquals(true, vm.state.value.sessionDiscarded)
+
+        startResult.complete(Result.success("late-log-1"))
+        advanceUntilIdle()
+
+        coVerify { repo.discardWorkoutSession("late-log-1") }
     }
 
     @Test

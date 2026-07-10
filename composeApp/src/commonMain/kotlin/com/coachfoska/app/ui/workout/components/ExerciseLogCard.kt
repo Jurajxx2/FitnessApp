@@ -43,7 +43,7 @@ fun ExerciseLogCard(
     prBanner: SessionPR?,
     onIntent: (ActiveSessionIntent) -> Unit,
     onSwapClick: () -> Unit,
-    onExerciseDetailClick: (exerciseId: String) -> Unit,
+    onExerciseDetailClick: (exerciseId: String?, exerciseName: String) -> Unit,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     modifier: Modifier = Modifier,
@@ -73,7 +73,7 @@ fun ExerciseLogCard(
                 ExerciseCardHeader(
                     exercise = exercise,
                     onSwapExercise = onSwapClick,
-                    onViewHistory = { exercise.exerciseId?.let(onExerciseDetailClick) },
+                    onViewHistory = { onExerciseDetailClick(exercise.exerciseId, exercise.exerciseName) },
                     onMoveUp = {
                         onIntent(ActiveSessionIntent.MoveExercise(exerciseIndex, direction = -1))
                     },
@@ -90,7 +90,7 @@ fun ExerciseLogCard(
                                 contentDescription = previewCd,
                                 modifier = Modifier
                                     .size(56.dp)
-                                    .clickable { exercise.exerciseId?.let(onExerciseDetailClick) },
+                                    .clickable { onExerciseDetailClick(exercise.exerciseId, exercise.exerciseName) },
                             )
                         }
                     } else {

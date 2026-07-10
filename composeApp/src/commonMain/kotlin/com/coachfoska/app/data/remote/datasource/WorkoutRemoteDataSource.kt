@@ -127,9 +127,13 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
         supabase.postgrest["set_logs"].delete { filter { eq("id", id) } }
     }
 
-    suspend fun updateWorkoutLog(id: String, payload: WorkoutLogUpdateDto) {
-        supabase.postgrest["workout_logs"].update(payload) { filter { eq("id", id) } }
-    }
+    suspend fun updateWorkoutLog(id: String, payload: WorkoutLogUpdateDto): WorkoutLogDto =
+        supabase.postgrest["workout_logs"]
+            .update(payload) {
+                filter { eq("id", id) }
+                select()
+            }
+            .decodeSingle<WorkoutLogDto>()
 
     suspend fun getWorkoutLogs(userId: String): List<WorkoutLogDto> =
         supabase.postgrest["workout_logs"]

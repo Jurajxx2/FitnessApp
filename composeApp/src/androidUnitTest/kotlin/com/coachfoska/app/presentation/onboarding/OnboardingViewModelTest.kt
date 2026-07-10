@@ -34,6 +34,33 @@ class OnboardingViewModelTest {
 
     private fun viewModel() = OnboardingViewModel(SaveOnboardingUseCase(repository), "user-1")
 
+    private fun fillRequiredAnswers(vm: OnboardingViewModel) {
+        vm.onIntent(OnboardingIntent.SelectGender(Gender.FEMALE))
+        vm.onIntent(OnboardingIntent.SelectGoal(FitnessGoal.GET_STRONGER))
+        vm.onIntent(OnboardingIntent.SelectExperience(ExperienceLevel.ADVANCED))
+        vm.onIntent(OnboardingIntent.ToggleFocusArea(MuscleGroup.FULL_BODY))
+        vm.onIntent(OnboardingIntent.SelectEquipment(Equipment.FULL_GYM))
+        vm.onIntent(OnboardingIntent.SelectTrainingPreference(TrainingPreference.BOTH))
+        vm.onIntent(OnboardingIntent.SetName("Ada"))
+    }
+
+    private fun answerCurrentStep(vm: OnboardingViewModel) {
+        when (vm.state.value.currentStepEnum) {
+            OnboardingStep.GENDER -> vm.onIntent(OnboardingIntent.SelectGender(Gender.FEMALE))
+            OnboardingStep.GOAL -> vm.onIntent(OnboardingIntent.SelectGoal(FitnessGoal.GET_STRONGER))
+            OnboardingStep.EXPERIENCE -> vm.onIntent(OnboardingIntent.SelectExperience(ExperienceLevel.ADVANCED))
+            OnboardingStep.FOCUS_AREAS -> vm.onIntent(OnboardingIntent.ToggleFocusArea(MuscleGroup.FULL_BODY))
+            OnboardingStep.EQUIPMENT -> vm.onIntent(OnboardingIntent.SelectEquipment(Equipment.FULL_GYM))
+            OnboardingStep.TRAINING_PREFERENCE -> vm.onIntent(OnboardingIntent.SelectTrainingPreference(TrainingPreference.BOTH))
+            OnboardingStep.NAME -> vm.onIntent(OnboardingIntent.SetName("Ada"))
+            OnboardingStep.VALUE_PROP_1,
+            OnboardingStep.FREQUENCY,
+            OnboardingStep.BODY_STATS,
+            OnboardingStep.VALUE_PROP_2,
+            OnboardingStep.PLAN_LOADING -> Unit
+        }
+    }
+
     @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
@@ -75,7 +102,9 @@ class OnboardingViewModelTest {
     @Test
     fun `back navigation decrements and clamps at zero`() = runTest {
         val vm = viewModel()
+        vm.onIntent(OnboardingIntent.SelectGender(Gender.FEMALE))
         vm.onIntent(OnboardingIntent.NextStep); advanceTimeBy(400)
+        vm.onIntent(OnboardingIntent.SelectGoal(FitnessGoal.GET_STRONGER))
         vm.onIntent(OnboardingIntent.NextStep); advanceTimeBy(400)
         assertEquals(2, vm.state.value.currentStep)
         vm.onIntent(OnboardingIntent.PreviousStep); advanceTimeBy(400)
@@ -89,6 +118,7 @@ class OnboardingViewModelTest {
     fun `advance clamps at the last step`() = runTest {
         val vm = viewModel()
         repeat(OnboardingStep.entries.size + 3) {
+            answerCurrentStep(vm)
             vm.onIntent(OnboardingIntent.NextStep)
             advanceTimeBy(400)
         }
@@ -98,12 +128,24 @@ class OnboardingViewModelTest {
     @Test
     fun `rapid double NextStep advances only one step then lock releases`() = runTest {
         val vm = viewModel()
+        vm.onIntent(OnboardingIntent.SelectGender(Gender.MALE))
         vm.onIntent(OnboardingIntent.NextStep)   // 0 -> 1, lock engaged
         vm.onIntent(OnboardingIntent.NextStep)   // ignored while locked
         assertEquals(1, vm.state.value.currentStep)
         advanceTimeBy(400)                        // lock releases
+        vm.onIntent(OnboardingIntent.SelectGoal(FitnessGoal.STAY_FIT))
         vm.onIntent(OnboardingIntent.NextStep)   // 1 -> 2
         assertEquals(2, vm.state.value.currentStep)
+    }
+
+    @Test
+    fun `NextStep does not advance from unanswered required question`() = runTest {
+        val vm = viewModel()
+
+        vm.onIntent(OnboardingIntent.NextStep)
+
+        assertEquals(0, vm.state.value.currentStep)
+        assertEquals("Please complete all onboarding questions.", vm.state.value.error)
     }
 
     @Test
@@ -174,6 +216,7 @@ class OnboardingViewModelTest {
     fun `complete onboarding saves and sets isCompleted`() = runTest {
         coEvery { repository.saveResponses(any(), any()) } returns Result.success(Unit)
         val vm = viewModel()
+        fillRequiredAnswers(vm)
         vm.onIntent(OnboardingIntent.CompleteOnboarding)
         assertTrue(vm.state.value.isCompleted)
         assertFalse(vm.state.value.isSaving)
@@ -183,8 +226,19 @@ class OnboardingViewModelTest {
     fun `complete onboarding failure sets error and not completed`() = runTest {
         coEvery { repository.saveResponses(any(), any()) } returns Result.failure(RuntimeException("net"))
         val vm = viewModel()
+        fillRequiredAnswers(vm)
         vm.onIntent(OnboardingIntent.CompleteOnboarding)
         assertEquals("net", vm.state.value.error)
+        assertFalse(vm.state.value.isCompleted)
+    }
+
+    @Test
+    fun `complete onboarding does not save incomplete answers`() = runTest {
+        val vm = viewModel()
+
+        vm.onIntent(OnboardingIntent.CompleteOnboarding)
+
+        assertEquals("Please complete all onboarding questions.", vm.state.value.error)
         assertFalse(vm.state.value.isCompleted)
     }
 

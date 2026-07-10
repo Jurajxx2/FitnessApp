@@ -2,6 +2,7 @@ package com.coachfoska.app.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.coachfoska.app.core.debug.DebugCoachSubscriptionRepository
 import com.coachfoska.app.domain.usecase.auth.GetCurrentUserUseCase
 import com.coachfoska.app.domain.usecase.config.GetAppLinksUseCase
 import com.coachfoska.app.domain.usecase.debug.ResetOnboardingUseCase
@@ -17,7 +18,8 @@ private const val TAG = "SettingsViewModel"
 class SettingsViewModel(
     private val getAppLinksUseCase: GetAppLinksUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
-    private val resetOnboardingUseCase: ResetOnboardingUseCase
+    private val resetOnboardingUseCase: ResetOnboardingUseCase,
+    private val debugCoachSubscriptionRepository: DebugCoachSubscriptionRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsState())
@@ -25,6 +27,7 @@ class SettingsViewModel(
 
     init {
         loadLinks()
+        observeDebugCoachSubscription()
     }
 
     fun debugResetOnboarding() {
@@ -48,6 +51,10 @@ class SettingsViewModel(
         }
     }
 
+    fun debugSetCoachSubscribed(subscribed: Boolean) {
+        debugCoachSubscriptionRepository.setCoachSubscribed(subscribed)
+    }
+
     private fun loadLinks() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
@@ -66,6 +73,14 @@ class SettingsViewModel(
                     Napier.e("loadLinks failed", e, tag = TAG)
                     _state.update { it.copy(isLoading = false, error = e.message) }
                 }
+        }
+    }
+
+    private fun observeDebugCoachSubscription() {
+        viewModelScope.launch {
+            debugCoachSubscriptionRepository.isCoachSubscribed.collect { subscribed ->
+                _state.update { it.copy(debugCoachSubscribed = subscribed) }
+            }
         }
     }
 }

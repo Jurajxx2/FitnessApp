@@ -1,5 +1,6 @@
 package com.coachfoska.app.presentation.chat
 
+import com.coachfoska.app.core.debug.DebugCoachSubscriptionRepository
 import com.coachfoska.app.domain.model.ChatConversationSummary
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.repository.ChatRepository
@@ -8,6 +9,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -25,11 +27,15 @@ class ChatHubViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val chatRepository: ChatRepository = mockk()
+    private val debugCoachSubscriptionRepository: DebugCoachSubscriptionRepository = mockk()
+    private val coachSubscribed = MutableStateFlow(true)
 
-    private fun viewModel() = ChatHubViewModel(chatRepository, "user-1")
+    private fun viewModel() = ChatHubViewModel(chatRepository, debugCoachSubscriptionRepository, "user-1")
 
     @BeforeTest fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        coachSubscribed.value = true
+        every { debugCoachSubscriptionRepository.isCoachSubscribed } returns coachSubscribed
         every { chatRepository.observeMessages(any(), any()) } returns emptyFlow()
     }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
@@ -78,6 +84,17 @@ class ChatHubViewModelTest {
 
         val vm = viewModel()
 
+        assertTrue(vm.state.value.summaries.isEmpty())
+        assertFalse(vm.state.value.isLoading)
+    }
+
+    @Test
+    fun `not subscribed state hides summaries and stops loading`() = runTest {
+        coachSubscribed.value = false
+
+        val vm = viewModel()
+
+        assertFalse(vm.state.value.isCoachSubscribed)
         assertTrue(vm.state.value.summaries.isEmpty())
         assertFalse(vm.state.value.isLoading)
     }

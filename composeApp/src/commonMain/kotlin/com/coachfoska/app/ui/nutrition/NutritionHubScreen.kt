@@ -1,14 +1,12 @@
 package com.coachfoska.app.ui.nutrition
 
 import com.coachfoska.designsystem.theme.DsTheme
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.RestaurantMenu
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -34,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,20 +44,12 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.common_see_all
-import coachfoska.composeapp.generated.resources.img_nutrition_history
-import coachfoska.composeapp.generated.resources.img_nutrition_plan
 import coachfoska.composeapp.generated.resources.log_meal_button
 import coachfoska.composeapp.generated.resources.nutrition_hub_featured_recipes
-import coachfoska.composeapp.generated.resources.nutrition_hub_history_subtitle
 import coachfoska.composeapp.generated.resources.nutrition_hub_history_title
-import coachfoska.composeapp.generated.resources.nutrition_hub_log_eyebrow
 import coachfoska.composeapp.generated.resources.nutrition_hub_no_recipes
-import coachfoska.composeapp.generated.resources.nutrition_hub_plan_eyebrow
-import coachfoska.composeapp.generated.resources.nutrition_hub_plan_subtitle
 import coachfoska.composeapp.generated.resources.nutrition_hub_plan_title
-import coachfoska.composeapp.generated.resources.nutrition_hub_track_eyebrow
 import coachfoska.composeapp.generated.resources.nutrition_hub_title
-import coachfoska.composeapp.generated.resources.nutrition_hub_water_subtitle
 import coachfoska.composeapp.generated.resources.nutrition_hub_water_title
 import coachfoska.composeapp.generated.resources.start_logging_meals
 import com.coachfoska.app.presentation.nutrition.NutritionIntent
@@ -65,11 +57,14 @@ import org.jetbrains.compose.resources.stringResource
 import com.coachfoska.app.presentation.nutrition.NutritionState
 import com.coachfoska.app.presentation.nutrition.NutritionViewModel
 import com.coachfoska.app.ui.components.MacroSummaryRow
+import com.coachfoska.app.ui.workout.components.QuickLinkRow
 import com.coachfoska.designsystem.components.DsLoadingBox
-import com.coachfoska.designsystem.components.DsHubImageCard
+import com.coachfoska.designsystem.components.DsSectionHeader
 import com.coachfoska.app.ui.nutrition.components.FeaturedRecipeCard
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+
+private val SquareShape = RoundedCornerShape(0.dp)
 
 @Composable
 fun NutritionHubRoute(
@@ -119,35 +114,30 @@ fun NutritionHubScreen(
             onPhotoPicked = onPhotoLog
         )
     }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DsTheme.colors.background)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Text(
-            text = stringResource(Res.string.nutrition_hub_title),
-            style = MaterialTheme.typography.displayMedium,
-            color = DsTheme.colors.textPrimary,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp)
-        )
-
+    Surface(modifier = Modifier.fillMaxSize(), color = DsTheme.colors.background) {
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            Spacer(Modifier.height(8.dp))
+            BrandHeader()
+
             // Daily macro summary
             Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = DsTheme.colors.textPrimary.copy(alpha = 0.03f),
-                modifier = Modifier.fillMaxWidth()
+                shape = SquareShape,
+                color = DsTheme.colors.surface,
+                border = BorderStroke(1.dp, DsTheme.colors.outlineSubtle),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     when {
                         state.isSummaryLoading && state.nutritionSummary == null ->
                             DsLoadingBox(modifier = Modifier.fillMaxWidth().height(72.dp))
                         state.nutritionSummary != null ->
-                            MacroSummaryRow(state.nutritionSummary!!, state.macroTargets)
+                            MacroSummaryRow(state.nutritionSummary, state.macroTargets)
                         else ->
                             Text(
                                 text = stringResource(Res.string.start_logging_meals),
@@ -162,7 +152,7 @@ fun NutritionHubScreen(
             Button(
                 onClick = { showLogSheet = true },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(8.dp),
+                shape = SquareShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = DsTheme.colors.actionPrimary,
                     contentColor = DsTheme.colors.onActionPrimary,
@@ -179,77 +169,68 @@ fun NutritionHubScreen(
             }
 
             // Featured recipes header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(Res.string.nutrition_hub_featured_recipes),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = DsTheme.colors.textPrimary,
-                    letterSpacing = 1.5.sp,
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DsSectionHeader(
+                    title = stringResource(Res.string.nutrition_hub_featured_recipes),
+                    actionLabel = stringResource(Res.string.common_see_all),
+                    onAction = onRecipesClick,
                 )
-                Text(
-                    text = stringResource(Res.string.common_see_all),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = DsTheme.colors.actionPrimary,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.clickable(onClick = onRecipesClick),
-                )
-            }
 
-            // Featured recipes slider
-            val featured = remember(state.allRecipes) { state.featuredRecipes }
-            when {
-                state.isRecipesLoading && state.allRecipes.isEmpty() ->
-                    DsLoadingBox(modifier = Modifier.fillMaxWidth().height(150.dp))
-                featured.isEmpty() ->
-                    Text(
-                        text = stringResource(Res.string.nutrition_hub_no_recipes),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
-                    )
-                else ->
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(end = 16.dp),
-                    ) {
-                        items(featured, key = { it.id }) { recipe ->
-                            FeaturedRecipeCard(recipe = recipe, onClick = { onRecipeClick(recipe.id) })
+                // Featured recipes slider
+                val featured = remember(state.allRecipes) { state.featuredRecipes }
+                when {
+                    state.isRecipesLoading && state.allRecipes.isEmpty() ->
+                        DsLoadingBox(modifier = Modifier.fillMaxWidth().height(150.dp))
+                    featured.isEmpty() ->
+                        Text(
+                            text = stringResource(Res.string.nutrition_hub_no_recipes),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = DsTheme.colors.textPrimary.copy(alpha = 0.5f),
+                        )
+                    else ->
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(end = 16.dp),
+                        ) {
+                            items(featured, key = { it.id }) { recipe ->
+                                FeaturedRecipeCard(recipe = recipe, onClick = { onRecipeClick(recipe.id) })
+                            }
                         }
-                    }
+                }
             }
 
             // Other destinations
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                DsHubImageCard(
-                    imageRes = Res.drawable.img_nutrition_plan,
-                    eyebrow = stringResource(Res.string.nutrition_hub_plan_eyebrow),
-                    title = stringResource(Res.string.nutrition_hub_plan_title),
-                    subtitle = stringResource(Res.string.nutrition_hub_plan_subtitle),
+            Column {
+                QuickLinkRow(
+                    icon = Icons.Filled.RestaurantMenu,
+                    label = stringResource(Res.string.nutrition_hub_plan_title),
                     onClick = onPlanClick,
-                    modifier = Modifier.weight(1f).aspectRatio(1f),
                 )
-                DsHubImageCard(
-                    imageRes = Res.drawable.img_nutrition_history,
-                    eyebrow = stringResource(Res.string.nutrition_hub_log_eyebrow),
-                    title = stringResource(Res.string.nutrition_hub_history_title),
-                    subtitle = stringResource(Res.string.nutrition_hub_history_subtitle),
+                QuickLinkRow(
+                    icon = Icons.Filled.History,
+                    label = stringResource(Res.string.nutrition_hub_history_title),
                     onClick = onHistoryClick,
-                    modifier = Modifier.weight(1f).aspectRatio(1f),
                 )
-                DsHubImageCard(
-                    imageRes = Res.drawable.img_nutrition_history,
-                    eyebrow = stringResource(Res.string.nutrition_hub_track_eyebrow),
-                    title = stringResource(Res.string.nutrition_hub_water_title),
-                    subtitle = stringResource(Res.string.nutrition_hub_water_subtitle),
+                QuickLinkRow(
+                    icon = Icons.Filled.WaterDrop,
+                    label = stringResource(Res.string.nutrition_hub_water_title),
                     onClick = onWaterClick,
-                    modifier = Modifier.weight(1f).aspectRatio(1f),
                 )
             }
 
             Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun BrandHeader() {
+    Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Text(
+            text = stringResource(Res.string.nutrition_hub_title),
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = DsTheme.colors.textPrimary,
+        )
     }
 }

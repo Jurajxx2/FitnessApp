@@ -87,6 +87,11 @@ class ActiveSessionViewModel(
                 }
                 workoutRepository.startWorkoutSession(userId, workout.id, workout.name)
                     .onSuccess { logId ->
+                        if (_state.value.sessionDiscarded) {
+                            workoutRepository.discardWorkoutSession(logId)
+                                .onFailure { e -> Napier.e("Failed to discard late-created session", e, tag = TAG) }
+                            return@onSuccess
+                        }
                         _state.update { s ->
                             s.copy(
                                 sessionDraft = s.sessionDraft?.copy(workoutLogId = logId),

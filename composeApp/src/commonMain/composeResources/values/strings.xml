@@ -17,7 +17,7 @@
 
     <!-- Auth — VerifyOtpScreen -->
     <string name="verify_code_title">OVĚŘ KÓD</string>
-    <string name="verify_otp_desc">Zadej 6místný kód odeslaný na\n%s</string>
+    <string name="verify_otp_desc">Zadej 6místný kód odeslaný na\n%1$s</string>
     <string name="verification_code_label">Ověřovací kód</string>
     <string name="verify_button">OVĚŘIT</string>
     <string name="resend_code">POSLAT KÓD ZNOVU</string>
@@ -70,8 +70,8 @@
     <string name="recovery_day">DEN REGENERACE</string>
     <string name="recovery_day_desc">Dnes se zaměř na mobilitu a výživu.</string>
     <string name="daily_nutrition">DENNÍ VÝŽIVA</string>
-    <string name="exercises_count">%d CVIKŮ</string>
-    <string name="duration_min">%d MIN</string>
+    <string name="exercises_count">%1$d CVIKŮ</string>
+    <string name="duration_min">%1$d MIN</string>
     <string name="start_logging_meals">Začni zapisovat jídla a sleduj pokrok.</string>
     <string name="macro_kcal">KCAL</string>
     <string name="macro_protein">BÍL</string>
@@ -108,9 +108,9 @@
     <string name="stat_last_weight">POSLEDNÍ VÁHA</string>
     <string name="stat_target_goal">CÍLOVÁ VÁHA</string>
     <string name="stat_activity">AKTIVITA</string>
-    <string name="weight_kg_format">%skg</string>
-    <string name="height_cm_format">%d CM</string>
-    <string name="weight_kg_upper_format">%s KG</string>
+    <string name="weight_kg_format">%1$skg</string>
+    <string name="height_cm_format">%1$d CM</string>
+    <string name="weight_kg_upper_format">%1$s KG</string>
 
     <!-- About Coach -->
     <string name="certifications_section">CERTIFIKACE</string>
@@ -125,7 +125,7 @@
     <string name="add_exercise">PŘIDAT CVIK</string>
     <string name="notes_optional">Poznámky (volitelné)</string>
     <string name="save_session">ULOŽIT TRÉNINK</string>
-    <string name="exercise_label">CVIK #%d</string>
+    <string name="exercise_label">CVIK #%1$d</string>
     <string name="add_video_cd">Přidat video</string>
     <string name="remove_cd">Odebrat</string>
     <string name="exercise_name_label">Název cviku</string>
@@ -139,7 +139,7 @@
     <string name="food_items_section">POTRAVINY</string>
     <string name="add_food">PŘIDAT POTRAVINU</string>
     <string name="save_meal">ULOŽIT JÍDLO</string>
-    <string name="food_label">POTRAVINA #%d</string>
+    <string name="food_label">POTRAVINA #%1$d</string>
     <string name="food_name_label">Název potraviny</string>
     <string name="kcal_label">kcal</string>
     <string name="protein_label">bílkoviny (g)</string>
@@ -155,10 +155,19 @@
     <string name="coach_hub_membership_plan">Personal Coaching</string>
     <string name="coach_hub_membership_status">Aktivní</string>
     <string name="coach_hub_membership_renewal">Další období: měsíčně</string>
+    <string name="coach_hub_unsubscribed_plan">Členství s trenérem</string>
+    <string name="coach_hub_unsubscribed_status">Neaktivní</string>
+    <string name="coach_hub_unsubscribed_title">Odemkni osobní koučink</string>
+    <string name="coach_hub_unsubscribed_subtitle">Aktivita, výživa i check-iny zůstávají připravené. Koučink zapni, až budeš chtít osobní zpětnou vazbu.</string>
+    <string name="coach_hub_unsubscribed_benefit_messages">Přímé zprávy s Coach Foškou</string>
+    <string name="coach_hub_unsubscribed_benefit_checkins">Týdenní check-iny a kontrola progresu</string>
+    <string name="coach_hub_unsubscribed_benefit_reviews">Úpravy plánu podle odcvičených tréninků</string>
+    <string name="coach_hub_unsubscribed_cta">Poznat trenérku</string>
     <string name="coach_hub_checkin_label">Check-in</string>
     <string name="coach_hub_checkin_value">Každé pondělí</string>
     <string name="coach_hub_response_label">Odezva</string>
     <string name="coach_hub_response_value">Do 24 hodin</string>
+    <string name="coach_hub_coach_image_cd">Fotka trenérky Coach Foška</string>
     <string name="coach_hub_coach_name">Coach Foška</string>
     <string name="coach_hub_coach_title">Fitness, výživa a mentální výkon</string>
     <string name="coach_hub_coach_about">Zobrazit profil trenéra</string>
@@ -185,6 +194,11 @@
     <string name="settings_privacy_data">SOUKROMÍ &amp; DATA</string>
     <string name="privacy_policy">Zásady ochrany soukromí</string>
     <string name="terms_of_service">Podmínky služby</string>
+    <string name="legal_sample_desc">Vzorový dokument v aplikaci — před spuštěním nechat zkontrolovat právníkem</string>
+    <string name="legal_health_safety">Upozornění k bezpečnosti a zdraví</string>
+    <string name="legal_health_data_consent">Souhlas se zpracováním zdravotních dat</string>
+    <string name="legal_withdrawal_refunds">Odstoupení a vrácení peněz</string>
+    <string name="legal_ai_notice">Upozornění k AI asistentovi</string>
     <string name="export_my_data">Exportovat moje data</string>
     <string name="export_my_data_desc">Stáhni si kopii svých dat jako JSON</string>
     <string name="delete_account">Smazat účet</string>
@@ -201,6 +215,9 @@
     <string name="debug_reset_onboarding_success">Onboarding resetován. Restartuj aplikaci, aby se spustil znovu.</string>
     <string name="debug_launch_onboarding">Spustit onboarding</string>
     <string name="debug_launch_onboarding_desc">Otevře onboarding přímo bez resetu příznaku v databázi</string>
+    <string name="debug_coach_subscription">Obrazovka s koučinkem</string>
+    <string name="debug_coach_subscription_desc_active">Záložka Trenér ukazuje stav s aktivním členstvím.</string>
+    <string name="debug_coach_subscription_desc_inactive">Záložka Trenér ukazuje stav bez aktivního členství.</string>
 
     <!-- Activity Logging -->
     <string name="log_activity_title">ZAPSAT AKTIVITU</string>
@@ -220,7 +237,7 @@
     <string name="hub_log_activity_subtitle">Chůze, běh, plavání...</string>
     <string name="actual_reps_label">Opakování</string>
     <string name="actual_weight_label">kg</string>
-    <string name="set_number_format">SÉRIE %d</string>
+    <string name="set_number_format">SÉRIE %1$d</string>
     <string name="add_set">+ PŘIDAT SÉRII</string>
     <string name="finish_workout">DOKONČIT TRÉNINK</string>
     <string name="exercise_form_guide_cta">Klepni pro techniku cviku</string>
@@ -271,10 +288,10 @@
     <string name="ob_focus_glutes">Hýždě</string>
     <string name="ob_focus_full_body">Celé tělo</string>
 
-    <string name="ob_valueprop1_title">Tvůj trenér. Tvůj plán.</string>
-    <string name="ob_valueprop1_subtitle">Coach Foška ti sestaví tréninkový plán přesně podle tvých cílů, zkušeností a dostupného vybavení. Žádné univerzální šablony.</string>
-    <string name="ob_valueprop2_title">Osobní přístup, který funguje.</string>
-    <string name="ob_valueprop2_subtitle">Rezervuj si tréninky s ověřenými trenéry. Sleduj svůj pokrok a nech se vést krok za krokem.</string>
+    <string name="ob_valueprop1_title">Odpovědi tvoří plán.</string>
+    <string name="ob_valueprop1_subtitle">Coach Foška přizpůsobí trénink tvým cílům, zkušenostem a vybavení, ať cvičíš samostatně nebo s podporou.</string>
+    <string name="ob_valueprop2_title">Progres, se kterým se dá pracovat.</string>
+    <string name="ob_valueprop2_subtitle">Tréninky, výživu a check-iny budeš mít na jednom místě, aby každý další krok měl kontext.</string>
     <string name="ob_continue">Pokračovat</string>
 
     <string name="ob_frequency_title">Které dny chceš trénovat?</string>
@@ -286,9 +303,9 @@
     <string name="ob_day_fri">Pá</string>
     <string name="ob_day_sat">So</string>
     <string name="ob_day_sun">Ne</string>
-    <string name="ob_days_count_one">%d den v týdnu</string>
-    <string name="ob_days_count_few">%d dny v týdnu</string>
-    <string name="ob_days_count_many">%d dní v týdnu</string>
+    <string name="ob_days_count_one">%1$d den v týdnu</string>
+    <string name="ob_days_count_few">%1$d dny v týdnu</string>
+    <string name="ob_days_count_many">%1$d dní v týdnu</string>
     <string name="ob_days_notify">Připomínat mi tréninkové dny</string>
 
     <string name="ob_equipment_title">Jaké máš vybavení?</string>
@@ -303,7 +320,7 @@
     <string name="ob_equipment_full_gym_desc">Stroje, činky, vše k dispozici</string>
 
     <string name="ob_body_title">Řekni nám o sobě</string>
-    <string name="ob_body_subtitle">Věk, výšku a váhu použijeme pro výpočet optimální zátěže.</string>
+    <string name="ob_body_subtitle">Věk, výšku a váhu použijeme k přizpůsobení cílů a intenzity plánu.</string>
     <string name="ob_body_age">Věk</string>
     <string name="ob_body_age_suffix">let</string>
     <string name="ob_body_height">Výška</string>
@@ -429,8 +446,8 @@
     <string name="checkin_section_photos">Fotky pokroku</string>
     <string name="checkin_photo_front">zepředu</string>
     <string name="checkin_photo_side">z boku</string>
-    <string name="checkin_photo_added_format">Fotka %s přidána</string>
-    <string name="checkin_photo_pick_format">Vybrat fotku %s</string>
+    <string name="checkin_photo_added_format">Fotka %1$s přidána</string>
+    <string name="checkin_photo_pick_format">Vybrat fotku %1$s</string>
     <string name="checkin_uploading_photo">Nahrávání fotky…</string>
     <string name="checkin_section_notes">Poznámky</string>
     <string name="checkin_notes_label">Chceš trenérce něco vzkázat?</string>
@@ -442,8 +459,8 @@
     <string name="checkin_empty_title">Zatím žádné check-iny</string>
     <string name="checkin_empty_message">Odešli svůj první týdenní check-in a začni budovat historii.</string>
     <string name="checkin_label_training_adherence">Trénink</string>
-    <string name="checkin_rating_format">%d/5</string>
-    <string name="checkin_sessions_format">%d tréninků</string>
+    <string name="checkin_rating_format">%1$d/5</string>
+    <string name="checkin_sessions_format">%1$d tréninků</string>
     <string name="checkin_photos_attached">📷 Fotky přiloženy</string>
     <string name="checkin_coach_response">Odpověď trenérky</string>
 

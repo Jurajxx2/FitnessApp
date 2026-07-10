@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,6 +43,9 @@ import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.configure_url_first
 import coachfoska.composeapp.generated.resources.debug_launch_onboarding
 import coachfoska.composeapp.generated.resources.debug_launch_onboarding_desc
+import coachfoska.composeapp.generated.resources.debug_coach_subscription
+import coachfoska.composeapp.generated.resources.debug_coach_subscription_desc_active
+import coachfoska.composeapp.generated.resources.debug_coach_subscription_desc_inactive
 import coachfoska.composeapp.generated.resources.debug_reset_onboarding
 import coachfoska.composeapp.generated.resources.debug_reset_onboarding_desc
 import coachfoska.composeapp.generated.resources.debug_reset_onboarding_success
@@ -49,6 +53,11 @@ import coachfoska.composeapp.generated.resources.delete_account
 import coachfoska.composeapp.generated.resources.delete_account_desc
 import coachfoska.composeapp.generated.resources.export_my_data
 import coachfoska.composeapp.generated.resources.export_my_data_desc
+import coachfoska.composeapp.generated.resources.legal_ai_notice
+import coachfoska.composeapp.generated.resources.legal_health_data_consent
+import coachfoska.composeapp.generated.resources.legal_health_safety
+import coachfoska.composeapp.generated.resources.legal_sample_desc
+import coachfoska.composeapp.generated.resources.legal_withdrawal_refunds
 import coachfoska.composeapp.generated.resources.privacy_policy
 import coachfoska.composeapp.generated.resources.settings_about
 import coachfoska.composeapp.generated.resources.settings_about_desc
@@ -68,6 +77,7 @@ import coachfoska.composeapp.generated.resources.terms_of_service
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coachfoska.app.BuildKonfig
 import com.coachfoska.app.presentation.settings.SettingsViewModel
+import com.coachfoska.app.ui.legal.LegalDocumentIds
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -76,6 +86,7 @@ fun SettingsRoute(
     onBackClick: () -> Unit,
     onLaunchOnboarding: () -> Unit,
     onOpenGallery: () -> Unit = {},
+    onOpenLegalDocument: (String) -> Unit = {},
     viewModel: SettingsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -85,10 +96,13 @@ fun SettingsRoute(
         accountDeletionUrl = state.accountDeletionUrl,
         debugResetOnboardingLoading = state.debugResetOnboardingLoading,
         debugResetOnboardingSuccess = state.debugResetOnboardingSuccess,
+        debugCoachSubscribed = state.debugCoachSubscribed,
         debugError = state.error,
         onDebugResetOnboarding = viewModel::debugResetOnboarding,
         onDebugLaunchOnboarding = onLaunchOnboarding,
+        onDebugCoachSubscribedChange = viewModel::debugSetCoachSubscribed,
         onOpenGallery = onOpenGallery,
+        onOpenLegalDocument = onOpenLegalDocument,
         onBackClick = onBackClick
     )
 }
@@ -100,10 +114,13 @@ fun SettingsScreen(
     accountDeletionUrl: String,
     debugResetOnboardingLoading: Boolean = false,
     debugResetOnboardingSuccess: Boolean = false,
+    debugCoachSubscribed: Boolean = true,
     debugError: String? = null,
     onDebugResetOnboarding: () -> Unit = {},
     onDebugLaunchOnboarding: () -> Unit = {},
+    onDebugCoachSubscribedChange: (Boolean) -> Unit = {},
     onOpenGallery: () -> Unit = {},
+    onOpenLegalDocument: (String) -> Unit = {},
     onBackClick: () -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
@@ -176,14 +193,38 @@ fun SettingsScreen(
                 SettingsSection {
                     SettingsRow(
                         title = stringResource(Res.string.privacy_policy),
-                        description = privacyPolicyUrl.ifBlank { configureUrlFirst },
-                        onClick = { openConfiguredUrl(privacyPolicyUrl) }
+                        description = legalDescription(privacyPolicyUrl, stringResource(Res.string.legal_sample_desc)),
+                        onClick = { onOpenLegalDocument(LegalDocumentIds.Privacy) }
                     )
                     SettingsDivider()
                     SettingsRow(
                         title = stringResource(Res.string.terms_of_service),
-                        description = termsOfServiceUrl.ifBlank { configureUrlFirst },
-                        onClick = { openConfiguredUrl(termsOfServiceUrl) }
+                        description = legalDescription(termsOfServiceUrl, stringResource(Res.string.legal_sample_desc)),
+                        onClick = { onOpenLegalDocument(LegalDocumentIds.Terms) }
+                    )
+                    SettingsDivider()
+                    SettingsRow(
+                        title = stringResource(Res.string.legal_health_safety),
+                        description = stringResource(Res.string.legal_sample_desc),
+                        onClick = { onOpenLegalDocument(LegalDocumentIds.HealthSafety) }
+                    )
+                    SettingsDivider()
+                    SettingsRow(
+                        title = stringResource(Res.string.legal_health_data_consent),
+                        description = stringResource(Res.string.legal_sample_desc),
+                        onClick = { onOpenLegalDocument(LegalDocumentIds.HealthDataConsent) }
+                    )
+                    SettingsDivider()
+                    SettingsRow(
+                        title = stringResource(Res.string.legal_withdrawal_refunds),
+                        description = stringResource(Res.string.legal_sample_desc),
+                        onClick = { onOpenLegalDocument(LegalDocumentIds.WithdrawalRefunds) }
+                    )
+                    SettingsDivider()
+                    SettingsRow(
+                        title = stringResource(Res.string.legal_ai_notice),
+                        description = stringResource(Res.string.legal_sample_desc),
+                        onClick = { onOpenLegalDocument(LegalDocumentIds.AiNotice) }
                     )
                     SettingsDivider()
                     SettingsRow(
@@ -238,6 +279,17 @@ fun SettingsScreen(
                         isError = false,
                         onClick = onDebugLaunchOnboarding
                     )
+                    SettingsDivider()
+                    DebugSwitchRow(
+                        title = stringResource(Res.string.debug_coach_subscription),
+                        description = if (debugCoachSubscribed) {
+                            stringResource(Res.string.debug_coach_subscription_desc_active)
+                        } else {
+                            stringResource(Res.string.debug_coach_subscription_desc_inactive)
+                        },
+                        checked = debugCoachSubscribed,
+                        onCheckedChange = onDebugCoachSubscribedChange
+                    )
                     if (BuildKonfig.DEBUG) {
                         SettingsDivider()
                         DebugRow(
@@ -286,6 +338,9 @@ fun SettingsScreen(
         }
     }
 }
+
+private fun legalDescription(configuredUrl: String, sampleDescription: String): String =
+    if (configuredUrl.isBlank()) sampleDescription else "$sampleDescription\n$configuredUrl"
 
 @Composable
 private fun SettingsSection(content: @Composable ColumnScope.() -> Unit) {
@@ -370,6 +425,50 @@ private fun SectionTitle(title: String) {
         color = DsTheme.colors.textPrimary.copy(alpha = 0.45f),
         letterSpacing = 1.5.sp
     )
+}
+
+@Composable
+private fun DebugSwitchRow(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Surface(
+        onClick = { onCheckedChange(!checked) },
+        color = DsTheme.colors.surfaceElevated.copy(alpha = 0f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DsTheme.spacing.lg, vertical = DsTheme.spacing.xl),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.xs)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = DsTheme.colors.textPrimary,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.45f),
+                    lineHeight = 18.sp
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange
+            )
+        }
+    }
 }
 
 @Composable

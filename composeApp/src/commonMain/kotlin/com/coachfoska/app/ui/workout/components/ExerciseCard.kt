@@ -1,8 +1,10 @@
 package com.coachfoska.app.ui.workout.components
 
 import com.coachfoska.designsystem.theme.DsTheme
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,6 +15,7 @@ import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.editor_move_down_cd
 import coachfoska.composeapp.generated.resources.editor_move_up_cd
 import coachfoska.composeapp.generated.resources.exercise_options_cd
+import coachfoska.composeapp.generated.resources.exercise_detail_title
 import coachfoska.composeapp.generated.resources.exercise_swap
 import coachfoska.composeapp.generated.resources.exercise_view_history
 import com.coachfoska.app.presentation.workout.ExerciseDraft
@@ -31,6 +34,7 @@ fun ExerciseCardHeader(
     leading: (@Composable () -> Unit)? = null,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    val canOpenDetail = exercise.exerciseId?.isNotBlank() == true || exercise.exerciseName.isNotBlank()
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -40,10 +44,18 @@ fun ExerciseCardHeader(
         if (leading != null) {
             leading()
         }
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .then(
+                    if (canOpenDetail) Modifier.clickable(onClick = onViewHistory)
+                    else Modifier
+                )
+        ) {
             Text(
                 text = exercise.exerciseName,
                 style = MaterialTheme.typography.titleMedium,
+                color = if (canOpenDetail) DsTheme.colors.actionPrimary else DsTheme.colors.textPrimary,
             )
             val subtitle = buildString {
                 exercise.muscleGroup?.let { append("$it · ") }
@@ -56,7 +68,18 @@ fun ExerciseCardHeader(
                 color = DsTheme.colors.textSecondary,
             )
         }
-        
+
+        IconButton(
+            onClick = onViewHistory,
+            enabled = canOpenDetail,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = stringResource(Res.string.exercise_detail_title),
+                tint = if (canOpenDetail) DsTheme.colors.actionPrimary else DsTheme.colors.textSecondary.copy(alpha = 0.35f),
+            )
+        }
+
         Box {
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(
@@ -84,6 +107,7 @@ fun ExerciseCardHeader(
                 )
                 DropdownMenuItem(
                     text = { Text(stringResource(Res.string.exercise_view_history)) },
+                    enabled = canOpenDetail,
                     onClick = { menuExpanded = false; onViewHistory() },
                 )
             }

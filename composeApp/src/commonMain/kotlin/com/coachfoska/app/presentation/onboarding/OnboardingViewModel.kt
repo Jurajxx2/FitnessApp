@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 private const val TAG = "OnboardingViewModel"
 private const val AUTO_ADVANCE_DELAY_MS = 300L
 private const val NAV_LOCK_MS = 350L
+private const val INCOMPLETE_ONBOARDING_ERROR = "Please complete all onboarding questions."
 
 class OnboardingViewModel(
     private val saveOnboardingUseCase: SaveOnboardingUseCase,
@@ -77,11 +78,15 @@ class OnboardingViewModel(
     }
 
     private fun updateData(update: OnboardingData.() -> OnboardingData) {
-        _state.update { it.copy(data = it.data.update()) }
+        _state.update { it.copy(data = it.data.update(), error = null) }
     }
 
     private fun advanceStep() {
         if (navLocked) return
+        if (!_state.value.canAdvanceFromCurrentStep()) {
+            _state.update { it.copy(error = INCOMPLETE_ONBOARDING_ERROR) }
+            return
+        }
         navLocked = true
         _state.update {
             it.copy(currentStep = (it.currentStep + 1).coerceAtMost(OnboardingStep.entries.size - 1))
@@ -104,6 +109,10 @@ class OnboardingViewModel(
 
     private fun completeOnboarding() {
         viewModelScope.launch {
+            if (!_state.value.data.isCompleteForSave()) {
+                _state.update { it.copy(isSaving = false, error = INCOMPLETE_ONBOARDING_ERROR) }
+                return@launch
+            }
             _state.update { it.copy(isSaving = true, error = null) }
             saveOnboardingUseCase(userId, _state.value.data)
                 .onSuccess {
@@ -116,4 +125,30 @@ class OnboardingViewModel(
                 }
         }
     }
+
+    private fun OnboardingState.canAdvanceFromCurrentStep(): Boolean =
+        when (currentStepEnum) {
+            OnboardingStep.GENDER -> data.gender != null
+            OnboardingStep.GOAL -> data.goal != null
+            OnboardingStep.EXPERIENCE -> data.experienceLevel != null
+            OnboardingStep.FOCUS_AREAS -> data.focusAreas.isNotEmpty()
+            OnboardingStep.VALUE_PROP_1 -> true
+            OnboardingStep.FREQUENCY -> data.trainingDays.isNotEmpty()
+            OnboardingStep.EQUIPMENT -> data.equipment != null
+            OnboardingStep.BODY_STATS -> true
+            OnboardingStep.VALUE_PROP_2 -> true
+            OnboardingStep.TRAINING_PREFERENCE -> data.trainingPreference != null
+            OnboardingStep.NAME -> data.name.isNotBlank()
+            OnboardingStep.PLAN_LOADING -> false
+        }
+
+    private fun OnboardingData.isCompleteForSave(): Boolean =
+        gender != null &&
+            goal != null &&
+            experienceLevel != null &&
+            focusAreas.isNotEmpty() &&
+            trainingDays.isNotEmpty() &&
+            equipment != null &&
+            trainingPreference != null &&
+            name.isNotBlank()
 }

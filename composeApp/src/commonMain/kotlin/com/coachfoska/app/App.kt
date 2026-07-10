@@ -15,6 +15,7 @@ import com.coachfoska.app.core.theme.ThemeRepository
 import org.koin.compose.koinInject
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -29,6 +30,7 @@ import com.coachfoska.app.ui.auth.EmailOtpRoute
 import com.coachfoska.app.ui.auth.VerifyOtpRoute
 import com.coachfoska.app.ui.auth.WelcomeRoute
 import com.coachfoska.app.ui.home.HomeRoute
+import com.coachfoska.app.ui.legal.LegalDocumentRoute
 import com.coachfoska.app.ui.nutrition.MealCaptureRoute
 import com.coachfoska.app.ui.nutrition.MealDetailRoute
 import com.coachfoska.app.ui.nutrition.MealHistoryDetailRoute
@@ -108,34 +110,12 @@ fun App(openHumanChat: Boolean = false) {
             VerifyOtp::class.qualifiedName,
             Onboarding::class.qualifiedName
         )
-        val bottomTabRoutes = listOf(
-            Home::class.qualifiedName,
-            WorkoutList::class.qualifiedName,
-            Chat::class.qualifiedName,
-            MealPlan::class.qualifiedName,
-            Profile::class.qualifiedName
-        )
         val showBottomBar = currentRoute != null &&
             authRoutes.none { currentRoute.contains(it ?: "") }
 
         val selectedTab by remember(currentRoute) {
             derivedStateOf {
-                when {
-                    currentRoute?.contains("Home") == true -> BottomNavTab.Home
-                    currentRoute?.contains("Workout", ignoreCase = true) == true ||
-                        currentRoute?.contains("Exercise", ignoreCase = true) == true ||
-                        currentRoute?.contains("Activity", ignoreCase = true) == true -> BottomNavTab.Activity
-                    currentRoute?.contains("Chat", ignoreCase = true) == true ||
-                        currentRoute?.contains("CoachChat") == true -> BottomNavTab.Coach
-                    currentRoute?.contains("Meal", ignoreCase = true) == true ||
-                        currentRoute?.contains("Nutrition", ignoreCase = true) == true ||
-                        currentRoute?.contains("Recipe", ignoreCase = true) == true ||
-                        currentRoute?.contains("Hydration", ignoreCase = true) == true -> BottomNavTab.Nutrition
-                    currentRoute?.contains("Profile", ignoreCase = true) == true ||
-                        currentRoute?.contains("Progress") == true ||
-                        currentRoute?.contains("AboutCoach") == true -> BottomNavTab.Profile
-                    else -> BottomNavTab.Home
-                }
+                currentRoute.toBottomNavTab() ?: BottomNavTab.Home
             }
         }
 
@@ -150,18 +130,10 @@ fun App(openHumanChat: Boolean = false) {
                         selectedId = selectedTab.name,
                         onItemSelected = { id ->
                             val tab = BottomNavTab.valueOf(id)
-                            val route: Any = when (tab) {
-                                BottomNavTab.Home -> Home
-                                BottomNavTab.Activity -> WorkoutList
-                                BottomNavTab.Coach -> Chat
-                                BottomNavTab.Nutrition -> MealPlan
-                                BottomNavTab.Profile -> Profile
-                            }
-                            navController.navigate(route) {
-                                popUpTo<Home> { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
+                            navController.navigateToBottomTab(
+                                tab = tab,
+                                resetToRoot = tab == selectedTab
+                            )
                         }
                     )
                 }
@@ -261,17 +233,23 @@ fun App(openHumanChat: Boolean = false) {
                     RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
                         HomeRoute(
                             userId = currentUserId,
-                            onChatClick = { navController.navigate(HumanCoachChat) },
-                            onWaterClick = { navController.navigate(Hydration) },
-                            onWorkoutClick = { workoutId -> navController.navigate(WorkoutDetail(workoutId)) },
-                            onStartWorkout = { workoutId -> navController.navigate(ActiveSession(workoutId)) },
-                            onLogMealClick = { navController.navigate(MealCapture()) },
+                            onChatClick = {
+                                navController.navigateToBottomTabChild(BottomNavTab.Coach, HumanCoachChat)
+                            },
+                            onWaterClick = {
+                                navController.navigateToBottomTabChild(BottomNavTab.Nutrition, Hydration)
+                            },
+                            onWorkoutClick = { workoutId ->
+                                navController.navigateToBottomTabChild(BottomNavTab.Activity, WorkoutDetail(workoutId))
+                            },
+                            onStartWorkout = { workoutId ->
+                                navController.navigateToBottomTabChild(BottomNavTab.Activity, ActiveSession(workoutId))
+                            },
+                            onLogMealClick = {
+                                navController.navigateToBottomTabChild(BottomNavTab.Nutrition, MealCapture())
+                            },
                             onGoToActivity = {
-                                navController.navigate(WorkoutList) {
-                                    popUpTo<Home> { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                navController.navigateToBottomTab(BottomNavTab.Activity)
                             },
                         )
                     }
@@ -327,8 +305,8 @@ fun App(openHumanChat: Boolean = false) {
                                     popUpTo<ActiveSession> { inclusive = true }
                                 }
                             },
-                            onExerciseDetailClick = { exerciseId ->
-                                navController.navigate(ExerciseDetail(exerciseId))
+                            onExerciseDetailClick = { exerciseId, exerciseName ->
+                                navController.navigate(ExerciseDetail(exerciseId = exerciseId, exerciseName = exerciseName))
                             },
                         )
                     }
@@ -351,6 +329,7 @@ fun App(openHumanChat: Boolean = false) {
                         ExerciseDetailRoute(
                             userId = currentUserId,
                             exerciseId = route.exerciseId,
+                            exerciseName = route.exerciseName,
                             onBackClick = { navController.popBackStack() }
                         )
                     }
@@ -415,7 +394,10 @@ fun App(openHumanChat: Boolean = false) {
                         WorkoutHistoryDetailRoute(
                             logId = route.logId,
                             userId = currentUserId,
-                            onBackClick = { navController.popBackStack() }
+                            onBackClick = { navController.popBackStack() },
+                            onExerciseDetailClick = { exerciseId, exerciseName ->
+                                navController.navigate(ExerciseDetail(exerciseId = exerciseId, exerciseName = exerciseName))
+                            },
                         )
                     }
                 }
@@ -576,7 +558,8 @@ fun App(openHumanChat: Boolean = false) {
                             userId = currentUserId,
                             onHumanCoachClick = { navController.navigate(HumanCoachChat) },
                             onAiCoachClick = { navController.navigate(AiCoachChat) },
-                            onCoachProfileClick = { navController.navigate(AboutCoach) }
+                            onCoachProfileClick = { navController.navigate(AboutCoach) },
+                            onCheckInClick = { navController.navigate(CheckInForm(prefillExisting = false)) }
                         )
                     }
                 }
@@ -626,16 +609,18 @@ fun App(openHumanChat: Boolean = false) {
                         ProgressRoute(
                             userId = currentUserId,
                             onBackClick = { navController.popBackStack() },
-                            onCheckInClick = { navController.navigate(CheckInForm) },
+                            onCheckInClick = { navController.navigate(CheckInForm()) },
                             onCheckInHistoryClick = { navController.navigate(CheckInHistory) },
                         )
                     }
                 }
 
-                composable<CheckInForm> {
+                composable<CheckInForm> { backStackEntry ->
+                    val route = backStackEntry.toRoute<CheckInForm>()
                     RequireAuthenticatedUser(sessionState, onUnauthenticated = { navController.navigate(Welcome) { launchSingleTop = true } }) { currentUserId ->
                         CheckInFormRoute(
                             userId = currentUserId,
+                            prefillExisting = route.prefillExisting,
                             onBackClick = { navController.popBackStack() },
                             onViewHistory = { navController.navigate(CheckInHistory) },
                         )
@@ -664,9 +649,18 @@ fun App(openHumanChat: Boolean = false) {
                             onLaunchOnboarding = {
                                 navController.navigate(Onboarding(currentUserId))
                             },
-                            onOpenGallery = { navController.navigate(Gallery) }
+                            onOpenGallery = { navController.navigate(Gallery) },
+                            onOpenLegalDocument = { documentId -> navController.navigate(LegalDoc(documentId)) }
                         )
                     }
+                }
+
+                composable<LegalDoc> { backStackEntry ->
+                    val route = backStackEntry.toRoute<LegalDoc>()
+                    LegalDocumentRoute(
+                        documentId = route.id,
+                        onBackClick = { navController.popBackStack() }
+                    )
                 }
 
                 composable<Gallery> {
@@ -702,3 +696,88 @@ private fun AuthResumeLoading() {
         CircularProgressIndicator()
     }
 }
+
+private fun NavController.navigateToBottomTab(
+    tab: BottomNavTab,
+    resetToRoot: Boolean = false
+) {
+    navigate(tab.rootRoute()) {
+        popUpTo<Home> {
+            saveState = !resetToRoot
+        }
+        launchSingleTop = true
+        restoreState = !resetToRoot
+    }
+}
+
+private fun NavController.navigateToBottomTabChild(
+    tab: BottomNavTab,
+    childRoute: Any
+) {
+    navigateToBottomTab(tab = tab, resetToRoot = true)
+    navigate(childRoute)
+}
+
+private fun BottomNavTab.rootRoute(): Any = when (this) {
+    BottomNavTab.Home -> Home
+    BottomNavTab.Activity -> WorkoutList
+    BottomNavTab.Coach -> Chat
+    BottomNavTab.Nutrition -> MealPlan
+    BottomNavTab.Profile -> Profile
+}
+
+private fun String?.toBottomNavTab(): BottomNavTab? {
+    val route = this ?: return null
+    return when {
+        route.matchesRoute<Home>() -> BottomNavTab.Home
+        route.matchesAnyRoute(
+            WorkoutList::class.qualifiedName,
+            WorkoutDetail::class.qualifiedName,
+            ActiveSession::class.qualifiedName,
+            ExerciseDetail::class.qualifiedName,
+            LogWorkout::class.qualifiedName,
+            ActivityTypeSelector::class.qualifiedName,
+            LogActivity::class.qualifiedName,
+            WorkoutHistory::class.qualifiedName,
+            WorkoutHistoryDetail::class.qualifiedName,
+            WorkoutPlan::class.qualifiedName,
+            WorkoutEditor::class.qualifiedName,
+            ExerciseLibrary::class.qualifiedName,
+            ProgressDashboard::class.qualifiedName,
+            PostWorkoutSummary::class.qualifiedName
+        ) -> BottomNavTab.Activity
+        route.matchesAnyRoute(
+            Chat::class.qualifiedName,
+            HumanCoachChat::class.qualifiedName,
+            AiCoachChat::class.qualifiedName
+        ) -> BottomNavTab.Coach
+        route.matchesAnyRoute(
+            MealPlan::class.qualifiedName,
+            MealDetail::class.qualifiedName,
+            MealCapture::class.qualifiedName,
+            MealHistory::class.qualifiedName,
+            MealHistoryDetail::class.qualifiedName,
+            RecipeDetail::class.qualifiedName,
+            MealPlanDetail::class.qualifiedName,
+            RecipesList::class.qualifiedName,
+            Hydration::class.qualifiedName
+        ) -> BottomNavTab.Nutrition
+        route.matchesAnyRoute(
+            Profile::class.qualifiedName,
+            Progress::class.qualifiedName,
+            CheckInForm::class.qualifiedName,
+            CheckInHistory::class.qualifiedName,
+            AboutCoach::class.qualifiedName,
+            Settings::class.qualifiedName,
+            LegalDoc::class.qualifiedName,
+            Gallery::class.qualifiedName
+        ) -> BottomNavTab.Profile
+        else -> null
+    }
+}
+
+private inline fun <reified T : Any> String.matchesRoute(): Boolean =
+    matchesAnyRoute(T::class.qualifiedName)
+
+private fun String.matchesAnyRoute(vararg routeNames: String?): Boolean =
+    routeNames.any { routeName -> routeName != null && contains(routeName) }

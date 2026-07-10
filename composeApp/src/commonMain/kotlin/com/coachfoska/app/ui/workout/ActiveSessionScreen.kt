@@ -46,7 +46,7 @@ fun ActiveSessionRoute(
     userId: String,
     onBackClick: () -> Unit,
     onWorkoutComplete: (logId: String) -> Unit,
-    onExerciseDetailClick: (exerciseId: String) -> Unit = {},
+    onExerciseDetailClick: (exerciseId: String?, exerciseName: String) -> Unit = { _, _ -> },
     viewModel: ActiveSessionViewModel = koinViewModel { parametersOf(userId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -108,7 +108,7 @@ fun ActiveSessionScreen(
     onIntent: (ActiveSessionIntent) -> Unit,
     onBackClick: () -> Unit,
     onFinishClick: (String?) -> Unit,
-    onExerciseDetailClick: (exerciseId: String) -> Unit = {},
+    onExerciseDetailClick: (exerciseId: String?, exerciseName: String) -> Unit = { _, _ -> },
 ) {
     val draft = state.sessionDraft
     var notes by remember { mutableStateOf("") }

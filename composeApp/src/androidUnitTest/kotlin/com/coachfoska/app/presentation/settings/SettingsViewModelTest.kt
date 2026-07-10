@@ -1,5 +1,6 @@
 package com.coachfoska.app.presentation.settings
 
+import com.coachfoska.app.core.debug.DebugCoachSubscriptionRepository
 import com.coachfoska.app.domain.model.AppLinks
 import com.coachfoska.app.domain.repository.AppConfigRepository
 import com.coachfoska.app.domain.repository.AuthRepository
@@ -10,9 +11,12 @@ import com.coachfoska.app.domain.usecase.debug.ResetOnboardingUseCase
 import com.coachfoska.app.fixtures.aUser
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.verify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -31,14 +35,22 @@ class SettingsViewModelTest {
     private val appConfigRepository: AppConfigRepository = mockk()
     private val authRepository: AuthRepository = mockk()
     private val userRepository: UserRepository = mockk()
+    private val debugCoachSubscriptionRepository: DebugCoachSubscriptionRepository = mockk()
+    private val coachSubscribed = MutableStateFlow(true)
 
     private fun viewModel() = SettingsViewModel(
         getAppLinksUseCase = GetAppLinksUseCase(appConfigRepository),
         getCurrentUserUseCase = GetCurrentUserUseCase(authRepository),
         resetOnboardingUseCase = ResetOnboardingUseCase(userRepository),
+        debugCoachSubscriptionRepository = debugCoachSubscriptionRepository,
     )
 
-    @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)
+    @BeforeTest fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        coachSubscribed.value = true
+        every { debugCoachSubscriptionRepository.isCoachSubscribed } returns coachSubscribed
+        every { debugCoachSubscriptionRepository.setCoachSubscribed(any()) } returns Unit
+    }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     private fun stubLinksSuccess() {
@@ -57,6 +69,26 @@ class SettingsViewModelTest {
         assertEquals("https://t", vm.state.value.termsOfServiceUrl)
         assertEquals("https://d", vm.state.value.accountDeletionUrl)
         assertFalse(vm.state.value.isLoading)
+    }
+
+    @Test
+    fun `init observes debug coach subscription state`() = runTest {
+        stubLinksSuccess()
+        coachSubscribed.value = false
+
+        val vm = viewModel()
+
+        assertFalse(vm.state.value.debugCoachSubscribed)
+    }
+
+    @Test
+    fun `debugSetCoachSubscribed delegates to repository`() = runTest {
+        stubLinksSuccess()
+        val vm = viewModel()
+
+        vm.debugSetCoachSubscribed(false)
+
+        verify(exactly = 1) { debugCoachSubscriptionRepository.setCoachSubscribed(false) }
     }
 
     @Test

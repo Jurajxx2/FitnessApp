@@ -1,6 +1,7 @@
 package com.coachfoska.app.core.di
 
 import com.coachfoska.app.core.network.SupabaseClientProvider
+import com.coachfoska.app.core.debug.DebugCoachSubscriptionRepository
 import com.coachfoska.app.core.logging.AppLogger
 import com.coachfoska.app.data.remote.datasource.ActivityRemoteDataSource
 import com.coachfoska.app.data.remote.datasource.AppConfigRemoteDataSource
@@ -140,6 +141,7 @@ import org.koin.dsl.module
 val themeModule = module {
     single { Settings() }
     single { ThemeRepository(get()) }
+    single { DebugCoachSubscriptionRepository(get()) }
 }
 
 val networkModule = module {
@@ -278,7 +280,7 @@ val viewModelModule = module {
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }
     viewModel { (userId: String) -> ExerciseViewModel(get(), get(), get(), get(), get(), userId) }
-    viewModel { (userId: String) ->
+    viewModel { (userId: String, prefillExisting: Boolean) ->
         CheckInViewModel(
             submitCheckInUseCase = get(),
             getCheckInHistoryUseCase = get(),
@@ -286,6 +288,7 @@ val viewModelModule = module {
             uploadCheckInPhotoUseCase = get(),
             getUserProfileUseCase = get(),
             userId = userId,
+            prefillExisting = prefillExisting,
         )
     }
     viewModel { (userId: String) ->
@@ -320,7 +323,7 @@ val chatModule = module {
     viewModel { (userId: String, chatType: ChatType) ->
         ChatViewModel(get(), get(), get(), get(), get(), userId, chatType)
     }
-    viewModel { (userId: String) -> ChatHubViewModel(get(), userId) }
+    viewModel { (userId: String) -> ChatHubViewModel(get(), get(), userId) }
 }
 
 val pushModule = module {

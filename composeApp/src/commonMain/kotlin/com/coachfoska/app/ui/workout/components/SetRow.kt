@@ -74,6 +74,7 @@ fun SetTableHeader(
         Text(stringResource(Res.string.set_row_prev_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(64.dp))
         if (logType == ExerciseLogType.WEIGHT_REPS) {
             Text(stringResource(Res.string.set_row_kg_header), style = MaterialTheme.typography.labelSmall, color = DsTheme.colors.textSecondary, modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
+            Spacer(Modifier.width(8.dp))
         }
         Text(
             text = stringResource(
@@ -240,6 +241,7 @@ fun SetRow(
                     .focusRequester(weightFocusRequester),
                 singleLine = true,
             )
+            Spacer(Modifier.width(8.dp))
         }
 
         if (logType == ExerciseLogType.TIME) {

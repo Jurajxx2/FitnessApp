@@ -27,4 +27,17 @@ class ExerciseLogTypeTest {
             inferExerciseLogType(name = "Dumbbell Bench Press", equipment = listOf("Dumbbell")),
         )
     }
+
+    @Test
+    fun `ab roller exercises are logged as bodyweight reps`() {
+        assertEquals(
+            ExerciseLogType.BODYWEIGHT_REPS,
+            inferExerciseLogType(
+                name = "Ab Roller",
+                categoryName = "Abdominals",
+                equipment = listOf("Ab Roller"),
+                reps = "10",
+            ),
+        )
+    }
 }

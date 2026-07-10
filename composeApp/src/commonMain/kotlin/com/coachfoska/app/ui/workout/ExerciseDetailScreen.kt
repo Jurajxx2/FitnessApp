@@ -57,21 +57,28 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun ExerciseDetailRoute(
     userId: String,
-    exerciseId: String,
+    exerciseId: String?,
+    exerciseName: String? = null,
     onBackClick: () -> Unit,
     viewModel: ExerciseViewModel = koinViewModel { parametersOf(userId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(exerciseId) {
-        viewModel.onIntent(ExerciseIntent.SelectExercise(exerciseId))
+    LaunchedEffect(exerciseId, exerciseName) {
+        if (!exerciseId.isNullOrBlank()) {
+            viewModel.onIntent(ExerciseIntent.SelectExercise(exerciseId))
+        } else if (!exerciseName.isNullOrBlank()) {
+            viewModel.onIntent(ExerciseIntent.SelectExerciseByName(exerciseName))
+        }
     }
 
     ExerciseDetailScreen(
         state = state,
         userId = userId,
         onBackClick = onBackClick,
-        onToggleFavorite = { viewModel.onIntent(ExerciseIntent.ToggleFavorite(exerciseId)) },
+        onToggleFavorite = {
+            state.selectedExercise?.id?.let { viewModel.onIntent(ExerciseIntent.ToggleFavorite(it)) }
+        },
     )
 }
 

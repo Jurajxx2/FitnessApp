@@ -62,6 +62,7 @@ class ExerciseViewModel(
                 loadExercises(reset = true)
             }
             is ExerciseIntent.SelectExercise -> loadExerciseDetail(intent.exerciseId)
+            is ExerciseIntent.SelectExerciseByName -> loadExerciseDetailByName(intent.exerciseName)
             ExerciseIntent.ClearSelection -> _state.update { it.copy(selectedExercise = null) }
             ExerciseIntent.DismissError -> _state.update { it.copy(error = null) }
             is ExerciseIntent.ToggleFavorite -> toggleFavorite(intent.exerciseId)
@@ -139,6 +140,28 @@ class ExerciseViewModel(
                 .onSuccess { exercise -> _state.update { it.copy(isLoadingDetail = false, selectedExercise = exercise) } }
                 .onFailure { e ->
                     Napier.e("loadExerciseDetail($id) failed", e, tag = TAG)
+                    _state.update { it.copy(isLoadingDetail = false, error = e.message) }
+                }
+        }
+    }
+
+    private fun loadExerciseDetailByName(name: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoadingDetail = true, error = null) }
+            getExercisesUseCase(offset = 0, limit = 5, query = name)
+                .onSuccess { results ->
+                    val exercise = results.firstOrNull { it.name.equals(name, ignoreCase = true) }
+                        ?: results.firstOrNull()
+                    _state.update {
+                        it.copy(
+                            isLoadingDetail = false,
+                            selectedExercise = exercise,
+                            error = if (exercise == null) "Exercise not found." else null,
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    Napier.e("loadExerciseDetailByName($name) failed", e, tag = TAG)
                     _state.update { it.copy(isLoadingDetail = false, error = e.message) }
                 }
         }

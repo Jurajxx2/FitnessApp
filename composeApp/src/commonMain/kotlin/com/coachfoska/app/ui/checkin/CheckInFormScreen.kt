@@ -53,9 +53,10 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun CheckInFormRoute(
     userId: String,
+    prefillExisting: Boolean,
     onBackClick: () -> Unit,
     onViewHistory: () -> Unit,
-    viewModel: CheckInViewModel = koinViewModel { parametersOf(userId) },
+    viewModel: CheckInViewModel = koinViewModel { parametersOf(userId, prefillExisting) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     CheckInFormScreen(
