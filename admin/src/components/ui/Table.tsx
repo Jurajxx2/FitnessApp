@@ -3,7 +3,7 @@ import { ReactNode } from 'react'
 export function Table({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-outline bg-surface-elevated">
-      <table className="w-full min-w-max border-collapse">{children}</table>
+      <table className="w-full border-collapse">{children}</table>
     </div>
   )
 }

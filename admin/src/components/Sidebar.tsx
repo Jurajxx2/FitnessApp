@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Dumbbell,
   LayoutDashboard,
+  Library,
   MessageCircle,
   Moon,
   Quote,
@@ -20,7 +21,7 @@ const NAV_ITEMS = [
   { to: '/admin/workouts',  label: 'Workouts',  icon: Dumbbell, end: false },
   { to: '/admin/nutrition', label: 'Nutrition', icon: Salad, end: false },
   { to: '/admin/quotes',    label: 'Quotes',    icon: Quote, end: false },
-  { to: '/admin/exercises', label: 'Exercises', icon: Dumbbell, end: false },
+  { to: '/admin/exercises', label: 'Exercises', icon: Library, end: false },
   { to: '/admin/chat',      label: 'Chat',      icon: MessageCircle, end: false },
 ]
 

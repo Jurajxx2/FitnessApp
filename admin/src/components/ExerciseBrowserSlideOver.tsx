@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { SlideOver } from './ui'
+import { SlideOver, Chip } from './ui'
 import type { Exercise, ExerciseCategory } from '../types/database'
 
 type ExerciseResult = Pick<Exercise, 'id' | 'name_en' | 'primary_muscles' | 'image_url' | 'category_id'>
@@ -65,13 +65,6 @@ export function ExerciseBrowserSlideOver({ open, onClose, addedNames, onAdd }: E
     setPage(0)
   }
 
-  const chipClass = (active: boolean) =>
-    `cursor-pointer rounded-full border px-3 py-1 text-xs ${
-      active
-        ? 'border-transparent bg-accent text-on-accent'
-        : 'border-outline bg-surface text-text-secondary hover:bg-surface-elevated'
-    }`
-
   return (
     <SlideOver open={open} onClose={onClose} title="Browse Exercises">
       <div className="mb-3">
@@ -84,11 +77,11 @@ export function ExerciseBrowserSlideOver({ open, onClose, addedNames, onAdd }: E
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
-        <button type="button" onClick={() => handleCategory(null)} className={chipClass(categoryId === null)}>All</button>
+        <Chip size="sm" variant="accent" selected={categoryId === null} onClick={() => handleCategory(null)}>All</Chip>
         {categories.map(c => (
-          <button key={c.id} type="button" onClick={() => handleCategory(c.id)} className={chipClass(categoryId === c.id)}>
+          <Chip key={c.id} size="sm" variant="accent" selected={categoryId === c.id} onClick={() => handleCategory(c.id)}>
             {c.name}
-          </button>
+          </Chip>
         ))}
       </div>
 

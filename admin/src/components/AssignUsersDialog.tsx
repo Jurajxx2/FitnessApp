@@ -83,7 +83,7 @@ export function AssignUsersDialog({
               key={f}
               onClick={() => { setFilterAssigned(f === 'assigned'); setPage(0) }}
               selected={(f === 'assigned') === filterAssigned}
-              className="h-8 text-xs"
+              size="sm"
             >
               {f === 'all' ? 'All' : 'Assigned only'}
             </Chip>

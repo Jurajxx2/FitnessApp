@@ -29,7 +29,7 @@ export function AdminLayout() {
 
   return (
     <AdminLayoutContext.Provider value={{ setActions }}>
-      <div className="flex min-h-dvh overflow-hidden bg-background">
+      <div className="flex h-dvh overflow-hidden bg-background">
         <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-outline-subtle bg-background px-4 sm:px-6">
