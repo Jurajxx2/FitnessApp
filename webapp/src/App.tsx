@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import Verify from './pages/Verify'
 import Placeholder from './pages/nutrition/Placeholder'
 import Hub from './pages/nutrition/Hub'
+import Plan from './pages/nutrition/Plan'
 
 export default function App() {
   return (
@@ -20,7 +21,7 @@ export default function App() {
             <Route element={<RouteGuard />}>
               <Route element={<AppShell />}>
                 <Route path="/nutrition" element={<Hub />} />
-                <Route path="/nutrition/plan" element={<Placeholder name="Plan" />} />
+                <Route path="/nutrition/plan" element={<Plan />} />
                 <Route path="/nutrition/recipes" element={<Placeholder name="Recipes" />} />
                 <Route path="/nutrition/history" element={<Placeholder name="History" />} />
               </Route>
