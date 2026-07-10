@@ -12,6 +12,7 @@ import Recipes from './pages/nutrition/Recipes'
 import RecipeDetail from './pages/nutrition/RecipeDetail'
 import History from './pages/nutrition/History'
 import HistoryDetail from './pages/nutrition/HistoryDetail'
+import LogMeal from './pages/nutrition/LogMeal'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
                 <Route path="/nutrition/recipes/:id" element={<RecipeDetail />} />
                 <Route path="/nutrition/history" element={<History />} />
                 <Route path="/nutrition/history/:id" element={<HistoryDetail />} />
+                <Route path="/nutrition/log" element={<LogMeal />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/nutrition" replace />} />
