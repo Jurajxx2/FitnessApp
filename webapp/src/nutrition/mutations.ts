@@ -2,14 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { qk } from './queries'
+import { todayIso } from './date'
 
 export type LogFoodInput = {
   name: string; amount: number; unit: string
   calories: number; protein_g: number; carbs_g: number; fat_g: number
-}
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
 }
 
 export function useLogMeal() {
