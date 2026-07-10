@@ -1878,7 +1878,7 @@ export function useLogMeal() {
         name: f.name,
         amount: f.amount,
         unit: f.unit,
-        amount_grams: f.unit === 'g' ? f.amount : f.amount, // keep populated (legacy NOT NULL)
+        amount_grams: f.amount, // keep populated: legacy NOT NULL column
         calories: f.calories,
         protein_g: f.protein_g,
         carbs_g: f.carbs_g,
@@ -2691,14 +2691,15 @@ export default function LogMeal() {
     setQuery('')
   }
 
-  function setAmount(index: number, amount: number, base: FoodRow | null) {
+  function setAmount(index: number, amount: number) {
     setItems(prev => prev.map((it, i) => {
       if (i !== index) return it
-      // Rescale from current per-unit ratio: derive per-1-unit macros, multiply by new amount.
-      const per = it.amount > 0 ? amount / it.amount : 0
-      return base ? it : {
+      // Rescale macros by the ratio of the new amount to the current amount.
+      const ratio = it.amount > 0 ? amount / it.amount : 0
+      return {
         ...it, amount,
-        calories: it.calories * per, protein_g: it.protein_g * per, carbs_g: it.carbs_g * per, fat_g: it.fat_g * per,
+        calories: it.calories * ratio, protein_g: it.protein_g * ratio,
+        carbs_g: it.carbs_g * ratio, fat_g: it.fat_g * ratio,
       }
     }))
   }
@@ -2725,7 +2726,7 @@ export default function LogMeal() {
               <span className="flex-1 text-sm text-text-primary">{it.name}</span>
               <input
                 type="number" min={0} value={Math.round(it.amount)}
-                onChange={e => setAmount(i, Number(e.target.value), null)}
+                onChange={e => setAmount(i, Number(e.target.value))}
                 className="w-20 h-9 px-2 rounded-lg bg-surface border border-outline text-text-primary text-sm outline-none"
               />
               <span className="text-xs text-text-secondary w-6">{it.unit}</span>
