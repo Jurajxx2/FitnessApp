@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { UtensilsCrossed, CalendarDays, BookOpen, History } from 'lucide-react'
+import { PageTransition } from './PageTransition'
 
 const NAV = [
   { to: '/nutrition', label: 'Today', icon: UtensilsCrossed, end: true },
@@ -17,7 +18,7 @@ export function AppShell() {
         </header>
 
         <main className="flex-1 px-4 pb-24 pt-4">
-          <Outlet />
+          <PageTransition />
         </main>
 
         <nav className="fixed bottom-0 w-full max-w-[560px] bg-surface border-t border-outline-subtle flex">
