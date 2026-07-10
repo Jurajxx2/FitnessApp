@@ -206,10 +206,10 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
               type="button"
               disabled={loading}
               onClick={() => setSyncMode(mode)}
-              className={`flex-1 text-sm py-2 px-3 rounded-md border cursor-pointer transition-colors ${
+              className={`flex-1 cursor-pointer rounded-xl border px-3 py-2 text-sm transition-colors ${
                 syncMode === mode
-                  ? 'bg-[var(--primary)] text-white border-transparent'
-                  : 'bg-transparent text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--text-muted)]'
+                  ? 'border-transparent bg-accent text-on-accent'
+                  : 'border-outline bg-surface text-text-secondary hover:bg-surface-elevated'
               }`}
             >
               {mode === 'full' ? 'Full sync' : 'Photos only'}
@@ -219,11 +219,11 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
 
         {syncMode === 'full' ? (
           <>
-            <p className="text-sm text-[var(--text-muted)]">
+            <p className="text-sm text-text-secondary">
               Sync all exercises from <strong>free-exercise-db</strong> (~800 exercises). Existing records are updated by external ID.
             </p>
             <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 cursor-pointer p-2 bg-zinc-900/50 rounded-md border border-zinc-800">
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-outline bg-surface p-3">
                 <input
                   type="checkbox"
                   checked={uploadImages}
@@ -232,7 +232,7 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
                 />
                 <span className="text-sm font-medium">Upload images to Supabase Storage</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer p-2 bg-zinc-900/50 rounded-md border border-zinc-800">
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-outline bg-surface p-3">
                 <input
                   type="checkbox"
                   checked={aiTranslate}
@@ -244,18 +244,18 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
             </div>
           </>
         ) : (
-          <p className="text-sm text-[var(--text-muted)]">
+          <p className="text-sm text-text-secondary">
             Downloads the <strong>second photo</strong> for each exercise that has one and saves it to <code>image_url_2</code>. Only touches photo fields — no metadata changes.
           </p>
         )}
 
         {status && (
-          <div className="bg-zinc-900/50 p-3 rounded-md border border-zinc-800">
-            <p className="text-xs font-mono text-zinc-400 mb-2">{status}</p>
+          <div className="rounded-xl border border-outline bg-surface p-3">
+            <p className="mb-2 font-mono text-xs text-text-secondary">{status}</p>
             {progress.total > 0 && (
-              <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-highest">
                 <div
-                  className="bg-white h-full transition-all duration-300"
+                  className="h-full bg-accent transition-all duration-300"
                   style={{ width: `${(progress.current / progress.total) * 100}%` }}
                 />
               </div>

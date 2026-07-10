@@ -1,16 +1,27 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import {
+  Dumbbell,
+  LayoutDashboard,
+  MessageCircle,
+  Moon,
+  Quote,
+  Salad,
+  Sun,
+  Users,
+  X,
+} from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 
 const NAV_ITEMS = [
-  { to: '/admin',           label: 'Dashboard', icon: '▪',  end: true },
-  { to: '/admin/users',     label: 'Users',     icon: '👥', end: false },
-  { to: '/admin/workouts',  label: 'Workouts',  icon: '🏋️', end: false },
-  { to: '/admin/nutrition', label: 'Nutrition', icon: '🥗', end: false },
-  { to: '/admin/quotes',    label: 'Quotes',    icon: '📅', end: false },
-  { to: '/admin/exercises', label: 'Exercises', icon: '💪', end: false },
-  { to: '/admin/chat',      label: 'Chat',      icon: '💬', end: false },
+  { to: '/admin',           label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/admin/users',     label: 'Users',     icon: Users, end: false },
+  { to: '/admin/workouts',  label: 'Workouts',  icon: Dumbbell, end: false },
+  { to: '/admin/nutrition', label: 'Nutrition', icon: Salad, end: false },
+  { to: '/admin/quotes',    label: 'Quotes',    icon: Quote, end: false },
+  { to: '/admin/exercises', label: 'Exercises', icon: Dumbbell, end: false },
+  { to: '/admin/chat',      label: 'Chat',      icon: MessageCircle, end: false },
 ]
 
 interface SidebarProps {
@@ -28,73 +39,71 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     navigate('/auth', { replace: true })
   }
 
+  const ThemeIcon = theme === 'dark' ? Moon : Sun
+
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          aria-hidden="true"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
           onClick={onClose}
         />
       )}
 
-      <aside className={`
-        fixed top-0 left-0 h-full z-50 w-[200px] flex-shrink-0 flex flex-col
-        bg-[var(--sidebar-bg)] border-r border-[var(--border)]
-        transition-transform duration-300
-        md:relative md:translate-x-0 md:z-auto
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
-        <div className="px-4 pt-5 pb-2 flex items-center justify-between">
-          <span className="text-xs font-extrabold tracking-widest text-[var(--text)] uppercase">Coach Foska</span>
+      <aside className={`fixed top-0 left-0 z-50 flex h-full w-64 flex-shrink-0 flex-col border-r border-outline bg-background transition-transform duration-300 md:relative md:z-auto md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className="flex h-16 items-center justify-between border-b border-outline-subtle px-5">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-text-primary">Coach Foska</p>
+            <p className="mt-0.5 text-[10px] font-medium uppercase tracking-widest text-text-secondary">Admin workspace</p>
+          </div>
           <button
+            aria-label="Close menu"
             onClick={onClose}
-            className="md:hidden text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer text-lg leading-none"
+            className="cursor-pointer border-0 bg-transparent p-1 text-text-secondary hover:text-text-primary md:hidden"
           >
-            ×
+            <X size={20} />
           </button>
         </div>
 
-        <nav className="flex-1 px-2 py-3 flex flex-col gap-0.5">
-          <p className="text-[9px] font-bold text-[var(--text-disabled)] uppercase tracking-widest px-3 mb-1">Menu</p>
-          {NAV_ITEMS.map(({ to, label, icon, end }) => (
+        <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">Workspace</p>
+          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               onClick={onClose}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-md text-xs transition-colors ${
+                `flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm transition-colors ${
                   isActive
-                    ? 'bg-[var(--sidebar-active-bg)] text-[var(--text)] font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                    ? 'bg-surface-elevated font-semibold text-text-primary'
+                    : 'text-text-secondary hover:bg-surface hover:text-text-primary'
                 }`
               }
             >
-              <span className="text-sm w-4 text-center">{icon}</span>
+              <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
               {label}
             </NavLink>
           ))}
         </nav>
 
-        <div className="px-3 py-3 border-t border-[var(--border)] flex flex-col gap-1">
+        <div className="border-t border-outline-subtle p-3">
           <button
             onClick={toggleTheme}
-            className="flex items-center gap-2.5 px-2 py-1.5 w-full bg-transparent border-0 cursor-pointer text-left"
+            className="flex min-h-10 w-full items-center gap-3 rounded-xl border-0 bg-transparent px-3 text-left text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary cursor-pointer"
           >
-            <div className="relative w-8 h-4 rounded-full bg-[var(--border)] flex-shrink-0">
-              <div className={`absolute top-0.5 w-3 h-3 bg-[var(--text)] rounded-full transition-all ${theme === 'light' ? 'left-4' : 'left-0.5'}`} />
-            </div>
-            <span className="text-xs text-[var(--text-muted)]">{theme === 'dark' ? 'Dark' : 'Light'}</span>
+            <ThemeIcon size={17} aria-hidden="true" />
+            <span>{theme === 'dark' ? 'Dark appearance' : 'Light appearance'}</span>
           </button>
 
-          <div className="flex items-center gap-2 px-2 py-1">
-            <div className="w-7 h-7 rounded-full bg-[var(--bg-card)] flex items-center justify-center text-xs text-[var(--text-muted)] flex-shrink-0 font-bold uppercase">
+          <div className="mt-2 flex items-center gap-3 rounded-xl bg-surface p-3">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-surface-highest text-xs font-bold uppercase text-text-primary">
               {user?.email?.slice(0, 2) ?? 'CF'}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-[var(--text-muted)] truncate">{user?.email}</p>
-              <button onClick={handleSignOut} className="text-[10px] text-[var(--text-disabled)] hover:text-red-400 bg-transparent border-0 cursor-pointer p-0">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium text-text-primary">{user?.email ?? 'Coach Foska'}</p>
+              <button onClick={handleSignOut} className="mt-0.5 cursor-pointer border-0 bg-transparent p-0 text-[11px] text-text-secondary hover:text-error">
                 Sign out
               </button>
             </div>

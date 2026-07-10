@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { Input, Button } from '../components/ui'
+import { Card, Input, Button } from '../components/ui'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -39,18 +39,18 @@ export default function Login() {
   // Don't flash the login form while we're resolving the existing session.
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <p className="text-[var(--text-muted)] text-sm">Loading…</p>
+      <div className="flex min-h-dvh items-center justify-center bg-background">
+        <p className="text-sm text-text-secondary">Loading…</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-xs font-bold tracking-widest text-white uppercase mb-8">Coach Foska</div>
-        <h1 className="text-xl font-bold text-white mb-2">Welcome back</h1>
-        <p className="text-sm text-[var(--text-muted)] mb-6 leading-relaxed">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
+      <Card className="w-full max-w-sm p-6 sm:p-7">
+        <div className="mb-8 text-xs font-bold uppercase tracking-widest text-text-primary">Coach Foska</div>
+        <h1 className="mb-2 text-xl font-bold text-text-primary">Welcome back</h1>
+        <p className="mb-6 text-sm leading-relaxed text-text-secondary">
           Enter your email to receive a one-time login code. Admin access is required.
         </p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -64,12 +64,12 @@ export default function Login() {
             required
             autoFocus
           />
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p className="text-xs text-error">{error}</p>}
           <Button type="submit" loading={loading} disabled={!email}>
             Send login code →
           </Button>
         </form>
-      </div>
+      </Card>
     </div>
   )
 }

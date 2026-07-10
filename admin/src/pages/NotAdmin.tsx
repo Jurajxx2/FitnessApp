@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Button } from '../components/ui'
+import { Button, Card } from '../components/ui'
 
 export default function NotAdmin() {
   const navigate = useNavigate()
@@ -11,15 +11,15 @@ export default function NotAdmin() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-      <div className="text-center max-w-sm">
-        <div className="text-5xl mb-4">403</div>
-        <h1 className="text-xl font-bold text-white mb-2">Access denied</h1>
-        <p className="text-sm text-[var(--text-muted)] mb-6">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
+      <Card className="max-w-sm text-center">
+        <div className="mb-4 text-5xl font-extrabold tracking-tight text-text-primary">403</div>
+        <h1 className="mb-2 text-xl font-bold text-text-primary">Access denied</h1>
+        <p className="mb-6 text-sm text-text-secondary">
           Your account does not have admin access. Contact the administrator.
         </p>
         <Button variant="ghost" onClick={handleSignOut}>Sign out</Button>
-      </div>
+      </Card>
     </div>
   )
 }

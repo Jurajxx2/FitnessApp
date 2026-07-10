@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
+import { Button, Input, Modal, PageHeader, Table, Th, Td } from '../../components/ui'
 import { ExerciseCombobox } from '../../components/ExerciseCombobox'
 import { ExerciseBrowserSlideOver } from '../../components/ExerciseBrowserSlideOver'
 import { AssignUsersDialog } from '../../components/AssignUsersDialog'
@@ -177,13 +177,10 @@ export default function Workouts() {
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-lg font-bold text-[var(--text)]">Workouts</h1>
-        <Button onClick={openCreate}>+ Create plan</Button>
-      </div>
+      <PageHeader title="Workouts" description="Create and assign coaching plans." actions={<Button onClick={openCreate}>+ Create plan</Button>} />
 
       {isLoading ? (
-        <p className="text-sm text-[var(--text-disabled)]">Loading…</p>
+        <p className="text-sm text-text-secondary">Loading…</p>
       ) : (
         <Table>
           <thead>
@@ -197,11 +194,11 @@ export default function Workouts() {
           </thead>
           <tbody>
             {workouts.map(w => (
-              <tr key={w.id} className="hover:bg-[var(--bg-card-hover)]">
-                <Td className="text-[var(--text)] font-semibold">{w.name}</Td>
+              <tr key={w.id} className="hover:bg-surface-highest">
+                <Td className="font-semibold text-text-primary">{w.name}</Td>
                 <Td>{w.day_of_week !== null ? DAYS[w.day_of_week] : 'Any day'}</Td>
                 <Td>{w.exercise_count} exercises</Td>
-                <Td>{w.is_active ? <span className="text-green-400 text-xs">Active</span> : <span className="text-[var(--text-disabled)] text-xs">Inactive</span>}</Td>
+                <Td>{w.is_active ? <span className="text-xs text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}</Td>
                 <Td>
                   <div className="flex gap-2">
                     <button onClick={() => openEdit(w)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">Edit</button>

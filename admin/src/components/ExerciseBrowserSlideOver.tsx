@@ -66,17 +66,17 @@ export function ExerciseBrowserSlideOver({ open, onClose, addedNames, onAdd }: E
   }
 
   const chipClass = (active: boolean) =>
-    `text-xs px-3 py-1 rounded-full border cursor-pointer bg-transparent ${
+    `cursor-pointer rounded-full border px-3 py-1 text-xs ${
       active
-        ? 'bg-[var(--primary)] text-white border-transparent'
-        : 'text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--text-muted)]'
+        ? 'border-transparent bg-accent text-on-accent'
+        : 'border-outline bg-surface text-text-secondary hover:bg-surface-elevated'
     }`
 
   return (
     <SlideOver open={open} onClose={onClose} title="Browse Exercises">
       <div className="mb-3">
         <input
-          className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-disabled)] outline-none focus:border-[var(--text-muted)] transition-colors"
+          className="h-10 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent"
           placeholder="Search exercises…"
           value={search}
           onChange={e => handleSearch(e.target.value)}
@@ -94,30 +94,30 @@ export function ExerciseBrowserSlideOver({ open, onClose, addedNames, onAdd }: E
 
       <div className="flex flex-col gap-1">
         {exercises.length === 0 ? (
-          <p className="text-sm text-[var(--text-disabled)] text-center py-8">No exercises found</p>
+          <p className="py-8 text-center text-sm text-text-secondary">No exercises found</p>
         ) : exercises.map(ex => {
           const isAdded = addedNames.includes(ex.name_en)
           return (
-            <div key={ex.id} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-[var(--bg-card-hover)]">
+            <div key={ex.id} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface-highest">
               {ex.image_url ? (
                 <img src={ex.image_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
               ) : (
-                <div className="w-8 h-8 rounded bg-[var(--bg)] flex-shrink-0" />
+                <div className="h-8 w-8 flex-shrink-0 rounded bg-surface" />
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-[var(--text)] font-medium truncate">{ex.name_en}</div>
+                <div className="truncate text-sm font-medium text-text-primary">{ex.name_en}</div>
                 {ex.primary_muscles?.[0] && (
-                  <div className="text-xs text-[var(--text-muted)] truncate">{ex.primary_muscles[0]}</div>
+                  <div className="truncate text-xs text-text-secondary">{ex.primary_muscles[0]}</div>
                 )}
               </div>
               {isAdded ? (
-                <span className="text-xs text-green-400 flex-shrink-0">✓ added</span>
+                <span className="flex-shrink-0 text-xs text-success">✓ added</span>
               ) : (
                 <button
                   type="button"
                   aria-label={`Add ${ex.name_en}`}
                   onClick={() => onAdd(ex.name_en, ex.primary_muscles?.[0] ?? '', ex.id)}
-                  className="text-lg text-[var(--primary,#7c6af7)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer flex-shrink-0 leading-none"
+                  className="flex-shrink-0 cursor-pointer border-0 bg-transparent text-lg leading-none text-accent hover:text-text-primary"
                 >
                   ＋
                 </button>
@@ -128,17 +128,17 @@ export function ExerciseBrowserSlideOver({ open, onClose, addedNames, onAdd }: E
       </div>
 
       {count > PAGE_SIZE && (
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--border)]">
-          <span className="text-xs text-[var(--text-muted)]">
+        <div className="mt-4 flex items-center justify-between border-t border-outline pt-4">
+          <span className="text-xs text-text-secondary">
             {page * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE + PAGE_SIZE, count)} of {count}
           </span>
           <div className="flex gap-1">
             <button type="button" onClick={() => setPage(p => p - 1)} disabled={page === 0}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-40 px-2 py-1 border border-[var(--border)] rounded bg-transparent cursor-pointer">
+              className="cursor-pointer rounded border border-outline bg-surface px-2 py-1 text-xs text-text-secondary hover:text-text-primary disabled:opacity-40">
               ←
             </button>
             <button type="button" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-40 px-2 py-1 border border-[var(--border)] rounded bg-transparent cursor-pointer">
+              className="cursor-pointer rounded border border-outline bg-surface px-2 py-1 text-xs text-text-secondary hover:text-text-primary disabled:opacity-40">
               →
             </button>
           </div>
@@ -147,7 +147,7 @@ export function ExerciseBrowserSlideOver({ open, onClose, addedNames, onAdd }: E
 
       <div className="flex justify-end mt-6">
         <button type="button" onClick={onClose}
-          className="text-sm bg-[var(--primary,#7c6af7)] text-white rounded-md px-4 py-2 cursor-pointer border-0 hover:opacity-90">
+          className="cursor-pointer rounded-xl border-0 bg-accent px-4 py-2 text-sm text-on-accent hover:opacity-90">
           Done
         </button>
       </div>

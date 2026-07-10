@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { DailyQuote } from '../../types/database'
-import { Button } from '../../components/ui'
+import { Button, Card, PageHeader } from '../../components/ui'
 
 function useStats() {
   return useQuery({
@@ -92,10 +92,10 @@ function useRecentActivity() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-5">
-      <p className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest mb-2">{label}</p>
-      <p className="text-3xl font-extrabold text-[var(--text)]">{value}</p>
-    </div>
+    <Card>
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">{label}</p>
+      <p className="text-3xl font-extrabold tracking-tight text-text-primary">{value}</p>
+    </Card>
   )
 }
 
@@ -114,10 +114,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-bold text-[var(--text)]">Dashboard</h1>
-      </div>
+    <div className="max-w-5xl p-4 sm:p-6">
+      <PageHeader title="Dashboard" description="Your coaching workspace at a glance." />
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
@@ -128,40 +126,40 @@ export default function Dashboard() {
       </div>
 
       {/* Active Quote */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-5 mb-5">
-        <p className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest mb-2">Active Quote</p>
+      <Card className="mb-5">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">Active Quote</p>
         {activeQuote.data ? (
           <>
-            <p className="text-sm text-[var(--text-muted)] italic leading-relaxed">"{activeQuote.data.text}"</p>
-            <p className="text-xs text-[var(--text-disabled)] mt-1">— {activeQuote.data.author}</p>
+            <p className="text-sm italic leading-relaxed text-text-secondary">"{activeQuote.data.text}"</p>
+            <p className="mt-1 text-xs text-text-secondary">— {activeQuote.data.author}</p>
           </>
         ) : (
-          <p className="text-sm text-[var(--text-disabled)]">No active quote. <button className="underline cursor-pointer bg-transparent border-0 text-[var(--text-muted)] text-sm" onClick={() => navigate('/admin/quotes')}>Set one →</button></p>
+          <p className="text-sm text-text-secondary">No active quote. <button className="cursor-pointer border-0 bg-transparent text-sm text-text-primary underline" onClick={() => navigate('/admin/quotes')}>Set one →</button></p>
         )}
-      </div>
+      </Card>
 
       {/* Panels */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Recent Activity */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-5">
-          <p className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest mb-3">Recent Activity</p>
-          {activity.isLoading && <p className="text-xs text-[var(--text-disabled)]">Loading…</p>}
+        <Card>
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">Recent Activity</p>
+          {activity.isLoading && <p className="text-xs text-text-secondary">Loading…</p>}
           {activity.data?.map(item => (
-            <div key={item.id} className="flex items-center gap-2 py-2 border-b border-[var(--border-subtle)] last:border-0">
-              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.kind === 'workout' ? 'bg-green-500' : 'bg-[var(--border)]'}`} />
-              <span className="text-xs text-[var(--text-muted)] flex-1">
+            <div key={item.id} className="flex items-center gap-2 border-b border-outline-subtle py-2 last:border-0">
+              <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${item.kind === 'workout' ? 'bg-success' : 'bg-outline'}`} />
+              <span className="flex-1 text-xs text-text-secondary">
                 {item.kind === 'workout'
                   ? `${item.userName} logged ${item.workoutName}`
                   : `New user: ${item.name}`}
               </span>
-              <span className="text-[10px] text-[var(--text-disabled)]">{timeAgo(item.timestamp)}</span>
+              <span className="text-[10px] text-text-secondary">{timeAgo(item.timestamp)}</span>
             </div>
           ))}
-        </div>
+        </Card>
 
         {/* Quick Actions */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-5">
-          <p className="text-[10px] text-[var(--text-disabled)] uppercase tracking-widest mb-3">Quick Actions</p>
+        <Card>
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">Quick Actions</p>
           <div className="flex flex-col gap-2">
             <Button variant="primary" className="w-full justify-start" onClick={() => navigate('/admin/workouts')}>
               + Create workout plan
@@ -176,7 +174,7 @@ export default function Dashboard() {
               ✏️ Update active quote
             </Button>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   )

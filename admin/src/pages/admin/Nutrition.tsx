@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { uploadRecipePhoto } from '../../lib/storage'
-import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
+import { Button, Chip, Input, Modal, PageHeader, Table, Th, Td } from '../../components/ui'
 import type { Recipe, RecipeIngredient, MealPlan, RecipeDifficulty, Food } from '../../types/database'
 import RecipeImportModal from './RecipeImportModal'
 import RecipePhotoUploadModal from './RecipePhotoUploadModal'
@@ -587,22 +587,17 @@ export default function Nutrition() {
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-lg font-bold text-[var(--text)]">Nutrition</h1>
-      </div>
-      <div className="flex gap-0 mb-6 border-b border-[var(--border)]">
+      <PageHeader title="Nutrition" description="Manage recipes, meal plans, and the food library." />
+      <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
         {(['recipes', 'meal-plans', 'foods'] as const).map(tab => (
-          <button
+          <Chip
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px cursor-pointer bg-transparent transition-colors capitalize ${
-              activeTab === tab
-                ? 'border-[var(--text)] text-[var(--text)]'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)]'
-            }`}
+            selected={activeTab === tab}
+            className="capitalize"
           >
             {tab.replace('-', ' ')}
-          </button>
+          </Chip>
         ))}
       </div>
       {activeTab === 'recipes' && <RecipesTab />}

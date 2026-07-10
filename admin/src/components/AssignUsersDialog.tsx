@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Modal, Input, Button } from './ui'
+import { Modal, Input, Button, Chip } from './ui'
 import type { Profile } from '../types/database'
 
 export function AssignUsersDialog({
@@ -66,7 +66,7 @@ export function AssignUsersDialog({
       title="Assign Users"
       footer={
         <>
-          <span className="text-xs text-[var(--text-muted)]">{localIds.size} assigned</span>
+          <span className="text-xs text-text-secondary">{localIds.size} assigned</span>
           <Button onClick={() => { onChange([...localIds]); onClose() }}>Done</Button>
         </>
       }
@@ -79,17 +79,14 @@ export function AssignUsersDialog({
         />
         <div className="flex gap-2">
           {(['all', 'assigned'] as const).map(f => (
-            <button
+            <Chip
               key={f}
               onClick={() => { setFilterAssigned(f === 'assigned'); setPage(0) }}
-              className={`text-xs px-3 py-1 rounded-full border cursor-pointer bg-transparent transition-colors ${
-                (f === 'assigned') === filterAssigned
-                  ? 'border-[var(--text)] text-[var(--text)]'
-                  : 'border-[var(--border)] text-[var(--text-muted)]'
-              }`}
+              selected={(f === 'assigned') === filterAssigned}
+              className="h-8 text-xs"
             >
               {f === 'all' ? 'All' : 'Assigned only'}
-            </button>
+            </Chip>
           ))}
         </div>
         <div className="flex flex-col divide-y divide-[var(--border)]">
@@ -99,46 +96,46 @@ export function AssignUsersDialog({
               <div
                 key={p.id}
                 onClick={() => toggle(p.id)}
-                className={`flex items-center gap-3 py-2.5 cursor-pointer rounded px-1 -mx-1 ${
-                  isAssigned ? 'bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)]' : 'hover:bg-[var(--bg-card)]'
+                className={`-mx-1 flex cursor-pointer items-center gap-3 rounded-xl px-1 py-2.5 ${
+                  isAssigned ? 'bg-surface-elevated hover:bg-surface-highest' : 'hover:bg-surface-elevated'
                 }`}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                  isAssigned ? 'bg-green-900/40 text-green-400' : 'bg-[var(--bg)] text-[var(--text-muted)]'
+                <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  isAssigned ? 'bg-success/15 text-success' : 'bg-surface text-text-secondary'
                 }`}>
                   {(p.full_name ?? p.email)[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[var(--text)] truncate">{p.full_name ?? '—'}</p>
-                  <p className="text-xs text-[var(--text-muted)] truncate">{p.email}</p>
+                  <p className="truncate text-sm text-text-primary">{p.full_name ?? '—'}</p>
+                  <p className="truncate text-xs text-text-secondary">{p.email}</p>
                 </div>
-                <div className={`w-4 h-4 rounded flex-shrink-0 border flex items-center justify-center ${
-                  isAssigned ? 'bg-green-900/40 border-green-700' : 'border-[var(--border)]'
+                <div className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
+                  isAssigned ? 'border-success bg-success/15' : 'border-outline'
                 }`}>
-                  {isAssigned && <span className="text-green-400 text-[10px]">✓</span>}
+                  {isAssigned && <span className="text-[10px] text-success">✓</span>}
                 </div>
               </div>
             )
           })}
           {pageItems.length === 0 && (
-            <p className="text-sm text-[var(--text-disabled)] py-4 text-center">No users found</p>
+            <p className="py-4 text-center text-sm text-text-secondary">No users found</p>
           )}
         </div>
         {totalPages > 1 && (
-          <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+          <div className="flex items-center justify-between text-xs text-text-secondary">
             <span>Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
             <div className="flex gap-1">
               <button
                 onClick={() => setPage(p => Math.max(0, p - 1))}
                 disabled={page === 0}
-                className="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded disabled:opacity-30 cursor-pointer"
+                className="cursor-pointer rounded border border-outline bg-surface px-2 py-1 disabled:opacity-30"
               >
                 ←
               </button>
               <button
                 onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                 disabled={page === totalPages - 1}
-                className="px-2 py-1 bg-[var(--bg)] border border-[var(--border)] rounded disabled:opacity-30 cursor-pointer"
+                className="cursor-pointer rounded border border-outline bg-surface px-2 py-1 disabled:opacity-30"
               >
                 →
               </button>

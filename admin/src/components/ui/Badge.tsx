@@ -3,15 +3,15 @@ interface BadgeProps {
 }
 
 const config = {
-  active:   { label: 'Active',   cls: 'bg-green-950 text-green-400' },
-  inactive: { label: 'Inactive', cls: 'bg-zinc-800 text-zinc-500'   },
-  blocked:  { label: 'Blocked',  cls: 'bg-red-950  text-red-400'    },
+  active:   { label: 'Active',   cls: 'bg-success/15 text-success' },
+  inactive: { label: 'Inactive', cls: 'bg-surface-highest text-text-secondary' },
+  blocked:  { label: 'Blocked',  cls: 'bg-error/15 text-error' },
 }
 
 export function Badge({ status }: BadgeProps) {
   const { label, cls } = config[status]
   return (
-    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${cls}`}>
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}>
       {label}
     </span>
   )

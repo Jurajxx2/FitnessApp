@@ -20,8 +20,8 @@ export default function Callback() {
   }, [navigate])
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <p className="text-[var(--text-muted)] text-sm">Signing you in…</p>
+    <div className="flex min-h-dvh items-center justify-center bg-background">
+      <p className="text-sm text-text-secondary">Signing you in…</p>
     </div>
   )
 }

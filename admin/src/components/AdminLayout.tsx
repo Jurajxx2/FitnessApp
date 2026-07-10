@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react'
+import { Menu } from 'lucide-react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 
@@ -28,19 +29,19 @@ export function AdminLayout() {
 
   return (
     <AdminLayoutContext.Provider value={{ setActions }}>
-      <div className="flex h-screen overflow-hidden bg-[var(--bg)]">
+      <div className="flex min-h-dvh overflow-hidden bg-background">
         <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <header className="flex items-center justify-between px-4 flex-shrink-0 border-b border-[var(--border)] bg-[var(--bg)]" style={{ height: '56px' }}>
+          <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-outline-subtle bg-background px-4 sm:px-6">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="md:hidden bg-transparent border-0 cursor-pointer text-[var(--text)] text-xl leading-none p-1"
+                className="cursor-pointer border-0 bg-transparent p-1 text-text-primary md:hidden"
                 aria-label="Open menu"
               >
-                ☰
+                <Menu size={22} />
               </button>
-              <span className="font-semibold text-base text-[var(--text)]">{title}</span>
+              <span className="text-base font-semibold text-text-primary">{title}</span>
             </div>
             {actions && <div className="flex gap-2">{actions}</div>}
           </header>

@@ -17,10 +17,10 @@ export function SlideOver({ open, onClose, title, children }: SlideOverProps) {
   return (
     <div className={`fixed inset-0 z-50 flex justify-end transition-opacity ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className={`relative z-10 w-full sm:max-w-lg bg-[var(--bg-card)] border-l border-[var(--border)] h-full overflow-y-auto flex flex-col transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="flex items-center justify-between px-4 sm:px-6 py-5 border-b border-[var(--border)] sticky top-0 bg-[var(--bg-card)]">
-          <h2 className="text-base font-bold text-[var(--text)]">{title}</h2>
-          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer border-0 bg-transparent text-xl leading-none">×</button>
+      <div role="dialog" aria-modal="true" aria-label={title} className={`relative z-10 flex h-full w-full flex-col overflow-y-auto border-l border-outline bg-surface-elevated transition-transform duration-300 sm:max-w-lg ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="sticky top-0 flex items-center justify-between border-b border-outline bg-surface-elevated px-4 py-5 sm:px-6">
+          <h2 className="text-base font-bold text-text-primary">{title}</h2>
+          <button aria-label="Close panel" onClick={onClose} className="cursor-pointer border-0 bg-transparent text-xl leading-none text-text-secondary hover:text-text-primary">×</button>
         </div>
         <div className="px-4 sm:px-6 py-6 flex-1">{children}</div>
       </div>

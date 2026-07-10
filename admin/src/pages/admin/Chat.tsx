@@ -169,40 +169,40 @@ export default function Chat() {
   const selectedProfile = profiles.find(p => p.id === selectedUserId)
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden">
       {/* Left: conversation list */}
-      <div className="w-64 flex-shrink-0 border-r border-[var(--border)] flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b border-[var(--border)] flex-shrink-0">
-          <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
+      <div className="flex w-64 flex-shrink-0 flex-col overflow-hidden border-r border-outline">
+        <div className="flex-shrink-0 border-b border-outline px-4 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">
             Conversations
           </p>
         </div>
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
-            <p className="text-xs text-[var(--text-disabled)] p-4">Loading…</p>
+            <p className="p-4 text-xs text-text-secondary">Loading…</p>
           ) : conversations.length === 0 ? (
-            <p className="text-xs text-[var(--text-disabled)] p-4">No conversations yet</p>
+            <p className="p-4 text-xs text-text-secondary">No conversations yet</p>
           ) : (
             conversations.map(c => (
               <button
                 key={c.userId}
                 onClick={() => selectUser(c.userId)}
-                className={`w-full text-left px-4 py-3 border-b border-[var(--border)] border-x-0 border-t-0 flex items-start gap-2 cursor-pointer bg-transparent transition-colors ${
+                className={`flex w-full cursor-pointer items-start gap-2 border-x-0 border-b border-t-0 border-outline bg-transparent px-4 py-3 text-left transition-colors ${
                   selectedUserId === c.userId
-                    ? 'bg-[var(--sidebar-active-bg)]'
-                    : 'hover:bg-[var(--bg-card-hover)]'
+                    ? 'bg-surface-elevated'
+                    : 'hover:bg-surface-highest'
                 }`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1">
-                    <p className="text-xs font-semibold text-[var(--text)] truncate">{c.displayName}</p>
+                    <p className="truncate text-xs font-semibold text-text-primary">{c.displayName}</p>
                     {c.unreadCount > 0 && (
-                      <span className="flex-shrink-0 bg-blue-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-on-accent">
                         {c.unreadCount > 9 ? '9+' : c.unreadCount}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-[var(--text-disabled)] truncate mt-0.5">{c.lastPreview}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-text-secondary">{c.lastPreview}</p>
                 </div>
               </button>
             ))
@@ -214,8 +214,8 @@ export default function Chat() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {selectedUserId ? (
           <>
-            <div className="px-5 py-3 border-b border-[var(--border)] flex-shrink-0">
-              <p className="text-sm font-semibold text-[var(--text)]">
+            <div className="flex-shrink-0 border-b border-outline px-5 py-3">
+              <p className="text-sm font-semibold text-text-primary">
                 {selectedProfile?.full_name ?? selectedProfile?.email ?? selectedUserId}
               </p>
             </div>
@@ -229,8 +229,8 @@ export default function Chat() {
                   <div
                     className={`max-w-[70%] px-3 py-2 rounded-xl text-sm ${
                       m.sender_type === 'coach'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-[var(--bg-card)] text-[var(--text)]'
+                        ? 'bg-action-primary text-on-action-primary'
+                        : 'bg-surface-elevated text-text-primary'
                     }`}
                   >
                     {m.content_type === 'image' && m.image_url ? (
@@ -239,7 +239,7 @@ export default function Chat() {
                       <p className="whitespace-pre-wrap break-words">{m.text_content}</p>
                     )}
                     <p className={`text-[10px] mt-1 ${
-                      m.sender_type === 'coach' ? 'text-blue-200' : 'text-[var(--text-disabled)]'
+                      m.sender_type === 'coach' ? 'opacity-70' : 'text-text-secondary'
                     }`}>
                       {formatMessageTime(m.created_at)}
                       {m.sender_type === 'coach' && m.read_at && ' ✓'}
@@ -250,9 +250,9 @@ export default function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="px-5 py-3 border-t border-[var(--border)] flex-shrink-0 flex gap-2 items-end">
+            <div className="flex flex-shrink-0 items-end gap-2 border-t border-outline px-5 py-3">
               <textarea
-                className="flex-1 bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-disabled)] outline-none focus:border-[var(--text-muted)] resize-none"
+                className="flex-1 resize-none rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent"
                 rows={2}
                 placeholder="Reply as coach… (Enter to send, Shift+Enter for newline)"
                 value={text}
@@ -267,7 +267,7 @@ export default function Chat() {
               <button
                 onClick={handleSend}
                 disabled={!text.trim() || sendMessage.isPending}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-0"
+                className="cursor-pointer rounded-xl border-0 bg-action-primary px-4 py-2 text-sm font-semibold text-on-action-primary hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {sendMessage.isPending ? '…' : 'Send'}
               </button>
@@ -275,7 +275,7 @@ export default function Chat() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm text-[var(--text-disabled)]">Select a conversation to start chatting</p>
+            <p className="text-sm text-text-secondary">Select a conversation to start chatting</p>
           </div>
         )}
       </div>

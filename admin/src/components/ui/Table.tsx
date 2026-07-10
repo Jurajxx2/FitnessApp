@@ -2,15 +2,15 @@ import { ReactNode } from 'react'
 
 export function Table({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse">{children}</table>
+    <div className="overflow-x-auto rounded-2xl border border-outline bg-surface-elevated">
+      <table className="w-full min-w-max border-collapse">{children}</table>
     </div>
   )
 }
 
 export function Th({ children }: { children: ReactNode }) {
   return (
-    <th className="text-left text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider pb-3 pr-4 border-b border-[var(--border)]">
+    <th className="border-b border-outline px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-secondary first:pl-4">
       {children}
     </th>
   )
@@ -18,7 +18,7 @@ export function Th({ children }: { children: ReactNode }) {
 
 export function Td({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <td className={`text-sm text-[var(--text-muted)] py-3 pr-4 border-b border-[var(--border-subtle)] ${className}`}>
+    <td className={`border-b border-outline-subtle px-4 py-3.5 text-sm text-text-secondary last:border-0 ${className}`}>
       {children}
     </td>
   )
