@@ -9,6 +9,8 @@ import Verify from './pages/Verify'
 import Placeholder from './pages/nutrition/Placeholder'
 import Hub from './pages/nutrition/Hub'
 import Plan from './pages/nutrition/Plan'
+import Recipes from './pages/nutrition/Recipes'
+import RecipeDetail from './pages/nutrition/RecipeDetail'
 
 export default function App() {
   return (
@@ -22,7 +24,8 @@ export default function App() {
               <Route element={<AppShell />}>
                 <Route path="/nutrition" element={<Hub />} />
                 <Route path="/nutrition/plan" element={<Plan />} />
-                <Route path="/nutrition/recipes" element={<Placeholder name="Recipes" />} />
+                <Route path="/nutrition/recipes" element={<Recipes />} />
+                <Route path="/nutrition/recipes/:id" element={<RecipeDetail />} />
                 <Route path="/nutrition/history" element={<Placeholder name="History" />} />
               </Route>
             </Route>
