@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import App from './App'
 
-test('renders the app name', () => {
+test('unauthenticated app shows the login screen', async () => {
   render(<App />)
-  expect(screen.getByText('Coach Foska')).toBeInTheDocument()
+  expect(await screen.findByText('Poslať kód →')).toBeInTheDocument()
 })
