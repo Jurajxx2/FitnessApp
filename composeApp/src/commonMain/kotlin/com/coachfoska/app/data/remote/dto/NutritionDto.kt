@@ -61,6 +61,16 @@ data class MealPlanDto(
 }
 
 @Serializable
+data class GetCurrentMealPlanIdParams(
+    @SerialName("p_user_id") val userId: String
+)
+
+@Serializable
+data class CurrentMealPlanIdDto(
+    @SerialName("meal_plan_id") val mealPlanId: String
+)
+
+@Serializable
 data class MealDto(
     val id: String,
     @SerialName("meal_plan_id") val mealPlanId: String,

@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase'
 import type { MealPlanRow, RecipeRow, MealLogRow, FoodRow } from '../types/database'
 
 export const qk = {
-  mealPlan: ['mealPlan'] as const,
+  mealPlan: (userId: string) => ['mealPlan', userId] as const,
   recipes: ['recipes'] as const,
   recipe: (id: string) => ['recipe', id] as const,
   history: ['mealHistory'] as const,
@@ -11,14 +11,23 @@ export const qk = {
   favorites: ['favorites'] as const,
 }
 
-export async function fetchActiveMealPlan(): Promise<MealPlanRow | null> {
+type CurrentMealPlanIdRow = { meal_plan_id: string }
+
+export async function fetchActiveMealPlan(userId: string): Promise<MealPlanRow | null> {
+  const { data: resolved, error: resolverError } = await supabase
+    .rpc('get_current_meal_plan_id', { p_user_id: userId })
+  if (resolverError) throw resolverError
+
+  const mealPlanId = (resolved as CurrentMealPlanIdRow[] | null)?.[0]?.meal_plan_id
+  if (!mealPlanId) return null
+
   const { data, error } = await supabase
     .from('meal_plans')
     .select('*, meals(*, meal_foods(*))')
-    .eq('is_active', true)
-    .limit(1)
+    .eq('id', mealPlanId)
+    .maybeSingle()
   if (error) throw error
-  return (data?.[0] as MealPlanRow) ?? null
+  return (data as MealPlanRow | null) ?? null
 }
 
 export async function fetchRecipes(): Promise<RecipeRow[]> {

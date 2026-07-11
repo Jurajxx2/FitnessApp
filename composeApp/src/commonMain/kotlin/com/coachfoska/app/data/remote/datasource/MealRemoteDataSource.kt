@@ -4,6 +4,8 @@ import com.coachfoska.app.data.remote.dto.MealLogDto
 import com.coachfoska.app.data.remote.dto.MealLogFoodDto
 import com.coachfoska.app.data.remote.dto.MealLogFoodInsertDto
 import com.coachfoska.app.data.remote.dto.MealLogInsertDto
+import com.coachfoska.app.data.remote.dto.CurrentMealPlanIdDto
+import com.coachfoska.app.data.remote.dto.GetCurrentMealPlanIdParams
 import com.coachfoska.app.data.remote.dto.MealPlanDto
 import com.coachfoska.app.data.remote.dto.RecipeDetailDto
 import com.coachfoska.app.data.remote.dto.RecipeDto
@@ -11,6 +13,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.rpc
 import com.coachfoska.app.core.util.currentInstant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -19,15 +22,21 @@ private const val RECIPE_FAVORITES_TABLE = "recipe_favorites"
 
 class MealRemoteDataSource(private val supabase: SupabaseClient) {
 
-    // userId unused — RLS policy filters to plans assigned via user_meal_plans join table
-    suspend fun getActiveMealPlan(userId: String): MealPlanDto? =
-        supabase.postgrest["meal_plans"]
+    suspend fun getActiveMealPlan(userId: String): MealPlanDto? {
+        val mealPlanId = supabase.postgrest
+            .rpc("get_current_meal_plan_id", GetCurrentMealPlanIdParams(userId))
+            .decodeList<CurrentMealPlanIdDto>()
+            .firstOrNull()
+            ?.mealPlanId
+            ?: return null
+
+        return supabase.postgrest["meal_plans"]
             .select(columns = Columns.raw("*, meals(*, meal_foods(*))")) {
-                filter { eq("is_active", true) }
-                limit(1)
+                filter { eq("id", mealPlanId) }
             }
             .decodeList<MealPlanDto>()
             .firstOrNull()
+    }
 
     suspend fun insertMealLog(
         userId: String,

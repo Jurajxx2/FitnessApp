@@ -11,6 +11,7 @@ export function makeQueryResult(result: { data: unknown; error: unknown }) {
     order: () => thenable,
     limit: () => thenable,
     single: () => Promise.resolve(result),
+    maybeSingle: () => Promise.resolve(result),
     then: (resolve: (v: unknown) => void) => resolve(result),
   }
   return thenable

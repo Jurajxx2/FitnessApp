@@ -7,7 +7,12 @@ import {
 } from './queries'
 
 export function useActiveMealPlan() {
-  return useQuery({ queryKey: qk.mealPlan, queryFn: fetchActiveMealPlan })
+  const { user } = useAuth()
+  return useQuery({
+    queryKey: qk.mealPlan(user?.id ?? ''),
+    queryFn: () => fetchActiveMealPlan(user!.id),
+    enabled: !!user,
+  })
 }
 export function useRecipes() {
   return useQuery({ queryKey: qk.recipes, queryFn: fetchRecipes })
