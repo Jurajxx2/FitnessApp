@@ -16,7 +16,7 @@ CREATE TABLE profiles (
     age           INTEGER,
     height_cm     REAL,
     weight_kg     REAL,
-    goal          TEXT,          -- 'weight_loss' | 'muscle_gain' | 'mental_strength'
+    goal          TEXT,          -- 'lose_weight' | 'build_muscle' | 'get_stronger' | 'stay_fit'
     activity_level TEXT,         -- 'sedentary' | 'lightly_active' | 'moderately_active' | 'active' | 'very_active'
     onboarding_complete BOOLEAN DEFAULT FALSE,
     created_at    TIMESTAMPTZ DEFAULT now(),
