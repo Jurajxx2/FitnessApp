@@ -69,7 +69,11 @@ fun ProgressDashboardScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             // Weekly calendar
-            WeeklyCalendarStrip(completions = state.weeklyCompletions)
+            WeeklyCalendarStrip(
+                completions = state.weeklyCompletions,
+                completedWorkouts = state.completedWorkoutsThisWeek,
+                plannedWorkouts = state.plannedWorkoutsThisWeek,
+            )
 
             // Stat cards
             Row(

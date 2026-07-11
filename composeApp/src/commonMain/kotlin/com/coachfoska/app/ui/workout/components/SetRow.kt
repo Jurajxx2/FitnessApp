@@ -120,7 +120,7 @@ fun SetRow(
     val haptics = LocalHapticFeedback.current
     val pulse = remember { Animatable(1f) }
     var elapsedSeconds by remember(setDraft.setLogId, setDraft.sortOrder) {
-        mutableStateOf(setDraft.actualRestSeconds ?: 0)
+        mutableStateOf(setDraft.actualDurationSeconds ?: setDraft.actualRestSeconds ?: 0)
     }
     var isTimerRunning by remember(setDraft.setLogId, setDraft.sortOrder) {
         mutableStateOf(false)
@@ -136,8 +136,9 @@ fun SetRow(
             pulse.snapTo(1f)
         }
     }
-    LaunchedEffect(setDraft.actualRestSeconds, isTimerRunning) {
-        val savedSeconds = setDraft.actualRestSeconds
+    LaunchedEffect(setDraft.actualDurationSeconds, setDraft.actualRestSeconds, isTimerRunning) {
+        // Older timed logs used actual_rest_seconds before duration was given its own column.
+        val savedSeconds = setDraft.actualDurationSeconds ?: setDraft.actualRestSeconds
         if (!isTimerRunning && savedSeconds != null && savedSeconds != elapsedSeconds) {
             elapsedSeconds = savedSeconds
         }
@@ -284,7 +285,7 @@ fun SetRow(
                 .clickable {
                     if (saveFailed) {
                         onRetrySave()
-                    } else {
+                    } else if (setDraft.completed || setDraft.canComplete(logType)) {
                         if (logType == ExerciseLogType.TIME) {
                             isTimerRunning = false
                             onDurationChange(elapsedSeconds.takeIf { it > 0 })
@@ -384,7 +385,7 @@ private fun TimeTrackerCell(
 private fun SetDraft.canComplete(logType: ExerciseLogType): Boolean = when (logType) {
     ExerciseLogType.WEIGHT_REPS -> actualWeightKg != null && actualReps != null
     ExerciseLogType.BODYWEIGHT_REPS -> actualReps != null
-    ExerciseLogType.TIME -> actualRestSeconds != null
+    ExerciseLogType.TIME -> actualDurationSeconds != null || actualRestSeconds != null
 }
 
 private fun SetLog.formatFor(logType: ExerciseLogType): String = when (logType) {
@@ -394,7 +395,7 @@ private fun SetLog.formatFor(logType: ExerciseLogType): String = when (logType) 
         "$weight x $reps"
     }
     ExerciseLogType.BODYWEIGHT_REPS -> actualReps?.let { "$it reps" } ?: "-"
-    ExerciseLogType.TIME -> actualRestSeconds?.let { formatElapsedTime(it) } ?: "-"
+    ExerciseLogType.TIME -> (actualDurationSeconds ?: actualRestSeconds)?.let { formatElapsedTime(it) } ?: "-"
 }
 
 private fun formatElapsedTime(seconds: Int): String {

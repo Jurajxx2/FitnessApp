@@ -3,10 +3,13 @@ package com.coachfoska.app.data.repository
 import com.coachfoska.app.data.remote.datasource.ExerciseSupabaseDataSource
 import com.coachfoska.app.data.remote.dto.ExerciseCategoryDto
 import com.coachfoska.app.data.remote.dto.ExerciseDto
+import com.coachfoska.app.data.remote.dto.ExerciseLottieAnimationDto
+import com.coachfoska.app.domain.model.ExerciseLottieVariant
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -66,6 +69,28 @@ class ExerciseRepositoryImplTest {
         assertTrue(result.isSuccess)
         assertEquals("uuid-1", result.getOrThrow().id)
         assertEquals("Squat", result.getOrThrow().name)
+    }
+
+    @Test
+    fun `database Lottie payloads map to exercise animations`() {
+        val dto = ExerciseDto(
+            id = "uuid-1",
+            nameEn = "Ab Roller",
+            descriptionEn = "Description",
+            lottieAnimations = listOf(
+                ExerciseLottieAnimationDto(
+                    figureVariant = "woman",
+                    lottieJson = Json.parseToJsonElement("{\"nm\":\"Ab Roller (woman)\"}"),
+                    storageUrl = "https://example.com/ab-roller-woman.json",
+                ),
+            ),
+        )
+
+        val animation = dto.toDomain().lottieAnimations.single()
+
+        assertEquals(ExerciseLottieVariant.WOMAN, animation.variant)
+        assertEquals("{\"nm\":\"Ab Roller (woman)\"}", animation.lottieJson)
+        assertEquals("https://example.com/ab-roller-woman.json", animation.storageUrl)
     }
 
     @Test

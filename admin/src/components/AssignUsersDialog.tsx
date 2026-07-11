@@ -59,6 +59,19 @@ export function AssignUsersDialog({
     setPage(0)
   }
 
+  function setFilteredAssignments(assign: boolean) {
+    setLocalIds(previous => {
+      const next = new Set(previous)
+      filtered.forEach(profile => {
+        if (assign) next.add(profile.id)
+        else next.delete(profile.id)
+      })
+      return next
+    })
+  }
+
+  const allFilteredAssigned = filtered.length > 0 && filtered.every(profile => localIds.has(profile.id))
+
   return (
     <Modal
       open={open}
@@ -89,6 +102,15 @@ export function AssignUsersDialog({
             </Chip>
           ))}
         </div>
+        {filtered.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilteredAssignments(!allFilteredAssigned)}
+            className="self-start cursor-pointer border-0 bg-transparent p-0 text-xs font-medium text-text-primary hover:text-text-secondary"
+          >
+            {allFilteredAssigned ? 'Clear shown users' : `Assign all ${filtered.length} shown`}
+          </button>
+        )}
         <div className="flex flex-col divide-y divide-[var(--border)]">
           {pageItems.map(p => {
             const isAssigned = localIds.has(p.id)

@@ -1,8 +1,9 @@
 // admin/src/pages/admin/Workouts.tsx
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Button, Input, Modal, PageHeader, Table, Th, Td } from '../../components/ui'
+import { Button, ConfirmDialog, EmptyState, Input, Modal, PageHeader, SearchInput, Table, Th, Td, useNotice } from '../../components/ui'
 import { ExerciseCombobox } from '../../components/ExerciseCombobox'
 import { ExerciseBrowserSlideOver } from '../../components/ExerciseBrowserSlideOver'
 import { AssignUsersDialog } from '../../components/AssignUsersDialog'
@@ -17,10 +18,11 @@ function useWorkouts() {
   return useQuery<WorkoutWithCount[]>({
     queryKey: ['workouts-admin'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('workouts')
         .select('*, workout_exercises(id)')
         .order('name')
+      if (error) throw error
       return (data ?? []).map(w => ({
         ...w,
         exercise_count: (w.workout_exercises as { id: string }[]).length,
@@ -30,13 +32,14 @@ function useWorkouts() {
 }
 
 function useProfiles() {
-  return useQuery<Pick<Profile, 'id' | 'email' | 'full_name'>[]>({
+  return useQuery<Pick<Profile, 'id' | 'email' | 'full_name' | 'is_admin' | 'is_blocked'>[]>({
     queryKey: ['profiles-admin'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name')
+        .select('id, email, full_name, is_admin, is_blocked')
         .order('full_name')
+      if (error) throw error
       return data ?? []
     },
   })
@@ -57,8 +60,11 @@ interface WorkoutFormState {
 
 export default function Workouts() {
   const qc = useQueryClient()
-  const { data: workouts = [], isLoading } = useWorkouts()
+  const { notify } = useNotice()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { data: workouts = [], isLoading, isError } = useWorkouts()
   const { data: profiles = [] } = useProfiles()
+  const assignableProfiles = profiles.filter(profile => !profile.is_admin && !profile.is_blocked)
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Workout | null>(null)
   const [form, setForm] = useState<WorkoutFormState>({ name: '', day_of_week: null, notes: '', is_active: true })
@@ -66,6 +72,10 @@ export default function Workouts() {
   const [slideOverOpen, setSlideOverOpen] = useState(false)
   const [assignedUserIds, setAssignedUserIds] = useState<string[]>([])
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<Workout | null>(null)
+
+  const visibleWorkouts = workouts.filter(workout => workout.name.toLowerCase().includes(search.trim().toLowerCase()))
 
   function openCreate() {
     setEditing(null)
@@ -75,38 +85,58 @@ export default function Workouts() {
     setEditorOpen(true)
   }
 
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return
+    openCreate()
+    const next = new URLSearchParams(searchParams)
+    next.delete('new')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
   async function openEdit(w: Workout) {
     setEditing(w)
     setForm({ name: w.name, day_of_week: w.day_of_week, notes: w.notes ?? '', is_active: w.is_active })
-    const { data } = await supabase
-      .from('workout_exercises')
-      .select('*')
-      .eq('workout_id', w.id)
-      .order('sort_order')
+    const [exerciseResult, assignmentResult] = await Promise.all([
+      supabase
+        .from('workout_exercises')
+        .select('*')
+        .eq('workout_id', w.id)
+        .order('sort_order'),
+      supabase
+        .from('user_workouts')
+        .select('user_id')
+        .eq('workout_id', w.id),
+    ])
+    if (exerciseResult.error) {
+      notify(`Couldn’t load ${w.name}: ${exerciseResult.error.message}`, 'error')
+      return
+    }
+    if (assignmentResult.error) {
+      notify(`Couldn’t load assignments: ${assignmentResult.error.message}`, 'error')
+      return
+    }
+    const data = exerciseResult.data
     setExercises(data?.map(e => ({
       exercise_id: e.exercise_id ?? null, name: e.name, muscle_group: e.muscle_group ?? '',
       sets: e.sets, reps: e.reps, rest_seconds: e.rest_seconds, tips: e.tips ?? '', sort_order: e.sort_order,
     })) ?? [blankExercise()])
 
-    const { data: assignments } = await supabase
-      .from('user_workouts')
-      .select('user_id')
-      .eq('workout_id', w.id)
-    setAssignedUserIds((assignments ?? []).map(a => a.user_id))
+    setAssignedUserIds((assignmentResult.data ?? []).map(a => a.user_id))
     setEditorOpen(true)
   }
 
   const saveWorkout = useMutation({
     mutationFn: async () => {
+      const validExercises = exercises.filter(exercise => exercise.name.trim())
       let workoutId: string
       if (editing) {
         const { error: updateErr } = await supabase.from('workouts').update({ ...form }).eq('id', editing.id)
         if (updateErr) throw updateErr
         const { error: deleteErr } = await supabase.from('workout_exercises').delete().eq('workout_id', editing.id)
         if (deleteErr) throw deleteErr
-        if (exercises.length) {
+        if (validExercises.length) {
           const { error: insertErr } = await supabase.from('workout_exercises').insert(
-            exercises.map((e, i) => ({ ...e, workout_id: editing.id, sort_order: i }))
+            validExercises.map((e, i) => ({ ...e, workout_id: editing.id, sort_order: i }))
           )
           if (insertErr) throw insertErr
         }
@@ -118,19 +148,21 @@ export default function Workouts() {
           .select()
           .single()
         if (error) throw error
-        if (exercises.length) {
-          await supabase.from('workout_exercises').insert(
-            exercises.map((e, i) => ({ ...e, workout_id: w.id, sort_order: i }))
+        if (validExercises.length) {
+          const { error: exerciseError } = await supabase.from('workout_exercises').insert(
+            validExercises.map((e, i) => ({ ...e, workout_id: w.id, sort_order: i }))
           )
+          if (exerciseError) throw exerciseError
         }
         workoutId = w.id
       }
 
       // Sync user_workouts
-      const { data: currentRows } = await supabase
+      const { data: currentRows, error: currentRowsError } = await supabase
         .from('user_workouts')
         .select('user_id')
         .eq('workout_id', workoutId)
+      if (currentRowsError) throw currentRowsError
       const currentIds = new Set((currentRows ?? []).map(r => r.user_id))
       const newIds = new Set(assignedUserIds)
       const toAdd = assignedUserIds.filter(uid => !currentIds.has(uid))
@@ -141,24 +173,33 @@ export default function Workouts() {
         )
         if (error) throw error
       }
-      for (const uid of toRemove) {
-        await supabase.from('user_workouts').delete()
+      if (toRemove.length) {
+        const { error } = await supabase.from('user_workouts').delete()
           .eq('workout_id', workoutId)
-          .eq('user_id', uid)
+          .in('user_id', toRemove)
+        if (error) throw error
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['workouts-admin'] })
       setEditorOpen(false)
       setSlideOverOpen(false)
+      notify(editing ? 'Workout plan saved.' : 'Workout plan created.')
     },
+    onError: (error) => notify(`Couldn’t save workout plan: ${error.message}`, 'error'),
   })
 
   const deleteWorkout = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from('workouts').delete().eq('id', id)
+      const { error } = await supabase.from('workouts').delete().eq('id', id)
+      if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['workouts-admin'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workouts-admin'] })
+      setDeleteTarget(null)
+      notify('Workout plan deleted.')
+    },
+    onError: error => notify(`Couldn’t delete workout plan: ${error.message}`, 'error'),
   })
 
   function updateExercise(i: number, field: keyof ExerciseDraft, value: string | number) {
@@ -179,8 +220,21 @@ export default function Workouts() {
     <div className="p-4 sm:p-6">
       <PageHeader title="Workouts" description="Create and assign coaching plans." actions={<Button onClick={openCreate}>+ Create plan</Button>} />
 
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <SearchInput value={search} onChange={event => setSearch(event.target.value)} onClear={() => setSearch('')} placeholder="Search workout plans…" className="w-full sm:max-w-sm" />
+        {!isLoading && <p className="text-sm text-text-secondary">{visibleWorkouts.length} of {workouts.length} plans</p>}
+      </div>
+
       {isLoading ? (
         <p className="text-sm text-text-secondary">Loading…</p>
+      ) : isError ? (
+        <EmptyState title="Workout plans couldn’t be loaded" description="Refresh the page to retry." />
+      ) : visibleWorkouts.length === 0 ? (
+        <EmptyState
+          title={search ? 'No workout plans match this search' : 'No workout plans yet'}
+          description={search ? 'Try a different plan name.' : 'Create a plan to start assigning training to athletes.'}
+          action={!search ? <Button onClick={openCreate}>Create workout plan</Button> : undefined}
+        />
       ) : (
         <Table>
           <thead>
@@ -193,7 +247,7 @@ export default function Workouts() {
             </tr>
           </thead>
           <tbody>
-            {workouts.map(w => (
+            {visibleWorkouts.map(w => (
               <tr key={w.id} className="hover:bg-surface-highest">
                 <Td className="font-semibold text-text-primary">{w.name}</Td>
                 <Td>{w.day_of_week !== null ? DAYS[w.day_of_week] : 'Any day'}</Td>
@@ -201,8 +255,8 @@ export default function Workouts() {
                 <Td>{w.is_active ? <span className="text-xs text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}</Td>
                 <Td>
                   <div className="flex gap-2">
-                    <button onClick={() => openEdit(w)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">Edit</button>
-                    <button onClick={() => { if (confirm('Delete this workout?')) deleteWorkout.mutate(w.id) }} className="text-xs text-red-400 hover:text-red-300 bg-transparent border-0 cursor-pointer">Delete</button>
+                    <button onClick={() => openEdit(w)} className="text-xs font-medium text-text-secondary hover:text-text-primary bg-transparent border-0 cursor-pointer">Edit</button>
+                    <button onClick={() => setDeleteTarget(w)} className="text-xs font-medium text-error bg-transparent border-0 cursor-pointer">Delete</button>
                   </div>
                 </Td>
               </tr>
@@ -215,6 +269,7 @@ export default function Workouts() {
         open={editorOpen}
         onClose={() => { setEditorOpen(false); setSlideOverOpen(false) }}
         title={editing ? 'Edit Workout Plan' : 'New Workout Plan'}
+        size="lg"
         footer={
           <>
             <button
@@ -313,9 +368,18 @@ export default function Workouts() {
       <AssignUsersDialog
         open={assignDialogOpen}
         onClose={() => setAssignDialogOpen(false)}
-        profiles={profiles}
+        profiles={assignableProfiles}
         value={assignedUserIds}
         onChange={setAssignedUserIds}
+      />
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete workout plan?"
+        description={<>“{deleteTarget?.name}” will be permanently removed. Athletes will no longer see this plan.</>}
+        pending={deleteWorkout.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteWorkout.mutate(deleteTarget.id)}
       />
     </div>
   )

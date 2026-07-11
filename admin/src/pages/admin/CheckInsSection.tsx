@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { signedCheckInPhotoUrl } from '../../lib/storage'
-import { Button } from '../../components/ui'
+import { Button, useNotice } from '../../components/ui'
 import type { CheckIn } from '../../types/database'
 
 function useCheckIns(userId: string) {
@@ -43,8 +43,10 @@ function PhotoThumb({ path }: { path: string }) {
 
 export function CheckInsSection({ userId, adminUserId }: { userId: string; adminUserId: string | undefined }) {
   const qc = useQueryClient()
+  const { notify } = useNotice()
   const { data: checkIns = [], isLoading, error } = useCheckIns(userId)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [editingResponseId, setEditingResponseId] = useState<string | null>(null)
 
   const respond = useMutation({
     mutationFn: async ({ id, response }: { id: string; response: string }) => {
@@ -55,7 +57,12 @@ export function CheckInsSection({ userId, adminUserId }: { userId: string; admin
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['user-checkins', userId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user-checkins', userId] })
+      setEditingResponseId(null)
+      notify('Check-in response saved.')
+    },
+    onError: error => notify(`Couldn’t save check-in response: ${error.message}`, 'error'),
   })
 
   return (
@@ -85,9 +92,21 @@ export function CheckInsSection({ userId, adminUserId }: { userId: string; admin
                 {c.photo_side_path && <PhotoThumb path={c.photo_side_path} />}
               </div>
             )}
-            {c.coach_response ? (
+            {c.coach_response && editingResponseId !== c.id ? (
               <div className="mt-3 p-2 bg-[var(--input-bg)] rounded border border-[var(--border)]">
-                <p className="text-[10px] font-semibold text-[var(--text-disabled)] uppercase mb-1">Coach Response</p>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-semibold text-[var(--text-disabled)] uppercase">Coach Response</p>
+                  <button
+                    type="button"
+                    className="cursor-pointer border-0 bg-transparent p-0 text-xs font-medium text-text-secondary hover:text-text-primary"
+                    onClick={() => {
+                      setEditingResponseId(c.id)
+                      setDrafts(current => ({ ...current, [c.id]: c.coach_response ?? '' }))
+                    }}
+                  >
+                    Edit
+                  </button>
+                </div>
                 <p className="text-xs text-[var(--text)] whitespace-pre-wrap">{c.coach_response}</p>
               </div>
             ) : (
@@ -105,8 +124,20 @@ export function CheckInsSection({ userId, adminUserId }: { userId: string; admin
                   loading={respond.isPending}
                   disabled={!drafts[c.id]?.trim()}
                 >
-                  Respond
+                  {c.coach_response ? 'Save response' : 'Respond'}
                 </Button>
+                {c.coach_response && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingResponseId(null)
+                      setDrafts(current => ({ ...current, [c.id]: c.coach_response ?? '' }))
+                    }}
+                    className="mt-2 w-full cursor-pointer border-0 bg-transparent text-xs text-text-secondary hover:text-text-primary"
+                  >
+                    Cancel edit
+                  </button>
+                )}
               </div>
             )}
           </div>

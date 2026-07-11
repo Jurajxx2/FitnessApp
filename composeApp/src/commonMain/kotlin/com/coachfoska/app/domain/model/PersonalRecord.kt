@@ -23,6 +23,7 @@ data class ExerciseRecords(
     val mostRepsAtWeight: RecordEntry?,
     val highestEstimated1RM: RecordEntry?,
     val highestVolume: RecordEntry?,
+    val longestDuration: RecordEntry? = null,
 )
 
 data class RecordEntry(

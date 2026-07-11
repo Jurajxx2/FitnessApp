@@ -70,6 +70,8 @@ data class ExerciseLog(
     val workoutLogId: String,
     val exerciseName: String,
     val notes: String?,
+    /** The parent workout session timestamp, needed for per-exercise history and charts. */
+    val loggedAt: Instant? = null,
     val videoUrl: String? = null,
     val exerciseId: String? = null,
     val substitutedFromExerciseId: String? = null,
@@ -104,6 +106,8 @@ data class SetLog(
     val targetRestSeconds: Int?,
     val actualRestSeconds: Int?,
     val completed: Boolean,
+    /** Duration of a timed exercise; intentionally separate from the rest after a set. */
+    val actualDurationSeconds: Int? = null,
 )
 
 data class SavedSetRef(
@@ -115,6 +119,14 @@ private fun buildSummaryLine(sets: List<SetLog>): String {
     val done = sets.filter { it.completed }
     if (done.isEmpty()) return ""
     val reps = done.map { it.actualReps }
+    val durations = done.mapNotNull { it.actualDurationSeconds }
+    if (reps.all { it == null } && durations.isNotEmpty()) {
+        val durationPart = when {
+            durations.all { it == durations.first() } -> "${done.size} × ${formatDuration(durations.first())}"
+            else -> durations.joinToString(", ", transform = ::formatDuration)
+        }
+        return durationPart
+    }
     val repsPart = when {
         reps.all { it == null } -> "${done.size} sets"
         reps.all { it == reps.first() } -> "${done.size} × ${reps.first()}"
@@ -123,6 +135,9 @@ private fun buildSummaryLine(sets: List<SetLog>): String {
     val maxWeight = done.mapNotNull { it.actualWeightKg }.maxOrNull()
     return if (maxWeight != null) "$repsPart @ ${formatWeightKg(maxWeight)} kg" else repsPart
 }
+
+private fun formatDuration(totalSeconds: Int): String =
+    "${(totalSeconds / 60).toString().padStart(2, '0')}:${(totalSeconds % 60).toString().padStart(2, '0')}"
 
 // Formats a weight value for display: drops trailing ".0" on whole numbers (60.0f → "60"),
 // keeps fractional precision otherwise (60.5f → "60.5").

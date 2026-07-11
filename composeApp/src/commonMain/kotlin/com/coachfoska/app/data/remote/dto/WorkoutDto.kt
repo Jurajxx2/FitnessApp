@@ -113,7 +113,7 @@ data class WorkoutLogDto(
     fun toDomain(): WorkoutLog = WorkoutLog(
         id = id, userId = userId, workoutId = workoutId,
         workoutName = workoutName, durationMinutes = durationMinutes, notes = notes,
-        exerciseLogs = exerciseLogs.map { it.toDomain() },
+        exerciseLogs = exerciseLogs.map { it.toDomain(loggedAt = Instant.parse(loggedAt)) },
         loggedAt = Instant.parse(loggedAt),
         status = status,
         feedback = feedback.map { it.toDomain() },
@@ -171,11 +171,12 @@ data class ExerciseLogDto(
     @SerialName("set_logs") val setLogs: List<SetLogDto> = emptyList(),
     @SerialName("workout_feedback") val feedback: List<WorkoutFeedbackDto> = emptyList(),
 ) {
-    fun toDomain(): ExerciseLog = ExerciseLog(
+    fun toDomain(loggedAt: Instant? = null): ExerciseLog = ExerciseLog(
         id = id,
         workoutLogId = workoutLogId,
         exerciseName = exerciseName,
         notes = notes,
+        loggedAt = loggedAt,
         videoUrl = videoUrl,
         exerciseId = exerciseId,
         substitutedFromExerciseId = substitutedFromExerciseId,
@@ -242,6 +243,7 @@ data class SetLogDto(
     @SerialName("target_rest_seconds") val targetRestSeconds: Int? = null,
     @SerialName("actual_rest_seconds") val actualRestSeconds: Int? = null,
     val completed: Boolean = false,
+    @SerialName("actual_duration_seconds") val actualDurationSeconds: Int? = null,
 ) {
     fun toDomain(): SetLog = SetLog(
         id = id, exerciseLogId = exerciseLogId, sortOrder = sortOrder,
@@ -249,6 +251,7 @@ data class SetLogDto(
         targetWeightKg = targetWeightKg, actualWeightKg = actualWeightKg,
         rpe = rpe, targetRestSeconds = targetRestSeconds, actualRestSeconds = actualRestSeconds,
         completed = completed,
+        actualDurationSeconds = actualDurationSeconds,
     )
 }
 
@@ -264,6 +267,7 @@ data class SetLogInsertDto(
     @SerialName("target_rest_seconds") val targetRestSeconds: Int? = null,
     @SerialName("actual_rest_seconds") val actualRestSeconds: Int? = null,
     val completed: Boolean = false,
+    @SerialName("actual_duration_seconds") val actualDurationSeconds: Int? = null,
 )
 
 @Serializable

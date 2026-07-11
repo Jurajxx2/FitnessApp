@@ -1,6 +1,7 @@
 package com.coachfoska.app.domain.usecase.workout
 
 import com.coachfoska.app.domain.model.CompletionStatus
+import com.coachfoska.app.domain.model.DayActivityStatus
 import com.coachfoska.app.domain.model.DayCompletion
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.MuscleVolumeEntry
@@ -16,6 +17,8 @@ class GetProgressDashboardUseCase(
 ) {
     data class DashboardData(
         val weeklyCompletions: List<DayCompletion>,
+        val completedWorkoutsThisWeek: Int,
+        val plannedWorkoutsThisWeek: Int,
         val totalVolumeThisWeek: Float,
         val currentStreak: Int,
         val muscleDistribution: List<MuscleVolumeEntry>,
@@ -37,16 +40,32 @@ class GetProgressDashboardUseCase(
             logDate.toEpochDays() >= thisWeekStart.toEpochDays() &&
                 logDate.toEpochDays() <= today.toEpochDays()
         }
-        val completedDays = thisWeekLogs.map { it.loggedAt.toLocalDateTime(tz).date.dayOfWeek.ordinal }.toSet()
+        val workouts = workoutRepository.getAssignedWorkouts(userId).getOrDefault(emptyList())
+        val weeklyActivity = buildWeeklyActivity(workouts, history, today, tz)
+        val planCompliance = deriveWeeklyCompliance(weeklyActivity)
+        val completedUnplanned = weeklyActivity.count { it.status == DayActivityStatus.COMPLETED }
+        val completedWorkouts = if (planCompliance.assigned > 0) {
+            planCompliance.completed
+        } else {
+            completedUnplanned
+        }
+        val plannedWorkouts = if (planCompliance.assigned > 0) {
+            planCompliance.assigned
+        } else {
+            completedUnplanned
+        }
 
-        val weeklyCompletions = DayOfWeek.entries.map { day ->
-            val status = when {
-                day.index in completedDays -> CompletionStatus.COMPLETED
-                day.index == todayDow -> CompletionStatus.TODAY
-                day.index < todayDow -> CompletionStatus.MISSED
-                else -> CompletionStatus.UPCOMING
+        // Only scheduled days can be missed. The previous implementation marked every earlier
+        // rest day as missed, producing an incorrect 0/7-style compliance statistic.
+        val weeklyCompletions = weeklyActivity.map { activity ->
+            val status = when (activity.status) {
+                DayActivityStatus.COMPLETED -> CompletionStatus.COMPLETED
+                DayActivityStatus.TODAY -> CompletionStatus.TODAY
+                DayActivityStatus.MISSED -> CompletionStatus.MISSED
+                DayActivityStatus.SCHEDULED,
+                DayActivityStatus.REST -> CompletionStatus.UPCOMING
             }
-            DayCompletion(dayOfWeek = day, status = status)
+            DayCompletion(dayOfWeek = activity.dayOfWeek, status = status)
         }
 
         val totalVolume = thisWeekLogs.sumOf { log ->
@@ -57,14 +76,19 @@ class GetProgressDashboardUseCase(
             }
         }.toFloat()
 
-        val workouts = workoutRepository.getAssignedWorkouts(userId).getOrDefault(emptyList())
-        val muscleGroupByExerciseName = workouts.flatMap { it.exercises }
+        val plannedExercises = workouts.flatMap { it.exercises }
+        val muscleGroupByExerciseId = plannedExercises
+            .mapNotNull { exercise -> exercise.exerciseId?.let { it to (exercise.muscleGroup ?: "Other") } }
+            .toMap()
+        val muscleGroupByExerciseName = plannedExercises
             .associate { it.name to (it.muscleGroup ?: "Other") }
 
         val volumeByMuscle = mutableMapOf<String, Float>()
         for (log in thisWeekLogs) {
             for (ex in log.exerciseLogs) {
-                val muscle = muscleGroupByExerciseName[ex.exerciseName] ?: "Other"
+                val muscle = muscleGroupByExerciseId[ex.exerciseId]
+                    ?: muscleGroupByExerciseName[ex.exerciseName]
+                    ?: "Other"
                 val vol = ex.sets.filter { it.completed }.sumOf { s ->
                     ((s.actualWeightKg ?: 0f) * (s.actualReps ?: 0)).toDouble()
                 }.toFloat()
@@ -78,6 +102,8 @@ class GetProgressDashboardUseCase(
 
         DashboardData(
             weeklyCompletions = weeklyCompletions,
+            completedWorkoutsThisWeek = completedWorkouts,
+            plannedWorkoutsThisWeek = plannedWorkouts,
             totalVolumeThisWeek = totalVolume,
             currentStreak = streak,
             muscleDistribution = muscleDistribution,

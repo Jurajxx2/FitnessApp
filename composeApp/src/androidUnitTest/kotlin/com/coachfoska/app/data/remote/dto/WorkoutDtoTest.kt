@@ -1,11 +1,27 @@
 package com.coachfoska.app.data.remote.dto
 
 import com.coachfoska.app.domain.model.SetLog
+import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class WorkoutDtoTest {
+
+    @Test fun `WorkoutLogDto gives nested exercise logs the parent session timestamp`() {
+        val loggedAt = "2026-07-11T09:30:00Z"
+        val domain = WorkoutLogDto(
+            id = "wl-1",
+            userId = "user-1",
+            workoutName = "Push",
+            loggedAt = loggedAt,
+            exerciseLogs = listOf(
+                ExerciseLogDto(id = "el-1", workoutLogId = "wl-1", exerciseName = "Bench Press"),
+            ),
+        ).toDomain()
+
+        assertEquals(Instant.parse(loggedAt), domain.exerciseLogs.single().loggedAt)
+    }
 
     @Test fun `ExerciseLogDto with set_logs maps to domain sets`() {
         val dto = ExerciseLogDto(

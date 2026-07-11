@@ -23,11 +23,16 @@ import com.coachfoska.app.domain.model.SessionPR
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.presentation.workout.ActiveSessionIntent
 import com.coachfoska.app.presentation.workout.ExerciseDraft
+import com.coachfoska.app.presentation.workout.RestTimerState
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsButtonVariant
 import com.coachfoska.app.ui.workout.AnimatedImageMode
 import com.coachfoska.app.ui.workout.ExerciseAnimatedImage
+import com.coachfoska.app.ui.workout.ExerciseFigureVariant
+import com.coachfoska.app.ui.workout.ExerciseLottiePreview
 import com.coachfoska.app.ui.workout.animatedImageMode
+import com.coachfoska.app.ui.workout.hasExerciseLottiePreview
+import com.coachfoska.app.ui.workout.lottieJsonFor
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -41,6 +46,7 @@ fun ExerciseLogCard(
     exerciseIndex: Int,
     previousSets: List<SetLog>,
     prBanner: SessionPR?,
+    restTimer: RestTimerState,
     onIntent: (ActiveSessionIntent) -> Unit,
     onSwapClick: () -> Unit,
     onExerciseDetailClick: (exerciseId: String?, exerciseName: String) -> Unit,
@@ -68,6 +74,11 @@ fun ExerciseLogCard(
                 modifier = Modifier.padding(horizontal = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                val figureVariant = ExerciseFigureVariant.Man
+                val databaseLottieJson = exercise.lottieAnimations.lottieJsonFor(figureVariant)
+                val hasLottiePreview = databaseLottieJson != null ||
+                    exercise.animationUrl != null ||
+                    hasExerciseLottiePreview(exercise.exerciseName)
                 val imageMode = animatedImageMode(exercise.imageUrl, exercise.imageUrl2)
                 val previewCd = stringResource(Res.string.exercise_preview_cd)
                 ExerciseCardHeader(
@@ -82,16 +93,29 @@ fun ExerciseLogCard(
                     },
                     canMoveUp = canMoveUp,
                     canMoveDown = canMoveDown,
-                    leading = if (imageMode != AnimatedImageMode.NONE) {
+                    leading = if (hasLottiePreview || imageMode != AnimatedImageMode.NONE) {
                         {
-                            ExerciseAnimatedImage(
-                                startUrl = exercise.imageUrl,
-                                endUrl = exercise.imageUrl2,
-                                contentDescription = previewCd,
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clickable { onExerciseDetailClick(exercise.exerciseId, exercise.exerciseName) },
-                            )
+                            if (hasLottiePreview) {
+                                ExerciseLottiePreview(
+                                    exerciseName = exercise.exerciseName,
+                                    animationJson = databaseLottieJson,
+                                    animationUrl = exercise.animationUrl,
+                                    figureVariant = figureVariant,
+                                    contentDescription = previewCd,
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clickable { onExerciseDetailClick(exercise.exerciseId, exercise.exerciseName) },
+                                )
+                            } else {
+                                ExerciseAnimatedImage(
+                                    startUrl = exercise.imageUrl,
+                                    endUrl = exercise.imageUrl2,
+                                    contentDescription = previewCd,
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clickable { onExerciseDetailClick(exercise.exerciseId, exercise.exerciseName) },
+                                )
+                            }
                         }
                     } else {
                         null
@@ -167,6 +191,18 @@ fun ExerciseLogCard(
                         weightFocusRequester = weightFocusRequesters[setIndex],
                         repsFocusRequester = repsFocusRequesters[setIndex],
                     )
+                    if (
+                        restTimer.isActive &&
+                        restTimer.exerciseIndex == exerciseIndex &&
+                        restTimer.setIndex == setIndex
+                    ) {
+                        RestTimerBar(
+                            timerState = restTimer,
+                            onAdjust = { onIntent(ActiveSessionIntent.AdjustRestTimer(it)) },
+                            onSkip = { onIntent(ActiveSessionIntent.SkipRestTimer) },
+                            modifier = Modifier.padding(vertical = 4.dp),
+                        )
+                    }
                 }
             }
 
@@ -187,5 +223,5 @@ private fun com.coachfoska.app.presentation.workout.SetDraft.canComplete(
 ): Boolean = when (logType) {
     ExerciseLogType.WEIGHT_REPS -> actualWeightKg != null && actualReps != null
     ExerciseLogType.BODYWEIGHT_REPS -> actualReps != null
-    ExerciseLogType.TIME -> actualRestSeconds != null
+    ExerciseLogType.TIME -> actualDurationSeconds != null || actualRestSeconds != null
 }

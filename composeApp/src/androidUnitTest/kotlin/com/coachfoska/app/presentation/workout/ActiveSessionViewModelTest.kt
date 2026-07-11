@@ -63,6 +63,7 @@ class ActiveSessionViewModelTest {
         coEvery { repo.startWorkoutSession(any(), any(), any()) } returns Result.success("live-log-1")
         coEvery { repo.discardWorkoutSession(any()) } returns Result.success(Unit)
         coEvery { repo.deleteSetLog(any()) } returns Result.success(Unit)
+        coEvery { repo.updateSetLog(any(), any()) } returns Result.success(Unit)
         coEvery { exerciseRepo.getExerciseById(any()) } returns Result.failure(Exception("not found"))
     }
 
@@ -365,19 +366,108 @@ class ActiveSessionViewModelTest {
         assertNull(sets[2].actualWeightKg, "set 3 has no previous data, stays empty")
     }
 
+    @Test
+    fun `skipping_rest_timer_records_elapsed_rest_on_the_set_that_started_it`() = runTest {
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise())
+        coEvery { repo.saveSetLog(any(), any(), any(), any(), any(), any(), any()) } returns
+            Result.success(SavedSetRef("exercise-log-1", "set-log-1"))
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+        vm.onIntent(ActiveSessionIntent.UpdateSetActual(0, 0, reps = 8, weight = 80f))
+        vm.onIntent(ActiveSessionIntent.MarkSetComplete(0, 0, completed = true))
+
+        assertEquals(0, vm.state.value.restTimer.exerciseIndex)
+        assertEquals(0, vm.state.value.restTimer.setIndex)
+        vm.onIntent(ActiveSessionIntent.SkipRestTimer)
+        advanceUntilIdle()
+
+        val set = vm.state.value.sessionDraft?.exercises?.single()?.sets?.first()
+        assertEquals(0, set?.actualRestSeconds)
+        assertEquals(false, vm.state.value.restTimer.isActive)
+        coVerify {
+            repo.updateSetLog("set-log-1", match { it.actualRestSeconds == 0 })
+        }
+    }
+
+    @Test
+    fun `editing_a_saved_completed_set_updates_persisted_statistics`() = runTest {
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise(restSeconds = 0))
+        coEvery { repo.saveSetLog(any(), any(), any(), any(), any(), any(), any()) } returns
+            Result.success(SavedSetRef("exercise-log-1", "set-log-1"))
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+        vm.onIntent(ActiveSessionIntent.UpdateSetActual(0, 0, reps = 8, weight = 80f))
+        vm.onIntent(ActiveSessionIntent.MarkSetComplete(0, 0, completed = true))
+        advanceUntilIdle()
+
+        vm.onIntent(ActiveSessionIntent.UpdateSetActual(0, 0, reps = 9, weight = 82.5f))
+        advanceUntilIdle()
+
+        coVerify {
+            repo.updateSetLog("set-log-1", match {
+                it.actualWeightKg == 82.5f && it.actualReps == 9 && it.completed
+            })
+        }
+    }
+
+    @Test
+    fun `timed_exercise_keeps_its_duration_when_a_rest_timer_finishes`() = runTest {
+        val timedWorkout = aWorkout(
+            id = "w1",
+            exercises = listOf(
+                WorkoutExercise(
+                    id = "we1",
+                    workoutId = "w1",
+                    name = "Plank Hold",
+                    muscleGroup = "Core",
+                    sets = 2,
+                    reps = "30 seconds",
+                    restSeconds = 60,
+                    tips = null,
+                    sortOrder = 0,
+                    exerciseId = "plank-1",
+                ),
+            ),
+        )
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(timedWorkout)
+        coEvery { repo.saveSetLog(any(), any(), any(), any(), any(), any(), any()) } returns
+            Result.success(SavedSetRef("exercise-log-1", "set-log-1"))
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+        vm.onIntent(ActiveSessionIntent.UpdateSetDuration(0, 0, 45))
+        vm.onIntent(ActiveSessionIntent.MarkSetComplete(0, 0, completed = true))
+        vm.onIntent(ActiveSessionIntent.SkipRestTimer)
+        advanceUntilIdle()
+
+        val set = vm.state.value.sessionDraft?.exercises?.single()?.sets?.first()
+        assertEquals(45, set?.actualDurationSeconds)
+        assertEquals(0, set?.actualRestSeconds)
+        coVerify {
+            repo.updateSetLog("set-log-1", match {
+                it.actualDurationSeconds == 45 && it.actualRestSeconds == 0
+            })
+        }
+    }
+
     private fun aPreviousSet(sortOrder: Int, weight: Float) = SetLog(
         id = "prev-$sortOrder", exerciseLogId = "", sortOrder = sortOrder,
         targetReps = 8, actualReps = 8, targetWeightKg = null, actualWeightKg = weight,
         rpe = null, targetRestSeconds = null, actualRestSeconds = null, completed = true,
     )
 
-    private fun aWorkoutWithSingleExercise() = aWorkout(
+    private fun aWorkoutWithSingleExercise(restSeconds: Int = 90) = aWorkout(
         id = "w1",
         exercises = listOf(
             WorkoutExercise(
                 id = "we1", workoutId = "w1",
                 name = "Bench Press", muscleGroup = "Chest",
-                sets = 3, reps = "8", restSeconds = 90,
+                sets = 3, reps = "8", restSeconds = restSeconds,
                 tips = null, sortOrder = 0,
                 exerciseId = "b1",
             )

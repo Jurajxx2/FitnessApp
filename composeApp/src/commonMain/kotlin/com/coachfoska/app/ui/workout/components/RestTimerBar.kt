@@ -49,8 +49,7 @@ fun RestTimerBar(
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .fillMaxWidth(),
         ) {
             Column(modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 4.dp)) {
                 Row(

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
+import { Button, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Table, Th, Td, useNotice } from '../../components/ui'
 import type { DailyQuote } from '../../types/database'
 
 // Exported for unit testing
@@ -17,10 +17,11 @@ function useQuotes() {
   return useQuery<DailyQuote[]>({
     queryKey: ['quotes-admin'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('daily_quotes')
         .select('*')
         .order('created_at', { ascending: false })
+      if (error) throw error
       return data ?? []
     },
   })
@@ -28,10 +29,12 @@ function useQuotes() {
 
 export default function Quotes() {
   const qc = useQueryClient()
-  const { data: quotes = [], isLoading } = useQuotes()
+  const { notify } = useNotice()
+  const { data: quotes = [], isLoading, isError } = useQuotes()
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<DailyQuote | null>(null)
   const [form, setForm] = useState({ text: '', author: '', scheduled_date: '' })
+  const [deleteTarget, setDeleteTarget] = useState<DailyQuote | null>(null)
 
   function openCreate() {
     setEditing(null)
@@ -60,7 +63,12 @@ export default function Quotes() {
         if (error) throw error
       }
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['quotes-admin'] }); setEditorOpen(false) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['quotes-admin'] })
+      setEditorOpen(false)
+      notify(editing ? 'Quote updated.' : 'Quote added.')
+    },
+    onError: error => notify(`Couldn’t save quote: ${error.message}`, 'error'),
   })
 
   const setActive = useMutation({
@@ -79,7 +87,9 @@ export default function Quotes() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['quotes-admin'] })
       qc.invalidateQueries({ queryKey: ['active-quote'] })
+      notify('Active quote updated.')
     },
+    onError: error => notify(`Couldn’t activate quote: ${error.message}`, 'error'),
   })
 
   const deleteQuote = useMutation({
@@ -87,18 +97,24 @@ export default function Quotes() {
       const { error } = await supabase.from('daily_quotes').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['quotes-admin'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['quotes-admin'] })
+      setDeleteTarget(null)
+      notify('Quote deleted.')
+    },
+    onError: error => notify(`Couldn’t delete quote: ${error.message}`, 'error'),
   })
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-lg font-bold text-[var(--text)]">Quotes</h1>
-        <Button onClick={openCreate}>+ Add quote</Button>
-      </div>
+      <PageHeader title="Quotes" description="Keep the daily message in the athlete app fresh." actions={<Button onClick={openCreate}>+ Add quote</Button>} />
 
       {isLoading ? (
         <p className="text-sm text-[var(--text-disabled)]">Loading…</p>
+      ) : isError ? (
+        <EmptyState title="Quotes couldn’t be loaded" description="Refresh the page to retry." />
+      ) : quotes.length === 0 ? (
+        <EmptyState title="No quotes yet" description="Add a quote to set the tone in the athlete app." action={<Button onClick={openCreate}>Add quote</Button>} />
       ) : (
         <Table>
           <thead>
@@ -122,15 +138,16 @@ export default function Quotes() {
                     {!q.is_active && (
                       <button
                         onClick={() => setActive.mutate(q.id)}
+                        disabled={setActive.isPending}
                         className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border border-[var(--border)] rounded px-2 py-0.5 cursor-pointer"
                       >
                         Set active
                       </button>
                     )}
-                    <button onClick={() => openEdit(q)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">Edit</button>
+                    <button onClick={() => openEdit(q)} className="text-xs font-medium text-text-secondary hover:text-text-primary bg-transparent border-0 cursor-pointer">Edit</button>
                     <button
-                      onClick={() => { if (confirm('Delete this quote?')) deleteQuote.mutate(q.id) }}
-                      className="text-xs text-red-400 bg-transparent border-0 cursor-pointer"
+                      onClick={() => setDeleteTarget(q)}
+                      className="text-xs font-medium text-error bg-transparent border-0 cursor-pointer"
                     >
                       Delete
                     </button>
@@ -170,6 +187,15 @@ export default function Quotes() {
           <Input label="Scheduled date (optional)" type="date" value={form.scheduled_date} onChange={e => setForm(f => ({ ...f, scheduled_date: e.target.value }))} />
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete quote?"
+        description={<>“{deleteTarget?.text}” will be permanently removed.</>}
+        pending={deleteQuote.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteQuote.mutate(deleteTarget.id)}
+      />
     </div>
   )
 }

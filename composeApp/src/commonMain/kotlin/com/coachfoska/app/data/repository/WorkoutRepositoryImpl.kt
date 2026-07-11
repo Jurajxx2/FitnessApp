@@ -9,6 +9,7 @@ import com.coachfoska.app.data.remote.dto.WorkoutLogUpdateDto
 import com.coachfoska.app.data.remote.dto.WorkoutUpdateDto
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.ExerciseRecords
 import com.coachfoska.app.domain.model.PRType
 import com.coachfoska.app.domain.model.PersonalRecord
@@ -20,6 +21,7 @@ import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutDraft
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.formatWeightKg
+import com.coachfoska.app.domain.model.inferExerciseLogType
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -83,6 +85,7 @@ class WorkoutRepositoryImpl(
                     targetRestSeconds = s.targetRestSeconds,
                     actualRestSeconds = s.actualRestSeconds,
                     completed = s.completed,
+                    actualDurationSeconds = s.actualDurationSeconds,
                 )
             }
         }
@@ -142,7 +145,9 @@ class WorkoutRepositoryImpl(
         exerciseName: String
     ): Result<List<ExerciseLog>> = runCatching {
         workoutDataSource.getExerciseLogHistory(userId, exerciseName)
-            .map { (dto, _) -> dto.toDomain() }
+            .map { (dto, loggedAt) ->
+                dto.toDomain(loggedAt = runCatching { Instant.parse(loggedAt) }.getOrNull())
+            }
     }
 
     override suspend fun getExerciseRecords(
@@ -161,6 +166,9 @@ class WorkoutRepositoryImpl(
         var maxReps = 0
         var max1RMKg = 0f
         var maxVolumeKg = 0f
+        var longestDuration: RecordEntry? = null
+        var maxDurationSeconds = 0
+        val isTimedExercise = inferExerciseLogType(exerciseName) == ExerciseLogType.TIME
 
         for ((exerciseLogDto, loggedAtStr) in history) {
             val date = try {
@@ -184,30 +192,43 @@ class WorkoutRepositoryImpl(
             }
 
             for (s in sets) {
-                val w = s.actualWeightKg ?: continue
-                val r = s.actualReps ?: continue
+                val reps = s.actualReps
+                val weight = s.actualWeightKg
+                val durationSeconds = s.actualDurationSeconds
+                    ?: s.actualRestSeconds?.takeIf { isTimedExercise }
 
-                // Heaviest weight
+                if (durationSeconds != null && durationSeconds > maxDurationSeconds) {
+                    maxDurationSeconds = durationSeconds
+                    longestDuration = RecordEntry(
+                        value = formatDuration(durationSeconds),
+                        detail = "Longest timed set",
+                        date = date,
+                    )
+                }
+
+                // Rep records are valid for bodyweight exercises too. The old implementation
+                // skipped them entirely because it required an entered weight.
+                if (reps != null && reps > maxReps) {
+                    maxReps = reps
+                    mostRepsAtWeight = RecordEntry(
+                        value = "$reps reps",
+                        detail = weight?.let { "${formatWeightKg(it)}kg x $reps reps" } ?: "$reps reps",
+                        date = date,
+                    )
+                }
+
+                val w = weight ?: continue
+                val r = reps ?: continue
+
                 if (w > maxWeightKg) {
                     maxWeightKg = w
                     heaviestWeight = RecordEntry(
                         value = "${formatWeightKg(w)} kg",
                         detail = "${formatWeightKg(w)}kg x $r reps",
-                        date = date
+                        date = date,
                     )
                 }
 
-                // Most reps (highest rep count across all sets)
-                if (r > maxReps) {
-                    maxReps = r
-                    mostRepsAtWeight = RecordEntry(
-                        value = "$r reps",
-                        detail = "${formatWeightKg(w)}kg x $r reps",
-                        date = date
-                    )
-                }
-
-                // Estimated 1RM (Epley: weight * (1 + reps / 30))
                 if (r in 1..30) {
                     val estimated1RM = w * (1f + r / 30f)
                     if (estimated1RM > max1RMKg) {
@@ -215,14 +236,14 @@ class WorkoutRepositoryImpl(
                         highest1RM = RecordEntry(
                             value = "${formatWeightKg(estimated1RM)} kg",
                             detail = "from ${formatWeightKg(w)}kg x $r",
-                            date = date
+                            date = date,
                         )
                     }
                 }
             }
         }
 
-        ExerciseRecords(heaviestWeight, mostRepsAtWeight, highest1RM, highestVolume)
+        ExerciseRecords(heaviestWeight, mostRepsAtWeight, highest1RM, highestVolume, longestDuration)
     }
 
     override suspend fun getRecentPersonalRecords(
@@ -444,4 +465,8 @@ private fun SetLog.toInsertDto(exerciseLogId: String): SetLogInsertDto = SetLogI
     targetRestSeconds = targetRestSeconds,
     actualRestSeconds = actualRestSeconds,
     completed = completed,
+    actualDurationSeconds = actualDurationSeconds,
 )
+
+private fun formatDuration(totalSeconds: Int): String =
+    "${(totalSeconds / 60).toString().padStart(2, '0')}:${(totalSeconds % 60).toString().padStart(2, '0')}"

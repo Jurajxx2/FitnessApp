@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useDeferredValue, useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Button, Input, Modal, Table, Th, Td } from '../../components/ui'
-import { useAdminLayoutActions } from '../../components/AdminLayout'
+import { Button, EmptyState, Input, Modal, PageHeader, SearchInput, Table, Th, Td, useNotice } from '../../components/ui'
 import ImportExercisesModal from './ImportExercisesModal'
 import type { Exercise, ExerciseCategory, Difficulty } from '../../types/database'
 
 const DIFFICULTIES: Difficulty[] = ['beginner', 'intermediate', 'advanced']
 const PAGE_SIZE_OPTIONS = [25, 50, 100]
 
-function useExercises(search: string, categoryId: number | null, page: number, pageSize: number) {
+function useExercises(search: string, categoryId: number | null, activeOnly: boolean | null, page: number, pageSize: number) {
   return useQuery<{ data: Exercise[]; count: number }>({
-    queryKey: ['exercises-admin', search, categoryId, page, pageSize],
+    queryKey: ['exercises-admin', search, categoryId, activeOnly, page, pageSize],
     queryFn: async () => {
       let q = supabase
         .from('exercises')
@@ -20,7 +20,9 @@ function useExercises(search: string, categoryId: number | null, page: number, p
         .range(page * pageSize, page * pageSize + pageSize - 1)
       if (search) q = q.ilike('name_en', `%${search}%`)
       if (categoryId !== null) q = q.eq('category_id', categoryId)
-      const { data, count } = await q
+      if (activeOnly !== null) q = q.eq('is_active', activeOnly)
+      const { data, count, error } = await q
+      if (error) throw error
       return { data: data ?? [], count: count ?? 0 }
     },
   })
@@ -30,7 +32,8 @@ function useCategories() {
   return useQuery<ExerciseCategory[]>({
     queryKey: ['exercise-categories'],
     queryFn: async () => {
-      const { data } = await supabase.from('exercise_categories').select('*').order('name')
+      const { data, error } = await supabase.from('exercise_categories').select('*').order('name')
+      if (error) throw error
       return data ?? []
     },
   })
@@ -63,9 +66,12 @@ const blankForm = (): ExerciseFormState => ({
 
 export default function Exercises() {
   const qc = useQueryClient()
-  const { setActions } = useAdminLayoutActions()
+  const { notify } = useNotice()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
+  const deferredSearch = useDeferredValue(search)
   const [filterCategory, setFilterCategory] = useState<number | null>(null)
+  const [activeOnly, setActiveOnly] = useState<boolean | null>(null)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(25)
   const [editorOpen, setEditorOpen] = useState(false)
@@ -73,7 +79,7 @@ export default function Exercises() {
   const [form, setForm] = useState<ExerciseFormState>(blankForm())
   const [importModalOpen, setImportModalOpen] = useState(false)
 
-  const { data: { data: exercises = [], count: totalCount = 0 } = {}, isLoading } = useExercises(search, filterCategory, page, pageSize)
+  const { data: { data: exercises = [], count: totalCount = 0 } = {}, isLoading, isError } = useExercises(deferredSearch, filterCategory, activeOnly, page, pageSize)
   const totalPages = Math.ceil(totalCount / pageSize)
   const { data: categories = [] } = useCategories()
 
@@ -86,6 +92,14 @@ export default function Exercises() {
     setForm(blankForm())
     setEditorOpen(true)
   }
+
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return
+    openCreate()
+    const next = new URLSearchParams(searchParams)
+    next.delete('new')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   function openEdit(ex: Exercise) {
     setEditing(ex)
@@ -139,7 +153,9 @@ export default function Exercises() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['exercises-admin'] })
       setEditorOpen(false)
+      notify(editing ? 'Exercise updated.' : 'Exercise added.')
     },
+    onError: error => notify(`Couldn’t save exercise: ${error.message}`, 'error'),
   })
 
   const toggleActive = useMutation({
@@ -147,27 +163,32 @@ export default function Exercises() {
       const { error } = await supabase.from('exercises').update({ is_active: isActive }).eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['exercises-admin'] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['exercises-admin'] })
+      notify(variables.isActive ? 'Exercise hidden from athletes.' : 'Exercise is now active.')
+    },
+    onError: error => notify(`Couldn’t update exercise: ${error.message}`, 'error'),
   })
-
-  useEffect(() => {
-    setActions(
-      <div className="flex gap-2">
-        <Button variant="ghost" onClick={() => setImportModalOpen(true)}>Sync Exercises</Button>
-        <Button variant="primary" onClick={openCreate}>+ Add Exercise</Button>
-      </div>
-    )
-    return () => setActions(null)
-  }, [])
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl">
+      <PageHeader
+        title="Exercises"
+        description="Maintain the exercise library used when building workout plans."
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => setImportModalOpen(true)}>Sync exercises</Button>
+            <Button onClick={openCreate}>+ Add exercise</Button>
+          </>
+        }
+      />
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-4">
-        <Input
+        <SearchInput
           placeholder="Search by name…"
           value={search}
           onChange={e => handleSearch(e.target.value)}
+          onClear={() => handleSearch('')}
           className="w-full sm:w-64"
         />
         <select
@@ -178,11 +199,29 @@ export default function Exercises() {
           <option value="">All categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        <select
+          aria-label="Filter exercise visibility"
+          className="text-sm bg-surface border border-outline rounded-xl px-3 text-text-primary w-full sm:w-auto"
+          value={activeOnly === null ? '' : String(activeOnly)}
+          onChange={e => { setActiveOnly(e.target.value === '' ? null : e.target.value === 'true'); setPage(0) }}
+        >
+          <option value="">All visibility</option>
+          <option value="true">Active</option>
+          <option value="false">Hidden</option>
+        </select>
       </div>
 
       {/* Table */}
       {isLoading ? (
         <p className="text-sm text-[var(--text-disabled)]">Loading…</p>
+      ) : isError ? (
+        <EmptyState title="Exercises couldn’t be loaded" description="Refresh the page to retry." />
+      ) : exercises.length === 0 ? (
+        <EmptyState
+          title={search || filterCategory !== null || activeOnly !== null ? 'No exercises match these filters' : 'No exercises in the library yet'}
+          description={search || filterCategory !== null || activeOnly !== null ? 'Try a different name, category, or visibility filter.' : 'Add an exercise or import a trusted exercise library.'}
+          action={search || filterCategory !== null || activeOnly !== null ? undefined : <Button onClick={openCreate}>Add exercise</Button>}
+        />
       ) : (
         <Table>
           <thead>
@@ -254,7 +293,20 @@ export default function Exercises() {
       )}
 
       {/* Editor Modal */}
-      <Modal open={editorOpen} onClose={() => setEditorOpen(false)} title={editing ? 'Edit Exercise' : 'Add Exercise'}>
+      <Modal
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        title={editing ? 'Edit Exercise' : 'Add Exercise'}
+        size="lg"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditorOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={() => saveExercise.mutate()} loading={saveExercise.isPending} disabled={!form.name_en}>
+              {editing ? 'Save changes' : 'Create exercise'}
+            </Button>
+          </>
+        }
+      >
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -347,16 +399,6 @@ export default function Exercises() {
             <p className="text-xs text-red-400">{String(saveExercise.error)}</p>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setEditorOpen(false)}>Cancel</Button>
-            <Button
-              variant="primary"
-              onClick={() => saveExercise.mutate()}
-              disabled={!form.name_en || saveExercise.isPending}
-            >
-              {saveExercise.isPending ? 'Saving…' : editing ? 'Save Changes' : 'Create Exercise'}
-            </Button>
-          </div>
         </div>
       </Modal>
 

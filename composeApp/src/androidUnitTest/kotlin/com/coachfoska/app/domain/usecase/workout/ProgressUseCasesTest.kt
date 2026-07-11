@@ -2,6 +2,7 @@ package com.coachfoska.app.domain.usecase.workout
 
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.domain.model.CompletionStatus
+import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.ExerciseRecords
 import com.coachfoska.app.domain.model.PersonalRecord
 import com.coachfoska.app.domain.model.TimePeriod
@@ -17,6 +18,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toLocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -80,7 +82,9 @@ class ProgressUseCasesTest {
         val result = GetWorkoutsPerWeekUseCase(repo)("user-1", TimePeriod.THREE_MONTHS)
 
         assertTrue(result.isSuccess)
-        assertEquals(counts, result.getOrThrow())
+        val expandedCounts = result.getOrThrow()
+        assertEquals(3, expandedCounts.single { it.weekStart == LocalDate.parse("2026-06-01") }.count)
+        assertTrue(expandedCounts.any { it.count == 0 }, "missing weeks must be represented as zero")
     }
 
     @Test
@@ -152,6 +156,41 @@ class ProgressUseCasesTest {
 
         // only the completed set: 100 * 5 = 500
         assertEquals(500f, data.totalVolumeThisWeek)
+    }
+
+    @Test
+    fun `getProgressDashboard counts scheduled workouts rather than all seven calendar days`() = runTest {
+        val today = currentInstant()
+        val scheduledWorkout = Workout(
+            id = "w1",
+            name = "Today plan",
+            dayOfWeek = DayOfWeek.entries[today.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date.dayOfWeek.ordinal],
+            durationMinutes = 45,
+            exercises = emptyList(),
+        )
+        val completedLog = aWorkoutLog(id = "today").copy(
+            workoutId = "w1",
+            workoutName = "Today plan",
+            loggedAt = today,
+        )
+        stubDashboardDeps(
+            history = Result.success(listOf(completedLog)),
+            workouts = Result.success(listOf(scheduledWorkout)),
+        )
+
+        val data = GetProgressDashboardUseCase(repo)("user-1").getOrThrow()
+
+        assertEquals(1, data.completedWorkoutsThisWeek)
+        assertEquals(1, data.plannedWorkoutsThisWeek)
+    }
+
+    @Test
+    fun `getProgressDashboard does not mark rest days as missed`() = runTest {
+        stubDashboardDeps()
+
+        val data = GetProgressDashboardUseCase(repo)("user-1").getOrThrow()
+
+        assertTrue(data.weeklyCompletions.none { it.status == CompletionStatus.MISSED })
     }
 
     @Test

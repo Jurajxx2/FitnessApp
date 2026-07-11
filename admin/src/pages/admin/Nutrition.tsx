@@ -1,10 +1,10 @@
 // admin/src/pages/admin/Nutrition.tsx
-import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useDeferredValue, useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { uploadRecipePhoto } from '../../lib/storage'
-import { Button, Chip, Input, Modal, PageHeader, Table, Th, Td } from '../../components/ui'
+import { Button, Chip, ConfirmDialog, EmptyState, Input, Modal, PageHeader, SearchInput, Table, Th, Td, useNotice } from '../../components/ui'
 import type { Recipe, RecipeIngredient, MealPlan, RecipeDifficulty, Food } from '../../types/database'
 import RecipeImportModal from './RecipeImportModal'
 import RecipePhotoUploadModal from './RecipePhotoUploadModal'
@@ -17,18 +17,22 @@ function useFoods(search: string) {
     queryFn: async () => {
       let q = supabase.from('foods').select('*').order('name')
       if (search) q = q.ilike('name', `%${search}%`)
-      const { data } = await q
+      const { data, error } = await q
+      if (error) throw error
       return data ?? []
     },
   })
 }
 
-function FoodsTab() {
+function FoodsTab({ createRequest, onCreateRequestHandled }: { createRequest: boolean; onCreateRequestHandled: () => void }) {
   const qc = useQueryClient()
+  const { notify } = useNotice()
   const [search, setSearch] = useState('')
-  const { data: foods = [], isLoading } = useFoods(search)
+  const deferredSearch = useDeferredValue(search)
+  const { data: foods = [], isLoading, isError } = useFoods(deferredSearch)
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Food | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Food | null>(null)
   const [form, setForm] = useState({
     name: '',
     calories: '0',
@@ -46,6 +50,12 @@ function FoodsTab() {
     setForm({ name: '', calories: '0', protein_g: '0', carbs_g: '0', fat_g: '0', serving_size: '100', serving_unit: 'g', brand: '', is_verified: true })
     setEditorOpen(true)
   }
+
+  useEffect(() => {
+    if (!createRequest) return
+    openCreate()
+    onCreateRequestHandled()
+  }, [createRequest, onCreateRequestHandled])
 
   function openEdit(f: Food) {
     setEditing(f)
@@ -87,7 +97,9 @@ function FoodsTab() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['foods-admin'] })
       setEditorOpen(false)
+      notify(editing ? 'Food updated.' : 'Food added.')
     },
+    onError: error => notify(`Couldn’t save food: ${error.message}`, 'error'),
   })
 
   const deleteFood = useMutation({
@@ -95,7 +107,12 @@ function FoodsTab() {
       const { error } = await supabase.from('foods').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['foods-admin'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['foods-admin'] })
+      setDeleteTarget(null)
+      notify('Food deleted.')
+    },
+    onError: error => notify(`Couldn’t delete food: ${error.message}`, 'error'),
   })
 
   return (
@@ -103,17 +120,26 @@ function FoodsTab() {
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-3">
           <p className="text-sm text-[var(--text-muted)]">{foods.length} foods</p>
-          <Input
+          <SearchInput
             placeholder="Search foods…"
             value={search}
             onChange={e => setSearch(e.target.value)}
+            onClear={() => setSearch('')}
             className="w-48 sm:w-64"
           />
         </div>
         <Button onClick={openCreate}>+ Add food</Button>
       </div>
 
-      {isLoading ? <p className="text-sm text-[var(--text-disabled)]">Loading…</p> : (
+      {isLoading ? <p className="text-sm text-[var(--text-disabled)]">Loading…</p> : isError ? (
+        <EmptyState title="Foods couldn’t be loaded" description="Refresh the page to retry." />
+      ) : foods.length === 0 ? (
+        <EmptyState
+          title={search ? 'No foods match this search' : 'No foods in the library yet'}
+          description={search ? 'Try a different food or brand name.' : 'Add a verified food to make it available to athletes.'}
+          action={!search ? <Button onClick={openCreate}>Add food</Button> : undefined}
+        />
+      ) : (
         <Table>
           <thead>
             <tr>
@@ -133,8 +159,8 @@ function FoodsTab() {
                 <Td>{f.is_verified ? '✅' : '—'}</Td>
                 <Td>
                   <div className="flex gap-2">
-                    <button onClick={() => openEdit(f)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">Edit</button>
-                    <button onClick={() => { if (confirm('Delete this food?')) deleteFood.mutate(f.id) }} className="text-xs text-red-400 bg-transparent border-0 cursor-pointer">Delete</button>
+                    <button onClick={() => openEdit(f)} className="text-xs font-medium text-text-secondary hover:text-text-primary bg-transparent border-0 cursor-pointer">Edit</button>
+                    <button onClick={() => setDeleteTarget(f)} className="text-xs font-medium text-error bg-transparent border-0 cursor-pointer">Delete</button>
                   </div>
                 </Td>
               </tr>
@@ -175,6 +201,15 @@ function FoodsTab() {
           </label>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete food?"
+        description={<>“{deleteTarget?.name}” will be permanently removed from the food library.</>}
+        pending={deleteFood.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteFood.mutate(deleteTarget.id)}
+      />
     </>
   )
 }
@@ -199,21 +234,28 @@ function calcMacros(ingredients: IngredientDraft[]) {
   )
 }
 
-function useRecipes() {
+function useRecipes(search = '') {
   return useQuery<Recipe[]>({
-    queryKey: ['recipes-admin'],
+    queryKey: ['recipes-admin', search],
     queryFn: async () => {
-      const { data } = await supabase.from('recipes').select('*').order('name')
+      let query = supabase.from('recipes').select('*').order('name')
+      if (search) query = query.ilike('name', `%${search}%`)
+      const { data, error } = await query
+      if (error) throw error
       return data ?? []
     },
   })
 }
 
-function RecipesTab() {
+function RecipesTab({ createRequest, onCreateRequestHandled }: { createRequest: boolean; onCreateRequestHandled: () => void }) {
   const qc = useQueryClient()
-  const { data: recipes = [], isLoading } = useRecipes()
+  const { notify } = useNotice()
+  const [search, setSearch] = useState('')
+  const deferredSearch = useDeferredValue(search)
+  const { data: recipes = [], isLoading, isError } = useRecipes(deferredSearch)
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Recipe | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
   const [form, setForm] = useState({ name: '', description: '', prep_time_min: '', cook_time_min: '', servings: '1', external_id: '', photo_file_name: '', difficulty: '' as RecipeDifficulty | '' })
   const [steps, setSteps] = useState<string[]>([''])
   const [tags, setTags] = useState<string>('')
@@ -235,12 +277,22 @@ function RecipesTab() {
     setEditorOpen(true)
   }
 
+  useEffect(() => {
+    if (!createRequest) return
+    openCreate()
+    onCreateRequestHandled()
+  }, [createRequest, onCreateRequestHandled])
+
   async function openEdit(r: Recipe) {
     setEditing(r)
     setForm({ name: r.name, description: r.description ?? '', prep_time_min: String(r.prep_time_min ?? ''), cook_time_min: String(r.cook_time_min ?? ''), servings: String(r.servings), external_id: r.external_id ?? '', photo_file_name: r.photo_file_name ?? '', difficulty: r.difficulty ?? '' })
     setSteps(r.steps?.length ? r.steps : [''])
     setTags(r.tags?.join(', ') ?? '')
-    const { data } = await supabase.from('recipe_ingredients').select('*').eq('recipe_id', r.id).order('sort_order')
+    const { data, error } = await supabase.from('recipe_ingredients').select('*').eq('recipe_id', r.id).order('sort_order')
+    if (error) {
+      notify(`Couldn’t load ingredients: ${error.message}`, 'error')
+      return
+    }
     setIngredients(data?.map(i => ({ name: i.name, quantity: i.quantity, unit: i.unit ?? '', calories: i.calories, protein_g: i.protein_g, carbs_g: i.carbs_g, fat_g: i.fat_g, sort_order: i.sort_order })) ?? [blankIngredient(0)])
     setPhotoFile(null)
     setPhotoPreview(r.photo_url ?? null)
@@ -258,7 +310,8 @@ function RecipesTab() {
 
   const saveRecipe = useMutation({
     mutationFn: async () => {
-      const macros = calcMacros(ingredients)
+      const validIngredients = ingredients.filter(ingredient => ingredient.name.trim())
+      const macros = calcMacros(validIngredients)
 
       let photoUrl: string | undefined
       if (photoFile) {
@@ -286,24 +339,38 @@ function RecipesTab() {
         if (rUpdateErr) throw rUpdateErr
         const { error: rDeleteErr } = await supabase.from('recipe_ingredients').delete().eq('recipe_id', editing.id)
         if (rDeleteErr) throw rDeleteErr
-        if (ingredients.length) {
-          const { error: rInsertErr } = await supabase.from('recipe_ingredients').insert(ingredients.map((ing, i) => ({ ...ing, recipe_id: editing.id, sort_order: i })))
+        if (validIngredients.length) {
+          const { error: rInsertErr } = await supabase.from('recipe_ingredients').insert(validIngredients.map((ing, i) => ({ ...ing, recipe_id: editing.id, sort_order: i })))
           if (rInsertErr) throw rInsertErr
         }
       } else {
         const { data: r, error } = await supabase.from('recipes').insert(payload).select().single()
         if (error) throw error
-        if (ingredients.length) {
-          await supabase.from('recipe_ingredients').insert(ingredients.map((ing, i) => ({ ...ing, recipe_id: r.id, sort_order: i })))
+        if (validIngredients.length) {
+          const { error: ingredientError } = await supabase.from('recipe_ingredients').insert(validIngredients.map((ing, i) => ({ ...ing, recipe_id: r.id, sort_order: i })))
+          if (ingredientError) throw ingredientError
         }
       }
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['recipes-admin'] }); setEditorOpen(false) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['recipes-admin'] })
+      setEditorOpen(false)
+      notify(editing ? 'Recipe updated.' : 'Recipe added.')
+    },
+    onError: error => notify(`Couldn’t save recipe: ${error.message}`, 'error'),
   })
 
   const deleteRecipe = useMutation({
-    mutationFn: async (id: string) => { await supabase.from('recipes').delete().eq('id', id) },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['recipes-admin'] }),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('recipes').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['recipes-admin'] })
+      setDeleteTarget(null)
+      notify('Recipe deleted.')
+    },
+    onError: error => notify(`Couldn’t delete recipe: ${error.message}`, 'error'),
   })
 
   const toggleFeatured = useMutation({
@@ -311,7 +378,11 @@ function RecipesTab() {
       const { error } = await supabase.from('recipes').update({ featured: !r.featured }).eq('id', r.id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['recipes-admin'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['recipes-admin'] })
+      notify('Featured recipe updated.')
+    },
+    onError: error => notify(`Couldn’t update featured recipe: ${error.message}`, 'error'),
   })
 
   function updateIngredient(i: number, field: keyof IngredientDraft, value: string | number | null) {
@@ -322,8 +393,17 @@ function RecipesTab() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <p className="text-sm text-[var(--text-muted)]">{recipes.length} recipes in library</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+          <p className="text-sm text-[var(--text-muted)]">{recipes.length} recipes</p>
+          <SearchInput
+            placeholder="Search recipes…"
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            onClear={() => setSearch('')}
+            className="w-full sm:w-64"
+          />
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={() => setPhotoUploadOpen(true)}>Upload photos</Button>
           <Button variant="ghost" onClick={() => setImportOpen(true)}>Import JSON</Button>
@@ -331,7 +411,15 @@ function RecipesTab() {
         </div>
       </div>
 
-      {isLoading ? <p className="text-sm text-[var(--text-disabled)]">Loading…</p> : (
+      {isLoading ? <p className="text-sm text-[var(--text-disabled)]">Loading…</p> : isError ? (
+        <EmptyState title="Recipes couldn’t be loaded" description="Refresh the page to retry." />
+      ) : recipes.length === 0 ? (
+        <EmptyState
+          title={search ? 'No recipes match this search' : 'No recipes in the library yet'}
+          description={search ? 'Try a different recipe name.' : 'Add your first reusable recipe or import a recipe file.'}
+          action={!search ? <Button onClick={openCreate}>Add recipe</Button> : undefined}
+        />
+      ) : (
         <Table>
           <thead>
             <tr>
@@ -365,8 +453,8 @@ function RecipesTab() {
                 <Td>{r.prep_time_min ? `${r.prep_time_min} min` : '—'}</Td>
                 <Td>
                   <div className="flex gap-2">
-                    <button onClick={() => openEdit(r)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer">Edit</button>
-                    <button onClick={() => { if (confirm('Delete this recipe?')) deleteRecipe.mutate(r.id) }} className="text-xs text-red-400 bg-transparent border-0 cursor-pointer">Delete</button>
+                    <button onClick={() => openEdit(r)} className="text-xs font-medium text-text-secondary hover:text-text-primary bg-transparent border-0 cursor-pointer">Edit</button>
+                    <button onClick={() => setDeleteTarget(r)} className="text-xs font-medium text-error bg-transparent border-0 cursor-pointer">Delete</button>
                   </div>
                 </Td>
               </tr>
@@ -382,6 +470,7 @@ function RecipesTab() {
         open={editorOpen}
         onClose={() => setEditorOpen(false)}
         title={editing ? 'Edit Recipe' : 'New Recipe'}
+        size="xl"
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditorOpen(false)}>Cancel</Button>
@@ -489,6 +578,15 @@ function RecipesTab() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete recipe?"
+        description={<>“{deleteTarget?.name}” will be removed from the recipe library and any plan references.</>}
+        pending={deleteRecipe.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteRecipe.mutate(deleteTarget.id)}
+      />
     </>
   )
 }
@@ -499,7 +597,8 @@ function useMealPlans() {
   return useQuery<MealPlan[]>({
     queryKey: ['meal-plans-admin'],
     queryFn: async () => {
-      const { data } = await supabase.from('meal_plans').select('*').order('name')
+      const { data, error } = await supabase.from('meal_plans').select('*').order('name')
+      if (error) throw error
       return data ?? []
     },
   })
@@ -509,7 +608,8 @@ function usePlanAssignmentCounts() {
   return useQuery<Record<string, number>>({
     queryKey: ['meal-plan-assignment-counts'],
     queryFn: async () => {
-      const { data } = await supabase.from('user_meal_plans').select('meal_plan_id')
+      const { data, error } = await supabase.from('user_meal_plans').select('meal_plan_id')
+      if (error) throw error
       const counts: Record<string, number> = {}
       for (const row of data ?? []) {
         counts[row.meal_plan_id] = (counts[row.meal_plan_id] ?? 0) + 1
@@ -524,6 +624,8 @@ function MealPlansTab() {
   const { data: mealPlans = [], isLoading } = useMealPlans()
   const { data: assignmentCounts = {} } = usePlanAssignmentCounts()
   const qc = useQueryClient()
+  const { notify } = useNotice()
+  const [deleteTarget, setDeleteTarget] = useState<MealPlan | null>(null)
 
   const deletePlan = useMutation({
     mutationFn: async (id: string) => {
@@ -533,7 +635,10 @@ function MealPlansTab() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['meal-plans-admin'] })
       qc.invalidateQueries({ queryKey: ['meal-plan-assignment-counts'] })
+      setDeleteTarget(null)
+      notify('Meal plan deleted.')
     },
+    onError: error => notify(`Couldn’t delete meal plan: ${error.message}`, 'error'),
   })
 
   return (
@@ -543,7 +648,13 @@ function MealPlansTab() {
         <Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>+ Create meal plan</Button>
       </div>
 
-      {isLoading ? <p className="text-sm text-[var(--text-disabled)]">Loading…</p> : (
+      {isLoading ? <p className="text-sm text-[var(--text-disabled)]">Loading…</p> : mealPlans.length === 0 ? (
+        <EmptyState
+          title="No meal plans yet"
+          description="Create a weekly plan and assign it to athletes when it is ready."
+          action={<Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>Create meal plan</Button>}
+        />
+      ) : (
         <Table>
           <thead>
             <tr><Th>Name</Th><Th>Description</Th><Th>Assigned to</Th><Th>Status</Th><Th>{''}</Th></tr>
@@ -564,8 +675,8 @@ function MealPlansTab() {
                       Edit
                     </button>
                     <button
-                      onClick={() => { if (confirm('Delete this meal plan?')) deletePlan.mutate(p.id) }}
-                      className="text-xs text-red-400 bg-transparent border-0 cursor-pointer"
+                      onClick={() => setDeleteTarget(p)}
+                      className="text-xs font-medium text-error bg-transparent border-0 cursor-pointer"
                     >
                       Delete
                     </button>
@@ -576,6 +687,15 @@ function MealPlansTab() {
           </tbody>
         </Table>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete meal plan?"
+        description={<>“{deleteTarget?.name}” will be permanently removed from all assigned athletes.</>}
+        pending={deletePlan.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deletePlan.mutate(deleteTarget.id)}
+      />
     </>
   )
 }
@@ -583,7 +703,26 @@ function MealPlansTab() {
 // ─── Nutrition root (sub-tabs) ───────────────────────────────────────────────
 
 export default function Nutrition() {
-  const [activeTab, setActiveTab] = useState<'recipes' | 'meal-plans' | 'foods'>('recipes')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedTab = searchParams.get('tab')
+  const activeTab: 'recipes' | 'meal-plans' | 'foods' = requestedTab === 'meal-plans' || requestedTab === 'foods' ? requestedTab : 'recipes'
+  const [createRequest, setCreateRequest] = useState<'recipe' | 'food' | null>(null)
+
+  useEffect(() => {
+    const requestedCreate = searchParams.get('new')
+    if (requestedCreate !== 'recipe' && requestedCreate !== 'food') return
+    setCreateRequest(requestedCreate)
+    const next = new URLSearchParams(searchParams)
+    next.delete('new')
+    next.set('tab', requestedCreate === 'food' ? 'foods' : 'recipes')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  function selectTab(tab: 'recipes' | 'meal-plans' | 'foods') {
+    const next = new URLSearchParams(searchParams)
+    next.set('tab', tab)
+    setSearchParams(next, { replace: true })
+  }
 
   return (
     <div className="p-4 sm:p-6">
@@ -592,7 +731,7 @@ export default function Nutrition() {
         {(['recipes', 'meal-plans', 'foods'] as const).map(tab => (
           <Chip
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => selectTab(tab)}
             selected={activeTab === tab}
             className="capitalize"
           >
@@ -600,9 +739,9 @@ export default function Nutrition() {
           </Chip>
         ))}
       </div>
-      {activeTab === 'recipes' && <RecipesTab />}
+      {activeTab === 'recipes' && <RecipesTab createRequest={createRequest === 'recipe'} onCreateRequestHandled={() => setCreateRequest(null)} />}
       {activeTab === 'meal-plans' && <MealPlansTab />}
-      {activeTab === 'foods' && <FoodsTab />}
+      {activeTab === 'foods' && <FoodsTab createRequest={createRequest === 'food'} onCreateRequestHandled={() => setCreateRequest(null)} />}
     </div>
   )
 }

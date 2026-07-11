@@ -10,11 +10,13 @@ function useStats() {
     queryKey: ['admin-stats'],
     queryFn: async () => {
       const [users, workouts, mealPlans, recipes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_admin', false),
         supabase.from('workouts').select('id', { count: 'exact', head: true }),
         supabase.from('meal_plans').select('id', { count: 'exact', head: true }),
         supabase.from('recipes').select('id', { count: 'exact', head: true }),
       ])
+      const error = [users, workouts, mealPlans, recipes].find(result => result.error)?.error
+      if (error) throw error
       return {
         users: users.count ?? 0,
         workouts: workouts.count ?? 0,
@@ -64,9 +66,13 @@ function useRecentActivity() {
         supabase
           .from('profiles')
           .select('id, full_name, email, created_at')
+          .eq('is_admin', false)
           .order('created_at', { ascending: false })
           .limit(10),
       ])
+
+      if (logs.error) throw logs.error
+      if (newUsers.error) throw newUsers.error
 
       const logItems: ActivityItem[] = ((logs.data ?? []) as unknown as LogRow[]).map(l => ({
         kind: 'workout',
@@ -118,7 +124,7 @@ export default function Dashboard() {
       <PageHeader title="Dashboard" description="Your coaching workspace at a glance." />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5" aria-busy={stats.isLoading}>
         <StatCard label="Total Users"   value={stats.data?.users    ?? 0} />
         <StatCard label="Workout Plans" value={stats.data?.workouts  ?? 0} />
         <StatCard label="Meal Plans"    value={stats.data?.mealPlans ?? 0} />
@@ -128,7 +134,9 @@ export default function Dashboard() {
       {/* Active Quote */}
       <Card className="mb-5">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">Active Quote</p>
-        {activeQuote.data ? (
+        {activeQuote.isError ? (
+          <p className="text-sm text-error">Couldn’t load the active quote. Refresh to try again.</p>
+        ) : activeQuote.data ? (
           <>
             <p className="text-sm italic leading-relaxed text-text-secondary">"{activeQuote.data.text}"</p>
             <p className="mt-1 text-xs text-text-secondary">— {activeQuote.data.author}</p>
@@ -144,6 +152,8 @@ export default function Dashboard() {
         <Card>
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">Recent Activity</p>
           {activity.isLoading && <p className="text-xs text-text-secondary">Loading…</p>}
+          {activity.isError && <p className="text-xs text-error">Couldn’t load recent activity.</p>}
+          {!activity.isLoading && !activity.isError && activity.data?.length === 0 && <p className="text-xs text-text-secondary">No recent activity yet.</p>}
           {activity.data?.map(item => (
             <div key={item.id} className="flex items-center gap-2 border-b border-outline-subtle py-2 last:border-0">
               <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${item.kind === 'workout' ? 'bg-success' : 'bg-outline'}`} />
@@ -161,13 +171,13 @@ export default function Dashboard() {
         <Card>
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">Quick Actions</p>
           <div className="flex flex-col gap-2">
-            <Button variant="primary" className="w-full justify-start" onClick={() => navigate('/admin/workouts')}>
+            <Button variant="primary" className="w-full justify-start" onClick={() => navigate('/admin/workouts?new=1')}>
               + Create workout plan
             </Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/nutrition')}>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/nutrition?tab=recipes&new=recipe')}>
               + Add recipe
             </Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/nutrition')}>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/nutrition/meal-plans/new')}>
               + Create meal plan
             </Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/quotes')}>

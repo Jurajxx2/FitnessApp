@@ -25,7 +25,11 @@ sealed interface ActiveSessionIntent {
     data class RemoveSet(val exerciseIndex: Int, val setIndex: Int) : ActiveSessionIntent
     data class SkipToNextExercise(val exerciseIndex: Int) : ActiveSessionIntent
     data class AddExerciseNote(val exerciseIndex: Int, val note: String) : ActiveSessionIntent
-    data class StartRestTimer(val seconds: Int) : ActiveSessionIntent
+    data class StartRestTimer(
+        val seconds: Int,
+        val exerciseIndex: Int? = null,
+        val setIndex: Int? = null,
+    ) : ActiveSessionIntent
     data object SkipRestTimer : ActiveSessionIntent
     data class AdjustRestTimer(val deltaSeconds: Int) : ActiveSessionIntent
     data object DismissPRBanner : ActiveSessionIntent

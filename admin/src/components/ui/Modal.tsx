@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react'
+import { ReactNode, useEffect, useId } from 'react'
 
 interface ModalProps {
   open: boolean
@@ -6,9 +6,18 @@ interface ModalProps {
   title: string
   children: ReactNode
   footer?: ReactNode
+  size?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
-export function Modal({ open, onClose, title, children, footer }: ModalProps) {
+const SIZE = {
+  sm: 'max-w-md',
+  md: 'max-w-xl',
+  lg: 'max-w-3xl',
+  xl: 'max-w-5xl',
+} as const
+
+export function Modal({ open, onClose, title, children, footer, size = 'md' }: ModalProps) {
+  const titleId = useId()
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     if (open) document.addEventListener('keydown', handler)
@@ -20,9 +29,9 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div role="dialog" aria-modal="true" aria-label={title} className="relative z-10 flex max-h-[95vh] w-full max-w-xl flex-col rounded-2xl border border-outline bg-surface-elevated mx-3 sm:mx-4 sm:max-h-[90vh]">
+      <div role="dialog" aria-modal="true" aria-labelledby={titleId} className={`relative z-10 flex max-h-[95vh] w-full ${SIZE[size]} flex-col rounded-2xl border border-outline bg-surface-elevated mx-3 sm:mx-4 sm:max-h-[90vh]`}>
         <div className="flex items-center justify-between border-b border-outline px-4 py-4 sm:px-6">
-          <h2 className="text-base font-bold text-text-primary">{title}</h2>
+          <h2 id={titleId} className="text-base font-bold text-text-primary">{title}</h2>
           <button aria-label="Close dialog" onClick={onClose} className="cursor-pointer border-0 bg-transparent text-xl leading-none text-text-secondary hover:text-text-primary">×</button>
         </div>
         <div className="overflow-y-auto px-4 sm:px-6 py-4 flex-1">{children}</div>

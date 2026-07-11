@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from './hooks/useTheme'
@@ -6,30 +7,33 @@ import { queryClient } from './lib/queryClient'
 import { AdminRouteGuard } from './components/RouteGuard'
 import { AdminLayout } from './components/AdminLayout'
 import { PageViewLogger } from './components/PageViewLogger'
+import { NoticeProvider } from './components/ui'
 
-import Landing from './pages/Landing'
-import Login from './pages/Login'
-import Verify from './pages/Verify'
-import Callback from './pages/Callback'
-import NotAdmin from './pages/NotAdmin'
-import Dashboard from './pages/admin/Dashboard'
-import Users from './pages/admin/Users'
-import UserDetail from './pages/admin/UserDetail'
-import Workouts from './pages/admin/Workouts'
-import Nutrition from './pages/admin/Nutrition'
-import Quotes from './pages/admin/Quotes'
-import Exercises from './pages/admin/Exercises'
-import Chat from './pages/admin/Chat'
-import MealPlanEditor from './pages/admin/MealPlanEditor'
+const Landing = lazy(() => import('./pages/Landing'))
+const Login = lazy(() => import('./pages/Login'))
+const Verify = lazy(() => import('./pages/Verify'))
+const Callback = lazy(() => import('./pages/Callback'))
+const NotAdmin = lazy(() => import('./pages/NotAdmin'))
+const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
+const Users = lazy(() => import('./pages/admin/Users'))
+const UserDetail = lazy(() => import('./pages/admin/UserDetail'))
+const Workouts = lazy(() => import('./pages/admin/Workouts'))
+const Nutrition = lazy(() => import('./pages/admin/Nutrition'))
+const Quotes = lazy(() => import('./pages/admin/Quotes'))
+const Exercises = lazy(() => import('./pages/admin/Exercises'))
+const Chat = lazy(() => import('./pages/admin/Chat'))
+const MealPlanEditor = lazy(() => import('./pages/admin/MealPlanEditor'))
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <PageViewLogger />
-            <Routes>
+          <NoticeProvider>
+            <BrowserRouter>
+              <PageViewLogger />
+              <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-background text-sm text-text-secondary">Loading workspace…</div>}>
+                <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Login />} />
               <Route path="/auth/verify" element={<Verify />} />
@@ -50,8 +54,10 @@ export default function App() {
                   <Route path="/admin/chat"      element={<Chat />} />
                 </Route>
               </Route>
-            </Routes>
-          </BrowserRouter>
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </NoticeProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Button, Input } from '../../components/ui'
+import { Button, ConfirmDialog, Input, useNotice } from '../../components/ui'
 import { AssignUsersDialog } from '../../components/AssignUsersDialog'
 import type { Profile, Recipe } from '../../types/database'
 
@@ -46,20 +46,22 @@ function useRecipes() {
   return useQuery<Recipe[]>({
     queryKey: ['recipes-admin'],
     queryFn: async () => {
-      const { data } = await supabase.from('recipes').select('*').order('name')
+      const { data, error } = await supabase.from('recipes').select('*').order('name')
+      if (error) throw error
       return data ?? []
     },
   })
 }
 
 function useProfiles() {
-  return useQuery<Pick<Profile, 'id' | 'email' | 'full_name'>[]>({
+  return useQuery<Pick<Profile, 'id' | 'email' | 'full_name' | 'is_admin' | 'is_blocked'>[]>({
     queryKey: ['profiles-admin'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name')
+        .select('id, email, full_name, is_admin, is_blocked')
         .order('full_name')
+      if (error) throw error
       return data ?? []
     },
   })
@@ -71,10 +73,12 @@ export default function MealPlanEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { notify } = useNotice()
   const isNew = !id
 
   const { data: recipes = [] } = useRecipes()
   const { data: profiles = [] } = useProfiles()
+  const assignableProfiles = profiles.filter(profile => !profile.is_admin && !profile.is_blocked)
 
   const [planName, setPlanName] = useState('')
   const [description, setDescription] = useState('')
@@ -82,6 +86,7 @@ export default function MealPlanEditor() {
   const [meals, setMeals] = useState<MealDraft[]>(initMeals)
   const [assignedUserIds, setAssignedUserIds] = useState<string[]>([])
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false)
 
   useEffect(() => {
     if (isNew) return
@@ -171,6 +176,17 @@ export default function MealPlanEditor() {
     ))
   }
 
+  function copySelectedDayToWeek() {
+    const sourceMeals = MEAL_TYPES.map(type => getDraft(selectedDay, type))
+    setMeals(previous => previous.map(meal => {
+      const source = sourceMeals.find(item => item.meal_type === meal.meal_type)
+      if (!source || meal.day_of_week === selectedDay) return meal
+      return { ...meal, recipes: source.recipes.map(recipe => ({ ...recipe })) }
+    }))
+    setCopyDialogOpen(false)
+    notify(`${DAYS[selectedDay]} copied to the rest of the week.`)
+  }
+
   const savePlan = useMutation({
     mutationFn: async () => {
       let planId: string
@@ -192,7 +208,8 @@ export default function MealPlanEditor() {
       }
 
       // Delete existing meals (cascades to meal_plan_recipes + meal_foods)
-      await supabase.from('meals').delete().eq('meal_plan_id', planId)
+      const { error: deleteMealsError } = await supabase.from('meals').delete().eq('meal_plan_id', planId)
+      if (deleteMealsError) throw deleteMealsError
 
       // Insert non-empty meal drafts
       const nonEmpty = meals.filter(m => m.recipes.length > 0)
@@ -234,10 +251,11 @@ export default function MealPlanEditor() {
       }
 
       // Sync user_meal_plans
-      const { data: currentRows } = await supabase
+      const { data: currentRows, error: currentRowsError } = await supabase
         .from('user_meal_plans')
         .select('user_id')
         .eq('meal_plan_id', planId)
+      if (currentRowsError) throw currentRowsError
       const currentIds = new Set((currentRows ?? []).map(r => r.user_id))
       const newIds = new Set(assignedUserIds)
 
@@ -250,17 +268,20 @@ export default function MealPlanEditor() {
         )
         if (error) throw error
       }
-      for (const uid of toRemove) {
-        await supabase.from('user_meal_plans').delete()
+      if (toRemove.length) {
+        const { error } = await supabase.from('user_meal_plans').delete()
           .eq('meal_plan_id', planId)
-          .eq('user_id', uid)
+          .in('user_id', toRemove)
+        if (error) throw error
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['meal-plans-admin'] })
       qc.invalidateQueries({ queryKey: ['meal-plan-assignment-counts'] })
+      notify(isNew ? 'Meal plan created.' : 'Meal plan saved.')
       navigate('/admin/nutrition')
     },
+    onError: error => notify(`Couldn’t save meal plan: ${error.message}`, 'error'),
   })
 
   function getDraft(d: number, t: MealType): MealDraft {
@@ -299,6 +320,16 @@ export default function MealPlanEditor() {
         </Button>
       </div>
 
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-outline bg-surface-elevated px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold text-text-primary">Build one day, then reuse it</p>
+          <p className="mt-0.5 text-xs text-text-secondary">Copy the selected day to the rest of the week and make any exceptions afterward.</p>
+        </div>
+        <Button variant="ghost" onClick={() => setCopyDialogOpen(true)} disabled={MEAL_TYPES.every(type => getDraft(selectedDay, type).recipes.length === 0)}>
+          Copy {DAY_SHORTS[selectedDay]} to week
+        </Button>
+      </div>
+
       <div className="mb-5">
         <Input
           label="Description"
@@ -321,6 +352,11 @@ export default function MealPlanEditor() {
             }`}
           >
             {day}
+            {MEAL_TYPES.reduce((sum, type) => sum + getDraft(i, type).recipes.length, 0) > 0 && (
+              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${selectedDay === i ? 'bg-surface-elevated text-text-primary' : 'bg-surface-highest text-text-secondary'}`}>
+                {MEAL_TYPES.reduce((sum, type) => sum + getDraft(i, type).recipes.length, 0)}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -379,9 +415,18 @@ export default function MealPlanEditor() {
       <AssignUsersDialog
         open={assignDialogOpen}
         onClose={() => setAssignDialogOpen(false)}
-        profiles={profiles}
+        profiles={assignableProfiles}
         value={assignedUserIds}
         onChange={setAssignedUserIds}
+      />
+
+      <ConfirmDialog
+        open={copyDialogOpen}
+        title={`Copy ${DAYS[selectedDay]} to the week?`}
+        description="This replaces the recipe selections for the other six days. You can fine-tune individual days right after copying."
+        confirmLabel="Copy day"
+        onClose={() => setCopyDialogOpen(false)}
+        onConfirm={copySelectedDayToWeek}
       />
     </div>
   )

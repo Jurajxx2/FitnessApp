@@ -39,9 +39,12 @@ import coachfoska.composeapp.generated.resources.exercise_records_most_reps
 import coachfoska.composeapp.generated.resources.recipes_add_favorite_cd
 import coachfoska.composeapp.generated.resources.recipes_remove_favorite_cd
 import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.ExerciseRecords
 import com.coachfoska.app.domain.model.RecordEntry
 import com.coachfoska.app.domain.model.formatWeightKg
+import com.coachfoska.app.core.util.currentInstant
+import com.coachfoska.app.core.util.toDisplayDateTime
 import com.coachfoska.app.domain.usecase.workout.GetExerciseHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.GetExerciseRecordsUseCase
 import com.coachfoska.app.presentation.exercise.ExerciseIntent
@@ -162,8 +165,8 @@ fun ExerciseDetailScreen(
         when (selectedTab) {
             0 -> GuideTab(exercise = exercise)
             1 -> HistoryTab(userId = userId, exerciseName = exercise.name)
-            2 -> ChartsTab(userId = userId, exerciseName = exercise.name)
-            3 -> RecordsTab(userId = userId, exerciseName = exercise.name)
+            2 -> ChartsTab(userId = userId, exerciseName = exercise.name, logType = exercise.logType)
+            3 -> RecordsTab(userId = userId, exerciseName = exercise.name, logType = exercise.logType)
         }
     }
 }
@@ -221,8 +224,8 @@ private fun GuideTab(exercise: com.coachfoska.app.domain.model.Exercise) {
 @Composable
 private fun HistoryTab(userId: String, exerciseName: String) {
     val getExerciseHistoryUseCase = koinInject<GetExerciseHistoryUseCase>()
-    var history by remember { mutableStateOf<List<ExerciseLog>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    var history by remember(exerciseName) { mutableStateOf<List<ExerciseLog>>(emptyList()) }
+    var isLoading by remember(exerciseName) { mutableStateOf(true) }
 
     LaunchedEffect(exerciseName) {
         isLoading = true
@@ -252,6 +255,13 @@ private fun HistoryTab(userId: String, exerciseName: String) {
         history.forEach { exerciseLog ->
             Card(shape = RoundedCornerShape(8.dp)) {
                 Column(modifier = Modifier.padding(12.dp)) {
+                    exerciseLog.loggedAt?.let { loggedAt ->
+                        Text(
+                            text = loggedAt.toDisplayDateTime(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = DsTheme.colors.textSecondary,
+                        )
+                    }
                     Text(
                         text = stringResource(Res.string.exercise_detail_sets_completed_format, exerciseLog.setsCompletedCount),
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
@@ -263,6 +273,19 @@ private fun HistoryTab(userId: String, exerciseName: String) {
                             color = DsTheme.colors.textSecondary,
                         )
                     }
+                    val volumeKg = exerciseLog.sets
+                        .filter { it.completed }
+                        .sumOf { set ->
+                            ((set.actualWeightKg ?: 0f) * (set.actualReps ?: 0)).toDouble()
+                        }
+                        .toFloat()
+                    if (volumeKg > 0f) {
+                        Text(
+                            text = "${formatWeightKg(volumeKg)} kg",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = DsTheme.colors.textSecondary,
+                        )
+                    }
                 }
             }
         }
@@ -270,11 +293,16 @@ private fun HistoryTab(userId: String, exerciseName: String) {
 }
 
 @Composable
-private fun ChartsTab(userId: String, exerciseName: String) {
+private fun ChartsTab(userId: String, exerciseName: String, logType: ExerciseLogType) {
     val getExerciseHistoryUseCase = koinInject<GetExerciseHistoryUseCase>()
-    var history by remember { mutableStateOf<List<ExerciseLog>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var selectedMetric by remember { mutableStateOf("Heaviest Weight") }
+    var history by remember(exerciseName) { mutableStateOf<List<ExerciseLog>>(emptyList()) }
+    var isLoading by remember(exerciseName) { mutableStateOf(true) }
+    val metrics = when (logType) {
+        ExerciseLogType.WEIGHT_REPS -> listOf("Heaviest Weight", "Est. 1RM", "Best Volume", "# of Reps")
+        ExerciseLogType.BODYWEIGHT_REPS -> listOf("Most Reps", "Total Reps")
+        ExerciseLogType.TIME -> listOf("Longest Duration", "Total Duration")
+    }
+    var selectedMetric by remember(exerciseName, logType) { mutableStateOf(metrics.first()) }
     var selectedPeriod by remember { mutableStateOf("3M") }
 
     LaunchedEffect(exerciseName) {
@@ -313,30 +341,54 @@ private fun ChartsTab(userId: String, exerciseName: String) {
             }
         }
 
-        // Data points: extract metric per session
-        val dataPoints = history.mapNotNull { log ->
+        // History is date-stamped at repository level. Without that timestamp the old selector
+        // merely changed a chip while showing every session in every period.
+        val filteredHistory = history
+            .filter { it.isWithinPeriod(selectedPeriod) }
+            .sortedBy { it.loggedAt }
+
+        val rawPoints = filteredHistory.mapNotNull { log ->
             val completedSets = log.sets.filter { it.completed }
             if (completedSets.isEmpty()) return@mapNotNull null
-            when (selectedMetric) {
-                "Heaviest Weight" -> completedSets.maxOfOrNull { it.actualWeightKg ?: 0f }
-                "Est. 1RM" -> completedSets.maxOfOrNull { s ->
-                    val w = s.actualWeightKg ?: return@maxOfOrNull 0f
-                    val r = s.actualReps ?: return@maxOfOrNull 0f
-                    if (r in 1..30) w * (1f + r / 30f) else w
-                }
+            val value = when (selectedMetric) {
+                "Heaviest Weight" -> completedSets.mapNotNull { it.actualWeightKg }.maxOrNull()
+                "Est. 1RM" -> completedSets.mapNotNull { s ->
+                    val weight = s.actualWeightKg ?: return@mapNotNull null
+                    val reps = s.actualReps ?: return@mapNotNull null
+                    if (reps in 1..30) weight * (1f + reps / 30f) else weight
+                }.maxOrNull()
                 "Best Volume" -> completedSets.sumOf { s ->
                     ((s.actualWeightKg ?: 0f) * (s.actualReps ?: 0)).toDouble()
-                }.toFloat()
-                else -> completedSets.maxOfOrNull { (it.actualReps ?: 0).toFloat() }
-            } ?: 0f
+                }.toFloat().takeIf { it > 0f }
+                "# of Reps", "Most Reps" -> completedSets.mapNotNull { it.actualReps?.toFloat() }.maxOrNull()
+                "Total Reps" -> completedSets.sumOf { it.actualReps ?: 0 }.toFloat().takeIf { it > 0f }
+                "Longest Duration" -> completedSets
+                    .mapNotNull { it.actualDurationSeconds ?: it.actualRestSeconds }
+                    .maxOrNull()
+                    ?.toFloat()
+                "Total Duration" -> completedSets
+                    .sumOf { it.actualDurationSeconds ?: it.actualRestSeconds ?: 0 }
+                    .toFloat()
+                    .takeIf { it > 0f }
+                else -> null
+            } ?: return@mapNotNull null
+            ExerciseChartPoint(value = value)
         }
 
-        // Simple Canvas line chart
+        var bestSoFar = Float.NEGATIVE_INFINITY
+        val dataPoints = rawPoints.map { point ->
+            val isPersonalRecord = point.value > bestSoFar
+            bestSoFar = maxOf(bestSoFar, point.value)
+            point.copy(isPersonalRecord = isPersonalRecord)
+        }
+
+        // Simple Canvas line chart with markers for every new best in the selected metric.
         if (dataPoints.isNotEmpty()) {
             val primary = DsTheme.colors.actionPrimary
             val surfaceVariant = DsTheme.colors.surfaceElevated
-            val maxVal = dataPoints.max().coerceAtLeast(1f)
-            val minVal = dataPoints.min()
+            val recordColor = DsTheme.colors.warning
+            val maxVal = dataPoints.maxOf { it.value }.coerceAtLeast(1f)
+            val minVal = dataPoints.minOf { it.value }
 
             Text(selectedMetric, style = MaterialTheme.typography.titleSmall)
             androidx.compose.foundation.Canvas(
@@ -366,9 +418,9 @@ private fun ChartsTab(userId: String, exerciseName: String) {
                 if (dataPoints.size > 1) {
                     val step = chartW / (dataPoints.size - 1)
                     val path = androidx.compose.ui.graphics.Path()
-                    dataPoints.forEachIndexed { i, value ->
+                    dataPoints.forEachIndexed { i, point ->
                         val x = padding + step * i
-                        val y = padding + chartH * (1f - (value - minVal) / range)
+                        val y = padding + chartH * (1f - (point.value - minVal) / range)
                         if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
                     }
                     drawPath(
@@ -377,19 +429,35 @@ private fun ChartsTab(userId: String, exerciseName: String) {
                         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f),
                     )
 
-                    // Dots
-                    dataPoints.forEachIndexed { i, value ->
-                        val x = padding + step * i
-                        val y = padding + chartH * (1f - (value - minVal) / range)
-                        drawCircle(primary, radius = 4f, center = androidx.compose.ui.geometry.Offset(x, y))
+                }
+
+                val step = if (dataPoints.size > 1) chartW / (dataPoints.size - 1) else 0f
+                dataPoints.forEachIndexed { i, point ->
+                    val x = if (dataPoints.size == 1) padding + chartW / 2 else padding + step * i
+                    val y = padding + chartH * (1f - (point.value - minVal) / range)
+                    val center = androidx.compose.ui.geometry.Offset(x, y)
+                    drawCircle(primary, radius = 4f, center = center)
+                    if (point.isPersonalRecord) {
+                        drawCircle(
+                            color = recordColor,
+                            radius = 7f,
+                            center = center,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f),
+                        )
                     }
                 }
             }
+        } else {
+            Text(
+                text = stringResource(Res.string.exercise_detail_no_chart_data),
+                style = MaterialTheme.typography.bodyMedium,
+                color = DsTheme.colors.textSecondary,
+            )
         }
 
         // Metric toggle chips
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("Heaviest Weight", "Est. 1RM", "Best Volume", "# of Reps").forEach { metric ->
+            metrics.forEach { metric ->
                 FilterChip(
                     selected = metric == selectedMetric,
                     onClick = { selectedMetric = metric },
@@ -400,8 +468,26 @@ private fun ChartsTab(userId: String, exerciseName: String) {
     }
 }
 
+private data class ExerciseChartPoint(
+    val value: Float,
+    val isPersonalRecord: Boolean = false,
+)
+
+private fun ExerciseLog.isWithinPeriod(period: String): Boolean {
+    val timestamp = loggedAt?.toEpochMilliseconds() ?: return false
+    val days = when (period) {
+        "1M" -> 30
+        "3M" -> 90
+        "6M" -> 180
+        "1Y" -> 365
+        else -> return true
+    }
+    val cutoff = currentInstant().toEpochMilliseconds() - days * 24L * 60L * 60L * 1_000L
+    return timestamp >= cutoff
+}
+
 @Composable
-private fun RecordsTab(userId: String, exerciseName: String) {
+private fun RecordsTab(userId: String, exerciseName: String, logType: ExerciseLogType) {
     val getExerciseRecordsUseCase = koinInject<GetExerciseRecordsUseCase>()
     var records by remember { mutableStateOf<ExerciseRecords?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -418,7 +504,13 @@ private fun RecordsTab(userId: String, exerciseName: String) {
     }
 
     val r = records
-    if (r == null || listOfNotNull(r.heaviestWeight, r.mostRepsAtWeight, r.highestEstimated1RM, r.highestVolume).isEmpty()) {
+    if (r == null || listOfNotNull(
+            r.heaviestWeight,
+            r.mostRepsAtWeight,
+            r.highestEstimated1RM,
+            r.highestVolume,
+            r.longestDuration,
+        ).isEmpty()) {
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
             Text(stringResource(Res.string.exercise_detail_no_records), style = MaterialTheme.typography.bodyMedium, color = DsTheme.colors.textSecondary)
         }
@@ -432,10 +524,15 @@ private fun RecordsTab(userId: String, exerciseName: String) {
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        r.heaviestWeight?.let { RecordCard(stringResource(Res.string.exercise_records_heaviest), it) }
-        r.mostRepsAtWeight?.let { RecordCard(stringResource(Res.string.exercise_records_most_reps), it) }
-        r.highestEstimated1RM?.let { RecordCard(stringResource(Res.string.exercise_records_est_1rm), it) }
-        r.highestVolume?.let { RecordCard(stringResource(Res.string.exercise_records_highest_volume), it) }
+        if (logType == ExerciseLogType.WEIGHT_REPS) {
+            r.heaviestWeight?.let { RecordCard(stringResource(Res.string.exercise_records_heaviest), it) }
+            r.highestEstimated1RM?.let { RecordCard(stringResource(Res.string.exercise_records_est_1rm), it) }
+            r.highestVolume?.let { RecordCard(stringResource(Res.string.exercise_records_highest_volume), it) }
+        }
+        if (logType != ExerciseLogType.TIME) {
+            r.mostRepsAtWeight?.let { RecordCard(stringResource(Res.string.exercise_records_most_reps), it) }
+        }
+        r.longestDuration?.let { RecordCard("Longest duration", it) }
     }
 }
 

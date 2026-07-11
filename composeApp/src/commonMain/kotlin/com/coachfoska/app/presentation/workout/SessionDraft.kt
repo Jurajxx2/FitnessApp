@@ -3,6 +3,7 @@ package com.coachfoska.app.presentation.workout
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.domain.model.ExerciseLogType
+import com.coachfoska.app.domain.model.ExerciseLottieAnimation
 import com.coachfoska.app.domain.model.inferExerciseLogType
 
 data class SessionDraft(
@@ -19,6 +20,8 @@ data class ExerciseDraft(
     val sets: List<SetDraft>,
     val imageUrl: String? = null,
     val imageUrl2: String? = null,
+    val animationUrl: String? = null,
+    val lottieAnimations: List<ExerciseLottieAnimation> = emptyList(),
     val videoUrl: String? = null,
     val muscleGroup: String? = null,
     val tips: String? = null,
@@ -46,6 +49,8 @@ data class SetDraft(
     val setType: SetType = SetType.NORMAL,
     val setLogId: String? = null,
     val saveState: SetSaveState = SetSaveState.Idle,
+    /** Duration of a timed exercise; independent of the between-set rest countdown. */
+    val actualDurationSeconds: Int? = null,
 )
 
 enum class SetSaveState { Idle, Saving, Saved, Failed }

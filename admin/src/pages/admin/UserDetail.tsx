@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { SlideOver, Button, Input, Badge } from '../../components/ui'
+import { SlideOver, Button, Input, Badge, useNotice } from '../../components/ui'
 import { BodyFocusMap } from '../../components/BodyFocusMap'
 import { CheckInsSection } from './CheckInsSection'
 import type {
@@ -578,8 +578,9 @@ export default function UserDetail() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { user: adminUser } = useAuth()
+  const { notify } = useNotice()
 
-  const { data: user, isLoading } = useUser(id!)
+  const { data: user, isLoading, isError, error } = useUser(id!)
   const { data: workoutPlans = [] } = useWorkoutPlans()
   const { data: mealPlans = [] } = useMealPlans()
   const { data: userMealPlanId } = useUserMealPlan(id!)
@@ -594,9 +595,7 @@ export default function UserDetail() {
   const [adminNotes, setAdminNotes] = useState('')
 
   useEffect(() => {
-    if (user?.admin_notes) {
-      setAdminNotes(user.admin_notes)
-    }
+    setAdminNotes(user?.admin_notes ?? '')
   }, [user?.admin_notes])
 
   const updateProfile = useMutation({
@@ -604,12 +603,18 @@ export default function UserDetail() {
       const { error } = await supabase.from('profiles').update(patch).eq('id', id!)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['user', id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user', id] })
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+      notify('User updated.')
+    },
+    onError: error => notify(`Couldn’t update user: ${error.message}`, 'error'),
   })
 
   const assignMealPlan = useMutation({
     mutationFn: async (mealPlanId: string | null) => {
-      await supabase.from('user_meal_plans').delete().eq('user_id', id!)
+      const { error: deleteError } = await supabase.from('user_meal_plans').delete().eq('user_id', id!)
+      if (deleteError) throw deleteError
       if (mealPlanId) {
         const { error } = await supabase
           .from('user_meal_plans')
@@ -620,12 +625,15 @@ export default function UserDetail() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-meal-plan', id] })
       qc.invalidateQueries({ queryKey: ['meal-plan-assignment-counts'] })
+      notify('Meal plan assignment updated.')
     },
+    onError: error => notify(`Couldn’t update meal plan assignment: ${error.message}`, 'error'),
   })
 
   const assignWorkoutPlan = useMutation({
     mutationFn: async (workoutId: string | null) => {
-      await supabase.from('user_workouts').delete().eq('user_id', id!)
+      const { error: deleteError } = await supabase.from('user_workouts').delete().eq('user_id', id!)
+      if (deleteError) throw deleteError
       if (workoutId) {
         const { error } = await supabase
           .from('user_workouts')
@@ -635,7 +643,9 @@ export default function UserDetail() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-workout-plan', id] })
+      notify('Workout plan assignment updated.')
     },
+    onError: error => notify(`Couldn’t update workout assignment: ${error.message}`, 'error'),
   })
 
   const addWorkoutFeedback = useMutation({
@@ -655,7 +665,9 @@ export default function UserDetail() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-workout-feedback', id] })
+      notify('Feedback sent to athlete.')
     },
+    onError: error => notify(`Couldn’t add feedback: ${error.message}`, 'error'),
   })
 
   const deleteWorkoutFeedback = useMutation({
@@ -665,7 +677,9 @@ export default function UserDetail() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-workout-feedback', id] })
+      notify('Feedback deleted.')
     },
+    onError: error => notify(`Couldn’t delete feedback: ${error.message}`, 'error'),
   })
 
   function Field({ label, value }: { label: string; value: string | number | null }) {
@@ -677,10 +691,21 @@ export default function UserDetail() {
     )
   }
 
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       <SlideOver open title="User Detail" onClose={() => navigate('/admin/users')}>
         <p className="text-sm text-[var(--text-disabled)]">Loading…</p>
+      </SlideOver>
+    )
+  }
+
+  if (isError || !user) {
+    return (
+      <SlideOver open title="User Detail" onClose={() => navigate('/admin/users')}>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-error">Couldn’t load this athlete{error ? `: ${error.message}` : '.'}</p>
+          <Button variant="ghost" onClick={() => navigate('/admin/users')}>Back to users</Button>
+        </div>
       </SlideOver>
     )
   }
@@ -689,8 +714,14 @@ export default function UserDetail() {
     <SlideOver open title={user.full_name ?? user.email} onClose={() => navigate('/admin/users')}>
       <div className="flex flex-col gap-6">
         {/* Status */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-3">
           <Badge status={deriveStatus(user)} />
+          <button
+            onClick={() => navigate(`/admin/chat?user=${user.id}`)}
+            className="cursor-pointer border-0 bg-transparent text-sm font-medium text-text-secondary hover:text-text-primary"
+          >
+            Message athlete →
+          </button>
         </div>
 
         {/* Compliance Dashboard */}
@@ -818,7 +849,7 @@ export default function UserDetail() {
         <div>
           <Input
             label="Admin Notes"
-            value={adminNotes || user.admin_notes || ''}
+            value={adminNotes}
             onChange={e => setAdminNotes(e.target.value)}
             placeholder="Private notes about this user…"
           />

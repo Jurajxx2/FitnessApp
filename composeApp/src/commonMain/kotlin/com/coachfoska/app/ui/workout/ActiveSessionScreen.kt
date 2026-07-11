@@ -189,7 +189,7 @@ fun ActiveSessionScreen(
                     start = 10.dp,
                     end = 10.dp,
                     top = 12.dp,
-                    bottom = if (state.restTimer.isActive) 96.dp else 24.dp,
+                    bottom = 24.dp,
                 ),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -202,6 +202,7 @@ fun ActiveSessionScreen(
                         exerciseIndex = index,
                         previousSets = state.previousData[exercise.exerciseName].orEmpty(),
                         prBanner = state.activePRBanner?.takeIf { it.exerciseName == exercise.exerciseName },
+                        restTimer = state.restTimer,
                         onIntent = onIntent,
                         onSwapClick = { substituteIndex = index },
                         onExerciseDetailClick = onExerciseDetailClick,
@@ -235,15 +236,6 @@ fun ActiveSessionScreen(
                     }
                 }
             }
-
-            RestTimerBar(
-                timerState = state.restTimer,
-                onAdjust = { onIntent(ActiveSessionIntent.AdjustRestTimer(it)) },
-                onSkip = { onIntent(ActiveSessionIntent.SkipRestTimer) },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp),
-            )
         }
 
         // Substitute exercise sheet

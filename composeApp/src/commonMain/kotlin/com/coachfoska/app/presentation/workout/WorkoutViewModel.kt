@@ -337,7 +337,8 @@ class WorkoutViewModel(
                         targetReps = s.targetReps, actualReps = s.actualReps,
                         targetWeightKg = s.targetWeightKg, actualWeightKg = s.actualWeightKg,
                         rpe = s.rpe, targetRestSeconds = s.targetRestSeconds, actualRestSeconds = s.actualRestSeconds,
-                        completed = true
+                        completed = true,
+                        actualDurationSeconds = s.actualDurationSeconds,
                     )
                 }
             )

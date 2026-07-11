@@ -8,6 +8,8 @@ import com.coachfoska.app.domain.model.WeeklyCount
 
 data class ProgressDashboardState(
     val weeklyCompletions: List<DayCompletion> = emptyList(),
+    val completedWorkoutsThisWeek: Int = 0,
+    val plannedWorkoutsThisWeek: Int = 0,
     val totalVolumeThisWeek: Float = 0f,
     val currentStreak: Int = 0,
     val muscleDistribution: List<MuscleVolumeEntry> = emptyList(),

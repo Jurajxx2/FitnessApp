@@ -1,9 +1,11 @@
 // admin/src/pages/admin/Chat.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { logger } from '../../lib/logger'
 import type { ChatMessage, Profile } from '../../types/database'
+import { SearchInput, useNotice } from '../../components/ui'
 
 // ─── Pure helpers (exported for tests) ──────────────────────────────────────
 
@@ -90,16 +92,24 @@ function useChatProfiles(userIds: string[]) {
 
 export default function Chat() {
   const qc = useQueryClient()
+  const { notify } = useNotice()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [text, setText] = useState('')
+  const [conversationSearch, setConversationSearch] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const { data: allMessages = [], isLoading } = useChatMessages()
 
   const distinctUserIds = [...new Set(allMessages.map(m => m.user_id))]
-  const { data: profiles = [] } = useChatProfiles(distinctUserIds)
+  const profileUserIds = selectedUserId ? [...new Set([...distinctUserIds, selectedUserId])] : distinctUserIds
+  const { data: profiles = [] } = useChatProfiles(profileUserIds)
 
   const conversations = buildConversationList(allMessages, profiles)
+  const visibleConversations = conversations.filter(conversation => {
+    const query = conversationSearch.trim().toLowerCase()
+    return !query || conversation.displayName.toLowerCase().includes(query) || conversation.lastPreview.toLowerCase().includes(query)
+  })
   const threadMessages = allMessages
     .filter(m => m.user_id === selectedUserId)
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -121,13 +131,25 @@ export default function Chat() {
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-chat-messages'] }),
-    onError: (err) => logger.error('Failed to mark messages as read', err),
+    onError: (err) => {
+      logger.error('Failed to mark messages as read', err)
+      notify('Couldn’t mark the conversation as read.', 'error')
+    },
   })
 
   function selectUser(userId: string) {
     setSelectedUserId(userId)
     markRead.mutate(userId)
   }
+
+  useEffect(() => {
+    const requestedUserId = searchParams.get('user')
+    if (!requestedUserId) return
+    selectUser(requestedUserId)
+    const next = new URLSearchParams(searchParams)
+    next.delete('user')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const sendMessage = useMutation({
     mutationFn: async ({ userId, message }: { userId: string; message: string }) => {
@@ -144,7 +166,10 @@ export default function Chat() {
       qc.invalidateQueries({ queryKey: ['admin-chat-messages'] })
       setText('')
     },
-    onError: (_err, { message }) => setText(message),
+    onError: (error, { message }) => {
+      setText(message)
+      notify(`Couldn’t send message: ${error.message}`, 'error')
+    },
   })
 
   function handleSend() {
@@ -171,19 +196,27 @@ export default function Chat() {
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden">
       {/* Left: conversation list */}
-      <div className="flex w-64 flex-shrink-0 flex-col overflow-hidden border-r border-outline">
+      <div className={`${selectedUserId ? 'hidden sm:flex' : 'flex'} w-full sm:w-72 flex-shrink-0 flex-col overflow-hidden border-r border-outline`}>
         <div className="flex-shrink-0 border-b border-outline px-4 py-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">
-            Conversations
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Conversations</p>
+            {!isLoading && <span className="text-xs text-text-secondary">{visibleConversations.length}</span>}
+          </div>
+          <SearchInput
+            value={conversationSearch}
+            onChange={event => setConversationSearch(event.target.value)}
+            onClear={() => setConversationSearch('')}
+            placeholder="Search conversations…"
+            className="mt-3"
+          />
         </div>
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
             <p className="p-4 text-xs text-text-secondary">Loading…</p>
-          ) : conversations.length === 0 ? (
-            <p className="p-4 text-xs text-text-secondary">No conversations yet</p>
+          ) : visibleConversations.length === 0 ? (
+            <p className="p-4 text-xs text-text-secondary">{conversationSearch ? 'No conversations match this search' : 'No conversations yet'}</p>
           ) : (
-            conversations.map(c => (
+            visibleConversations.map(c => (
               <button
                 key={c.userId}
                 onClick={() => selectUser(c.userId)}
@@ -214,7 +247,10 @@ export default function Chat() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {selectedUserId ? (
           <>
-            <div className="flex-shrink-0 border-b border-outline px-5 py-3">
+            <div className="flex flex-shrink-0 items-center gap-3 border-b border-outline px-5 py-3">
+              <button onClick={() => setSelectedUserId(null)} className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-text-secondary hover:text-text-primary sm:hidden">
+                ← Back
+              </button>
               <p className="text-sm font-semibold text-text-primary">
                 {selectedProfile?.full_name ?? selectedProfile?.email ?? selectedUserId}
               </p>

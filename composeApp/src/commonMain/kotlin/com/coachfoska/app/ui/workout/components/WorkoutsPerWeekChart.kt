@@ -45,7 +45,9 @@ fun WorkoutsPerWeekChart(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(fraction.coerceIn(0.05f, 1f))
+                            // A zero-workout week must be visually empty. A minimum bar made
+                            // missed weeks look like completed training in the old chart.
+                            .fillMaxHeight(fraction.coerceIn(0f, 1f))
                             .background(DsTheme.colors.chartLine, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)),
                     )
                 }

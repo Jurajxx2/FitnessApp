@@ -24,11 +24,10 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun WeeklyCalendarStrip(
     completions: List<DayCompletion>,
+    completedWorkouts: Int = completions.count { it.status == CompletionStatus.COMPLETED },
+    plannedWorkouts: Int = completions.size,
     modifier: Modifier = Modifier,
 ) {
-    val completedCount = completions.count { it.status == CompletionStatus.COMPLETED }
-    val totalDays = completions.size
-
     Column(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -41,7 +40,7 @@ fun WeeklyCalendarStrip(
                 color = DsTheme.colors.textSecondary,
             )
             Text(
-                text = stringResource(Res.string.progress_workouts_count, completedCount, totalDays),
+                text = stringResource(Res.string.progress_workouts_count, completedWorkouts, plannedWorkouts),
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                 color = DsTheme.colors.actionPrimary,
             )

@@ -63,7 +63,9 @@ class ProgressDashboardViewModelTest {
 
         val vm = viewModel()
 
-        assertEquals(counts, vm.state.value.workoutsPerWeek)
+        assertEquals(3, vm.state.value.workoutsPerWeek
+            .single { it.weekStart == LocalDate.parse("2026-06-01") }
+            .count)
     }
 
     @Test
@@ -81,12 +83,14 @@ class ProgressDashboardViewModelTest {
         val vm = viewModel()
 
         coEvery { repo.getWorkoutCountByWeek(any(), any()) } returns Result.success(
-            listOf(WeeklyCount(LocalDate.parse("2026-01-01"), 9))
+            listOf(WeeklyCount(LocalDate.parse("2026-01-05"), 9))
         )
         vm.onTimePeriodSelected(TimePeriod.ONE_YEAR)
 
         assertEquals(TimePeriod.ONE_YEAR, vm.state.value.selectedTimePeriod)
-        assertEquals(9, vm.state.value.workoutsPerWeek.first().count)
+        assertEquals(9, vm.state.value.workoutsPerWeek
+            .single { it.weekStart == LocalDate.parse("2026-01-05") }
+            .count)
     }
 
     @Test

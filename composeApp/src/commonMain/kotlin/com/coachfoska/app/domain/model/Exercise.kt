@@ -12,12 +12,26 @@ data class Exercise(
     val imageUrl2: String?,
     val videoUrl: String?,
     val difficulty: String?,
+    val animationUrl: String? = null,
+    val lottieAnimations: List<ExerciseLottieAnimation> = emptyList(),
     val logType: ExerciseLogType = inferExerciseLogType(
         name = name,
         categoryName = category?.name,
         equipment = equipment,
     ),
 )
+
+/** A database-resident Lottie payload for one exercise and figure variation. */
+data class ExerciseLottieAnimation(
+    val variant: ExerciseLottieVariant,
+    val lottieJson: String,
+    val storageUrl: String,
+)
+
+enum class ExerciseLottieVariant {
+    MAN,
+    WOMAN,
+}
 
 data class ExerciseCategory(
     val id: Int,

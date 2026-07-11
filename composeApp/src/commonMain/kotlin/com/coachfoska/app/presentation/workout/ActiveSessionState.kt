@@ -25,4 +25,9 @@ data class RestTimerState(
     val isActive: Boolean = false,
     val remainingSeconds: Int = 0,
     val totalSeconds: Int = 0,
+    /** The completed set whose rest period is being tracked. */
+    val exerciseIndex: Int? = null,
+    val setIndex: Int? = null,
+    /** Wall-clock start used to catch up correctly after the app has been backgrounded. */
+    val startedAtEpochMillis: Long = 0L,
 )

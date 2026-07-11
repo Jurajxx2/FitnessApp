@@ -41,6 +41,8 @@ class ProgressDashboardViewModel(
                     it.copy(
                         isLoading = false,
                         weeklyCompletions = data.weeklyCompletions,
+                        completedWorkoutsThisWeek = data.completedWorkoutsThisWeek,
+                        plannedWorkoutsThisWeek = data.plannedWorkoutsThisWeek,
                         totalVolumeThisWeek = data.totalVolumeThisWeek,
                         currentStreak = data.currentStreak,
                         muscleDistribution = data.muscleDistribution,

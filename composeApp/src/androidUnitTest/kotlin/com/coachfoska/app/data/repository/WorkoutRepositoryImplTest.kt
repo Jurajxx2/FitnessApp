@@ -16,6 +16,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -150,5 +151,47 @@ class WorkoutRepositoryImplTest {
         assertEquals(10, logs[0].exerciseLogs[0].sets[0].actualReps)
         assertEquals("Good pace.", logs[0].feedback.single().body)
         assertEquals("Control the eccentric.", logs[0].exerciseLogs[0].feedback.single().body)
+    }
+
+    @Test
+    fun `getExerciseHistory retains each parent workout timestamp for charts`() = runTest {
+        val loggedAt = "2026-07-11T09:30:00Z"
+        coEvery { dataSource.getExerciseLogHistory("u", "Bench Press") } returns listOf(
+            ExerciseLogDto(
+                id = "el-1",
+                workoutLogId = "wl-1",
+                exerciseName = "Bench Press",
+            ) to loggedAt,
+        )
+
+        val result = repository.getExerciseHistory("u", "Bench Press")
+
+        assertTrue(result.isSuccess)
+        assertEquals(Instant.parse(loggedAt), result.getOrThrow().single().loggedAt)
+    }
+
+    @Test
+    fun `getExerciseRecords exposes longest duration for timed exercises`() = runTest {
+        coEvery { dataSource.getExerciseLogHistory("u", "Plank Hold") } returns listOf(
+            ExerciseLogDto(
+                id = "el-1",
+                workoutLogId = "wl-1",
+                exerciseName = "Plank Hold",
+                setLogs = listOf(
+                    SetLogDto(
+                        id = "s-1",
+                        exerciseLogId = "el-1",
+                        sortOrder = 1,
+                        actualDurationSeconds = 95,
+                        completed = true,
+                    ),
+                ),
+            ) to "2026-07-11T09:30:00Z",
+        )
+
+        val result = repository.getExerciseRecords("u", "Plank Hold")
+
+        assertTrue(result.isSuccess)
+        assertEquals("01:35", result.getOrThrow().longestDuration?.value)
     }
 }

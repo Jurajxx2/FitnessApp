@@ -2,8 +2,11 @@ package com.coachfoska.app.data.remote.dto
 
 import com.coachfoska.app.domain.model.Exercise
 import com.coachfoska.app.domain.model.ExerciseCategory
+import com.coachfoska.app.domain.model.ExerciseLottieAnimation
+import com.coachfoska.app.domain.model.ExerciseLottieVariant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class ExerciseDto(
@@ -14,6 +17,7 @@ data class ExerciseDto(
     @SerialName("description_cs") val descriptionCsRaw: String? = null,
     @SerialName("image_url") val imageUrl: String? = null,
     @SerialName("image_url_2") val imageUrl2: String? = null,
+    @SerialName("animation_url") val animationUrl: String? = null,
     @SerialName("video_url") val videoUrl: String? = null,
     val difficulty: String? = null,
     @SerialName("is_active") val isActive: Boolean = true,
@@ -21,6 +25,7 @@ data class ExerciseDto(
     @SerialName("secondary_muscles") val secondaryMuscles: List<String> = emptyList(),
     @SerialName("equipment_names") val equipmentNames: List<String> = emptyList(),
     @SerialName("exercise_categories") val category: ExerciseCategoryDto? = null,
+    @SerialName("exercise_lottie_animations") val lottieAnimations: List<ExerciseLottieAnimationDto> = emptyList(),
 ) {
     fun toDomain(locale: String = "en"): Exercise {
         val name = if (locale == "cs" && !nameCsRaw.isNullOrBlank()) nameCsRaw else nameEn
@@ -35,8 +40,28 @@ data class ExerciseDto(
             equipment = equipmentNames,
             imageUrl = imageUrl,
             imageUrl2 = imageUrl2,
+            animationUrl = animationUrl,
+            lottieAnimations = lottieAnimations.mapNotNull(ExerciseLottieAnimationDto::toDomainOrNull),
             videoUrl = videoUrl,
             difficulty = difficulty
+        )
+    }
+}
+
+@Serializable
+data class ExerciseLottieAnimationDto(
+    @SerialName("figure_variant") val figureVariant: String,
+    @SerialName("lottie_json") val lottieJson: JsonElement,
+    @SerialName("storage_url") val storageUrl: String,
+) {
+    fun toDomainOrNull(): ExerciseLottieAnimation? {
+        val variant = ExerciseLottieVariant.entries
+            .firstOrNull { it.name.equals(figureVariant, ignoreCase = true) }
+            ?: return null
+        return ExerciseLottieAnimation(
+            variant = variant,
+            lottieJson = lottieJson.toString(),
+            storageUrl = storageUrl,
         )
     }
 }

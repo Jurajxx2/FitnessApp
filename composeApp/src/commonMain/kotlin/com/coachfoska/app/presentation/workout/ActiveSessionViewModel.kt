@@ -52,7 +52,11 @@ class ActiveSessionViewModel(
             is ActiveSessionIntent.RemoveSet -> removeSet(intent.exerciseIndex, intent.setIndex)
             is ActiveSessionIntent.SkipToNextExercise -> skipToNextExercise(intent.exerciseIndex)
             is ActiveSessionIntent.AddExerciseNote -> addNote(intent.exerciseIndex, intent.note)
-            is ActiveSessionIntent.StartRestTimer -> startTimer(intent.seconds)
+            is ActiveSessionIntent.StartRestTimer -> startTimer(
+                seconds = intent.seconds,
+                exerciseIndex = intent.exerciseIndex,
+                setIndex = intent.setIndex,
+            )
             ActiveSessionIntent.SkipRestTimer -> skipTimer()
             is ActiveSessionIntent.AdjustRestTimer -> adjustTimer(intent.deltaSeconds)
             ActiveSessionIntent.DismissPRBanner -> _state.update { it.copy(activePRBanner = null) }
@@ -87,9 +91,9 @@ class ActiveSessionViewModel(
                 }
                 workoutRepository.startWorkoutSession(userId, workout.id, workout.name)
                     .onSuccess { logId ->
-                        if (_state.value.sessionDiscarded) {
+                        if (_state.value.sessionDiscarded || _state.value.submittedLogId != null) {
                             workoutRepository.discardWorkoutSession(logId)
-                                .onFailure { e -> Napier.e("Failed to discard late-created session", e, tag = TAG) }
+                                .onFailure { e -> Napier.e("Failed to discard obsolete live session", e, tag = TAG) }
                             return@onSuccess
                         }
                         _state.update { s ->
@@ -98,6 +102,10 @@ class ActiveSessionViewModel(
                                 sessionSaveDegraded = false,
                             )
                         }
+                        // A user can complete a set before the live workout row has been
+                        // created. Flush those local completions now instead of silently
+                        // finishing a session without any set statistics.
+                        persistCompletedSets()
                     }
                     .onFailure { e ->
                         Napier.e("Failed to start live session; falling back to bulk submit", e, tag = TAG)
@@ -174,47 +182,68 @@ class ActiveSessionViewModel(
     }
 
     private fun updateSet(intent: ActiveSessionIntent.UpdateSetActual) {
-        _state.update { s ->
-            val draft = s.sessionDraft ?: return@update s
-            val updatedEx = draft.exercises.toMutableList()
-            val ex = updatedEx[intent.exerciseIndex]
-            val updatedSets = ex.sets.toMutableList()
-            updatedSets[intent.setIndex] = updatedSets[intent.setIndex].copy(
-                actualReps = intent.reps,
-                actualWeightKg = intent.weight,
-            )
-            updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
-            s.copy(sessionDraft = draft.copy(exercises = updatedEx))
-        }
-    }
-
-    private fun updateSetDuration(intent: ActiveSessionIntent.UpdateSetDuration) {
+        var shouldPersist = false
         _state.update { s ->
             val draft = s.sessionDraft ?: return@update s
             val updatedEx = draft.exercises.toMutableList()
             val ex = updatedEx.getOrNull(intent.exerciseIndex) ?: return@update s
             val updatedSets = ex.sets.toMutableList()
             val set = updatedSets.getOrNull(intent.setIndex) ?: return@update s
-            updatedSets[intent.setIndex] = set.copy(actualRestSeconds = intent.durationSeconds)
+            updatedSets[intent.setIndex] = set.copy(
+                actualReps = intent.reps,
+                actualWeightKg = intent.weight,
+            )
             updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
+            shouldPersist = set.completed
             s.copy(sessionDraft = draft.copy(exercises = updatedEx))
         }
+        if (shouldPersist) persistSet(intent.exerciseIndex, intent.setIndex)
     }
 
-    private fun markSetComplete(intent: ActiveSessionIntent.MarkSetComplete) {
+    private fun updateSetDuration(intent: ActiveSessionIntent.UpdateSetDuration) {
+        var shouldPersist = false
         _state.update { s ->
             val draft = s.sessionDraft ?: return@update s
             val updatedEx = draft.exercises.toMutableList()
-            val ex = updatedEx[intent.exerciseIndex]
+            val ex = updatedEx.getOrNull(intent.exerciseIndex) ?: return@update s
             val updatedSets = ex.sets.toMutableList()
-            updatedSets[intent.setIndex] = updatedSets[intent.setIndex].copy(completed = intent.completed)
+            val set = updatedSets.getOrNull(intent.setIndex) ?: return@update s
+            updatedSets[intent.setIndex] = set.copy(actualDurationSeconds = intent.durationSeconds)
+            updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
+            shouldPersist = set.completed
+            s.copy(sessionDraft = draft.copy(exercises = updatedEx))
+        }
+        if (shouldPersist) persistSet(intent.exerciseIndex, intent.setIndex)
+    }
+
+    private fun markSetComplete(intent: ActiveSessionIntent.MarkSetComplete) {
+        val originalSet = _state.value.sessionDraft
+            ?.exercises
+            ?.getOrNull(intent.exerciseIndex)
+            ?.sets
+            ?.getOrNull(intent.setIndex)
+            ?: return
+
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            val updatedEx = draft.exercises.toMutableList()
+            val ex = updatedEx.getOrNull(intent.exerciseIndex) ?: return@update s
+            val updatedSets = ex.sets.toMutableList()
+            val set = updatedSets.getOrNull(intent.setIndex) ?: return@update s
+            updatedSets[intent.setIndex] = set.copy(
+                completed = intent.completed,
+                actualRestSeconds = if (intent.completed) set.actualRestSeconds else null,
+            )
             updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
             s.copy(sessionDraft = draft.copy(exercises = updatedEx))
         }
 
         if (intent.completed) {
             val draft = _state.value.sessionDraft ?: return
-            val set = draft.exercises[intent.exerciseIndex].sets[intent.setIndex]
+            val set = draft.exercises.getOrNull(intent.exerciseIndex)
+                ?.sets
+                ?.getOrNull(intent.setIndex)
+                ?: return
             val weight = set.actualWeightKg
             val reps = set.actualReps
             val restSeconds = set.targetRestSeconds
@@ -223,7 +252,7 @@ class ActiveSessionViewModel(
                 val exerciseSets = draft.exercises[intent.exerciseIndex].sets
                 val hasUncompletedSets = exerciseSets.any { !it.completed && it.sortOrder > set.sortOrder }
                 if (hasUncompletedSets) {
-                    startTimer(restSeconds)
+                    startTimer(restSeconds, intent.exerciseIndex, intent.setIndex)
                 }
             }
 
@@ -255,12 +284,13 @@ class ActiveSessionViewModel(
             persistSet(intent.exerciseIndex, intent.setIndex)
             checkAutoAdvance(intent.exerciseIndex)
         } else {
-            val set = _state.value.sessionDraft
-                ?.exercises
-                ?.getOrNull(intent.exerciseIndex)
-                ?.sets
-                ?.getOrNull(intent.setIndex)
-            if (set?.setLogId != null) persistSet(intent.exerciseIndex, intent.setIndex)
+            if (
+                _state.value.restTimer.exerciseIndex == intent.exerciseIndex &&
+                _state.value.restTimer.setIndex == intent.setIndex
+            ) {
+                cancelRestTimer(recordElapsedRest = false)
+            }
+            if (originalSet.setLogId != null) persistSet(intent.exerciseIndex, intent.setIndex)
         }
     }
 
@@ -282,7 +312,7 @@ class ActiveSessionViewModel(
 
         viewModelScope.launch {
             val setLog = set.toSetLog(exercise.exerciseLogId.orEmpty())
-            val result = if (set.setLogId == null) {
+            if (set.setLogId == null) {
                 workoutRepository.saveSetLog(
                     workoutLogId = workoutLogId,
                     exerciseName = exercise.exerciseName,
@@ -291,7 +321,7 @@ class ActiveSessionViewModel(
                     substitutedFromName = exercise.substitutedFromName,
                     existingExerciseLogId = exercise.exerciseLogId,
                     set = setLog,
-                ).map { ref ->
+                ).onSuccess { ref ->
                     _state.update { s ->
                         val d = s.sessionDraft ?: return@update s
                         val exercises = d.exercises.toMutableList()
@@ -304,20 +334,40 @@ class ActiveSessionViewModel(
                         exercises[exerciseIndex] = ex.copy(exerciseLogId = ref.exerciseLogId, sets = sets)
                         s.copy(sessionDraft = d.copy(exercises = exercises))
                     }
+                    persistSetIfChangedSince(exerciseIndex, setIndex, set)
+                }.onFailure { e ->
+                    Napier.e("Failed to autosave set", e, tag = TAG)
+                    setSetSaveState(exerciseIndex, setIndex, SetSaveState.Failed)
                 }
             } else {
                 workoutRepository.updateSetLog(
                     setLogId = set.setLogId,
                     set = set.copy(saveState = SetSaveState.Saving).toSetLog(exercise.exerciseLogId.orEmpty()),
-                ).map {
+                ).onSuccess {
                     setSetSaveState(exerciseIndex, setIndex, SetSaveState.Saved)
+                    persistSetIfChangedSince(exerciseIndex, setIndex, set)
+                }.onFailure { e ->
+                    Napier.e("Failed to autosave set", e, tag = TAG)
+                    setSetSaveState(exerciseIndex, setIndex, SetSaveState.Failed)
                 }
             }
+        }
+    }
 
-            result.onFailure { e ->
-                Napier.e("Failed to autosave set", e, tag = TAG)
-                setSetSaveState(exerciseIndex, setIndex, SetSaveState.Failed)
-            }
+    /**
+     * A set may be edited while its first insert/update is in flight (most commonly when a rest
+     * countdown ends before a slow network response). Re-save the latest values once that request
+     * settles so history and all derived statistics use what the athlete actually logged.
+     */
+    private fun persistSetIfChangedSince(exerciseIndex: Int, setIndex: Int, persisted: SetDraft) {
+        val current = _state.value.sessionDraft
+            ?.exercises
+            ?.getOrNull(exerciseIndex)
+            ?.sets
+            ?.getOrNull(setIndex)
+            ?: return
+        if (!current.hasSamePersistedValuesAs(persisted)) {
+            persistSet(exerciseIndex, setIndex)
         }
     }
 
@@ -490,9 +540,15 @@ class ActiveSessionViewModel(
             val exercises = draft.exercises.toMutableList()
             val item = exercises.removeAt(exerciseIndex)
             exercises.add(targetIndex, item)
+            val restTimer = when (s.restTimer.exerciseIndex) {
+                exerciseIndex -> s.restTimer.copy(exerciseIndex = targetIndex)
+                targetIndex -> s.restTimer.copy(exerciseIndex = exerciseIndex)
+                else -> s.restTimer
+            }
             s.copy(
                 sessionDraft = draft.copy(exercises = exercises),
                 currentExerciseIndex = targetIndex,
+                restTimer = restTimer,
             )
         }
     }
@@ -515,6 +571,8 @@ class ActiveSessionViewModel(
             exerciseId = replacement.id,
             imageUrl = replacement.imageUrl,
             imageUrl2 = replacement.imageUrl2,
+            animationUrl = replacement.animationUrl,
+            lottieAnimations = replacement.lottieAnimations,
             videoUrl = replacement.videoUrl,
             logType = replacement.logType,
             substitutedFromExerciseId = originId,
@@ -534,37 +592,111 @@ class ActiveSessionViewModel(
         }
     }
 
-    private fun startTimer(seconds: Int) {
-        timerJob?.cancel()
+    private fun startTimer(seconds: Int, exerciseIndex: Int? = null, setIndex: Int? = null) {
+        if (seconds <= 0) return
+        cancelRestTimer(recordElapsedRest = true)
+        val startedAt = currentInstant().toEpochMilliseconds()
         _state.update {
-            it.copy(restTimer = RestTimerState(isActive = true, remainingSeconds = seconds, totalSeconds = seconds))
+            it.copy(
+                restTimer = RestTimerState(
+                    isActive = true,
+                    remainingSeconds = seconds,
+                    totalSeconds = seconds,
+                    exerciseIndex = exerciseIndex,
+                    setIndex = setIndex,
+                    startedAtEpochMillis = startedAt,
+                ),
+            )
         }
         timerJob = viewModelScope.launch {
             while (_state.value.restTimer.remainingSeconds > 0) {
                 delay(1000)
                 _state.update { s ->
-                    val remaining = (s.restTimer.remainingSeconds - 1).coerceAtLeast(0)
-                    s.copy(restTimer = s.restTimer.copy(remainingSeconds = remaining))
+                    val timer = s.restTimer
+                    if (!timer.isActive) return@update s
+                    val elapsedByClock = ((currentInstant().toEpochMilliseconds() - timer.startedAtEpochMillis) / 1_000)
+                        .toInt()
+                        .coerceAtLeast(0)
+                    // The tick count keeps coroutine-test timers deterministic, while the wall
+                    // clock catches up after the app has been backgrounded.
+                    val elapsedByTicks = timer.totalSeconds - timer.remainingSeconds + 1
+                    val elapsed = maxOf(elapsedByClock, elapsedByTicks)
+                    val remaining = (timer.totalSeconds - elapsed).coerceAtLeast(0)
+                    s.copy(restTimer = timer.copy(remainingSeconds = remaining))
                 }
             }
-            _state.update { it.copy(restTimer = RestTimerState()) }
+            cancelRestTimer(recordElapsedRest = true)
         }
     }
 
     private fun skipTimer() {
-        timerJob?.cancel()
-        _state.update { it.copy(restTimer = RestTimerState()) }
+        cancelRestTimer(recordElapsedRest = true)
     }
 
     private fun adjustTimer(delta: Int) {
+        var shouldFinish = false
         _state.update { s ->
-            val newRemaining = (s.restTimer.remainingSeconds + delta).coerceAtLeast(0)
-            val newTotal = (s.restTimer.totalSeconds + delta).coerceAtLeast(0)
-            s.copy(restTimer = s.restTimer.copy(remainingSeconds = newRemaining, totalSeconds = newTotal))
+            val timer = s.restTimer
+            if (!timer.isActive) return@update s
+            val elapsed = (timer.totalSeconds - timer.remainingSeconds).coerceAtLeast(0)
+            val newTotal = (timer.totalSeconds + delta).coerceAtLeast(elapsed)
+            val newRemaining = (newTotal - elapsed).coerceAtLeast(0)
+            shouldFinish = newRemaining == 0
+            s.copy(restTimer = timer.copy(remainingSeconds = newRemaining, totalSeconds = newTotal))
+        }
+        if (shouldFinish) cancelRestTimer(recordElapsedRest = true)
+    }
+
+    private fun cancelRestTimer(recordElapsedRest: Boolean) {
+        val timer = _state.value.restTimer
+        timerJob?.cancel()
+        timerJob = null
+        if (!timer.isActive) return
+
+        _state.update { it.copy(restTimer = RestTimerState()) }
+        if (!recordElapsedRest) return
+
+        val exerciseIndex = timer.exerciseIndex ?: return
+        val setIndex = timer.setIndex ?: return
+        val elapsed = (timer.totalSeconds - timer.remainingSeconds).coerceAtLeast(0)
+        updateSetRestElapsed(exerciseIndex, setIndex, elapsed)
+    }
+
+    private fun updateSetRestElapsed(exerciseIndex: Int, setIndex: Int, elapsedSeconds: Int) {
+        var shouldPersist = false
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            val exercises = draft.exercises.toMutableList()
+            val exercise = exercises.getOrNull(exerciseIndex) ?: return@update s
+            val sets = exercise.sets.toMutableList()
+            val set = sets.getOrNull(setIndex) ?: return@update s
+            if (!set.completed) return@update s
+            sets[setIndex] = set.copy(actualRestSeconds = elapsedSeconds)
+            exercises[exerciseIndex] = exercise.copy(sets = sets)
+            // The completion insert may still be in flight. Its success handler compares the
+            // latest draft and performs one follow-up update, so issuing another insert here
+            // would duplicate a set. A failed insert remains explicitly retryable by the user.
+            shouldPersist = set.setLogId != null
+            s.copy(sessionDraft = draft.copy(exercises = exercises))
+        }
+        if (shouldPersist) persistSet(exerciseIndex, setIndex)
+    }
+
+    private fun persistCompletedSets() {
+        val draft = _state.value.sessionDraft ?: return
+        draft.exercises.forEachIndexed { exerciseIndex, exercise ->
+            exercise.sets.forEachIndexed { setIndex, set ->
+                if (set.completed && set.setLogId == null) {
+                    persistSet(exerciseIndex, setIndex)
+                }
+            }
         }
     }
 
     private fun submitSession(notes: String?) {
+        // Keep a partial final rest interval when the user finishes a workout mid-countdown.
+        // This is still useful history and avoids leaving an active timer behind a completed log.
+        cancelRestTimer(recordElapsedRest = true)
         val draft = _state.value.sessionDraft ?: return
 
         val exerciseLogs = draft.exercises
@@ -584,6 +716,7 @@ class ActiveSessionViewModel(
                             targetWeightKg = s.targetWeightKg, actualWeightKg = s.actualWeightKg,
                             rpe = s.rpe, targetRestSeconds = s.targetRestSeconds,
                             actualRestSeconds = s.actualRestSeconds, completed = true,
+                            actualDurationSeconds = s.actualDurationSeconds,
                         )
                     }
                 )
@@ -621,6 +754,7 @@ class ActiveSessionViewModel(
     }
 
     private fun discardSession() {
+        cancelRestTimer(recordElapsedRest = false)
         val workoutLogId = _state.value.sessionDraft?.workoutLogId
         viewModelScope.launch {
             if (workoutLogId == null) {
@@ -642,7 +776,20 @@ class ActiveSessionViewModel(
                     exerciseLogId = logged.id,
                     sets = mergeLoggedSets(base.sets, logged.sets),
                 )
-            }
+            } + log.exerciseLogs
+                .filter { logged -> baseDraft.exercises.none { it.exerciseName == logged.exerciseName } }
+                .map { logged ->
+                    ExerciseDraft(
+                        exerciseName = logged.exerciseName,
+                        exerciseId = logged.exerciseId,
+                        exerciseLogId = logged.id,
+                        videoUrl = logged.videoUrl,
+                        logType = inferExerciseLogType(logged.exerciseName),
+                        substitutedFromExerciseId = logged.substitutedFromExerciseId,
+                        substitutedFromName = logged.substitutedFromName,
+                        sets = logged.sets.sortedBy { it.sortOrder }.map { it.toDraft() },
+                    )
+                }
         } else {
             log.exerciseLogs.map { logged ->
                 ExerciseDraft(
@@ -679,6 +826,8 @@ class ActiveSessionViewModel(
             exercise.copy(
                 imageUrl = exercise.imageUrl ?: domainExercise.imageUrl,
                 imageUrl2 = exercise.imageUrl2 ?: domainExercise.imageUrl2,
+                animationUrl = exercise.animationUrl ?: domainExercise.animationUrl,
+                lottieAnimations = domainExercise.lottieAnimations,
                 videoUrl = exercise.videoUrl ?: domainExercise.videoUrl,
                 logType = domainExercise.logType,
             )
@@ -690,7 +839,10 @@ class ActiveSessionViewModel(
         val loggedByOrder = loggedSets.associateBy { it.sortOrder }
         return baseSets.map { base ->
             loggedByOrder[base.sortOrder]?.toDraft(base) ?: base
-        }
+        } + loggedSets
+            .filter { logged -> baseSets.none { it.sortOrder == logged.sortOrder } }
+            .sortedBy { it.sortOrder }
+            .map { it.toDraft() }
     }
 
     private fun SetDraft.toSetLog(exerciseLogId: String): SetLog = SetLog(
@@ -705,6 +857,7 @@ class ActiveSessionViewModel(
         targetRestSeconds = targetRestSeconds,
         actualRestSeconds = actualRestSeconds,
         completed = completed,
+        actualDurationSeconds = actualDurationSeconds,
     )
 
     private fun SetLog.toDraft(base: SetDraft? = null): SetDraft = SetDraft(
@@ -719,6 +872,7 @@ class ActiveSessionViewModel(
         completed = completed,
         setLogId = id,
         saveState = SetSaveState.Saved,
+        actualDurationSeconds = actualDurationSeconds,
     )
 
     private fun com.coachfoska.app.domain.model.Exercise.toSessionDraft(): ExerciseDraft {
@@ -728,6 +882,8 @@ class ActiveSessionViewModel(
             exerciseName = name,
             imageUrl = imageUrl,
             imageUrl2 = imageUrl2,
+            animationUrl = animationUrl,
+            lottieAnimations = lottieAnimations,
             videoUrl = videoUrl,
             muscleGroup = muscles.firstOrNull() ?: category?.name,
             exerciseId = id,
@@ -745,6 +901,7 @@ class ActiveSessionViewModel(
                     targetRestSeconds = null,
                     actualRestSeconds = null,
                     setType = SetType.NORMAL,
+                    actualDurationSeconds = null,
                 )
             },
         )
@@ -755,3 +912,15 @@ class ActiveSessionViewModel(
         timerJob?.cancel()
     }
 }
+
+private fun SetDraft.hasSamePersistedValuesAs(other: SetDraft): Boolean =
+    sortOrder == other.sortOrder &&
+        targetReps == other.targetReps &&
+        actualReps == other.actualReps &&
+        targetWeightKg == other.targetWeightKg &&
+        actualWeightKg == other.actualWeightKg &&
+        rpe == other.rpe &&
+        targetRestSeconds == other.targetRestSeconds &&
+        actualRestSeconds == other.actualRestSeconds &&
+        completed == other.completed &&
+        actualDurationSeconds == other.actualDurationSeconds
