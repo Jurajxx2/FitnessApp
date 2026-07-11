@@ -34,20 +34,29 @@ CREATE POLICY "Users can update own profile"
 CREATE POLICY "Users can insert own profile"
     ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
--- Auto-create profile on signup
-CREATE OR REPLACE FUNCTION handle_new_user()
+-- Auto-create profile on signup. Full name is display metadata only; it must
+-- never be used for authorization because user metadata is user-editable.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO profiles (id, email)
-    VALUES (NEW.id, NEW.email)
+    INSERT INTO public.profiles (id, email, full_name)
+    VALUES (
+        NEW.id,
+        NEW.email,
+        NULLIF(pg_catalog.btrim(NEW.raw_user_meta_data ->> 'full_name'), '')
+    )
     ON CONFLICT (id) DO NOTHING;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- The function is invoked by the auth.users trigger only; no API role should
+-- be able to call it directly.
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
 
 -- ============================================================
 -- WEIGHT ENTRIES

@@ -14,64 +14,115 @@ ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS is_blocked  BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS admin_notes TEXT;
 
--- ── is_admin() helper ────────────────────────────────────────
+-- ── get_is_admin() helper ────────────────────────────────────────
 -- SECURITY DEFINER: runs as the function owner → bypasses RLS
 -- on the profiles lookup (no infinite recursion).
 -- STABLE: Postgres can cache the result within one query.
-CREATE OR REPLACE FUNCTION is_admin()
+CREATE OR REPLACE FUNCTION public.get_is_admin()
 RETURNS BOOLEAN
 LANGUAGE sql
 SECURITY DEFINER
 STABLE
+SET search_path = ''
 AS $$
-  SELECT COALESCE(is_admin, FALSE) FROM profiles WHERE id = auth.uid()
+  SELECT COALESCE((
+    SELECT p.is_admin FROM public.profiles p WHERE p.id = (SELECT auth.uid())
+  ), FALSE)
 $$;
+
+REVOKE EXECUTE ON FUNCTION public.get_is_admin() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_is_admin() TO authenticated;
+
+-- A user may edit their profile, but must never be able to set the admin
+-- flag that protects the admin application and Edge Functions. The function
+-- checks the stored value using the statement snapshot, before the update.
+CREATE SCHEMA IF NOT EXISTS private;
+REVOKE ALL ON SCHEMA private FROM PUBLIC;
+GRANT USAGE ON SCHEMA private TO authenticated;
+
+CREATE OR REPLACE FUNCTION private.profile_admin_flag_is_unchanged(
+  p_profile_id UUID,
+  p_is_admin BOOLEAN
+)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles p
+    WHERE p.id = p_profile_id
+      AND p.is_admin IS NOT DISTINCT FROM p_is_admin
+      AND (
+        p_profile_id = (SELECT auth.uid())
+        OR (SELECT public.get_is_admin())
+      )
+  )
+$$;
+
+REVOKE EXECUTE ON FUNCTION private.profile_admin_flag_is_unchanged(UUID, BOOLEAN) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.profile_admin_flag_is_unchanged(UUID, BOOLEAN) TO authenticated;
 
 -- ── profiles ─────────────────────────────────────────────────
 -- Users still read/update their own row (from schema.sql).
 -- Add admin-side policies on top.
 
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 DROP POLICY IF EXISTS "Coach can read all profiles"   ON profiles;
 DROP POLICY IF EXISTS "Coach can update all profiles" ON profiles;
 
+CREATE POLICY "Users can update own profile"
+  ON profiles FOR UPDATE TO authenticated
+  USING (auth.uid() = id)
+  WITH CHECK (
+    auth.uid() = id
+    AND private.profile_admin_flag_is_unchanged(id, is_admin)
+  );
+
 CREATE POLICY "Admin can read all profiles"
   ON profiles FOR SELECT TO authenticated
-  USING (is_admin() OR auth.uid() = id);
+  USING (get_is_admin() OR auth.uid() = id);
 
 CREATE POLICY "Admin can update all profiles"
   ON profiles FOR UPDATE TO authenticated
-  USING (is_admin() OR auth.uid() = id);
+  USING (get_is_admin())
+  WITH CHECK (
+    get_is_admin()
+    AND private.profile_admin_flag_is_unchanged(id, is_admin)
+  );
 
 -- ── weight_entries ───────────────────────────────────────────
 -- Admin can read all (for client progress overview).
 CREATE POLICY "Admin can read all weight entries"
   ON weight_entries FOR SELECT TO authenticated
-  USING (is_admin() OR auth.uid() = user_id);
+  USING (get_is_admin() OR auth.uid() = user_id);
 
 -- ── workouts ─────────────────────────────────────────────────
--- schema.sql uses coach_id = auth.uid() — replace with is_admin().
+-- schema.sql uses coach_id = auth.uid() — replace with get_is_admin().
 DROP POLICY IF EXISTS "Admins can manage workouts" ON workouts;
 
 CREATE POLICY "Admin can manage all workouts"
   ON workouts FOR ALL TO authenticated
-  USING (is_admin());
+  USING (get_is_admin());
 
 -- ── workout_exercises ─────────────────────────────────────────
 DROP POLICY IF EXISTS "Admins can manage workout exercises" ON workout_exercises;
 
 CREATE POLICY "Admin can manage all workout exercises"
   ON workout_exercises FOR ALL TO authenticated
-  USING (is_admin());
+  USING (get_is_admin());
 
 -- ── workout_logs + exercise_logs (read-only for admin) ────────
 CREATE POLICY "Admin can read all workout logs"
   ON workout_logs FOR SELECT TO authenticated
-  USING (is_admin() OR auth.uid() = user_id);
+  USING (get_is_admin() OR auth.uid() = user_id);
 
 CREATE POLICY "Admin can read all exercise logs"
   ON exercise_logs FOR SELECT TO authenticated
   USING (
-    is_admin() OR EXISTS (
+    get_is_admin() OR EXISTS (
       SELECT 1 FROM workout_logs wl
       WHERE wl.id = workout_log_id AND wl.user_id = auth.uid()
     )
@@ -84,25 +135,25 @@ DROP POLICY IF EXISTS "Admins can manage meal foods" ON meal_foods;
 
 CREATE POLICY "Admin can manage all meal plans"
   ON meal_plans FOR ALL TO authenticated
-  USING (is_admin());
+  USING (get_is_admin());
 
 CREATE POLICY "Admin can manage all meals"
   ON meals FOR ALL TO authenticated
-  USING (is_admin());
+  USING (get_is_admin());
 
 CREATE POLICY "Admin can manage all meal foods"
   ON meal_foods FOR ALL TO authenticated
-  USING (is_admin());
+  USING (get_is_admin());
 
 -- ── meal_logs + meal_log_foods (read-only for admin) ─────────
 CREATE POLICY "Admin can read all meal logs"
   ON meal_logs FOR SELECT TO authenticated
-  USING (is_admin() OR auth.uid() = user_id);
+  USING (get_is_admin() OR auth.uid() = user_id);
 
 CREATE POLICY "Admin can read all meal log foods"
   ON meal_log_foods FOR SELECT TO authenticated
   USING (
-    is_admin() OR EXISTS (
+    get_is_admin() OR EXISTS (
       SELECT 1 FROM meal_logs ml
       WHERE ml.id = meal_log_id AND ml.user_id = auth.uid()
     )
@@ -132,7 +183,7 @@ CREATE POLICY "Authenticated users read quotes"
 -- Only admin can create / edit / delete
 CREATE POLICY "Admin manages quotes"
   ON daily_quotes FOR ALL TO authenticated
-  USING (is_admin());
+  USING (get_is_admin());
 
 CREATE INDEX IF NOT EXISTS idx_daily_quotes_active ON daily_quotes(is_active);
 CREATE INDEX IF NOT EXISTS idx_daily_quotes_date   ON daily_quotes(scheduled_date);
@@ -164,7 +215,7 @@ CREATE POLICY "Authenticated users read recipes"
 
 CREATE POLICY "Admin manages recipes"
   ON recipes FOR ALL TO authenticated
-  USING (is_admin());
+  USING (get_is_admin());
 
 CREATE INDEX IF NOT EXISTS idx_recipes_name ON recipes(name);
 
@@ -193,7 +244,7 @@ CREATE POLICY "Authenticated users read ingredients"
 
 CREATE POLICY "Admin manages ingredients"
   ON recipe_ingredients FOR ALL TO authenticated
-  USING (is_admin());
+  USING (get_is_admin());
 
 CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe
   ON recipe_ingredients(recipe_id, sort_order);
@@ -221,7 +272,7 @@ CREATE POLICY "Authenticated users read meal plan recipes"
 
 CREATE POLICY "Admin manages meal plan recipes"
   ON meal_plan_recipes FOR ALL TO authenticated
-  USING (is_admin());
+  USING (get_is_admin());
 
 CREATE INDEX IF NOT EXISTS idx_mpr_plan   ON meal_plan_recipes(meal_plan_id);
 CREATE INDEX IF NOT EXISTS idx_mpr_recipe ON meal_plan_recipes(recipe_id);

@@ -194,7 +194,10 @@ class ActiveSessionViewModel(
                 actualWeightKg = intent.weight,
             )
             updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
-            shouldPersist = set.completed
+            // Only re-persist a set that already has a row. If the completion insert is still in
+            // flight (setLogId == null) a second persist would issue a duplicate INSERT; its success
+            // handler re-checks the latest draft via persistSetIfChangedSince and flushes this edit.
+            shouldPersist = set.completed && set.setLogId != null
             s.copy(sessionDraft = draft.copy(exercises = updatedEx))
         }
         if (shouldPersist) persistSet(intent.exerciseIndex, intent.setIndex)
@@ -210,7 +213,8 @@ class ActiveSessionViewModel(
             val set = updatedSets.getOrNull(intent.setIndex) ?: return@update s
             updatedSets[intent.setIndex] = set.copy(actualDurationSeconds = intent.durationSeconds)
             updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
-            shouldPersist = set.completed
+            // See updateSet: skip while the completion insert is in flight to avoid a duplicate row.
+            shouldPersist = set.completed && set.setLogId != null
             s.copy(sessionDraft = draft.copy(exercises = updatedEx))
         }
         if (shouldPersist) persistSet(intent.exerciseIndex, intent.setIndex)

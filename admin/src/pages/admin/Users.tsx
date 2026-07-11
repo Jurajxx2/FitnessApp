@@ -3,8 +3,9 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, Outlet } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Badge, Chip, EmptyState, PageHeader, SearchInput, Table, Th, Td } from '../../components/ui'
+import { Badge, Button, Chip, EmptyState, PageHeader, SearchInput, Table, Th, Td } from '../../components/ui'
 import type { Profile } from '../../types/database'
+import { CreateUserModal } from './CreateUserModal'
 
 function useUsers() {
   return useQuery<Profile[]>({
@@ -37,6 +38,7 @@ export default function Users() {
   const { data: users = [], isLoading, isError } = useUsers()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'blocked'>('all')
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false)
   const navigate = useNavigate()
 
   const trainees = users.filter(user => !user.is_admin)
@@ -53,7 +55,11 @@ export default function Users() {
 
   return (
     <div className="p-4 sm:p-6">
-      <PageHeader title="Users" description={`${trainees.length} athletes`} />
+      <PageHeader
+        title="Users"
+        description={`${trainees.length} athletes`}
+        actions={<Button onClick={() => setIsCreateUserOpen(true)}>Create athlete</Button>}
+      />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput
@@ -129,6 +135,14 @@ export default function Users() {
           </Table>
         </>
       )}
+      <CreateUserModal
+        open={isCreateUserOpen}
+        onClose={() => setIsCreateUserOpen(false)}
+        onCreated={userId => {
+          setIsCreateUserOpen(false)
+          navigate(`/admin/users/${userId}`)
+        }}
+      />
       <Outlet />
     </div>
   )
