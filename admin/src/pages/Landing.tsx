@@ -13,6 +13,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { getAthleteAppUrl } from '../lib/athleteApp'
 import { useAuth } from '../hooks/useAuth'
 import type { DailyQuote } from '../types/database'
 
@@ -39,6 +40,7 @@ const staggerContainer = {
 export default function Landing() {
   const navigate = useNavigate()
   const { session, isAdmin, isLoading: authLoading, profile } = useAuth()
+  const athleteAppUrl = getAthleteAppUrl()
   const [quote, setQuote] = useState<DailyQuote | null>(null)
   const { scrollYProgress } = useScroll()
   const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
@@ -98,20 +100,46 @@ export default function Landing() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 hidden lg:inline">
                 Account: <span className="text-zinc-400">{profile?.full_name || session.user.email}</span>
               </span>
-              <button
-                onClick={() => navigate(isAdmin ? '/admin' : '/403')}
-                className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
-              >
-                Go to App <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </button>
+              {isAdmin ? (
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
+                >
+                  Open admin <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              ) : athleteAppUrl ? (
+                <a
+                  href={athleteAppUrl}
+                  className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
+                >
+                  Open trainee app <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </a>
+              ) : null}
             </div>
           ) : (
-            <button
-              onClick={() => navigate('/auth')}
-              className="group flex items-center gap-2 px-6 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
-            >
-              Login <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/auth')}
+                className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-colors hover:text-white"
+              >
+                Admin
+              </button>
+              {athleteAppUrl ? (
+                <a
+                  href={athleteAppUrl}
+                  className="group flex items-center gap-2 px-6 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
+                >
+                  Trainee login <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </a>
+              ) : (
+                <button
+                  onClick={() => navigate('/auth')}
+                  className="group flex items-center gap-2 px-6 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
+                >
+                  Admin login <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              )}
+            </div>
           )}
         </div>
       </nav>

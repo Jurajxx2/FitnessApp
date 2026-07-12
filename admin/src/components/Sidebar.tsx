@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Dumbbell,
+  ExternalLink,
   LayoutDashboard,
   Library,
   MessageCircle,
@@ -14,6 +15,7 @@ import {
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { getAthleteAppUrl } from '../lib/athleteApp'
 
 const NAV_ITEMS = [
   { to: '/admin',           label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -34,6 +36,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { theme, toggleTheme } = useTheme()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const athleteAppUrl = getAthleteAppUrl()
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -90,6 +93,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-outline-subtle p-3">
+          {athleteAppUrl && (
+            <a
+              href={athleteAppUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onClose}
+              className="mb-2 flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary"
+            >
+              <ExternalLink size={17} aria-hidden="true" />
+              <span className="flex-1">Open athlete app</span>
+              <span className="text-[10px] uppercase tracking-wider">Preview</span>
+            </a>
+          )}
           <button
             onClick={toggleTheme}
             className="flex min-h-10 w-full items-center gap-3 rounded-xl border-0 bg-transparent px-3 text-left text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary cursor-pointer"

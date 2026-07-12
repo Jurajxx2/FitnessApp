@@ -2,6 +2,7 @@ package com.coachfoska.app.ui.workout
 
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -17,6 +18,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
+import io.github.aakira.napier.Napier
 import org.koin.compose.koinInject
 
 /**
@@ -40,19 +42,31 @@ fun ExerciseLottiePreview(
     }
     val remoteAnimationJson by produceState<String?>(initialValue = null, animationUrl, animationJson) {
         value = animationUrl?.takeIf { animationJson.isNullOrBlank() }?.let { url ->
-            runCatching {
-                httpClient.get(url)
-                    .takeIf { it.status.isSuccess() }
-                    ?.bodyAsText()
-            }.getOrNull()
+            val result = runCatching {
+                val response = httpClient.get(url)
+                val body = response.takeIf { it.status.isSuccess() }?.bodyAsText()
+                body
+            }
+            result.exceptionOrNull()?.let { error ->
+                Napier.w("Unable to load exercise Lottie from $url: ${error.message}", error)
+            }
+            result.getOrNull()
         }
     }
     val resolvedAnimationJson = animationJson?.takeIf { it.isNotBlank() }
         ?: remoteAnimationJson
         ?: fallbackAnimationJson
         ?: return
-    val composition by rememberLottieComposition {
+    // The source can change from a generated fallback to the Storage version after the
+    // asynchronous download completes. Keying the composition makes that replacement visible.
+    val compositionResult = rememberLottieComposition(resolvedAnimationJson) {
         LottieCompositionSpec.JsonString(resolvedAnimationJson)
+    }
+    val composition = compositionResult.value
+    LaunchedEffect(compositionResult.error) {
+        compositionResult.error?.let { error ->
+            Napier.w("Unable to parse exercise Lottie: ${error.message}", error)
+        }
     }
 
     composition?.let {

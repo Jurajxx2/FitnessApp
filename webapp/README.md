@@ -26,6 +26,7 @@ npm run build
 - Use `npm run build` as the build command.
 - Publish `dist` (which resolves to `webapp/dist` from the repository root).
 - Configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` with the same values as the admin site.
+- On the admin site, configure `VITE_ATHLETE_APP_URL` with this deployed web-app URL. The public landing page and non-admin fallback use it to send trainees to the correct portal.
 - SPA redirects and security headers are already defined in [`netlify.toml`](./netlify.toml).
 
 ## Scope

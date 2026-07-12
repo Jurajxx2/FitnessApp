@@ -135,6 +135,18 @@ class WorkoutRemoteDataSource(private val supabase: SupabaseClient) {
             }
             .decodeSingle<WorkoutLogDto>()
 
+    /** Clears orphaned resumable sessions after the active session has been discarded. */
+    suspend fun discardInProgressWorkoutLogs(userId: String): List<WorkoutLogDto> =
+        supabase.postgrest["workout_logs"]
+            .update(WorkoutLogUpdateDto(status = "discarded")) {
+                filter {
+                    eq("user_id", userId)
+                    eq("status", "in_progress")
+                }
+                select()
+            }
+            .decodeList<WorkoutLogDto>()
+
     suspend fun getWorkoutLogs(userId: String): List<WorkoutLogDto> =
         supabase.postgrest["workout_logs"]
             .select {

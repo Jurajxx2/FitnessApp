@@ -19,7 +19,7 @@ export default function Login() {
     e.preventDefault()
     setError(''); setLoading(true)
     const clean = email.trim().toLowerCase()
-    const { error } = await supabase.auth.signInWithOtp({ email: clean, options: { shouldCreateUser: true } })
+    const { error } = await supabase.auth.signInWithOtp({ email: clean, options: { shouldCreateUser: false } })
     setLoading(false)
     if (error) { setError(error.message); return }
     sessionStorage.setItem('otp-email', clean)

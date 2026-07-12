@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { getAthleteAppUrl } from '../lib/athleteApp'
 import { useAuth } from '../hooks/useAuth'
 import { Card, Input, Button } from '../components/ui'
 
@@ -10,6 +11,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const navigate = useNavigate()
   const { session, isAdmin, isLoading: authLoading } = useAuth()
+  const athleteAppUrl = getAthleteAppUrl()
 
   // Redirect already-authenticated users so they don't see the login form.
   useEffect(() => {
@@ -48,10 +50,10 @@ export default function Login() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm p-6 sm:p-7">
-        <div className="mb-8 text-xs font-bold uppercase tracking-widest text-text-primary">Coach Foska</div>
-        <h1 className="mb-2 text-xl font-bold text-text-primary">Welcome back</h1>
+        <div className="mb-8 text-xs font-bold uppercase tracking-widest text-text-primary">Coach Foska · Admin</div>
+        <h1 className="mb-2 text-xl font-bold text-text-primary">Admin sign in</h1>
         <p className="mb-6 text-sm leading-relaxed text-text-secondary">
-          Enter your email to receive a one-time login code. Admin access is required.
+          Enter your administrator email to receive a one-time login code.
         </p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
@@ -69,6 +71,14 @@ export default function Login() {
             Send login code →
           </Button>
         </form>
+        {athleteAppUrl && (
+          <p className="mt-5 text-center text-xs text-text-secondary">
+            Training with Coach Foska?{' '}
+            <a className="font-semibold text-text-primary underline" href={athleteAppUrl}>
+              Open the trainee app
+            </a>
+          </p>
+        )}
       </Card>
     </div>
   )

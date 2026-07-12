@@ -61,7 +61,8 @@ class ActiveSessionViewModelTest {
         coEvery { repo.getLastLogsForExercises(any(), any()) } returns Result.success(emptyMap())
         coEvery { repo.getExerciseRecords(any(), any()) } returns Result.failure(Exception("not checked"))
         coEvery { repo.startWorkoutSession(any(), any(), any()) } returns Result.success("live-log-1")
-        coEvery { repo.discardWorkoutSession(any()) } returns Result.success(Unit)
+        coEvery { repo.getInProgressSession(any()) } returns Result.success(null)
+        coEvery { repo.discardWorkoutSession(any(), any()) } returns Result.success(Unit)
         coEvery { repo.deleteSetLog(any()) } returns Result.success(Unit)
         coEvery { repo.updateSetLog(any(), any()) } returns Result.success(Unit)
         coEvery { exerciseRepo.getExerciseById(any()) } returns Result.failure(Exception("not found"))
@@ -310,6 +311,61 @@ class ActiveSessionViewModelTest {
     }
 
     @Test
+    fun `init opens existing session instead of starting another workout`() = runTest {
+        val activeLog = WorkoutLog(
+            id = "active-log-1",
+            userId = "user-1",
+            workoutId = "w1",
+            workoutName = "Push Day",
+            durationMinutes = 0,
+            notes = null,
+            exerciseLogs = emptyList(),
+            loggedAt = kotlinx.datetime.Instant.parse("2026-07-03T10:00:00Z"),
+            status = "in_progress",
+        )
+        coEvery { repo.getInProgressSession("user-1") } returns Result.success(activeLog)
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise())
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("another-workout"))
+        advanceUntilIdle()
+
+        assertEquals("active-log-1", vm.state.value.sessionDraft?.workoutLogId)
+        assertEquals(true, vm.state.value.resumedExistingSession)
+        coVerify(exactly = 0) { repo.startWorkoutSession(any(), any(), any()) }
+    }
+
+    @Test
+    fun `database conflict while starting reopens the active workout`() = runTest {
+        val activeLog = WorkoutLog(
+            id = "active-log-1",
+            userId = "user-1",
+            workoutId = "w1",
+            workoutName = "Push Day",
+            durationMinutes = 0,
+            notes = null,
+            exerciseLogs = emptyList(),
+            loggedAt = kotlinx.datetime.Instant.parse("2026-07-03T10:00:00Z"),
+            status = "in_progress",
+        )
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise())
+        coEvery { repo.startWorkoutSession("user-1", "w1", any()) } returns
+            Result.failure(IllegalStateException("duplicate active workout"))
+        coEvery { repo.getInProgressSession("user-1") } returnsMany listOf(
+            Result.success(null),
+            Result.success(activeLog),
+        )
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        assertEquals("active-log-1", vm.state.value.sessionDraft?.workoutLogId)
+        assertEquals(true, vm.state.value.resumedExistingSession)
+        coVerify(exactly = 1) { repo.startWorkoutSession("user-1", "w1", any()) }
+    }
+
+    @Test
     fun `discard_before_live_session_start_finishes_discards_late_created_log`() = runTest {
         coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise())
         val startResult = CompletableDeferred<Result<String>>()
@@ -320,12 +376,41 @@ class ActiveSessionViewModelTest {
         advanceUntilIdle()
 
         vm.onIntent(ActiveSessionIntent.DiscardSession)
-        assertEquals(true, vm.state.value.sessionDiscarded)
+        assertEquals(false, vm.state.value.sessionDiscarded)
+        assertEquals(true, vm.state.value.isDiscarding)
 
         startResult.complete(Result.success("late-log-1"))
         advanceUntilIdle()
 
-        coVerify { repo.discardWorkoutSession("late-log-1") }
+        coVerify { repo.discardWorkoutSession("user-1", "late-log-1") }
+        assertEquals(true, vm.state.value.sessionDiscarded)
+        assertEquals(false, vm.state.value.isDiscarding)
+    }
+
+    @Test
+    fun `discard_stays_on_session_when_remote_update_fails_and_can_retry`() = runTest {
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise())
+        coEvery { repo.discardWorkoutSession("user-1", "live-log-1") } returnsMany listOf(
+            Result.failure(Exception("Network")),
+            Result.success(Unit),
+        )
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        vm.onIntent(ActiveSessionIntent.DiscardSession)
+        advanceUntilIdle()
+
+        assertEquals(false, vm.state.value.sessionDiscarded)
+        assertEquals(false, vm.state.value.isDiscarding)
+        assertEquals("Network", vm.state.value.error)
+
+        vm.onIntent(ActiveSessionIntent.DiscardSession)
+        advanceUntilIdle()
+
+        coVerify(exactly = 2) { repo.discardWorkoutSession("user-1", "live-log-1") }
+        assertEquals(true, vm.state.value.sessionDiscarded)
     }
 
     @Test

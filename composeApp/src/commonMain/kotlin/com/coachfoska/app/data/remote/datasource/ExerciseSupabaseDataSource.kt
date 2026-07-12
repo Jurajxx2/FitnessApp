@@ -9,7 +9,7 @@ import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.Serializable
 
 private const val EXERCISE_COLUMNS =
-    "*, exercise_categories(id, name), exercise_lottie_animations(figure_variant, lottie_json, storage_url)"
+    "*, exercise_categories(id, name)"
 private const val FAVORITES_TABLE = "exercise_favorites"
 
 class ExerciseSupabaseDataSource(private val supabase: SupabaseClient) {

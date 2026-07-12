@@ -30,10 +30,12 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -141,9 +143,16 @@ fun ActivityHubRoute(
         onWorkoutClick = onWorkoutClick,
         onExerciseClick = onExerciseClick,
         onLogGeneralActivityClick = onLogGeneralActivityClick,
+        onRefresh = {
+            viewModel.onIntent(WorkoutIntent.LoadWorkouts)
+            viewModel.onIntent(WorkoutIntent.LoadAllWorkouts)
+            viewModel.onIntent(WorkoutIntent.LoadInProgressSession)
+            viewModel.onIntent(WorkoutIntent.LoadHistory)
+        },
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActivityHubScreen(
     state: WorkoutState,
@@ -157,6 +166,7 @@ fun ActivityHubScreen(
     onWorkoutClick: (workoutId: String) -> Unit,
     onExerciseClick: (exerciseId: String) -> Unit,
     onLogGeneralActivityClick: () -> Unit,
+    onRefresh: () -> Unit,
 ) {
     val today = todayDate()
     val todayWorkout = remember(state.workouts, today) {
@@ -187,23 +197,28 @@ fun ActivityHubScreen(
     }
     val isCoachedMode = state.workouts.isNotEmpty()
 
-    Surface(modifier = Modifier.fillMaxSize(), color = DsTheme.colors.background) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            Spacer(Modifier.height(8.dp))
-            BrandHeader()
+    PullToRefreshBox(
+        isRefreshing = state.isLoading || state.isHistoryLoading,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        Surface(modifier = Modifier.fillMaxSize(), color = DsTheme.colors.background) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                Spacer(Modifier.height(8.dp))
+                BrandHeader()
 
-            if (state.isLoading && state.workouts.isEmpty()) {
-                DsLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
-            } else {
-                state.inProgressSession?.let { session ->
-                    ResumeSessionBanner(session = session, onResumeSession = onResumeSession)
-                }
+                if (state.isLoading && state.workouts.isEmpty()) {
+                    DsLoadingBox(modifier = Modifier.fillMaxWidth().height(200.dp))
+                } else {
+                    state.inProgressSession?.let { session ->
+                        ResumeSessionBanner(session = session, onResumeSession = onResumeSession)
+                    }
 
                 if (isCoachedMode) {
                     WeeklyPlanSection(
@@ -288,11 +303,12 @@ fun ActivityHubScreen(
                     QuickLinkRow(icon = Icons.Filled.Add, label = stringResource(Res.string.log_activity_title), onClick = onLogGeneralActivityClick)
                 }
 
-                state.error?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.error)
+                    state.error?.let {
+                        Text(text = it, style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.error)
+                    }
                 }
+                Spacer(Modifier.height(24.dp))
             }
-            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -625,7 +641,7 @@ private fun ActivityHubScreenPreview() {
         exercises = emptyList(),
         onStartWorkout = {}, onResumeSession = { _, _ -> }, onPlanClick = {}, onHistoryClick = {},
         onLibraryClick = {}, onProgressClick = {}, onWorkoutClick = {},
-        onExerciseClick = {}, onLogGeneralActivityClick = {},
+        onExerciseClick = {}, onLogGeneralActivityClick = {}, onRefresh = {},
     )
 }
 
@@ -637,6 +653,6 @@ private fun ActivityHubScreenRestDayPreview() {
         exercises = emptyList(),
         onStartWorkout = {}, onResumeSession = { _, _ -> }, onPlanClick = {}, onHistoryClick = {},
         onLibraryClick = {}, onProgressClick = {}, onWorkoutClick = {},
-        onExerciseClick = {}, onLogGeneralActivityClick = {},
+        onExerciseClick = {}, onLogGeneralActivityClick = {}, onRefresh = {},
     )
 }

@@ -59,7 +59,7 @@ export default function Verify() {
 
   async function handleResend() {
     setError('')
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } })
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
     if (error) { setError(error.message); return }
     setResendCooldown(60)
   }

@@ -23,48 +23,77 @@ const initialState: AuthState = {
 const AuthContext = createContext<AuthState>(initialState)
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', userId)
     .single()
+
+  if (error) throw error
   return data
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(initialState)
 
-  async function resolveSession(session: Session | null) {
-    if (!session) {
-      setState({ ...initialState, isLoading: false })
-      return
-    }
-    try {
-      const profile = await fetchProfile(session.user.id)
-      setState({ session, user: session.user, profile, isAdmin: profile?.is_admin ?? false, isLoading: false })
-      logger.info('Admin session resolved', { isAdmin: profile?.is_admin ?? false })
-    } catch (err) {
-      logger.error('AuthProvider: error in resolveSession', err)
-      setState({ ...initialState, isLoading: false })
-    }
-  }
-
   useEffect(() => {
+    let active = true
+    let authEventSeen = false
+    let resolutionId = 0
+    const pendingTimers = new Set<number>()
+
+    async function resolveSession(session: Session | null) {
+      const currentResolution = ++resolutionId
+      if (!session) {
+        if (active) setState({ ...initialState, isLoading: false })
+        return
+      }
+
+      try {
+        const profile = await fetchProfile(session.user.id)
+        if (!active || currentResolution !== resolutionId) return
+
+        const isAdmin = profile?.is_admin ?? false
+        setState({ session, user: session.user, profile, isAdmin, isLoading: false })
+        logger.info('Admin session resolved', { isAdmin })
+      } catch (err) {
+        if (!active || currentResolution !== resolutionId) return
+        logger.error('AuthProvider: error in resolveSession', err)
+        // Preserve the authenticated identity, but fail closed for admin access.
+        setState({ session, user: session.user, profile: null, isAdmin: false, isLoading: false })
+      }
+    }
+
+    function scheduleSessionResolution(session: Session | null) {
+      // Supabase documents a deadlock when another Supabase API call is awaited
+      // directly from onAuthStateChange. Move profile resolution to the next task.
+      const timer = window.setTimeout(() => {
+        pendingTimers.delete(timer)
+        void resolveSession(session)
+      }, 0)
+      pendingTimers.add(timer)
+    }
+
     // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
-      resolveSession(session)
+      // An auth event is newer than this initial snapshot and must win.
+      if (!authEventSeen) void resolveSession(session)
     }).catch(err => {
       logger.error('AuthProvider: getSession failed', err)
-      setState(s => ({ ...s, isLoading: false }))
+      if (active) setState(s => ({ ...s, isLoading: false }))
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      authEventSeen = true
       logger.info('Auth state changed', { event, hasSession: Boolean(session) })
-      resolveSession(session)
+      scheduleSessionResolution(session)
     })
 
     return () => {
+      active = false
+      resolutionId += 1
+      pendingTimers.forEach(timer => window.clearTimeout(timer))
       subscription.unsubscribe()
     }
   }, [])

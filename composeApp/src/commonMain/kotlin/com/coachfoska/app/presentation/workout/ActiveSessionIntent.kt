@@ -37,6 +37,7 @@ sealed interface ActiveSessionIntent {
     data class RetrySetSave(val exerciseIndex: Int, val setIndex: Int) : ActiveSessionIntent
     data object DiscardSession : ActiveSessionIntent
     data object DismissError : ActiveSessionIntent
+    data object DismissExistingSessionNotice : ActiveSessionIntent
     data class AddExercise(val exercise: Exercise) : ActiveSessionIntent
     data class MoveExercise(val exerciseIndex: Int, val direction: Int) : ActiveSessionIntent
     data class SubstituteExercise(val exerciseIndex: Int, val replacement: Exercise) : ActiveSessionIntent

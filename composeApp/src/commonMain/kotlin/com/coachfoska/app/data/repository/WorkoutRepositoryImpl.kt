@@ -440,8 +440,9 @@ class WorkoutRepositoryImpl(
         )
     }
 
-    override suspend fun discardWorkoutSession(workoutLogId: String): Result<Unit> = runCatching {
+    override suspend fun discardWorkoutSession(userId: String, workoutLogId: String): Result<Unit> = runCatching {
         workoutDataSource.updateWorkoutLog(workoutLogId, WorkoutLogUpdateDto(status = "discarded"))
+        workoutDataSource.discardInProgressWorkoutLogs(userId)
     }
 
     override suspend fun getInProgressSession(userId: String): Result<WorkoutLog?> = runCatching {

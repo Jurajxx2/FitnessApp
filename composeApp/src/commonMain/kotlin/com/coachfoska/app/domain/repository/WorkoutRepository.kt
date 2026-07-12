@@ -111,8 +111,10 @@ interface WorkoutRepository {
         notes: String?,
     ): Result<Unit>
 
-    /** Marks the live session discarded. */
-    suspend fun discardWorkoutSession(workoutLogId: String): Result<Unit>
+    /**
+     * Marks the live session discarded and clears any stale in-progress sessions for the user.
+     */
+    suspend fun discardWorkoutSession(userId: String, workoutLogId: String): Result<Unit>
 
     /** Returns the newest in-progress session, including exercise/set rows when present. */
     suspend fun getInProgressSession(userId: String): Result<WorkoutLog?>

@@ -1,22 +1,41 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
 export default function Callback() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single()
-        navigate(profile?.is_admin ? '/admin' : '/403', { replace: true })
-      }
+    let active = true
+    const pendingTimers = new Set<number>()
+
+    async function resolveDestination(session: Session) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', session.user.id)
+        .single()
+      if (active) navigate(profile?.is_admin ? '/admin' : '/403', { replace: true })
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== 'SIGNED_IN' || !session) return
+
+      // Supabase API calls from inside this callback can deadlock. Defer the
+      // profile lookup until after the auth callback returns.
+      const timer = window.setTimeout(() => {
+        pendingTimers.delete(timer)
+        void resolveDestination(session)
+      }, 0)
+      pendingTimers.add(timer)
     })
-    return () => subscription.unsubscribe()
+
+    return () => {
+      active = false
+      pendingTimers.forEach(timer => window.clearTimeout(timer))
+      subscription.unsubscribe()
+    }
   }, [navigate])
 
   return (

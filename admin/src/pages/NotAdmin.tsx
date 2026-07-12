@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { getAthleteAppUrl } from '../lib/athleteApp'
 import { Button, Card } from '../components/ui'
 
 export default function NotAdmin() {
   const navigate = useNavigate()
+  const athleteAppUrl = getAthleteAppUrl()
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -13,12 +15,22 @@ export default function NotAdmin() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <Card className="max-w-sm text-center">
-        <div className="mb-4 text-5xl font-extrabold tracking-tight text-text-primary">403</div>
-        <h1 className="mb-2 text-xl font-bold text-text-primary">Access denied</h1>
+        <div className="mb-4 text-xs font-bold uppercase tracking-widest text-text-secondary">Coach Foska · Admin</div>
+        <h1 className="mb-2 text-xl font-bold text-text-primary">This is the admin workspace</h1>
         <p className="mb-6 text-sm text-text-secondary">
-          Your account does not have admin access. Contact the administrator.
+          Your signed-in account is a trainee account, so it cannot open coaching tools.
         </p>
-        <Button variant="ghost" onClick={handleSignOut}>Sign out</Button>
+        <div className="flex flex-col gap-2">
+          {athleteAppUrl && (
+            <a
+              href={athleteAppUrl}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-transparent bg-action-primary px-4 py-2 text-sm font-semibold text-on-action-primary transition-opacity hover:opacity-85"
+            >
+              Open trainee app
+            </a>
+          )}
+          <Button variant="ghost" onClick={handleSignOut}>Use a different admin account</Button>
+        </div>
       </Card>
     </div>
   )

@@ -39,6 +39,12 @@ class ActiveSessionViewModel(
     val state: StateFlow<ActiveSessionState> = _state.asStateFlow()
 
     private var timerJob: Job? = null
+    /**
+     * A discard may be requested before the asynchronous live session insert returns its id.
+     * Keep this separate from [ActiveSessionState.sessionDiscarded], which tells the UI it is
+     * safe to navigate away only after the server-side row is handled.
+     */
+    private var discardRequested = false
 
     fun onIntent(intent: ActiveSessionIntent) {
         Napier.d("onIntent: $intent", tag = TAG)
@@ -64,6 +70,7 @@ class ActiveSessionViewModel(
             is ActiveSessionIntent.RetrySetSave -> retrySetSave(intent.exerciseIndex, intent.setIndex)
             ActiveSessionIntent.DiscardSession -> discardSession()
             ActiveSessionIntent.DismissError -> _state.update { it.copy(error = null) }
+            ActiveSessionIntent.DismissExistingSessionNotice -> _state.update { it.copy(resumedExistingSession = false) }
             is ActiveSessionIntent.AddExercise -> addExercise(intent.exercise)
             is ActiveSessionIntent.MoveExercise -> moveExercise(intent.exerciseIndex, intent.direction)
             is ActiveSessionIntent.SubstituteExercise -> substituteExercise(intent)
@@ -75,50 +82,97 @@ class ActiveSessionViewModel(
 
     private fun initSession(workoutId: String, resumeLogId: String? = null) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            _state.update { it.copy(isLoading = true, error = null, resumedExistingSession = false) }
             if (resumeLogId != null) {
                 resumeSession(resumeLogId)
                 return@launch
             }
-            getWorkoutByIdUseCase(workoutId).onSuccess { workout ->
-                val draft = enrichExerciseMedia(workout.toDraft(currentInstant().toEpochMilliseconds()))
-                _state.update {
-                    it.copy(
-                        sessionDraft = draft,
-                        sessionStartTime = draft.startTime,
-                        isLoading = false,
-                    )
-                }
-                workoutRepository.startWorkoutSession(userId, workout.id, workout.name)
-                    .onSuccess { logId ->
-                        if (_state.value.sessionDiscarded || _state.value.submittedLogId != null) {
-                            workoutRepository.discardWorkoutSession(logId)
-                                .onFailure { e -> Napier.e("Failed to discard obsolete live session", e, tag = TAG) }
-                            return@onSuccess
-                        }
-                        _state.update { s ->
-                            s.copy(
-                                sessionDraft = s.sessionDraft?.copy(workoutLogId = logId),
-                                sessionSaveDegraded = false,
-                            )
-                        }
-                        // A user can complete a set before the live workout row has been
-                        // created. Flush those local completions now instead of silently
-                        // finishing a session without any set statistics.
-                        persistCompletedSets()
-                    }
-                    .onFailure { e ->
-                        Napier.e("Failed to start live session; falling back to bulk submit", e, tag = TAG)
-                        _state.update { s -> s.copy(sessionSaveDegraded = true) }
-                    }
-                loadPreviousData(draft.exercises.map { it.exerciseName })
-            }.onFailure { e ->
-                _state.update { it.copy(error = e.message, isLoading = false) }
+            val activeSession = workoutRepository.getInProgressSession(userId).getOrNull()
+            if (activeSession != null) {
+                resumeSession(activeSession.id, showResumedNotice = true)
+                return@launch
             }
+            startNewSession(workoutId)
         }
     }
 
-    private suspend fun resumeSession(resumeLogId: String) {
+    private suspend fun startNewSession(workoutId: String) {
+        val workoutResult = getWorkoutByIdUseCase(workoutId)
+        val workout = workoutResult.getOrNull()
+        if (workout == null) {
+            _state.update { it.copy(error = workoutResult.exceptionOrNull()?.message, isLoading = false) }
+            return
+        }
+
+        val draft = enrichExerciseMedia(workout.toDraft(currentInstant().toEpochMilliseconds()))
+        _state.update {
+            it.copy(
+                sessionDraft = draft,
+                sessionStartTime = draft.startTime,
+                isLoading = false,
+            )
+        }
+
+        val startResult = workoutRepository.startWorkoutSession(userId, workout.id, workout.name)
+        val logId = startResult.getOrNull()
+        if (logId == null) {
+            // A second device can start a workout after the initial check. The database's
+            // partial unique index rejects that insert; re-read and open the winning session.
+            val activeSession = workoutRepository.getInProgressSession(userId).getOrNull()
+            if (activeSession != null) {
+                resumeSession(activeSession.id, showResumedNotice = true)
+                return
+            }
+
+            val error = startResult.exceptionOrNull()
+            Napier.e("Failed to start live session; falling back to bulk submit", error, tag = TAG)
+            _state.update { s ->
+                if (discardRequested) {
+                    s.copy(isDiscarding = false, sessionDiscarded = true)
+                } else {
+                    s.copy(sessionSaveDegraded = true)
+                }
+            }
+            loadPreviousData(draft.exercises.map { it.exerciseName })
+            return
+        }
+
+        if (discardRequested || _state.value.submittedLogId != null) {
+            _state.update { s ->
+                s.copy(sessionDraft = s.sessionDraft?.copy(workoutLogId = logId))
+            }
+            workoutRepository.discardWorkoutSession(userId, logId)
+                .onSuccess {
+                    if (discardRequested) {
+                        _state.update {
+                            it.copy(isDiscarding = false, sessionDiscarded = true)
+                        }
+                    }
+                }
+                .onFailure { e ->
+                    if (discardRequested) {
+                        discardRequested = false
+                        _state.update { it.copy(isDiscarding = false, error = e.message) }
+                    } else {
+                        Napier.e("Failed to discard obsolete live session", e, tag = TAG)
+                    }
+                }
+            return
+        }
+
+        _state.update { s ->
+            s.copy(
+                sessionDraft = s.sessionDraft?.copy(workoutLogId = logId),
+                sessionSaveDegraded = false,
+            )
+        }
+        // A user can complete a set before the live workout row has been created. Flush those
+        // local completions now instead of silently finishing without any set statistics.
+        persistCompletedSets()
+        loadPreviousData(draft.exercises.map { it.exerciseName })
+    }
+
+    private suspend fun resumeSession(resumeLogId: String, showResumedNotice: Boolean = false) {
         workoutRepository.getInProgressSession(userId).onSuccess { log ->
             if (log == null || log.id != resumeLogId) {
                 _state.update { it.copy(error = "Workout session not found.", isLoading = false) }
@@ -133,6 +187,7 @@ class ActiveSessionViewModel(
                     sessionStartTime = draft.startTime,
                     isLoading = false,
                     sessionSaveDegraded = false,
+                    resumedExistingSession = showResumedNotice,
                 )
             }
             loadPreviousData(draft.exercises.map { it.exerciseName })
@@ -762,16 +817,27 @@ class ActiveSessionViewModel(
     }
 
     private fun discardSession() {
+        if (discardRequested || _state.value.sessionDiscarded) return
+
         cancelRestTimer(recordElapsedRest = false)
+        discardRequested = true
         val workoutLogId = _state.value.sessionDraft?.workoutLogId
         viewModelScope.launch {
+            _state.update { it.copy(isDiscarding = true) }
             if (workoutLogId == null) {
-                _state.update { it.copy(sessionDiscarded = true) }
+                // The in-flight insert will mark the session discarded once it yields an id.
+                // If it has already failed, there is no server-side session to clean up.
+                if (_state.value.sessionSaveDegraded) {
+                    _state.update { it.copy(isDiscarding = false, sessionDiscarded = true) }
+                }
                 return@launch
             }
-            workoutRepository.discardWorkoutSession(workoutLogId)
-                .onSuccess { _state.update { it.copy(sessionDiscarded = true) } }
-                .onFailure { e -> _state.update { it.copy(error = e.message) } }
+            workoutRepository.discardWorkoutSession(userId, workoutLogId)
+                .onSuccess { _state.update { it.copy(isDiscarding = false, sessionDiscarded = true) } }
+                .onFailure { e ->
+                    discardRequested = false
+                    _state.update { it.copy(isDiscarding = false, error = e.message) }
+                }
         }
     }
 

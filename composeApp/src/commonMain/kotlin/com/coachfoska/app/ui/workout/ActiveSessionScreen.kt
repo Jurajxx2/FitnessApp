@@ -21,6 +21,7 @@ import coachfoska.composeapp.generated.resources.notes_optional
 import coachfoska.composeapp.generated.resources.common_keep_working
 import coachfoska.composeapp.generated.resources.session_discard
 import coachfoska.composeapp.generated.resources.session_discard_confirm
+import coachfoska.composeapp.generated.resources.session_already_in_progress
 import coachfoska.composeapp.generated.resources.session_save_degraded
 import coachfoska.composeapp.generated.resources.session_sets_progress
 import coachfoska.composeapp.generated.resources.substitute_applied
@@ -121,6 +122,7 @@ fun ActiveSessionScreen(
     // Snackbar for substitution confirmation
     val snackbarHostState = remember { SnackbarHostState() }
     val appliedTemplate = stringResource(Res.string.substitute_applied)
+    val existingSessionNotice = stringResource(Res.string.session_already_in_progress)
     LaunchedEffect(state.lastSubstitution) {
         val sub = state.lastSubstitution ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(
@@ -129,6 +131,11 @@ fun ActiveSessionScreen(
                 .replace("%2\$s", sub.second)
         )
         onIntent(ActiveSessionIntent.DismissSubstitution)
+    }
+    LaunchedEffect(state.resumedExistingSession) {
+        if (!state.resumedExistingSession) return@LaunchedEffect
+        snackbarHostState.showSnackbar(existingSessionNotice)
+        onIntent(ActiveSessionIntent.DismissExistingSessionNotice)
     }
 
     // Auto-advance: when the ViewModel moves to the next incomplete exercise

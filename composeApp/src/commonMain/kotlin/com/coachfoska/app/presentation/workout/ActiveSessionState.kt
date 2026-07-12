@@ -13,9 +13,12 @@ data class ActiveSessionState(
     val sessionStartTime: Long = 0L,
     val isLoading: Boolean = false,
     val isSubmitting: Boolean = false,
+    val isDiscarding: Boolean = false,
     val submittedLogId: String? = null,
     val sessionDiscarded: Boolean = false,
     val sessionSaveDegraded: Boolean = false,
+    /** A start attempt found an existing live workout, which was opened instead. */
+    val resumedExistingSession: Boolean = false,
     val error: String? = null,
     /** (oldName, newName) — set after a session-scope substitution; consumed by UI for snackbar. */
     val lastSubstitution: Pair<String, String>? = null,
