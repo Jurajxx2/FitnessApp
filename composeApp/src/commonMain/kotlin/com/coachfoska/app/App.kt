@@ -191,7 +191,13 @@ fun App(openHumanChat: Boolean = false) {
                 composable<EmailOtp> {
                     EmailOtpRoute(
                         onBackClick = { navController.popBackStack() },
-                        onOtpSent = { email -> navController.navigate(VerifyOtp(email)) }
+                        onOtpSent = { email -> navController.navigate(VerifyOtp(email)) },
+                        onNavigateToHome = {
+                            navController.navigate(Home) { popUpTo(Welcome) { inclusive = true } }
+                        },
+                        onNavigateToOnboarding = { userId ->
+                            navController.navigate(Onboarding(userId)) { popUpTo(Welcome) { inclusive = true } }
+                        }
                     )
                 }
 

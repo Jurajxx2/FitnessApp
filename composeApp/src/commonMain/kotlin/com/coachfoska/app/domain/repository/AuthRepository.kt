@@ -14,6 +14,9 @@ interface AuthRepository {
     /** Verify the OTP received by email. Returns the signed-in user. */
     suspend fun verifyEmailOtp(email: String, otp: String): Result<User>
 
+    /** Sign in using an email address and password. */
+    suspend fun signInWithEmailPassword(email: String, password: String): Result<User>
+
     /** Sign in using a Google ID token (Android). */
     suspend fun signInWithGoogleIdToken(idToken: String): Result<User>
 

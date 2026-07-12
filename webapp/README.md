@@ -31,4 +31,4 @@ npm run build
 
 ## Scope
 
-Nutrition only: meal plan, recipes and favorites, daily macro summary against targets, history, and meal logging. Authentication is email OTP. The app reads and writes existing Supabase tables under their current RLS policies; it makes no backend changes.
+Nutrition only: meal plan, recipes and favorites, daily macro summary against targets, history, and meal logging. Authentication uses email and password as the primary login method, with email OTP as a fallback. The app reads and writes existing Supabase tables under their current RLS policies; it makes no backend changes.

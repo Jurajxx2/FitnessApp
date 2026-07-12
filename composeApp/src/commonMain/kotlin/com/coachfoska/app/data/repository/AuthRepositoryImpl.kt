@@ -50,6 +50,23 @@ class AuthRepositoryImpl(
             }
     }
 
+    override suspend fun signInWithEmailPassword(email: String, password: String): Result<User> = runCatching {
+        val userInfo = authDataSource.signInWithEmailPassword(email, password)
+        runCatching { userDataSource.getProfile(userInfo.id).toDomain() }.getOrElse {
+            User(
+                id = userInfo.id,
+                email = userInfo.email ?: email,
+                fullName = null,
+                age = null,
+                heightCm = null,
+                weightKg = null,
+                goal = null,
+                activityLevel = null,
+                onboardingComplete = false
+            )
+        }
+    }
+
     override suspend fun signInWithGoogleIdToken(idToken: String): Result<User> = runCatching {
         val userInfo = authDataSource.signInWithGoogleIdToken(idToken)
         runCatching { userDataSource.getProfile(userInfo.id).toDomain() }.getOrElse {

@@ -81,6 +81,50 @@ class AuthRepositoryImplTest {
         coVerify(exactly = 1) { authDataSource.sendEmailOtp("test@example.com") }
     }
 
+    @Test
+    fun `signInWithEmailPassword returns profile user`() = runTest {
+        val userInfo = mockk<UserInfo> {
+            every { id } returns "user-1"
+            every { email } returns "test@example.com"
+        }
+        val dto = UserDto(id = "user-1", email = "test@example.com", fullName = "Alice", onboardingComplete = true)
+        coEvery { authDataSource.signInWithEmailPassword("test@example.com", "secret") } returns userInfo
+        coEvery { userDataSource.getProfile("user-1") } returns dto
+
+        val result = repository.signInWithEmailPassword("test@example.com", "secret")
+
+        assertTrue(result.isSuccess)
+        assertEquals("Alice", result.getOrThrow().fullName)
+        coVerify(exactly = 1) { authDataSource.signInWithEmailPassword("test@example.com", "secret") }
+    }
+
+    @Test
+    fun `signInWithEmailPassword wraps auth failure`() = runTest {
+        coEvery { authDataSource.signInWithEmailPassword(any(), any()) } throws
+            RuntimeException("Invalid login credentials")
+
+        val result = repository.signInWithEmailPassword("test@example.com", "wrong")
+
+        assertTrue(result.isFailure)
+        assertEquals("Invalid login credentials", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `signInWithEmailPassword returns skeleton user when profile fetch fails`() = runTest {
+        val userInfo = mockk<UserInfo> {
+            every { id } returns "user-1"
+            every { email } returns "test@example.com"
+        }
+        coEvery { authDataSource.signInWithEmailPassword(any(), any()) } returns userInfo
+        coEvery { userDataSource.getProfile("user-1") } throws RuntimeException("Not found")
+
+        val result = repository.signInWithEmailPassword("test@example.com", "secret")
+
+        assertTrue(result.isSuccess)
+        assertEquals("user-1", result.getOrThrow().id)
+        assertEquals(false, result.getOrThrow().onboardingComplete)
+    }
+
     // --- signOut ---
 
     @Test

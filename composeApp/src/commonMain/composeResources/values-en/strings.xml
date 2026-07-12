@@ -9,10 +9,15 @@
     <string name="continue_with_email">CONTINUE WITH EMAIL</string>
     <string name="continue_with_google">CONTINUE WITH GOOGLE</string>
 
-    <!-- Auth — EmailOtpScreen -->
-    <string name="enter_email_title">ENTER EMAIL</string>
-    <string name="enter_email_desc">We\'ll send you a one-time code to sign in to your account.</string>
+    <!-- Auth — Email sign-in -->
+    <string name="email_sign_in_title">SIGN IN</string>
+    <string name="email_sign_in_desc">Sign in with your email and password. A one-time code remains available as an alternative.</string>
     <string name="email_address_label">Email address</string>
+    <string name="password_label">Password</string>
+    <string name="show_password_cd">Show password</string>
+    <string name="hide_password_cd">Hide password</string>
+    <string name="sign_in_button">SIGN IN</string>
+    <string name="sign_in_with_otp">SIGN IN WITH A ONE-TIME CODE</string>
     <string name="back_cd">Back</string>
 
     <!-- Auth — VerifyOtpScreen -->

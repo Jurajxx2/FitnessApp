@@ -3,6 +3,7 @@ package com.coachfoska.app.presentation.auth
 import com.coachfoska.app.domain.usecase.auth.SendOtpUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithAppleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithGoogleUseCase
+import com.coachfoska.app.domain.usecase.auth.SignInWithPasswordUseCase
 import com.coachfoska.app.domain.usecase.auth.VerifyOtpUseCase
 import com.coachfoska.app.domain.usecase.auth.aUser
 import io.mockk.coEvery
@@ -28,11 +29,16 @@ class AuthViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val sendOtpUseCase: SendOtpUseCase = mockk()
     private val verifyOtpUseCase: VerifyOtpUseCase = mockk()
+    private val signInWithPasswordUseCase: SignInWithPasswordUseCase = mockk()
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase = mockk()
     private val signInWithAppleUseCase: SignInWithAppleUseCase = mockk()
 
     private fun viewModel() = AuthViewModel(
-        sendOtpUseCase, verifyOtpUseCase, signInWithGoogleUseCase, signInWithAppleUseCase
+        sendOtpUseCase,
+        verifyOtpUseCase,
+        signInWithPasswordUseCase,
+        signInWithGoogleUseCase,
+        signInWithAppleUseCase
     )
 
     @BeforeTest
@@ -45,6 +51,7 @@ class AuthViewModelTest {
     fun `initial state is empty`() {
         val vm = viewModel()
         assertEquals("", vm.state.value.email)
+        assertEquals("", vm.state.value.password)
         assertEquals("", vm.state.value.otp)
         assertFalse(vm.state.value.isLoading)
         assertNull(vm.state.value.error)
@@ -63,6 +70,48 @@ class AuthViewModelTest {
         val vm = viewModel()
         vm.onIntent(AuthIntent.OtpChanged("123456"))
         assertEquals("123456", vm.state.value.otp)
+    }
+
+    @Test
+    fun `PasswordChanged updates password without affecting email`() {
+        val vm = viewModel()
+        vm.onIntent(AuthIntent.EmailChanged("test@example.com"))
+
+        vm.onIntent(AuthIntent.PasswordChanged("secret"))
+
+        assertEquals("secret", vm.state.value.password)
+        assertEquals("test@example.com", vm.state.value.email)
+    }
+
+    @Test
+    fun `password sign-in success clears password and navigates to home`() = runTest {
+        val user = aUser(onboardingComplete = true)
+        coEvery { signInWithPasswordUseCase("test@example.com", "secret") } returns Result.success(user)
+        val vm = viewModel()
+        vm.onIntent(AuthIntent.EmailChanged("test@example.com"))
+        vm.onIntent(AuthIntent.PasswordChanged("secret"))
+
+        vm.onIntent(AuthIntent.SignInWithPassword)
+
+        assertEquals("", vm.state.value.password)
+        assertTrue(vm.state.value.navigateToHome)
+        assertFalse(vm.state.value.navigateToOnboarding)
+        assertEquals(user, vm.state.value.authenticatedUser)
+    }
+
+    @Test
+    fun `password sign-in failure retains password for retry and shows error`() = runTest {
+        coEvery { signInWithPasswordUseCase(any(), any()) } returns
+            Result.failure(RuntimeException("Invalid login credentials"))
+        val vm = viewModel()
+        vm.onIntent(AuthIntent.EmailChanged("test@example.com"))
+        vm.onIntent(AuthIntent.PasswordChanged("secret"))
+
+        vm.onIntent(AuthIntent.SignInWithPassword)
+
+        assertEquals("secret", vm.state.value.password)
+        assertEquals("Invalid login credentials", vm.state.value.error)
+        assertFalse(vm.state.value.isLoading)
     }
 
     @Test

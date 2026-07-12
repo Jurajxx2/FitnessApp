@@ -10,6 +10,7 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.VisualTransformation
 import com.coachfoska.designsystem.theme.DsTheme
 
 @Composable
@@ -63,7 +64,9 @@ fun DsTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     textStyle: TextStyle? = null,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailingIcon: @Composable (() -> Unit)? = null,
 ) {
     val baseTextStyle = DsTheme.type.bodyLarge.copy(
         color = DsTheme.colors.textPrimary
@@ -79,6 +82,8 @@ fun DsTextField(
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         textStyle = combinedTextStyle,
+        visualTransformation = visualTransformation,
+        trailingIcon = trailingIcon,
         colors = DsTextFieldDefaults.colors(),
         enabled = enabled,
         shape = DsTheme.shapes.md

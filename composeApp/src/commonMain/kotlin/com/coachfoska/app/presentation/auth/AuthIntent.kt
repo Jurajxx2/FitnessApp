@@ -2,7 +2,9 @@ package com.coachfoska.app.presentation.auth
 
 sealed interface AuthIntent {
     data class EmailChanged(val email: String) : AuthIntent
+    data class PasswordChanged(val password: String) : AuthIntent
     data class OtpChanged(val otp: String) : AuthIntent
+    data object SignInWithPassword : AuthIntent
     data object SendOtp : AuthIntent
     data object VerifyOtp : AuthIntent
     data object SignInWithGoogle : AuthIntent

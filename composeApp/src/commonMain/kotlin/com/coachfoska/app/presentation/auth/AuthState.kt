@@ -4,6 +4,7 @@ import com.coachfoska.app.domain.model.User
 
 data class AuthState(
     val email: String = "",
+    val password: String = "",
     val otp: String = "",
     val isLoading: Boolean = false,
     val otpSent: Boolean = false,

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.usecase.auth.SendOtpUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithAppleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithGoogleUseCase
+import com.coachfoska.app.domain.usecase.auth.SignInWithPasswordUseCase
 import com.coachfoska.app.domain.usecase.auth.VerifyOtpUseCase
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,7 @@ private const val TAG = "AuthViewModel"
 class AuthViewModel(
     private val sendOtpUseCase: SendOtpUseCase,
     private val verifyOtpUseCase: VerifyOtpUseCase,
+    private val signInWithPasswordUseCase: SignInWithPasswordUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val signInWithAppleUseCase: SignInWithAppleUseCase
 ) : ViewModel() {
@@ -26,10 +28,11 @@ class AuthViewModel(
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
     fun onIntent(intent: AuthIntent) {
-        Napier.d("onIntent: $intent", tag = TAG)
         when (intent) {
             is AuthIntent.EmailChanged -> _state.update { it.copy(email = intent.email, error = null) }
+            is AuthIntent.PasswordChanged -> _state.update { it.copy(password = intent.password, error = null) }
             is AuthIntent.OtpChanged -> _state.update { it.copy(otp = intent.otp, error = null) }
+            is AuthIntent.SignInWithPassword -> signInWithPassword()
             is AuthIntent.SendOtp -> sendOtp()
             is AuthIntent.VerifyOtp -> verifyOtp()
             is AuthIntent.SignInWithGoogle -> signInWithGoogle()
@@ -38,6 +41,29 @@ class AuthViewModel(
             is AuthIntent.NavigatedToHome -> _state.update { it.copy(navigateToHome = false) }
             is AuthIntent.NavigatedToOnboarding -> _state.update { it.copy(navigateToOnboarding = false) }
             is AuthIntent.NavigatedToVerifyOtp -> _state.update { it.copy(otpSent = false) }
+        }
+    }
+
+    private fun signInWithPassword() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            signInWithPasswordUseCase(_state.value.email, _state.value.password)
+                .onSuccess { user ->
+                    Napier.i("Email sign-in OK, userId=${user.id}", tag = TAG)
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            password = "",
+                            authenticatedUser = user,
+                            navigateToHome = user.onboardingComplete,
+                            navigateToOnboarding = !user.onboardingComplete
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    Napier.e("Email sign-in failed", e, tag = TAG)
+                    _state.update { it.copy(isLoading = false, error = e.message ?: "Email sign-in failed") }
+                }
         }
     }
 

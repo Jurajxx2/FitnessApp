@@ -44,6 +44,7 @@ import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.domain.usecase.auth.SendOtpUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithAppleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithGoogleUseCase
+import com.coachfoska.app.domain.usecase.auth.SignInWithPasswordUseCase
 import com.coachfoska.app.domain.usecase.auth.SignOutUseCase
 import com.coachfoska.app.domain.usecase.auth.VerifyOtpUseCase
 import com.coachfoska.app.domain.usecase.exercise.GetExerciseByIdUseCase
@@ -196,6 +197,7 @@ val useCaseModule = module {
     single { ObserveSessionUseCase(get()) }
     factory { SendOtpUseCase(get()) }
     factory { VerifyOtpUseCase(get()) }
+    factory { SignInWithPasswordUseCase(get()) }
     factory { SignInWithGoogleUseCase(get(), get()) }
     factory { SignInWithAppleUseCase(get(), get()) }
     factory { SignOutUseCase(get()) }

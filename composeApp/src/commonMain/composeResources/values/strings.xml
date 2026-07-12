@@ -9,10 +9,15 @@
     <string name="continue_with_email">POKRAČOVAT E-MAILEM</string>
     <string name="continue_with_google">POKRAČOVAT PŘES GOOGLE</string>
 
-    <!-- Auth — EmailOtpScreen -->
-    <string name="enter_email_title">ZADEJ E-MAIL</string>
-    <string name="enter_email_desc">Pošleme ti jednorázový kód pro přihlášení k účtu.</string>
+    <!-- Auth — Email sign-in -->
+    <string name="email_sign_in_title">PŘIHLÁŠENÍ</string>
+    <string name="email_sign_in_desc">Přihlas se e-mailem a heslem. Jednorázový kód můžeš použít jako alternativu.</string>
     <string name="email_address_label">E-mailová adresa</string>
+    <string name="password_label">Heslo</string>
+    <string name="show_password_cd">Zobrazit heslo</string>
+    <string name="hide_password_cd">Skrýt heslo</string>
+    <string name="sign_in_button">PŘIHLÁSIT SE</string>
+    <string name="sign_in_with_otp">PŘIHLÁSIT SE JEDNORÁZOVÝM KÓDEM</string>
     <string name="back_cd">Zpět</string>
 
     <!-- Auth — VerifyOtpScreen -->

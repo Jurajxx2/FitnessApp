@@ -7,12 +7,16 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,6 +35,8 @@ import org.koin.compose.viewmodel.koinViewModel
 fun EmailOtpRoute(
     onBackClick: () -> Unit,
     onOtpSent: (email: String) -> Unit,
+    onNavigateToHome: () -> Unit,
+    onNavigateToOnboarding: (userId: String) -> Unit,
     viewModel: AuthViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -39,6 +45,18 @@ fun EmailOtpRoute(
         if (state.otpSent) {
             viewModel.onIntent(AuthIntent.NavigatedToVerifyOtp)
             onOtpSent(state.email)
+        }
+    }
+    LaunchedEffect(state.navigateToHome) {
+        if (state.navigateToHome) {
+            viewModel.onIntent(AuthIntent.NavigatedToHome)
+            onNavigateToHome()
+        }
+    }
+    LaunchedEffect(state.navigateToOnboarding) {
+        if (state.navigateToOnboarding) {
+            viewModel.onIntent(AuthIntent.NavigatedToOnboarding)
+            onNavigateToOnboarding(state.authenticatedUser?.id ?: "")
         }
     }
 
@@ -57,6 +75,7 @@ fun EmailOtpScreen(
     onBackClick: () -> Unit
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -85,7 +104,7 @@ fun EmailOtpScreen(
                 .padding(horizontal = 32.dp, vertical = 24.dp)
         ) {
             Text(
-                text = stringResource(Res.string.enter_email_title),
+                text = stringResource(Res.string.email_sign_in_title),
                 style = MaterialTheme.typography.displayMedium,
                 color = DsTheme.colors.textPrimary
             )
@@ -93,7 +112,7 @@ fun EmailOtpScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = stringResource(Res.string.enter_email_desc),
+                text = stringResource(Res.string.email_sign_in_desc),
                 style = MaterialTheme.typography.bodyLarge,
                 color = DsTheme.colors.textPrimary.copy(alpha = 0.6f)
             )
@@ -106,15 +125,45 @@ fun EmailOtpScreen(
                 label = stringResource(Res.string.email_address_label),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                enabled = !state.isLoading
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            DsTextField(
+                value = state.password,
+                onValueChange = { onIntent(AuthIntent.PasswordChanged(it)) },
+                label = stringResource(Res.string.password_label),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions(
                     onDone = {
-                        keyboardController?.hide()
-                        onIntent(AuthIntent.SendOtp)
+                        if (state.email.isNotBlank() && state.password.isNotBlank()) {
+                            keyboardController?.hide()
+                            onIntent(AuthIntent.SignInWithPassword)
+                        }
                     }
                 ),
-                enabled = !state.isLoading
+                enabled = !state.isLoading,
+                visualTransformation = if (passwordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = stringResource(
+                                if (passwordVisible) Res.string.hide_password_cd else Res.string.show_password_cd
+                            )
+                        )
+                    }
+                }
             )
 
             state.error?.let { error ->
@@ -129,14 +178,32 @@ fun EmailOtpScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             DsButton(
-                text = stringResource(Res.string.continue_button),
+                text = stringResource(Res.string.sign_in_button),
+                onClick = {
+                    keyboardController?.hide()
+                    onIntent(AuthIntent.SignInWithPassword)
+                },
+                enabled = state.email.isNotBlank() && state.password.isNotBlank(),
+                isLoading = state.isLoading
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextButton(
                 onClick = {
                     keyboardController?.hide()
                     onIntent(AuthIntent.SendOtp)
                 },
-                enabled = state.email.isNotBlank(),
-                isLoading = state.isLoading
-            )
+                modifier = Modifier.fillMaxWidth(),
+                enabled = state.email.isNotBlank() && !state.isLoading
+            ) {
+                Text(
+                    text = stringResource(Res.string.sign_in_with_otp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.65f),
+                    letterSpacing = 1.sp
+                )
+            }
         }
     }
 }

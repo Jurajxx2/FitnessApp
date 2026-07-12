@@ -8,6 +8,7 @@ import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.providers.Apple
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.IDToken
+import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.user.UserInfo
 import io.ktor.client.HttpClient
@@ -32,6 +33,7 @@ class AuthRemoteDataSource(
             Napier.d { "COACHX: sending sign in with OTP start" }
             supabase.auth.signInWith(OTP) {
                 this.email = email
+                createUser = false
             }
             Napier.d { "COACHX: sending sign in with OTP success" }
             Result.success(Unit)
@@ -45,6 +47,15 @@ class AuthRemoteDataSource(
         supabase.auth.verifyEmailOtp(type = OtpType.Email.EMAIL, email = email, token = token)
         return supabase.auth.currentUserOrNull()
             ?: throw IllegalStateException("User not found after OTP verification")
+    }
+
+    suspend fun signInWithEmailPassword(email: String, password: String): UserInfo {
+        supabase.auth.signInWith(Email) {
+            this.email = email
+            this.password = password
+        }
+        return supabase.auth.currentUserOrNull()
+            ?: throw IllegalStateException("User not found after email sign-in")
     }
 
     suspend fun signInWithGoogleIdToken(idToken: String): UserInfo {
