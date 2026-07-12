@@ -13,6 +13,8 @@ import RecipeDetail from './pages/nutrition/RecipeDetail'
 import History from './pages/nutrition/History'
 import HistoryDetail from './pages/nutrition/HistoryDetail'
 import LogMeal from './pages/nutrition/LogMeal'
+import CheckInForm from './pages/checkins/CheckInForm'
+import CheckInHistory from './pages/checkins/CheckInHistory'
 
 export default function App() {
   return (
@@ -31,6 +33,8 @@ export default function App() {
                 <Route path="/nutrition/history" element={<History />} />
                 <Route path="/nutrition/history/:id" element={<HistoryDetail />} />
                 <Route path="/nutrition/log" element={<LogMeal />} />
+                <Route path="/check-ins" element={<CheckInForm />} />
+                <Route path="/check-ins/history" element={<CheckInHistory />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/nutrition" replace />} />

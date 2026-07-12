@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { UtensilsCrossed, CalendarDays, BookOpen, History } from 'lucide-react'
+import { UtensilsCrossed, CalendarDays, BookOpen, History, ClipboardCheck } from 'lucide-react'
 import { PageTransition } from './PageTransition'
 
 const NAV = [
@@ -7,6 +7,7 @@ const NAV = [
   { to: '/nutrition/plan', label: 'Plan', icon: CalendarDays, end: false },
   { to: '/nutrition/recipes', label: 'Recipes', icon: BookOpen, end: false },
   { to: '/nutrition/history', label: 'History', icon: History, end: false },
+  { to: '/check-ins', label: 'Check-in', icon: ClipboardCheck, end: false },
 ]
 
 export function AppShell() {
