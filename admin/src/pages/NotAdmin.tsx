@@ -1,11 +1,9 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { getAthleteAppUrl } from '../lib/athleteApp'
 import { Button, Card } from '../components/ui'
 
 export default function NotAdmin() {
   const navigate = useNavigate()
-  const athleteAppUrl = getAthleteAppUrl()
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -21,14 +19,12 @@ export default function NotAdmin() {
           Continue in the trainee app, or sign in with a different account.
         </p>
         <div className="flex flex-col gap-2">
-          {athleteAppUrl && (
-            <a
-              href={athleteAppUrl}
-              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-transparent bg-action-primary px-4 py-2 text-sm font-semibold text-on-action-primary transition-opacity hover:opacity-85"
-            >
-              Open trainee app
-            </a>
-          )}
+          <Link
+            to="/nutrition"
+            className="inline-flex min-h-10 items-center justify-center rounded-xl border border-transparent bg-action-primary px-4 py-2 text-sm font-semibold text-on-action-primary transition-opacity hover:opacity-85"
+          >
+            Open athlete app
+          </Link>
           <Button variant="ghost" onClick={handleSignOut}>Use a different account</Button>
         </div>
       </Card>

@@ -13,7 +13,6 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { getAthleteAppUrl } from '../lib/athleteApp'
 import { useAuth } from '../hooks/useAuth'
 import type { DailyQuote } from '../types/database'
 
@@ -40,7 +39,6 @@ const staggerContainer = {
 export default function Landing() {
   const navigate = useNavigate()
   const { session, isAdmin, isLoading: authLoading, profile } = useAuth()
-  const athleteAppUrl = getAthleteAppUrl()
   const [quote, setQuote] = useState<DailyQuote | null>(null)
   const { scrollYProgress } = useScroll()
   const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
@@ -107,22 +105,30 @@ export default function Landing() {
                 >
                   Open admin <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </button>
-              ) : athleteAppUrl ? (
-                <a
-                  href={athleteAppUrl}
+              ) : (
+                <button
+                  onClick={() => navigate('/nutrition')}
                   className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
                 >
                   Open trainee app <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </a>
-              ) : null}
+                </button>
+              )}
             </div>
           ) : (
-            <button
-              onClick={() => navigate('/auth')}
-              className="group flex items-center gap-2 px-6 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
-            >
-              Login <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </button>
+            <>
+              <button
+                onClick={() => navigate('/auth')}
+                className="hidden border-0 bg-transparent text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-colors hover:text-white sm:block"
+              >
+                Admin
+              </button>
+              <button
+                onClick={() => navigate('/login')}
+                className="group flex items-center gap-2 px-6 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
+              >
+                Login <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </>
           )}
         </div>
       </nav>

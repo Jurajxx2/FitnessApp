@@ -1,6 +1,8 @@
-# Coach Foska — User Web App
+# Coach Foska — Standalone User Web App
 
-Mobile-first client web app for the Nutrition MVP, built with React, Vite, Tailwind, and Supabase.
+Legacy standalone build of the athlete portal. The actively deployed public/admin
+application now includes the same athlete routes directly from `admin/`, so a
+separate deployment is no longer required.
 
 ## Local development
 
@@ -20,13 +22,12 @@ npm test
 npm run build
 ```
 
-## Deploy with Netlify
+## Optional standalone deployment
 
 - Set the base directory to `webapp`.
 - Use `npm run build` as the build command.
 - Publish `dist` (which resolves to `webapp/dist` from the repository root).
 - Configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` with the same values as the admin site.
-- On the admin site, configure `VITE_ATHLETE_APP_URL` with this deployed web-app URL. The public landing page and non-admin fallback use it to send trainees to the correct portal.
 - SPA redirects and security headers are already defined in [`netlify.toml`](./netlify.toml).
 
 ## Scope

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { getAthleteAppUrl } from '../lib/athleteApp'
 import { useAuth } from '../hooks/useAuth'
 import { Card, Input, Button } from '../components/ui'
 
@@ -11,7 +10,6 @@ export default function Login() {
   const [error, setError] = useState('')
   const navigate = useNavigate()
   const { session, isAdmin, isLoading: authLoading } = useAuth()
-  const athleteAppUrl = getAthleteAppUrl()
 
   // Redirect already-authenticated users so they don't see the login form.
   useEffect(() => {
@@ -71,14 +69,12 @@ export default function Login() {
             Send login code →
           </Button>
         </form>
-        {athleteAppUrl && (
-          <p className="mt-5 text-center text-xs text-text-secondary">
-            Training with Coach Foska?{' '}
-            <a className="font-semibold text-text-primary underline" href={athleteAppUrl}>
-              Open the trainee app
-            </a>
-          </p>
-        )}
+        <p className="mt-5 text-center text-xs text-text-secondary">
+          Training with Coach Foska?{' '}
+          <Link className="font-semibold text-text-primary underline" to="/login">
+            Open athlete login
+          </Link>
+        </p>
       </Card>
     </div>
   )
