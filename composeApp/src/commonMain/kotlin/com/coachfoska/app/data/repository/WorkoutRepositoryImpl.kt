@@ -13,7 +13,9 @@ import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.ExerciseRecords
 import com.coachfoska.app.domain.model.PRType
 import com.coachfoska.app.domain.model.PersonalRecord
+import com.coachfoska.app.domain.model.RecordDetail
 import com.coachfoska.app.domain.model.RecordEntry
+import com.coachfoska.app.domain.model.RecordValue
 import com.coachfoska.app.domain.model.SavedSetRef
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WeeklyCount
@@ -185,8 +187,8 @@ class WorkoutRepositoryImpl(
             if (sessionVolume > maxVolumeKg) {
                 maxVolumeKg = sessionVolume
                 highestVolume = RecordEntry(
-                    value = "${formatWeightKg(sessionVolume)} kg",
-                    detail = "${sets.size} sets",
+                    value = RecordValue.Weight(sessionVolume),
+                    detail = RecordDetail.Sets(sets.size),
                     date = date
                 )
             }
@@ -200,8 +202,8 @@ class WorkoutRepositoryImpl(
                 if (durationSeconds != null && durationSeconds > maxDurationSeconds) {
                     maxDurationSeconds = durationSeconds
                     longestDuration = RecordEntry(
-                        value = formatDuration(durationSeconds),
-                        detail = "Longest timed set",
+                        value = RecordValue.Duration(durationSeconds),
+                        detail = RecordDetail.LongestTimedSet,
                         date = date,
                     )
                 }
@@ -211,8 +213,8 @@ class WorkoutRepositoryImpl(
                 if (reps != null && reps > maxReps) {
                     maxReps = reps
                     mostRepsAtWeight = RecordEntry(
-                        value = "$reps reps",
-                        detail = weight?.let { "${formatWeightKg(it)}kg x $reps reps" } ?: "$reps reps",
+                        value = RecordValue.Reps(reps),
+                        detail = weight?.let { RecordDetail.WeightAndReps(it, reps) } ?: RecordDetail.RepsOnly(reps),
                         date = date,
                     )
                 }
@@ -223,8 +225,8 @@ class WorkoutRepositoryImpl(
                 if (w > maxWeightKg) {
                     maxWeightKg = w
                     heaviestWeight = RecordEntry(
-                        value = "${formatWeightKg(w)} kg",
-                        detail = "${formatWeightKg(w)}kg x $r reps",
+                        value = RecordValue.Weight(w),
+                        detail = RecordDetail.WeightAndReps(w, r),
                         date = date,
                     )
                 }
@@ -234,8 +236,8 @@ class WorkoutRepositoryImpl(
                     if (estimated1RM > max1RMKg) {
                         max1RMKg = estimated1RM
                         highest1RM = RecordEntry(
-                            value = "${formatWeightKg(estimated1RM)} kg",
-                            detail = "from ${formatWeightKg(w)}kg x $r",
+                            value = RecordValue.Weight(estimated1RM),
+                            detail = RecordDetail.OneRmSource(w, r),
                             date = date,
                         )
                     }
@@ -468,6 +470,3 @@ private fun SetLog.toInsertDto(exerciseLogId: String): SetLogInsertDto = SetLogI
     completed = completed,
     actualDurationSeconds = actualDurationSeconds,
 )
-
-private fun formatDuration(totalSeconds: Int): String =
-    "${(totalSeconds / 60).toString().padStart(2, '0')}:${(totalSeconds % 60).toString().padStart(2, '0')}"

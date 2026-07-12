@@ -136,7 +136,7 @@ private fun buildSummaryLine(sets: List<SetLog>): String {
     return if (maxWeight != null) "$repsPart @ ${formatWeightKg(maxWeight)} kg" else repsPart
 }
 
-private fun formatDuration(totalSeconds: Int): String =
+fun formatDuration(totalSeconds: Int): String =
     "${(totalSeconds / 60).toString().padStart(2, '0')}:${(totalSeconds % 60).toString().padStart(2, '0')}"
 
 // Formats a weight value for display: drops trailing ".0" on whole numbers (60.0f → "60"),

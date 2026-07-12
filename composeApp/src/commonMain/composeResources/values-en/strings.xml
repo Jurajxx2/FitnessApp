@@ -720,6 +720,13 @@
     <string name="exercise_records_est_1rm">Best Est. 1RM</string>
     <string name="exercise_records_highest_volume">Highest Volume</string>
     <string name="exercise_records_longest_duration">Longest Duration</string>
+    <string name="record_value_weight_kg">%1$s kg</string>
+    <string name="record_value_reps">%1$d reps</string>
+    <string name="record_detail_sets">%1$d sets</string>
+    <string name="record_detail_longest_timed_set">Longest timed set</string>
+    <string name="record_detail_weight_reps">%1$skg x %2$d reps</string>
+    <string name="record_detail_reps_only">%1$d reps</string>
+    <string name="record_detail_1rm_source">from %1$skg x %2$d</string>
     <string name="chart_metric_heaviest_weight">Heaviest Weight</string>
     <string name="chart_metric_est_1rm">Est. 1RM</string>
     <string name="chart_metric_best_volume">Best Volume</string>

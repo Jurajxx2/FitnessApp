@@ -47,10 +47,20 @@ import coachfoska.composeapp.generated.resources.exercise_records_longest_durati
 import coachfoska.composeapp.generated.resources.exercise_records_most_reps
 import coachfoska.composeapp.generated.resources.recipes_add_favorite_cd
 import coachfoska.composeapp.generated.resources.recipes_remove_favorite_cd
+import coachfoska.composeapp.generated.resources.record_detail_1rm_source
+import coachfoska.composeapp.generated.resources.record_detail_longest_timed_set
+import coachfoska.composeapp.generated.resources.record_detail_reps_only
+import coachfoska.composeapp.generated.resources.record_detail_sets
+import coachfoska.composeapp.generated.resources.record_detail_weight_reps
+import coachfoska.composeapp.generated.resources.record_value_reps
+import coachfoska.composeapp.generated.resources.record_value_weight_kg
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.ExerciseRecords
+import com.coachfoska.app.domain.model.RecordDetail
 import com.coachfoska.app.domain.model.RecordEntry
+import com.coachfoska.app.domain.model.RecordValue
+import com.coachfoska.app.domain.model.formatDuration
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.core.util.toDisplayDateTime
@@ -567,11 +577,27 @@ private fun RecordCard(title: String, entry: RecordEntry) {
             .fillMaxWidth()
             .padding(16.dp)) {
             Text(title, style = MaterialTheme.typography.labelMedium, color = DsTheme.colors.actionPrimary)
-            Text(entry.value, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-            Text(entry.detail, style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
+            Text(recordValueText(entry.value), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+            Text(recordDetailText(entry.detail), style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
             Text(entry.date.toString(), style = MaterialTheme.typography.bodySmall, color = DsTheme.colors.textSecondary)
         }
     }
+}
+
+@Composable
+private fun recordValueText(value: RecordValue): String = when (value) {
+    is RecordValue.Weight -> stringResource(Res.string.record_value_weight_kg, formatWeightKg(value.kg))
+    is RecordValue.Reps -> stringResource(Res.string.record_value_reps, value.count)
+    is RecordValue.Duration -> formatDuration(value.seconds)
+}
+
+@Composable
+private fun recordDetailText(detail: RecordDetail): String = when (detail) {
+    is RecordDetail.Sets -> stringResource(Res.string.record_detail_sets, detail.count)
+    RecordDetail.LongestTimedSet -> stringResource(Res.string.record_detail_longest_timed_set)
+    is RecordDetail.WeightAndReps -> stringResource(Res.string.record_detail_weight_reps, formatWeightKg(detail.weightKg), detail.reps)
+    is RecordDetail.RepsOnly -> stringResource(Res.string.record_detail_reps_only, detail.reps)
+    is RecordDetail.OneRmSource -> stringResource(Res.string.record_detail_1rm_source, formatWeightKg(detail.weightKg), detail.reps)
 }
 
 @Composable

@@ -10,6 +10,8 @@ import com.coachfoska.app.data.remote.dto.WorkoutFeedbackDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogDto
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.RecordDetail
+import com.coachfoska.app.domain.model.RecordValue
 import com.coachfoska.app.domain.model.SetLog
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -192,6 +194,7 @@ class WorkoutRepositoryImplTest {
         val result = repository.getExerciseRecords("u", "Plank Hold")
 
         assertTrue(result.isSuccess)
-        assertEquals("01:35", result.getOrThrow().longestDuration?.value)
+        assertEquals(RecordValue.Duration(95), result.getOrThrow().longestDuration?.value)
+        assertEquals(RecordDetail.LongestTimedSet, result.getOrThrow().longestDuration?.detail)
     }
 }

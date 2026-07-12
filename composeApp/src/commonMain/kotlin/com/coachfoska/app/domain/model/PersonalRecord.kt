@@ -27,10 +27,28 @@ data class ExerciseRecords(
 )
 
 data class RecordEntry(
-    val value: String,
-    val detail: String,
+    val value: RecordValue,
+    val detail: RecordDetail,
     val date: LocalDate,
 )
+
+// The headline metric of a record. Formatting (units, locale) happens in the UI layer,
+// which is the only place with access to Compose string resources.
+sealed interface RecordValue {
+    data class Weight(val kg: Float) : RecordValue
+    data class Reps(val count: Int) : RecordValue
+    data class Duration(val seconds: Int) : RecordValue
+}
+
+// The subtitle describing how a record was achieved. Kept as structured data so the
+// UI can localize it; the data layer stays free of presentation strings.
+sealed interface RecordDetail {
+    data class Sets(val count: Int) : RecordDetail
+    data object LongestTimedSet : RecordDetail
+    data class WeightAndReps(val weightKg: Float, val reps: Int) : RecordDetail
+    data class RepsOnly(val reps: Int) : RecordDetail
+    data class OneRmSource(val weightKg: Float, val reps: Int) : RecordDetail
+}
 
 data class MuscleVolumeEntry(
     val muscleGroup: String,

@@ -720,6 +720,13 @@
     <string name="exercise_records_est_1rm">Nejlepší odhad 1RM</string>
     <string name="exercise_records_highest_volume">Nejvyšší objem</string>
     <string name="exercise_records_longest_duration">Nejdelší výdrž</string>
+    <string name="record_value_weight_kg">%1$s kg</string>
+    <string name="record_value_reps">%1$d opakování</string>
+    <string name="record_detail_sets">%1$d sérií</string>
+    <string name="record_detail_longest_timed_set">Nejdelší časovaná série</string>
+    <string name="record_detail_weight_reps">%1$s kg × %2$d opak.</string>
+    <string name="record_detail_reps_only">%1$d opak.</string>
+    <string name="record_detail_1rm_source">z %1$s kg × %2$d</string>
     <string name="chart_metric_heaviest_weight">Nejvyšší váha</string>
     <string name="chart_metric_est_1rm">Odhad 1RM</string>
     <string name="chart_metric_best_volume">Nejlepší objem</string>

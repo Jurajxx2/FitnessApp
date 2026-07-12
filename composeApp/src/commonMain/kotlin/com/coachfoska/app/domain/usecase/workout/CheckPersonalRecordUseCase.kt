@@ -1,5 +1,6 @@
 package com.coachfoska.app.domain.usecase.workout
 
+import com.coachfoska.app.domain.model.RecordValue
 import com.coachfoska.app.domain.model.SessionPR
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.domain.repository.WorkoutRepository
@@ -17,8 +18,7 @@ class CheckPersonalRecordUseCase(
         val records = workoutRepository.getExerciseRecords(userId, exerciseName)
             .getOrNull() ?: return null
 
-        val currentHeaviest = records.heaviestWeight?.value
-            ?.removeSuffix(" kg")?.replace(",", "")?.toFloatOrNull() ?: 0f
+        val currentHeaviest = (records.heaviestWeight?.value as? RecordValue.Weight)?.kg ?: 0f
         if (weightKg > currentHeaviest) {
             return SessionPR(
                 exerciseName = exerciseName,
@@ -27,8 +27,7 @@ class CheckPersonalRecordUseCase(
         }
 
         val new1RM = calculate1RM(weightKg, reps)
-        val current1RM = records.highestEstimated1RM?.value
-            ?.removeSuffix(" kg")?.replace(",", "")?.toFloatOrNull() ?: 0f
+        val current1RM = (records.highestEstimated1RM?.value as? RecordValue.Weight)?.kg ?: 0f
         if (new1RM != null && new1RM > current1RM) {
             return SessionPR(
                 exerciseName = exerciseName,
