@@ -23,8 +23,3 @@ CREATE POLICY "users_own_messages"
     ON chat_messages
     FOR ALL
     USING (auth.uid() = user_id);
-
--- Supabase Storage bucket for chat image attachments
--- Run this in the Supabase dashboard or via the Storage API:
--- INSERT INTO storage.buckets (id, name, public) VALUES ('chat-images', 'chat-images', false)
--- ON CONFLICT DO NOTHING;
