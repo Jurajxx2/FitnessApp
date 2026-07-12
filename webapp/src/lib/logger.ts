@@ -64,7 +64,7 @@ function normalizeLogLevel(value: string): LogLevel {
 function log(level: LogLevel, message: string, context?: unknown) {
   if (!loggingEnabled || priorities[level] < priorities[minimumLevel]) return
 
-  const prefix = `[CoachFoska Admin][${level.toUpperCase()}] ${message}`
+  const prefix = `[CoachFoska Web][${level.toUpperCase()}] ${message}`
   const args = context === undefined ? [prefix] : [prefix, redact(context)]
 
   switch (level) {

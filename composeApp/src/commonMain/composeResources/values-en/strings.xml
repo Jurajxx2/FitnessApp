@@ -403,6 +403,7 @@
     <string name="session_save_failed">Not saved — tap to retry</string>
     <string name="session_resume_title">Workout in progress</string>
     <string name="session_resume_action">Resume</string>
+    <string name="session_already_in_progress">A workout is already in progress. We opened it for you.</string>
     <string name="session_discard">Discard workout</string>
     <string name="session_discard_confirm">Discard this session? Logged sets will be removed from history.</string>
     <string name="session_volume_format">Volume %1$s kg</string>
@@ -713,6 +714,15 @@
     <string name="exercise_records_most_reps">Most Reps</string>
     <string name="exercise_records_est_1rm">Best Est. 1RM</string>
     <string name="exercise_records_highest_volume">Highest Volume</string>
+    <string name="exercise_records_longest_duration">Longest Duration</string>
+    <string name="chart_metric_heaviest_weight">Heaviest Weight</string>
+    <string name="chart_metric_est_1rm">Est. 1RM</string>
+    <string name="chart_metric_best_volume">Best Volume</string>
+    <string name="chart_metric_num_reps"># of Reps</string>
+    <string name="chart_metric_most_reps">Most Reps</string>
+    <string name="chart_metric_total_reps">Total Reps</string>
+    <string name="chart_metric_longest_duration">Longest Duration</string>
+    <string name="chart_metric_total_duration">Total Duration</string>
 
     <!-- Exercise Library -->
     <string name="exercise_library_title">LIBRARY</string>

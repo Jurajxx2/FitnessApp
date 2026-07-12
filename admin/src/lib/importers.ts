@@ -68,7 +68,12 @@ export function parseRecipeImport(json: unknown): RecipeImportResult {
       errors.push({ row: i, field: 'ingredients', message: 'ingredients must be a non-empty array' })
     } else {
       for (let j = 0; j < r.ingredients.length; j++) {
-        const ing = r.ingredients[j] as Record<string, unknown>
+        const ingRaw = r.ingredients[j]
+        if (typeof ingRaw !== 'object' || ingRaw === null) {
+          errors.push({ row: i, field: `ingredients[${j}]`, message: 'Each ingredient must be an object' })
+          continue
+        }
+        const ing = ingRaw as Record<string, unknown>
         if (!ing.name || typeof ing.name !== 'string') {
           errors.push({ row: i, field: `ingredients[${j}].name`, message: 'ingredient name is required' })
         }
@@ -198,13 +203,23 @@ export function parseMealPlanImport(json: unknown): MealPlanImportResult {
       errors.push({ row: i, field: 'meals', message: 'meals must be an array' })
     } else {
       for (let mi = 0; mi < p.meals.length; mi++) {
-        const meal = p.meals[mi] as Record<string, unknown>
+        const mealRaw = p.meals[mi]
+        if (typeof mealRaw !== 'object' || mealRaw === null) {
+          errors.push({ row: i, field: `meals[${mi}]`, message: 'Each meal must be an object' })
+          continue
+        }
+        const meal = mealRaw as Record<string, unknown>
         if (!meal.name || typeof meal.name !== 'string') {
           errors.push({ row: i, field: `meals[${mi}].name`, message: 'meal name is required' })
         }
         if (Array.isArray(meal.recipes)) {
           for (let ri = 0; ri < meal.recipes.length; ri++) {
-            const recipe = meal.recipes[ri] as Record<string, unknown>
+            const recipeRaw = meal.recipes[ri]
+            if (typeof recipeRaw !== 'object' || recipeRaw === null) {
+              errors.push({ row: i, field: `meals[${mi}].recipes[${ri}]`, message: 'Each recipe reference must be an object' })
+              continue
+            }
+            const recipe = recipeRaw as Record<string, unknown>
             if (!recipe.external_id || typeof recipe.external_id !== 'string') {
               errors.push({ row: i, field: `meals[${mi}].recipes[${ri}].external_id`, message: 'recipe external_id is required' })
             }

@@ -12,6 +12,9 @@ export default function LogMeal() {
   const [mealName, setMealName] = useState('')
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<LogFoodInput[]>([])
+  // Base foods kept parallel to `items` (NOT persisted). Macros are always
+  // re-scaled from the base so clearing the amount to 0 is fully recoverable.
+  const [baseFoods, setBaseFoods] = useState<FoodRow[]>([])
   const { data: results, isFetching } = useFoodSearch(query)
   const logMeal = useLogMeal()
 
@@ -29,6 +32,7 @@ export default function LogMeal() {
         fat_g: scaled.fat_g,
       },
     ])
+    setBaseFoods((currentBases) => [...currentBases, food])
     setQuery('')
   }
 
@@ -36,20 +40,28 @@ export default function LogMeal() {
     setItems((currentItems) => currentItems.map((item, itemIndex) => {
       if (itemIndex !== index) return item
 
-      const ratio = item.amount > 0 ? amount / item.amount : 0
+      const base = baseFoods[index]
+      // Fall back to just updating the amount if the base is missing.
+      if (!base) return { ...item, amount }
+
+      // Always scale from the BASE food, never from the previous (possibly
+      // zeroed) values, so retyping a real amount recovers the macros.
+      const scaled = scaleFood(base, amount)
       return {
         ...item,
-        amount,
-        calories: item.calories * ratio,
-        protein_g: item.protein_g * ratio,
-        carbs_g: item.carbs_g * ratio,
-        fat_g: item.fat_g * ratio,
+        amount: scaled.amount,
+        unit: scaled.unit,
+        calories: scaled.calories,
+        protein_g: scaled.protein_g,
+        carbs_g: scaled.carbs_g,
+        fat_g: scaled.fat_g,
       }
     }))
   }
 
   function removeItem(index: number) {
     setItems((currentItems) => currentItems.filter((_, itemIndex) => itemIndex !== index))
+    setBaseFoods((currentBases) => currentBases.filter((_, itemIndex) => itemIndex !== index))
   }
 
   async function save() {

@@ -51,6 +51,37 @@ const blankExercise = (): ExerciseDraft => ({
   exercise_id: null, name: '', muscle_group: '', sets: 3, reps: '10', rest_seconds: 60, tips: '', sort_order: 0,
 })
 
+// A row is "meaningfully filled" if it carries any detail beyond the default
+// blank-row state. An entirely default/blank row is fine to drop silently, but
+// a row that has data yet no exercise name must never be silently dropped —
+// that would save fewer exercises than the coach sees on screen.
+export function exerciseHasData(exercise: ExerciseDraft): boolean {
+  const blank = blankExercise()
+  return Boolean(exercise.exercise_id)
+    || Boolean(exercise.muscle_group?.trim())
+    || Boolean(exercise.tips?.trim())
+    || exercise.sets !== blank.sets
+    || exercise.reps !== blank.reps
+    || exercise.rest_seconds !== blank.rest_seconds
+}
+
+// Row indexes (0-based) that carry data but are missing the required name. These
+// block the save so the coach must name or remove them — the same policy the
+// recipe editor applies to ingredient rows.
+export function findBlankNamedExerciseRows(exercises: ExerciseDraft[]): number[] {
+  return exercises
+    .map((_, index) => index)
+    .filter(index => !exercises[index].name.trim() && exerciseHasData(exercises[index]))
+}
+
+export function describeInvalidExerciseRows(rowIndexes: number[]): string {
+  if (!rowIndexes.length) return ''
+  const rowNumbers = rowIndexes.map(index => index + 1).join(', ')
+  const rowWord = rowIndexes.length === 1 ? 'Exercise' : 'Exercises'
+  const verb = rowIndexes.length === 1 ? 'has' : 'have'
+  return `${rowWord} ${rowNumbers} ${verb} details but no exercise name. Add a name or remove the row before saving.`
+}
+
 interface WorkoutFormState {
   name: string
   day_of_week: number | null
@@ -64,7 +95,6 @@ export default function Workouts() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: workouts = [], isLoading, isError } = useWorkouts()
   const { data: profiles = [] } = useProfiles()
-  const assignableProfiles = profiles.filter(profile => !profile.is_admin && !profile.is_blocked)
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<Workout | null>(null)
   const [form, setForm] = useState<WorkoutFormState>({ name: '', day_of_week: null, notes: '', is_active: true })
@@ -127,6 +157,13 @@ export default function Workouts() {
 
   const saveWorkout = useMutation({
     mutationFn: async () => {
+      // Block the save if any row has data but no name, rather than silently
+      // dropping it — keeps what is saved identical to what the coach sees.
+      const invalidRows = findBlankNamedExerciseRows(exercises)
+      if (invalidRows.length) {
+        throw new Error(describeInvalidExerciseRows(invalidRows))
+      }
+
       const validExercises = exercises.filter(exercise => exercise.name.trim())
       let workoutId: string
       if (editing) {
@@ -368,7 +405,7 @@ export default function Workouts() {
       <AssignUsersDialog
         open={assignDialogOpen}
         onClose={() => setAssignDialogOpen(false)}
-        profiles={assignableProfiles}
+        profiles={profiles}
         value={assignedUserIds}
         onChange={setAssignedUserIds}
       />

@@ -403,6 +403,7 @@
     <string name="session_save_failed">Neuloženo — klepni pro opakování</string>
     <string name="session_resume_title">Rozpracovaný trénink</string>
     <string name="session_resume_action">Pokračovat</string>
+    <string name="session_already_in_progress">Trénink již probíhá. Otevřeli jsme ho pro tebe.</string>
     <string name="session_discard">Zahodit trénink</string>
     <string name="session_discard_confirm">Zahodit tento trénink? Zapsané série budou odebrány z historie.</string>
     <string name="session_volume_format">Objem %1$s kg</string>
@@ -713,6 +714,15 @@
     <string name="exercise_records_most_reps">Nejvíc opakování</string>
     <string name="exercise_records_est_1rm">Nejlepší odhad 1RM</string>
     <string name="exercise_records_highest_volume">Nejvyšší objem</string>
+    <string name="exercise_records_longest_duration">Nejdelší výdrž</string>
+    <string name="chart_metric_heaviest_weight">Nejvyšší váha</string>
+    <string name="chart_metric_est_1rm">Odhad 1RM</string>
+    <string name="chart_metric_best_volume">Nejlepší objem</string>
+    <string name="chart_metric_num_reps">Počet opakování</string>
+    <string name="chart_metric_most_reps">Nejvíc opakování</string>
+    <string name="chart_metric_total_reps">Opakování celkem</string>
+    <string name="chart_metric_longest_duration">Nejdelší čas</string>
+    <string name="chart_metric_total_duration">Čas celkem</string>
 
     <!-- Exercise Library -->
     <string name="exercise_library_title">KNIHOVNA</string>

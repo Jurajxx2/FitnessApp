@@ -18,6 +18,14 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.back_cd
+import coachfoska.composeapp.generated.resources.chart_metric_best_volume
+import coachfoska.composeapp.generated.resources.chart_metric_est_1rm
+import coachfoska.composeapp.generated.resources.chart_metric_heaviest_weight
+import coachfoska.composeapp.generated.resources.chart_metric_longest_duration
+import coachfoska.composeapp.generated.resources.chart_metric_most_reps
+import coachfoska.composeapp.generated.resources.chart_metric_num_reps
+import coachfoska.composeapp.generated.resources.chart_metric_total_duration
+import coachfoska.composeapp.generated.resources.chart_metric_total_reps
 import coachfoska.composeapp.generated.resources.exercise_detail_no_chart_data
 import coachfoska.composeapp.generated.resources.exercise_detail_no_history
 import coachfoska.composeapp.generated.resources.exercise_detail_no_records
@@ -35,6 +43,7 @@ import coachfoska.composeapp.generated.resources.exercise_detail_title
 import coachfoska.composeapp.generated.resources.exercise_records_est_1rm
 import coachfoska.composeapp.generated.resources.exercise_records_heaviest
 import coachfoska.composeapp.generated.resources.exercise_records_highest_volume
+import coachfoska.composeapp.generated.resources.exercise_records_longest_duration
 import coachfoska.composeapp.generated.resources.exercise_records_most_reps
 import coachfoska.composeapp.generated.resources.recipes_add_favorite_cd
 import coachfoska.composeapp.generated.resources.recipes_remove_favorite_cd
@@ -52,6 +61,7 @@ import com.coachfoska.app.presentation.exercise.ExerciseState
 import com.coachfoska.app.presentation.exercise.ExerciseViewModel
 import com.coachfoska.designsystem.components.DsLoadingBox
 import com.coachfoska.designsystem.components.DsTopBar
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -298,9 +308,11 @@ private fun ChartsTab(userId: String, exerciseName: String, logType: ExerciseLog
     var history by remember(exerciseName) { mutableStateOf<List<ExerciseLog>>(emptyList()) }
     var isLoading by remember(exerciseName) { mutableStateOf(true) }
     val metrics = when (logType) {
-        ExerciseLogType.WEIGHT_REPS -> listOf("Heaviest Weight", "Est. 1RM", "Best Volume", "# of Reps")
-        ExerciseLogType.BODYWEIGHT_REPS -> listOf("Most Reps", "Total Reps")
-        ExerciseLogType.TIME -> listOf("Longest Duration", "Total Duration")
+        ExerciseLogType.WEIGHT_REPS -> listOf(
+            ChartMetric.HeaviestWeight, ChartMetric.Est1Rm, ChartMetric.BestVolume, ChartMetric.NumReps,
+        )
+        ExerciseLogType.BODYWEIGHT_REPS -> listOf(ChartMetric.MostReps, ChartMetric.TotalReps)
+        ExerciseLogType.TIME -> listOf(ChartMetric.LongestDuration, ChartMetric.TotalDuration)
     }
     var selectedMetric by remember(exerciseName, logType) { mutableStateOf(metrics.first()) }
     var selectedPeriod by remember { mutableStateOf("3M") }
@@ -351,26 +363,26 @@ private fun ChartsTab(userId: String, exerciseName: String, logType: ExerciseLog
             val completedSets = log.sets.filter { it.completed }
             if (completedSets.isEmpty()) return@mapNotNull null
             val value = when (selectedMetric) {
-                "Heaviest Weight" -> completedSets.mapNotNull { it.actualWeightKg }.maxOrNull()
-                "Est. 1RM" -> completedSets.mapNotNull { s ->
+                ChartMetric.HeaviestWeight -> completedSets.mapNotNull { it.actualWeightKg }.maxOrNull()
+                ChartMetric.Est1Rm -> completedSets.mapNotNull { s ->
                     val weight = s.actualWeightKg ?: return@mapNotNull null
                     val reps = s.actualReps ?: return@mapNotNull null
                     if (reps in 1..30) weight * (1f + reps / 30f) else weight
                 }.maxOrNull()
-                "Best Volume" -> completedSets.sumOf { s ->
+                ChartMetric.BestVolume -> completedSets.sumOf { s ->
                     ((s.actualWeightKg ?: 0f) * (s.actualReps ?: 0)).toDouble()
                 }.toFloat().takeIf { it > 0f }
-                "# of Reps", "Most Reps" -> completedSets.mapNotNull { it.actualReps?.toFloat() }.maxOrNull()
-                "Total Reps" -> completedSets.sumOf { it.actualReps ?: 0 }.toFloat().takeIf { it > 0f }
-                "Longest Duration" -> completedSets
+                ChartMetric.NumReps, ChartMetric.MostReps ->
+                    completedSets.mapNotNull { it.actualReps?.toFloat() }.maxOrNull()
+                ChartMetric.TotalReps -> completedSets.sumOf { it.actualReps ?: 0 }.toFloat().takeIf { it > 0f }
+                ChartMetric.LongestDuration -> completedSets
                     .mapNotNull { it.actualDurationSeconds ?: it.actualRestSeconds }
                     .maxOrNull()
                     ?.toFloat()
-                "Total Duration" -> completedSets
+                ChartMetric.TotalDuration -> completedSets
                     .sumOf { it.actualDurationSeconds ?: it.actualRestSeconds ?: 0 }
                     .toFloat()
                     .takeIf { it > 0f }
-                else -> null
             } ?: return@mapNotNull null
             ExerciseChartPoint(value = value)
         }
@@ -390,7 +402,7 @@ private fun ChartsTab(userId: String, exerciseName: String, logType: ExerciseLog
             val maxVal = dataPoints.maxOf { it.value }.coerceAtLeast(1f)
             val minVal = dataPoints.minOf { it.value }
 
-            Text(selectedMetric, style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(selectedMetric.labelRes), style = MaterialTheme.typography.titleSmall)
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -461,7 +473,7 @@ private fun ChartsTab(userId: String, exerciseName: String, logType: ExerciseLog
                 FilterChip(
                     selected = metric == selectedMetric,
                     onClick = { selectedMetric = metric },
-                    label = { Text(metric, style = MaterialTheme.typography.labelSmall) },
+                    label = { Text(stringResource(metric.labelRes), style = MaterialTheme.typography.labelSmall) },
                 )
             }
         }
@@ -472,6 +484,18 @@ private data class ExerciseChartPoint(
     val value: Float,
     val isPersonalRecord: Boolean = false,
 )
+
+/** Chart metrics carry their own localized label so the selection key is decoupled from display text. */
+private enum class ChartMetric(val labelRes: StringResource) {
+    HeaviestWeight(Res.string.chart_metric_heaviest_weight),
+    Est1Rm(Res.string.chart_metric_est_1rm),
+    BestVolume(Res.string.chart_metric_best_volume),
+    NumReps(Res.string.chart_metric_num_reps),
+    MostReps(Res.string.chart_metric_most_reps),
+    TotalReps(Res.string.chart_metric_total_reps),
+    LongestDuration(Res.string.chart_metric_longest_duration),
+    TotalDuration(Res.string.chart_metric_total_duration),
+}
 
 private fun ExerciseLog.isWithinPeriod(period: String): Boolean {
     val timestamp = loggedAt?.toEpochMilliseconds() ?: return false
@@ -532,7 +556,7 @@ private fun RecordsTab(userId: String, exerciseName: String, logType: ExerciseLo
         if (logType != ExerciseLogType.TIME) {
             r.mostRepsAtWeight?.let { RecordCard(stringResource(Res.string.exercise_records_most_reps), it) }
         }
-        r.longestDuration?.let { RecordCard("Longest duration", it) }
+        r.longestDuration?.let { RecordCard(stringResource(Res.string.exercise_records_longest_duration), it) }
     }
 }
 

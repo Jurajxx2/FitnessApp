@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
+import { queryClient } from '../lib/queryClient'
 import type { Profile } from '../types/database'
 
 interface AuthState {
@@ -23,7 +24,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(initialState)
 
   async function resolveSession(session: Session | null) {
-    if (!session) { setState({ ...initialState, isLoading: false }); return }
+    if (!session) {
+      // Signed out: drop every cached query so a different account signing in
+      // on the same browser can never read the previous user's cached data
+      // (query keys are per-user, but stale entries would otherwise linger).
+      queryClient.clear()
+      setState({ ...initialState, isLoading: false })
+      return
+    }
     try {
       const profile = await fetchProfile(session.user.id)
       setState({ session, user: session.user, profile, isLoading: false })

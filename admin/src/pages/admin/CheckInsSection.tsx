@@ -51,11 +51,23 @@ export function CheckInsSection({ userId, adminUserId }: { userId: string; admin
   const respond = useMutation({
     mutationFn: async ({ id, response }: { id: string; response: string }) => {
       if (!adminUserId) throw new Error('Admin session is missing')
-      const { error } = await supabase
+      // `.select()` makes PostgREST return the row(s) the UPDATE actually matched.
+      // Without it, an UPDATE that matches zero rows (e.g. because the coach-UPDATE
+      // RLS policy on check_ins doesn't grant this coach permission on this row)
+      // returns NO error from Supabase — a silent no-op that looks identical to a
+      // real success. We must check the returned data length ourselves to detect
+      // that case. This assumes an RLS policy exists granting coaches UPDATE on
+      // clients' check_ins; if that policy is missing/misconfigured, every response
+      // will now correctly surface as an error instead of silently failing.
+      const { data, error } = await supabase
         .from('check_ins')
         .update({ coach_response: response, coach_response_at: new Date().toISOString(), coach_id: adminUserId })
         .eq('id', id)
+        .select()
       if (error) throw error
+      if (!data || data.length === 0) {
+        throw new Error('Check-in update affected no rows — you may not have permission to respond to this check-in.')
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-checkins', userId] })

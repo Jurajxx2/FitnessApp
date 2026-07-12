@@ -22,11 +22,11 @@ export function useRecipe(id: string) {
 }
 export function useMealHistory() {
   const { user } = useAuth()
-  return useQuery({ queryKey: qk.history, queryFn: () => fetchMealHistory(user!.id), enabled: !!user })
+  return useQuery({ queryKey: qk.history(user?.id ?? ''), queryFn: () => fetchMealHistory(user!.id), enabled: !!user })
 }
 export function useDailyLogs(date: string) {
   const { user } = useAuth()
-  return useQuery({ queryKey: qk.dailyLogs(date), queryFn: () => fetchDailyLogs(user!.id, date), enabled: !!user })
+  return useQuery({ queryKey: qk.dailyLogs(user?.id ?? '', date), queryFn: () => fetchDailyLogs(user!.id, date), enabled: !!user })
 }
 export function useDailySummary(date: string): { data: Macros; isLoading: boolean } {
   const { data, isLoading } = useDailyLogs(date)
@@ -48,7 +48,7 @@ export function useFoodSearch(query: string) {
 export function useFavorites() {
   const { user } = useAuth()
   return useQuery({
-    queryKey: qk.favorites,
+    queryKey: qk.favorites(user?.id ?? ''),
     queryFn: async () => new Set(await fetchFavoriteIds(user!.id)),
     enabled: !!user,
   })

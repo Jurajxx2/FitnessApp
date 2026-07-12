@@ -8,6 +8,7 @@ export interface Profile {
   age: number | null
   height_cm: number | null
   weight_kg: number | null
+  gender: 'male' | 'female' | null
   goal: Goal | null
   activity_level: ActivityLevel | null
   onboarding_complete: boolean
@@ -75,6 +76,7 @@ export interface RecipeRow {
   difficulty: string | null
   tags: string[]
   featured: boolean
+  is_active: boolean
   recipe_ingredients?: RecipeIngredientRow[]
   recipe_steps?: RecipeStepRow[]
 }

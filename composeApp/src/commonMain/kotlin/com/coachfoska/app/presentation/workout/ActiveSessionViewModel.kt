@@ -312,7 +312,13 @@ class ActiveSessionViewModel(
         val exercise = draft.exercises.getOrNull(exerciseIndex) ?: return
         val set = exercise.sets.getOrNull(setIndex) ?: return
 
-        setSetSaveState(exerciseIndex, setIndex, SetSaveState.Saving)
+        // Address the set by stable identity (exercise name + set sortOrder), never by the captured
+        // indices, inside the async handlers below. The athlete can reorder exercises while this
+        // insert/update is in flight, which would otherwise write the returned ids onto the wrong row.
+        val exerciseName = exercise.exerciseName
+        val sortOrder = set.sortOrder
+
+        setSetSaveState(exerciseName, sortOrder, SetSaveState.Saving)
 
         viewModelScope.launch {
             val setLog = set.toSetLog(exercise.exerciseLogId.orEmpty())
@@ -328,31 +334,32 @@ class ActiveSessionViewModel(
                 ).onSuccess { ref ->
                     _state.update { s ->
                         val d = s.sessionDraft ?: return@update s
+                        val (ei, si) = d.locateSet(exerciseName, sortOrder) ?: return@update s
                         val exercises = d.exercises.toMutableList()
-                        val ex = exercises[exerciseIndex]
+                        val ex = exercises[ei]
                         val sets = ex.sets.toMutableList()
-                        sets[setIndex] = sets[setIndex].copy(
+                        sets[si] = sets[si].copy(
                             setLogId = ref.setLogId,
                             saveState = SetSaveState.Saved,
                         )
-                        exercises[exerciseIndex] = ex.copy(exerciseLogId = ref.exerciseLogId, sets = sets)
+                        exercises[ei] = ex.copy(exerciseLogId = ref.exerciseLogId, sets = sets)
                         s.copy(sessionDraft = d.copy(exercises = exercises))
                     }
-                    persistSetIfChangedSince(exerciseIndex, setIndex, set)
+                    persistSetIfChangedSince(exerciseName, sortOrder, set)
                 }.onFailure { e ->
                     Napier.e("Failed to autosave set", e, tag = TAG)
-                    setSetSaveState(exerciseIndex, setIndex, SetSaveState.Failed)
+                    setSetSaveState(exerciseName, sortOrder, SetSaveState.Failed)
                 }
             } else {
                 workoutRepository.updateSetLog(
                     setLogId = set.setLogId,
                     set = set.copy(saveState = SetSaveState.Saving).toSetLog(exercise.exerciseLogId.orEmpty()),
                 ).onSuccess {
-                    setSetSaveState(exerciseIndex, setIndex, SetSaveState.Saved)
-                    persistSetIfChangedSince(exerciseIndex, setIndex, set)
+                    setSetSaveState(exerciseName, sortOrder, SetSaveState.Saved)
+                    persistSetIfChangedSince(exerciseName, sortOrder, set)
                 }.onFailure { e ->
                     Napier.e("Failed to autosave set", e, tag = TAG)
-                    setSetSaveState(exerciseIndex, setIndex, SetSaveState.Failed)
+                    setSetSaveState(exerciseName, sortOrder, SetSaveState.Failed)
                 }
             }
         }
@@ -363,26 +370,23 @@ class ActiveSessionViewModel(
      * countdown ends before a slow network response). Re-save the latest values once that request
      * settles so history and all derived statistics use what the athlete actually logged.
      */
-    private fun persistSetIfChangedSince(exerciseIndex: Int, setIndex: Int, persisted: SetDraft) {
-        val current = _state.value.sessionDraft
-            ?.exercises
-            ?.getOrNull(exerciseIndex)
-            ?.sets
-            ?.getOrNull(setIndex)
-            ?: return
+    private fun persistSetIfChangedSince(exerciseName: String, sortOrder: Int, persisted: SetDraft) {
+        val draft = _state.value.sessionDraft ?: return
+        val (exerciseIndex, setIndex) = draft.locateSet(exerciseName, sortOrder) ?: return
+        val current = draft.exercises[exerciseIndex].sets[setIndex]
         if (!current.hasSamePersistedValuesAs(persisted)) {
             persistSet(exerciseIndex, setIndex)
         }
     }
 
-    private fun setSetSaveState(exerciseIndex: Int, setIndex: Int, saveState: SetSaveState) {
+    private fun setSetSaveState(exerciseName: String, sortOrder: Int, saveState: SetSaveState) {
         _state.update { s ->
             val draft = s.sessionDraft ?: return@update s
+            val (exerciseIndex, setIndex) = draft.locateSet(exerciseName, sortOrder) ?: return@update s
             val exercises = draft.exercises.toMutableList()
-            val exercise = exercises.getOrNull(exerciseIndex) ?: return@update s
+            val exercise = exercises[exerciseIndex]
             val sets = exercise.sets.toMutableList()
-            val set = sets.getOrNull(setIndex) ?: return@update s
-            sets[setIndex] = set.copy(saveState = saveState)
+            sets[setIndex] = sets[setIndex].copy(saveState = saveState)
             exercises[exerciseIndex] = exercise.copy(sets = sets)
             s.copy(sessionDraft = draft.copy(exercises = exercises))
         }
@@ -915,6 +919,20 @@ class ActiveSessionViewModel(
         super.onCleared()
         timerJob?.cancel()
     }
+}
+
+/**
+ * Resolves the current (exerciseIndex, setIndex) of a set from its stable identity so that
+ * asynchronous save handlers stay correct even if the athlete reordered exercises meanwhile.
+ * Exercise name is the identity key used throughout this feature (previous data, media enrichment,
+ * resume matching); sortOrder is stable per set across reorders and edits.
+ */
+private fun SessionDraft.locateSet(exerciseName: String, sortOrder: Int): Pair<Int, Int>? {
+    val exerciseIndex = exercises.indexOfFirst { it.exerciseName == exerciseName }
+    if (exerciseIndex < 0) return null
+    val setIndex = exercises[exerciseIndex].sets.indexOfFirst { it.sortOrder == sortOrder }
+    if (setIndex < 0) return null
+    return exerciseIndex to setIndex
 }
 
 private fun SetDraft.hasSamePersistedValuesAs(other: SetDraft): Boolean =

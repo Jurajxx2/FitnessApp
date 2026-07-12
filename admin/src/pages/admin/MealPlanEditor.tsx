@@ -8,17 +8,19 @@ import type { Profile, Recipe } from '../../types/database'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const
 const DAY_SHORTS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
-const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'] as const
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
 type MealType = typeof MEAL_TYPES[number]
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'BREAKFAST',
   lunch: 'LUNCH',
   dinner: 'DINNER',
+  snack: 'SNACK',
 }
 const MEAL_TIMES: Record<MealType, string> = {
   breakfast: '08:00',
   lunch: '12:30',
   dinner: '19:00',
+  snack: '16:00',
 }
 
 interface RecipeDraft {
@@ -40,6 +42,41 @@ function initMeals(): MealDraft[] {
   return DAYS.flatMap((_, d) =>
     MEAL_TYPES.map(t => ({ day_of_week: d, meal_type: t, recipes: [] }))
   )
+}
+
+interface ExistingMealRow {
+  id: string
+  name: string
+  day_of_week: number | null
+}
+
+interface ManagedMeal {
+  id: string
+  meal_type: MealType
+  dayIdx: number
+}
+
+// Splits the meals stored for a plan into the ones this editor manages (a
+// recognized meal type on a valid day, which gets loaded into a draft and
+// re-inserted on save) and the ids of everything else. The unmanaged ids are
+// preserved on save so an edit never destroys a meal the editor can't render.
+export function classifyExistingMeals(existingMeals: ExistingMealRow[]): {
+  managed: ManagedMeal[]
+  unmanagedMealIds: string[]
+} {
+  const managed: ManagedMeal[] = []
+  const unmanagedMealIds: string[] = []
+  for (const meal of existingMeals) {
+    const mealType = meal.name.toLowerCase() as MealType
+    const dayIdx = meal.day_of_week ?? 0
+    const recognized = MEAL_TYPES.includes(mealType) && dayIdx >= 0 && dayIdx < DAYS.length
+    if (!recognized) {
+      unmanagedMealIds.push(meal.id)
+      continue
+    }
+    managed.push({ id: meal.id, meal_type: mealType, dayIdx })
+  }
+  return { managed, unmanagedMealIds }
 }
 
 function useRecipes() {
@@ -78,12 +115,14 @@ export default function MealPlanEditor() {
 
   const { data: recipes = [] } = useRecipes()
   const { data: profiles = [] } = useProfiles()
-  const assignableProfiles = profiles.filter(profile => !profile.is_admin && !profile.is_blocked)
 
   const [planName, setPlanName] = useState('')
   const [description, setDescription] = useState('')
   const [selectedDay, setSelectedDay] = useState(0)
   const [meals, setMeals] = useState<MealDraft[]>(initMeals)
+  // Ids of stored meals this editor loaded but does not manage (unrecognized
+  // type/day). Kept out of the save-time delete so they are never destroyed.
+  const [unmanagedMealIds, setUnmanagedMealIds] = useState<string[]>([])
   const [assignedUserIds, setAssignedUserIds] = useState<string[]>([])
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
@@ -108,17 +147,17 @@ export default function MealPlanEditor() {
 
       if (existingMeals?.length) {
         const drafts = initMeals()
-        for (const meal of existingMeals) {
-          const mealType = meal.name.toLowerCase() as MealType
-          if (!MEAL_TYPES.includes(mealType)) continue
-          const dayIdx = meal.day_of_week ?? 0
-          const draft = drafts.find(d => d.day_of_week === dayIdx && d.meal_type === mealType)
+        const { managed, unmanagedMealIds: preserved } = classifyExistingMeals(existingMeals)
+        // Remember unmanaged rows so savePlan can leave them untouched.
+        setUnmanagedMealIds(preserved)
+        for (const item of managed) {
+          const draft = drafts.find(d => d.day_of_week === item.dayIdx && d.meal_type === item.meal_type)
           if (!draft) continue
 
           const { data: mprRows } = await supabase
             .from('meal_plan_recipes')
             .select('recipe_id')
-            .eq('meal_id', meal.id)
+            .eq('meal_id', item.id)
 
           const recipeIds = (mprRows ?? []).map(r => r.recipe_id)
           if (recipeIds.length) {
@@ -207,8 +246,16 @@ export default function MealPlanEditor() {
         planId = id!
       }
 
-      // Delete existing meals (cascades to meal_plan_recipes + meal_foods)
-      const { error: deleteMealsError } = await supabase.from('meals').delete().eq('meal_plan_id', planId)
+      // Invariant: only meals this editor loaded/manages may be deleted. We
+      // remove every meal on the plan EXCEPT the unmanaged rows captured at load
+      // (meal types/days this editor can't render), then re-insert the managed
+      // drafts below — so an edit+save never destroys an unmanaged meal.
+      // (Deleting a meal cascades to meal_plan_recipes + meal_foods.)
+      let deleteMeals = supabase.from('meals').delete().eq('meal_plan_id', planId)
+      if (unmanagedMealIds.length) {
+        deleteMeals = deleteMeals.not('id', 'in', `(${unmanagedMealIds.join(',')})`)
+      }
+      const { error: deleteMealsError } = await deleteMeals
       if (deleteMealsError) throw deleteMealsError
 
       // Insert non-empty meal drafts
@@ -221,7 +268,7 @@ export default function MealPlanEditor() {
             name: MEAL_LABELS[draft.meal_type],
             day_of_week: draft.day_of_week,
             time_of_day: MEAL_TIMES[draft.meal_type],
-            sort_order: draft.day_of_week * 3 + MEAL_TYPES.indexOf(draft.meal_type),
+            sort_order: draft.day_of_week * MEAL_TYPES.length + MEAL_TYPES.indexOf(draft.meal_type),
           })
           .select()
           .single()
@@ -362,7 +409,7 @@ export default function MealPlanEditor() {
       </div>
 
       {/* Meal columns */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {MEAL_TYPES.map(mealType => {
           const draft = getDraft(selectedDay, mealType)
           return (
@@ -415,7 +462,7 @@ export default function MealPlanEditor() {
       <AssignUsersDialog
         open={assignDialogOpen}
         onClose={() => setAssignDialogOpen(false)}
-        profiles={assignableProfiles}
+        profiles={profiles}
         value={assignedUserIds}
         onChange={setAssignedUserIds}
       />

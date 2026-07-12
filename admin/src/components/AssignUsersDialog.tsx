@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react'
 import { Modal, Input, Button, Chip } from './ui'
 import type { Profile } from '../types/database'
 
+type AssignableProfile = Pick<Profile, 'id' | 'email' | 'full_name' | 'is_admin' | 'is_blocked'>
+
+// Only non-admin, non-blocked athletes may be NEWLY assigned. A user assigned
+// before being blocked stays removable (handled at the call site via localIds).
+function isAssignable(profile: AssignableProfile) {
+  return !profile.is_admin && !profile.is_blocked
+}
+
 export function AssignUsersDialog({
   open,
   onClose,
@@ -11,7 +19,7 @@ export function AssignUsersDialog({
 }: {
   open: boolean
   onClose: () => void
-  profiles: Pick<Profile, 'id' | 'email' | 'full_name'>[]
+  profiles: Pick<Profile, 'id' | 'email' | 'full_name' | 'is_admin' | 'is_blocked'>[]
   value: string[]
   onChange: (ids: string[]) => void
 }) {
@@ -33,6 +41,9 @@ export function AssignUsersDialog({
 
   const filtered = profiles
     .filter(p => {
+      // Show a profile if it is currently assigned (so a user blocked AFTER
+      // being assigned stays visible and removable) OR if it is assignable.
+      if (!localIds.has(p.id) && !isAssignable(p)) return false
       if (filterAssigned && !localIds.has(p.id)) return false
       if (search) {
         const q = search.toLowerCase()
@@ -52,8 +63,14 @@ export function AssignUsersDialog({
   function toggle(id: string) {
     setLocalIds(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        // Never newly-assign a blocked/admin profile.
+        const profile = profiles.find(p => p.id === id)
+        if (profile && !isAssignable(profile)) return prev
+        next.add(id)
+      }
       return next
     })
     setPage(0)
@@ -63,8 +80,13 @@ export function AssignUsersDialog({
     setLocalIds(previous => {
       const next = new Set(previous)
       filtered.forEach(profile => {
-        if (assign) next.add(profile.id)
-        else next.delete(profile.id)
+        // Bulk-assign only adds assignable users (already-assigned blocked users
+        // stay assigned); clearing removes anything shown, blocked users included.
+        if (assign) {
+          if (isAssignable(profile) || next.has(profile.id)) next.add(profile.id)
+        } else {
+          next.delete(profile.id)
+        }
       })
       return next
     })
@@ -114,11 +136,17 @@ export function AssignUsersDialog({
         <div className="flex flex-col divide-y divide-[var(--border)]">
           {pageItems.map(p => {
             const isAssigned = localIds.has(p.id)
+            // A rendered non-assignable row (blocked/admin) is only here because
+            // it's already assigned: allow removing it, never newly checking it.
+            const disabled = !isAssigned && !isAssignable(p)
             return (
               <div
                 key={p.id}
-                onClick={() => toggle(p.id)}
-                className={`-mx-1 flex cursor-pointer items-center gap-3 rounded-xl px-1 py-2.5 ${
+                onClick={() => { if (!disabled) toggle(p.id) }}
+                aria-disabled={disabled}
+                className={`-mx-1 flex items-center gap-3 rounded-xl px-1 py-2.5 ${
+                  disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                } ${
                   isAssigned ? 'bg-surface-elevated hover:bg-surface-highest' : 'hover:bg-surface-elevated'
                 }`}
               >
@@ -128,7 +156,12 @@ export function AssignUsersDialog({
                   {(p.full_name ?? p.email)[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm text-text-primary">{p.full_name ?? '—'}</p>
+                  <p className="flex items-center gap-1.5 text-sm text-text-primary">
+                    <span className="truncate">{p.full_name ?? '—'}</span>
+                    {p.is_blocked && (
+                      <span className="flex-shrink-0 rounded bg-error/10 px-1.5 py-0.5 text-[10px] font-medium text-error">Blocked</span>
+                    )}
+                  </p>
                   <p className="truncate text-xs text-text-secondary">{p.email}</p>
                 </div>
                 <div className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${

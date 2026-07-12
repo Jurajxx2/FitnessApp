@@ -32,11 +32,17 @@ export function useLogMeal() {
         fat_g: f.fat_g,
       }))
       const { error: foodErr } = await supabase.from('meal_log_foods').insert(rows)
-      if (foodErr) throw foodErr
+      if (foodErr) {
+        // No client-side transaction: compensate by deleting the just-created
+        // parent row so a failed foods insert doesn't leave an orphaned,
+        // phantom 0-kcal meal (or duplicates on retry). Do not swallow foodErr.
+        await supabase.from('meal_logs').delete().eq('id', (log as { id: string }).id)
+        throw foodErr
+      }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.dailyLogs(todayIso()) })
-      qc.invalidateQueries({ queryKey: qk.history })
+      qc.invalidateQueries({ queryKey: qk.dailyLogs(user!.id, todayIso()) })
+      qc.invalidateQueries({ queryKey: qk.history(user!.id) })
     },
   })
 }
@@ -56,6 +62,6 @@ export function useToggleFavorite() {
         if (error) throw error
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.favorites }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.favorites(user!.id) }),
   })
 }

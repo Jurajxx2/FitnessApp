@@ -5,10 +5,10 @@ export const qk = {
   mealPlan: (userId: string) => ['mealPlan', userId] as const,
   recipes: ['recipes'] as const,
   recipe: (id: string) => ['recipe', id] as const,
-  history: ['mealHistory'] as const,
-  dailyLogs: (date: string) => ['dailyLogs', date] as const,
+  history: (userId: string) => ['mealHistory', userId] as const,
+  dailyLogs: (userId: string, date: string) => ['dailyLogs', userId, date] as const,
   foodSearch: (q: string) => ['foodSearch', q] as const,
-  favorites: ['favorites'] as const,
+  favorites: (userId: string) => ['favorites', userId] as const,
 }
 
 type CurrentMealPlanIdRow = { meal_plan_id: string }
@@ -31,7 +31,7 @@ export async function fetchActiveMealPlan(userId: string): Promise<MealPlanRow |
 }
 
 export async function fetchRecipes(): Promise<RecipeRow[]> {
-  const { data, error } = await supabase.from('recipes').select('*')
+  const { data, error } = await supabase.from('recipes').select('*').eq('is_active', true)
   if (error) throw error
   return (data as RecipeRow[]) ?? []
 }
@@ -41,6 +41,7 @@ export async function fetchRecipe(id: string): Promise<RecipeRow | null> {
     .from('recipes')
     .select('*, recipe_ingredients(*), recipe_steps(*)')
     .eq('id', id)
+    .eq('is_active', true)
     .limit(1)
   if (error) throw error
   return (data?.[0] as RecipeRow) ?? null
@@ -57,10 +58,15 @@ export async function fetchMealHistory(userId: string): Promise<MealLogRow[]> {
 }
 
 export async function fetchDailyLogs(userId: string, date: string): Promise<MealLogRow[]> {
-  const start = `${date}T00:00:00Z`
-  const d = new Date(`${date}T00:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + 1)
-  const end = `${d.toISOString().slice(0, 10)}T00:00:00Z`
+  // `date` is a LOCAL calendar day (YYYY-MM-DD). Parse it as local midnight
+  // (no `Z` suffix) and take the next local midnight, then convert both to
+  // UTC ISO for comparison against the stored UTC `logged_at`. This keeps day
+  // bucketing consistent with todayIso()/groupByDay for users off UTC.
+  const startLocal = new Date(`${date}T00:00:00`)
+  const endLocal = new Date(`${date}T00:00:00`)
+  endLocal.setDate(endLocal.getDate() + 1)
+  const start = startLocal.toISOString()
+  const end = endLocal.toISOString()
   const { data, error } = await supabase
     .from('meal_logs')
     .select('*, meal_log_foods(*)')

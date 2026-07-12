@@ -234,6 +234,29 @@ function calcMacros(ingredients: IngredientDraft[]) {
   )
 }
 
+// A row is "meaningfully filled" if it carries any quantity or macro data — an
+// entirely blank row (default new-row state) is fine to drop silently, but a
+// row with data and no name must never be silently dropped from the save,
+// since that would understate the recipe's saved macros vs. what the coach
+// sees on screen.
+function ingredientHasData(ingredient: IngredientDraft) {
+  return Boolean(ingredient.quantity) || ingredient.calories !== 0 || ingredient.protein_g !== 0 || ingredient.carbs_g !== 0 || ingredient.fat_g !== 0
+}
+
+function findBlankNamedRowsWithData(ingredients: IngredientDraft[]) {
+  return ingredients
+    .map((_, index) => index)
+    .filter(index => !ingredients[index].name.trim() && ingredientHasData(ingredients[index]))
+}
+
+function describeInvalidIngredientRows(rowIndexes: number[]) {
+  if (!rowIndexes.length) return ''
+  const rowNumbers = rowIndexes.map(index => index + 1).join(', ')
+  const rowWord = rowIndexes.length === 1 ? 'Row' : 'Rows'
+  const verb = rowIndexes.length === 1 ? 'has' : 'have'
+  return `${rowWord} ${rowNumbers} ${verb} a quantity or macro value but no name. Give it a name or clear its values before saving.`
+}
+
 function useRecipes(search = '') {
   return useQuery<Recipe[]>({
     queryKey: ['recipes-admin', search],
@@ -310,6 +333,11 @@ function RecipesTab({ createRequest, onCreateRequestHandled }: { createRequest: 
 
   const saveRecipe = useMutation({
     mutationFn: async () => {
+      const invalidRows = findBlankNamedRowsWithData(ingredients)
+      if (invalidRows.length) {
+        throw new Error(describeInvalidIngredientRows(invalidRows))
+      }
+
       const validIngredients = ingredients.filter(ingredient => ingredient.name.trim())
       const macros = calcMacros(validIngredients)
 
@@ -390,6 +418,8 @@ function RecipesTab({ createRequest, onCreateRequestHandled }: { createRequest: 
   }
 
   const macros = calcMacros(ingredients)
+  const invalidIngredientRows = findBlankNamedRowsWithData(ingredients)
+  const ingredientsError = describeInvalidIngredientRows(invalidIngredientRows)
 
   return (
     <>
@@ -474,7 +504,7 @@ function RecipesTab({ createRequest, onCreateRequestHandled }: { createRequest: 
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditorOpen(false)}>Cancel</Button>
-            <Button onClick={() => saveRecipe.mutate()} loading={saveRecipe.isPending} disabled={!form.name}>
+            <Button onClick={() => saveRecipe.mutate()} loading={saveRecipe.isPending} disabled={!form.name || invalidIngredientRows.length > 0}>
               {editing ? 'Save changes' : 'Add recipe'}
             </Button>
           </>
@@ -554,8 +584,9 @@ function RecipesTab({ createRequest, onCreateRequestHandled }: { createRequest: 
 
           <div>
             <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Ingredients</p>
+            {ingredientsError && <p role="alert" className="text-sm text-error mb-2">{ingredientsError}</p>}
             {ingredients.map((ing, i) => (
-              <div key={i} className="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 mb-2">
+              <div key={i} className={`bg-[var(--bg)] border rounded-lg p-3 mb-2 ${invalidIngredientRows.includes(i) ? 'border-error' : 'border-[var(--border)]'}`}>
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   <Input label="Name" value={ing.name} onChange={e => updateIngredient(i, 'name', e.target.value)} placeholder="e.g. Oats" />
                   <Input label="Qty" type="number" value={String(ing.quantity ?? '')} onChange={e => updateIngredient(i, 'quantity', e.target.value ? Number(e.target.value) : null)} />

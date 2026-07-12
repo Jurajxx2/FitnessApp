@@ -35,11 +35,14 @@ const GOAL_ADJUSTMENT: Record<Goal, number> = {
 }
 
 export function calcMacroTargets(
-  p: Pick<Profile, 'weight_kg' | 'height_cm' | 'age' | 'goal' | 'activity_level'>,
+  p: Pick<Profile, 'weight_kg' | 'height_cm' | 'age' | 'goal' | 'activity_level' | 'gender'>,
 ): Macros | null {
-  const { weight_kg, height_cm, age, activity_level, goal } = p
+  const { weight_kg, height_cm, age, activity_level, goal, gender } = p
   if (weight_kg == null || height_cm == null || age == null || activity_level == null) return null
-  const bmr = 10 * weight_kg + 6.25 * height_cm - 5 * age + 5
+  // Mifflin–St Jeor sex constant: +5 for male, -161 for female.
+  // Fallback to +5 (male) when gender is unknown/null.
+  const genderConstant = gender === 'female' ? -161 : 5
+  const bmr = 10 * weight_kg + 6.25 * height_cm - 5 * age + genderConstant
   const tdee = bmr * ACTIVITY_MULTIPLIER[activity_level]
   const calories = tdee * (goal ? GOAL_ADJUSTMENT[goal] : 1.0)
   const protein_g = weight_kg * 1.8
