@@ -27,6 +27,7 @@ import com.coachfoska.app.domain.model.SessionAuthState
 import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.navigation.*
 import com.coachfoska.app.ui.auth.EmailOtpRoute
+import com.coachfoska.app.ui.auth.ForgotPasswordRoute
 import com.coachfoska.app.ui.auth.VerifyOtpRoute
 import com.coachfoska.app.ui.auth.WelcomeRoute
 import com.coachfoska.app.ui.home.HomeRoute
@@ -108,6 +109,7 @@ fun App(openHumanChat: Boolean = false) {
             Welcome::class.qualifiedName,
             EmailOtp::class.qualifiedName,
             VerifyOtp::class.qualifiedName,
+            ForgotPassword::class.qualifiedName,
             Onboarding::class.qualifiedName
         )
         val showBottomBar = currentRoute != null &&
@@ -192,12 +194,21 @@ fun App(openHumanChat: Boolean = false) {
                     EmailOtpRoute(
                         onBackClick = { navController.popBackStack() },
                         onOtpSent = { email -> navController.navigate(VerifyOtp(email)) },
+                        onForgotPassword = { email -> navController.navigate(ForgotPassword(email)) },
                         onNavigateToHome = {
                             navController.navigate(Home) { popUpTo(Welcome) { inclusive = true } }
                         },
                         onNavigateToOnboarding = { userId ->
                             navController.navigate(Onboarding(userId)) { popUpTo(Welcome) { inclusive = true } }
                         }
+                    )
+                }
+
+                composable<ForgotPassword> { backStackEntry ->
+                    val route = backStackEntry.toRoute<ForgotPassword>()
+                    ForgotPasswordRoute(
+                        initialEmail = route.email,
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
 

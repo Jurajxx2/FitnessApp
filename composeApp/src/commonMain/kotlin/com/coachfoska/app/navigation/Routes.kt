@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 @Serializable object Welcome
 @Serializable object EmailOtp
 @Serializable data class VerifyOtp(val email: String)
+@Serializable data class ForgotPassword(val email: String = "")
 
 // Onboarding — handled as a single destination with internal step navigation
 @Serializable data class Onboarding(val userId: String)

@@ -50,10 +50,10 @@ export default function Login() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm p-6 sm:p-7">
-        <div className="mb-8 text-xs font-bold uppercase tracking-widest text-text-primary">Coach Foska · Admin</div>
-        <h1 className="mb-2 text-xl font-bold text-text-primary">Admin sign in</h1>
+        <div className="mb-8 text-xs font-bold uppercase tracking-widest text-text-primary">Coach Foska</div>
+        <h1 className="mb-2 text-xl font-bold text-text-primary">Sign in</h1>
         <p className="mb-6 text-sm leading-relaxed text-text-secondary">
-          Enter your administrator email to receive a one-time login code.
+          Enter your email to receive a one-time login code.
         </p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input

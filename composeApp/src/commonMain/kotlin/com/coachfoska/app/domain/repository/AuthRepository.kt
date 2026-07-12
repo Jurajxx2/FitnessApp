@@ -17,6 +17,9 @@ interface AuthRepository {
     /** Sign in using an email address and password. */
     suspend fun signInWithEmailPassword(email: String, password: String): Result<User>
 
+    /** Send a password recovery link to the given email address. */
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit>
+
     /** Sign in using a Google ID token (Android). */
     suspend fun signInWithGoogleIdToken(idToken: String): Result<User>
 

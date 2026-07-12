@@ -18,6 +18,12 @@
     <string name="hide_password_cd">Hide password</string>
     <string name="sign_in_button">SIGN IN</string>
     <string name="sign_in_with_otp">SIGN IN WITH A ONE-TIME CODE</string>
+    <string name="forgot_password">FORGOT PASSWORD?</string>
+    <string name="forgot_password_title">RESET PASSWORD</string>
+    <string name="forgot_password_desc">Enter your email and we will send you a link to choose a new password.</string>
+    <string name="password_reset_sent_desc">If an account exists for this email, we sent it a password reset link.</string>
+    <string name="send_reset_link">SEND RESET LINK</string>
+    <string name="back_to_sign_in">BACK TO SIGN IN</string>
     <string name="back_cd">Back</string>
 
     <!-- Auth — VerifyOtpScreen -->

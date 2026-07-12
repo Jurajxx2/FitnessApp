@@ -117,29 +117,12 @@ export default function Landing() {
               ) : null}
             </div>
           ) : (
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/auth')}
-                className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-colors hover:text-white"
-              >
-                Admin
-              </button>
-              {athleteAppUrl ? (
-                <a
-                  href={athleteAppUrl}
-                  className="group flex items-center gap-2 px-6 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
-                >
-                  Trainee login <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </a>
-              ) : (
-                <button
-                  onClick={() => navigate('/auth')}
-                  className="group flex items-center gap-2 px-6 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
-                >
-                  Admin login <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              )}
-            </div>
+            <button
+              onClick={() => navigate('/auth')}
+              className="group flex items-center gap-2 px-6 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
+            >
+              Login <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           )}
         </div>
       </nav>

@@ -18,6 +18,12 @@
     <string name="hide_password_cd">Skrýt heslo</string>
     <string name="sign_in_button">PŘIHLÁSIT SE</string>
     <string name="sign_in_with_otp">PŘIHLÁSIT SE JEDNORÁZOVÝM KÓDEM</string>
+    <string name="forgot_password">ZAPOMNĚL/A JSI HESLO?</string>
+    <string name="forgot_password_title">OBNOVENÍ HESLA</string>
+    <string name="forgot_password_desc">Zadej svůj e-mail a pošleme ti odkaz pro nastavení nového hesla.</string>
+    <string name="password_reset_sent_desc">Pokud účet s tímto e-mailem existuje, poslali jsme na něj odkaz pro obnovení hesla.</string>
+    <string name="send_reset_link">POSLAT ODKAZ</string>
+    <string name="back_to_sign_in">ZPĚT K PŘIHLÁŠENÍ</string>
     <string name="back_cd">Zpět</string>
 
     <!-- Auth — VerifyOtpScreen -->

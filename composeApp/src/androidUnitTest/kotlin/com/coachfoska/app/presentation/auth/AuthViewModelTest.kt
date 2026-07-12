@@ -1,6 +1,7 @@
 package com.coachfoska.app.presentation.auth
 
 import com.coachfoska.app.domain.usecase.auth.SendOtpUseCase
+import com.coachfoska.app.domain.usecase.auth.SendPasswordResetEmailUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithAppleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithGoogleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithPasswordUseCase
@@ -30,6 +31,7 @@ class AuthViewModelTest {
     private val sendOtpUseCase: SendOtpUseCase = mockk()
     private val verifyOtpUseCase: VerifyOtpUseCase = mockk()
     private val signInWithPasswordUseCase: SignInWithPasswordUseCase = mockk()
+    private val sendPasswordResetEmailUseCase: SendPasswordResetEmailUseCase = mockk()
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase = mockk()
     private val signInWithAppleUseCase: SignInWithAppleUseCase = mockk()
 
@@ -37,6 +39,7 @@ class AuthViewModelTest {
         sendOtpUseCase,
         verifyOtpUseCase,
         signInWithPasswordUseCase,
+        sendPasswordResetEmailUseCase,
         signInWithGoogleUseCase,
         signInWithAppleUseCase
     )
@@ -136,6 +139,32 @@ class AuthViewModelTest {
         vm.onIntent(AuthIntent.SendOtp)
 
         assertFalse(vm.state.value.otpSent)
+        assertFalse(vm.state.value.isLoading)
+        assertEquals("Network error", vm.state.value.error)
+    }
+
+    @Test
+    fun `password reset success shows confirmation`() = runTest {
+        coEvery { sendPasswordResetEmailUseCase("test@example.com") } returns Result.success(Unit)
+        val vm = viewModel()
+        vm.onIntent(AuthIntent.EmailChanged("test@example.com"))
+
+        vm.onIntent(AuthIntent.SendPasswordResetEmail)
+
+        assertTrue(vm.state.value.passwordResetEmailSent)
+        assertFalse(vm.state.value.isLoading)
+        assertNull(vm.state.value.error)
+    }
+
+    @Test
+    fun `password reset failure shows error`() = runTest {
+        coEvery { sendPasswordResetEmailUseCase(any()) } returns
+            Result.failure(RuntimeException("Network error"))
+        val vm = viewModel()
+
+        vm.onIntent(AuthIntent.SendPasswordResetEmail)
+
+        assertFalse(vm.state.value.passwordResetEmailSent)
         assertFalse(vm.state.value.isLoading)
         assertEquals("Network error", vm.state.value.error)
     }

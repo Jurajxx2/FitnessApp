@@ -35,6 +35,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun EmailOtpRoute(
     onBackClick: () -> Unit,
     onOtpSent: (email: String) -> Unit,
+    onForgotPassword: (email: String) -> Unit,
     onNavigateToHome: () -> Unit,
     onNavigateToOnboarding: (userId: String) -> Unit,
     viewModel: AuthViewModel = koinViewModel()
@@ -63,7 +64,8 @@ fun EmailOtpRoute(
     EmailOtpScreen(
         state = state,
         onIntent = viewModel::onIntent,
-        onBackClick = onBackClick
+        onBackClick = onBackClick,
+        onForgotPassword = { onForgotPassword(state.email) }
     )
 }
 
@@ -72,7 +74,8 @@ fun EmailOtpRoute(
 fun EmailOtpScreen(
     state: AuthState,
     onIntent: (AuthIntent) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onForgotPassword: () -> Unit
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     var passwordVisible by remember { mutableStateOf(false) }
@@ -166,6 +169,18 @@ fun EmailOtpScreen(
                 }
             )
 
+            TextButton(
+                onClick = onForgotPassword,
+                modifier = Modifier.align(androidx.compose.ui.Alignment.End),
+                enabled = !state.isLoading
+            ) {
+                Text(
+                    text = stringResource(Res.string.forgot_password),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = DsTheme.colors.textPrimary.copy(alpha = 0.65f)
+                )
+            }
+
             state.error?.let { error ->
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -195,7 +210,7 @@ fun EmailOtpScreen(
                     onIntent(AuthIntent.SendOtp)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = state.email.isNotBlank() && !state.isLoading
+                enabled = !state.isLoading
             ) {
                 Text(
                     text = stringResource(Res.string.sign_in_with_otp),

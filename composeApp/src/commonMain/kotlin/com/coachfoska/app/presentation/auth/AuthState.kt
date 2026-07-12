@@ -8,6 +8,7 @@ data class AuthState(
     val otp: String = "",
     val isLoading: Boolean = false,
     val otpSent: Boolean = false,
+    val passwordResetEmailSent: Boolean = false,
     val error: String? = null,
     val authenticatedUser: User? = null,
     val navigateToHome: Boolean = false,

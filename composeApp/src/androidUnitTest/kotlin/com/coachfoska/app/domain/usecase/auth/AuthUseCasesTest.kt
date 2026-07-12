@@ -69,6 +69,30 @@ class AuthUseCasesTest {
         assertEquals("Server error", result.exceptionOrNull()?.message)
     }
 
+    // --- SendPasswordResetEmailUseCase ---
+
+    @Test
+    fun `password reset normalizes email before calling repository`() = runTest {
+        coEvery { authRepository.sendPasswordResetEmail("test@example.com") } returns Result.success(Unit)
+        val useCase = SendPasswordResetEmailUseCase(authRepository)
+
+        val result = useCase("  Test@Example.com  ")
+
+        assertTrue(result.isSuccess)
+        coVerify(exactly = 1) { authRepository.sendPasswordResetEmail("test@example.com") }
+    }
+
+    @Test
+    fun `password reset rejects invalid email without calling repository`() = runTest {
+        val useCase = SendPasswordResetEmailUseCase(authRepository)
+
+        val result = useCase("not-an-email")
+
+        assertTrue(result.isFailure)
+        assertEquals("Invalid email address", result.exceptionOrNull()?.message)
+        coVerify(exactly = 0) { authRepository.sendPasswordResetEmail(any()) }
+    }
+
     // --- VerifyOtpUseCase ---
 
     @Test

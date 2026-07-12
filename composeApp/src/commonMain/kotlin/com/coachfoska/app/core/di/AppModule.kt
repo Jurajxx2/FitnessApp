@@ -42,6 +42,7 @@ import com.coachfoska.app.domain.usecase.checkin.UploadCheckInPhotoUseCase
 import com.coachfoska.app.domain.usecase.auth.GetCurrentUserUseCase
 import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.domain.usecase.auth.SendOtpUseCase
+import com.coachfoska.app.domain.usecase.auth.SendPasswordResetEmailUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithAppleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithGoogleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithPasswordUseCase
@@ -196,6 +197,7 @@ val useCaseModule = module {
     // Auth
     single { ObserveSessionUseCase(get()) }
     factory { SendOtpUseCase(get()) }
+    factory { SendPasswordResetEmailUseCase(get()) }
     factory { VerifyOtpUseCase(get()) }
     factory { SignInWithPasswordUseCase(get()) }
     factory { SignInWithGoogleUseCase(get(), get()) }

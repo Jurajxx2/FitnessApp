@@ -58,6 +58,10 @@ class AuthRemoteDataSource(
             ?: throw IllegalStateException("User not found after email sign-in")
     }
 
+    suspend fun sendPasswordResetEmail(email: String) {
+        supabase.auth.resetPasswordForEmail(email)
+    }
+
     suspend fun signInWithGoogleIdToken(idToken: String): UserInfo {
         supabase.auth.signInWith(IDToken) {
             this.idToken = idToken

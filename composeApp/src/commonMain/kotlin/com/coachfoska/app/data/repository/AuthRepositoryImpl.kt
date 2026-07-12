@@ -67,6 +67,10 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun sendPasswordResetEmail(email: String): Result<Unit> = runCatching {
+        authDataSource.sendPasswordResetEmail(email)
+    }
+
     override suspend fun signInWithGoogleIdToken(idToken: String): Result<User> = runCatching {
         val userInfo = authDataSource.signInWithGoogleIdToken(idToken)
         runCatching { userDataSource.getProfile(userInfo.id).toDomain() }.getOrElse {

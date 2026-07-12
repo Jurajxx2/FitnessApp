@@ -3,6 +3,7 @@ package com.coachfoska.app.presentation.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.usecase.auth.SendOtpUseCase
+import com.coachfoska.app.domain.usecase.auth.SendPasswordResetEmailUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithAppleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithGoogleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithPasswordUseCase
@@ -20,6 +21,7 @@ class AuthViewModel(
     private val sendOtpUseCase: SendOtpUseCase,
     private val verifyOtpUseCase: VerifyOtpUseCase,
     private val signInWithPasswordUseCase: SignInWithPasswordUseCase,
+    private val sendPasswordResetEmailUseCase: SendPasswordResetEmailUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
     private val signInWithAppleUseCase: SignInWithAppleUseCase
 ) : ViewModel() {
@@ -33,6 +35,7 @@ class AuthViewModel(
             is AuthIntent.PasswordChanged -> _state.update { it.copy(password = intent.password, error = null) }
             is AuthIntent.OtpChanged -> _state.update { it.copy(otp = intent.otp, error = null) }
             is AuthIntent.SignInWithPassword -> signInWithPassword()
+            is AuthIntent.SendPasswordResetEmail -> sendPasswordResetEmail()
             is AuthIntent.SendOtp -> sendOtp()
             is AuthIntent.VerifyOtp -> verifyOtp()
             is AuthIntent.SignInWithGoogle -> signInWithGoogle()
@@ -63,6 +66,25 @@ class AuthViewModel(
                 .onFailure { e ->
                     Napier.e("Email sign-in failed", e, tag = TAG)
                     _state.update { it.copy(isLoading = false, error = e.message ?: "Email sign-in failed") }
+                }
+        }
+    }
+
+    private fun sendPasswordResetEmail() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            sendPasswordResetEmailUseCase(_state.value.email)
+                .onSuccess {
+                    Napier.i("Password reset email requested", tag = TAG)
+                    _state.update {
+                        it.copy(isLoading = false, passwordResetEmailSent = true)
+                    }
+                }
+                .onFailure { e ->
+                    Napier.e("Password reset email request failed", e, tag = TAG)
+                    _state.update {
+                        it.copy(isLoading = false, error = e.message ?: "Failed to send password reset email")
+                    }
                 }
         }
     }

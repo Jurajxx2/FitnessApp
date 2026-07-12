@@ -11,7 +11,9 @@
     X-Content-Type-Options     = "nosniff"
     Referrer-Policy            = "strict-origin-when-cross-origin"
     Permissions-Policy         = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy    = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:; frame-ancestors 'none';"
+    # Admins can preview stored Supabase images, configured HTTPS image URLs,
+    # and local files selected for upload (which browsers expose as blob: URLs).
+    Content-Security-Policy    = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data: blob: https:; frame-ancestors 'none';"
 
 # SPA fallback — all paths serve index.html
 [[redirects]]
