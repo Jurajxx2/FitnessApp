@@ -1,0 +1,127 @@
+[
+  {
+    "external_id": "recepty-v-jahodovom-nebi",
+    "name": "V jahodovom nebi",
+    "description": "Nočné ovsené vločky s jahodovým džemom, gréckym jogurtom a arašidmi.",
+    "prep_time_min": 10,
+    "cook_time_min": 5,
+    "servings": 1,
+    "difficulty": "easy",
+    "tags": ["raňajky", "sladké", "vysoký obsah bielkovín", "vegetariánske"],
+    "steps": [
+      "Jemné ovsené vločky uvar do krémova.",
+      "Primiešaj chia semienka a jahodový džem, potom zmes prelož do pohára.",
+      "Grécky jogurt zmiešaj s proteínom a navrstvi ho na vločky.",
+      "Posyp drvenými arašidmi a nechaj vychladiť cez noc."
+    ],
+    "photo_file_name": "jahodove-overnight-oats.png",
+    "ingredients": [
+      { "name": "Jemné ovsené vločky", "quantity": 50, "unit": "g", "calories": 185, "protein_g": 6.35, "carbs_g": 30.05, "fat_g": 3.45 },
+      { "name": "Chia semienka", "quantity": 4, "unit": "g", "calories": 19.44, "protein_g": 0.66, "carbs_g": 1.68, "fat_g": 1.23 },
+      { "name": "Jahodový džem", "quantity": 20, "unit": "g", "calories": 50, "protein_g": 0.06, "carbs_g": 12, "fat_g": 0.02 },
+      { "name": "Nízkotučný grécky jogurt", "quantity": 140, "unit": "g", "calories": 82.6, "protein_g": 14, "carbs_g": 5, "fat_g": 0.3 },
+      { "name": "Proteínový prášok (kokos alebo vanilka)", "quantity": 20, "unit": "g", "calories": 76, "protein_g": 15.4, "carbs_g": 1.4, "fat_g": 1 },
+      { "name": "Drvené arašidy", "quantity": 20, "unit": "g", "calories": 113.4, "protein_g": 5.16, "carbs_g": 3.22, "fat_g": 9.84 }
+    ]
+  },
+  {
+    "external_id": "recepty-stara-dobra-knedla",
+    "name": "Stará dobrá knedľa",
+    "description": "Omeleta s opečenou knedľou, vegetou natur a kečupom.",
+    "prep_time_min": 5,
+    "cook_time_min": 10,
+    "servings": 1,
+    "difficulty": "easy",
+    "tags": ["raňajky", "slané", "rýchle", "vegetariánske"],
+    "steps": [
+      "Knedľu nakrájaj na kocky.",
+      "Vajcia vyšľahaj vidličkou so štipkou vegety natur.",
+      "Na olivovom oleji opeč knedľu dozlatista.",
+      "Vlej vajcia, nechaj omeletu stuhnúť a podávaj s kečupom alebo plnotučnou horčicou."
+    ],
+    "photo_file_name": "knedlova-omeleta.png",
+    "ingredients": [
+      { "name": "Knedľa", "quantity": 100, "unit": "g", "calories": 196, "protein_g": 6, "carbs_g": 38.5, "fat_g": 1.4 },
+      { "name": "Vajcia", "quantity": 3, "unit": "ks", "calories": 215, "protein_g": 18.9, "carbs_g": 1.1, "fat_g": 14.3 },
+      { "name": "Olivový olej", "quantity": 10, "unit": "ml", "calories": 81, "protein_g": 0, "carbs_g": 0, "fat_g": 9 },
+      { "name": "Vegeta natur", "quantity": 2, "unit": "g", "calories": 3, "protein_g": 0, "carbs_g": 0.5, "fat_g": 0 },
+      { "name": "Kečup (alebo plnotučná horčica)", "quantity": 20, "unit": "g", "calories": 20, "protein_g": 0.3, "carbs_g": 4.6, "fat_g": 0 }
+    ]
+  },
+  {
+    "external_id": "recepty-tasticka-jak-z-mekaca",
+    "name": "Taštička jak z Mekáča",
+    "description": "Chrumkavá tortilla s tvarohom a teplou jablkovo-škoricovou náplňou.",
+    "prep_time_min": 10,
+    "cook_time_min": 10,
+    "servings": 1,
+    "difficulty": "medium",
+    "tags": ["sladké", "dezert", "vegetariánske", "tortilla"],
+    "steps": [
+      "Na masle podus na kocky nakrájané jablká.",
+      "Kukuričný škrob rozmiešaj v troške vody a vmiešaj ho do mäkkých jabĺk spolu s medom a škoricou. Nechaj mierne vychladnúť.",
+      "Tortillu potri tvarohom, pridaj jablkovú zmes a zroluj.",
+      "Taštičku na pár minút zapeč v rúre alebo air fryeri."
+    ],
+    "photo_file_name": "jablkovo-tvarohova-tortilla.png",
+    "ingredients": [
+      { "name": "Pšeničná tortilla (približne 60 g)", "quantity": 1, "unit": "ks", "calories": 188, "protein_g": 5, "carbs_g": 32.6, "fat_g": 4.8 },
+      { "name": "Jablká", "quantity": 2, "unit": "ks", "calories": 187.2, "protein_g": 1, "carbs_g": 49.7, "fat_g": 0.7 },
+      { "name": "Kukuričný škrob", "quantity": 3, "unit": "g", "calories": 11.4, "protein_g": 0, "carbs_g": 2.7, "fat_g": 0 },
+      { "name": "Odtučnený tvaroh", "quantity": 100, "unit": "g", "calories": 67, "protein_g": 12, "carbs_g": 4, "fat_g": 0.2 },
+      { "name": "Med", "quantity": 7, "unit": "g", "calories": 21.3, "protein_g": 0, "carbs_g": 5.8, "fat_g": 0 },
+      { "name": "Škorica", "quantity": 2, "unit": "g", "calories": 5, "protein_g": 0.1, "carbs_g": 1.6, "fat_g": 0 },
+      { "name": "Maslo", "quantity": 15, "unit": "g", "calories": 108, "protein_g": 0.1, "carbs_g": 0.1, "fat_g": 12.2 }
+    ]
+  },
+  {
+    "external_id": "recepty-kulturisticke-tiramisu",
+    "name": "Kulturistické Tiramisu",
+    "description": "Proteínové tiramisu z ryžových chlebíkov, gréckeho jogurtu, banánu a kakaa.",
+    "prep_time_min": 10,
+    "cook_time_min": null,
+    "servings": 1,
+    "difficulty": "easy",
+    "tags": ["dezert", "raňajky", "vysoký obsah bielkovín", "vegetariánske"],
+    "steps": [
+      "Ryžové chlebíky jednotlivo namoč do vychladnutej kávy.",
+      "Grécky jogurt zmiešaj s proteínovým práškom a sladidlom.",
+      "Do pohára striedavo vrstv ryžové chlebíky, jogurtový krém a banán.",
+      "Posyp kakaom a nechaj vychladiť cez noc alebo podávaj hneď."
+    ],
+    "photo_file_name": "proteinove-tiramisu.png",
+    "ingredients": [
+      { "name": "Ryžové chlebíky", "quantity": 4, "unit": "ks", "calories": 139, "protein_g": 2.9, "carbs_g": 29.2, "fat_g": 1.1 },
+      { "name": "Grécky jogurt", "quantity": 140, "unit": "g", "calories": 102.2, "protein_g": 13.3, "carbs_g": 5.5, "fat_g": 2.7 },
+      { "name": "Proteínový prášok", "quantity": 20, "unit": "g", "calories": 76, "protein_g": 15.4, "carbs_g": 1.4, "fat_g": 1 },
+      { "name": "Uvarená káva", "quantity": 100, "unit": "ml", "calories": 2, "protein_g": 0.3, "carbs_g": 0, "fat_g": 0 },
+      { "name": "Kvalitné kakao", "quantity": 10, "unit": "g", "calories": 22.8, "protein_g": 2, "carbs_g": 5.8, "fat_g": 1.4 },
+      { "name": "Stévia alebo flavor drops", "quantity": null, "unit": null, "calories": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0 },
+      { "name": "Banán", "quantity": 1, "unit": "ks", "calories": 106.8, "protein_g": 1.3, "carbs_g": 27.6, "fat_g": 0.4 }
+    ]
+  },
+  {
+    "external_id": "recepty-snickerskamo",
+    "name": "Snickerskámo",
+    "description": "Dvojporciový tvarohový dezert s arašidovým maslom, tmavou čokoládou a arašidmi.",
+    "prep_time_min": 10,
+    "cook_time_min": null,
+    "servings": 2,
+    "difficulty": "easy",
+    "tags": ["dezert", "vysoký obsah bielkovín", "bez pečenia", "vegetariánske"],
+    "steps": [
+      "Tvaroh zmiešaj so sladidlom a arašidovým maslom.",
+      "Zmes rozdeľ do dvoch misiek alebo pohárov.",
+      "V mikrovlnke rozpusti tmavú čokoládu, nalej ju na tvaroh a posyp drvenými arašidmi.",
+      "Nechaj vychladiť a podávaj."
+    ],
+    "photo_file_name": "snickers-tvarohovy-dezert.png",
+    "ingredients": [
+      { "name": "Odtučnený tvaroh", "quantity": 500, "unit": "g", "calories": 335, "protein_g": 60, "carbs_g": 20, "fat_g": 1 },
+      { "name": "Arašidové maslo", "quantity": 40, "unit": "g", "calories": 235.2, "protein_g": 10, "carbs_g": 8, "fat_g": 20 },
+      { "name": "Tmavá čokoláda 70 %", "quantity": 40, "unit": "g", "calories": 239, "protein_g": 3.1, "carbs_g": 18.4, "fat_g": 17.1 },
+      { "name": "Arašidy", "quantity": 10, "unit": "g", "calories": 56.7, "protein_g": 2.6, "carbs_g": 1.6, "fat_g": 4.9 },
+      { "name": "Stévia alebo flavor drops", "quantity": null, "unit": null, "calories": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0 }
+    ]
+  }
+]
