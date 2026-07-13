@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from './hooks/useTheme'
 import { AuthProvider } from './hooks/useAuth'
@@ -14,8 +14,7 @@ import { NoticeProvider } from './components/ui'
 const Landing = lazy(() => import('./pages/Landing'))
 const Login = lazy(() => import('./pages/Login'))
 const Verify = lazy(() => import('./pages/Verify'))
-const AthleteLogin = lazy(() => import('./pages/AthleteLogin'))
-const AthleteVerify = lazy(() => import('./pages/AthleteVerify'))
+const OtpLogin = lazy(() => import('./pages/OtpLogin'))
 const Callback = lazy(() => import('./pages/Callback'))
 const NotAdmin = lazy(() => import('./pages/NotAdmin'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -36,6 +35,13 @@ const NutritionHistoryDetail = lazy(() => import('./pages/nutrition/HistoryDetai
 const LogMeal = lazy(() => import('./pages/nutrition/LogMeal'))
 const CheckInForm = lazy(() => import('./pages/checkins/CheckInForm'))
 const CheckInHistory = lazy(() => import('./pages/checkins/CheckInHistory'))
+const ActivityHub = lazy(() => import('./pages/activity/Hub'))
+const AthleteWorkouts = lazy(() => import('./pages/activity/Workouts'))
+const WorkoutSession = lazy(() => import('./pages/activity/Session'))
+const AthleteExercises = lazy(() => import('./pages/activity/Exercises'))
+const WorkoutHistory = lazy(() => import('./pages/activity/History'))
+const ActivityProgress = lazy(() => import('./pages/activity/Progress'))
+const LogActivity = lazy(() => import('./pages/activity/LogActivity'))
 
 export default function App() {
   return (
@@ -48,11 +54,13 @@ export default function App() {
               <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-background text-sm text-text-secondary">Loading workspace…</div>}>
                 <Routes>
               <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<Login />} />
-              <Route path="/auth/verify" element={<Verify />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/login/otp" element={<OtpLogin />} />
+              <Route path="/login/verify" element={<Verify />} />
+              <Route path="/auth" element={<Navigate to="/login" replace />} />
+              <Route path="/auth/verify" element={<Navigate to="/login/verify" replace />} />
               <Route path="/auth/callback" element={<Callback />} />
-              <Route path="/login" element={<AthleteLogin />} />
-              <Route path="/verify" element={<AthleteVerify />} />
+              <Route path="/verify" element={<Navigate to="/login/verify" replace />} />
               <Route path="/403" element={<NotAdmin />} />
               <Route element={<AthleteRouteGuard />}>
                 <Route element={<AthleteAppShell />}>
@@ -65,6 +73,16 @@ export default function App() {
                   <Route path="/nutrition/log" element={<LogMeal />} />
                   <Route path="/check-ins" element={<CheckInForm />} />
                   <Route path="/check-ins/history" element={<CheckInHistory />} />
+                  <Route path="/activity" element={<ActivityHub />} />
+                  <Route path="/activity/workouts" element={<AthleteWorkouts />} />
+                  <Route path="/activity/workouts/:workoutId" element={<AthleteWorkouts />} />
+                  <Route path="/activity/session" element={<WorkoutSession />} />
+                  <Route path="/activity/exercises" element={<AthleteExercises />} />
+                  <Route path="/activity/exercises/:exerciseId" element={<AthleteExercises />} />
+                  <Route path="/activity/history" element={<WorkoutHistory />} />
+                  <Route path="/activity/history/:logId" element={<WorkoutHistory />} />
+                  <Route path="/activity/progress" element={<ActivityProgress />} />
+                  <Route path="/activity/log" element={<LogActivity />} />
                 </Route>
               </Route>
               <Route element={<AdminRouteGuard />}>

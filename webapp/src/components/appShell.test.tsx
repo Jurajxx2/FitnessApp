@@ -12,7 +12,7 @@ test('AppShell renders nav tabs', () => {
       </Routes>
     </MemoryRouter>
   )
-  expect(screen.getByText('Today')).toBeInTheDocument()
-  expect(screen.getByText('Recipes')).toBeInTheDocument()
+  expect(screen.getAllByText('Today').length).toBeGreaterThan(0)
+  expect(screen.getAllByText('Recipes').length).toBeGreaterThan(0)
   expect(screen.getByText('home')).toBeInTheDocument()
 })

@@ -6,6 +6,7 @@ import { RouteGuard } from './components/RouteGuard'
 import { AppShell } from './components/AppShell'
 import Login from './pages/Login'
 import Verify from './pages/Verify'
+import OtpLogin from './pages/OtpLogin'
 import Hub from './pages/nutrition/Hub'
 import Plan from './pages/nutrition/Plan'
 import Recipes from './pages/nutrition/Recipes'
@@ -23,7 +24,9 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/verify" element={<Verify />} />
+            <Route path="/login/otp" element={<OtpLogin />} />
+            <Route path="/login/verify" element={<Verify />} />
+            <Route path="/verify" element={<Navigate to="/login/verify" replace />} />
             <Route element={<RouteGuard />}>
               <Route element={<AppShell />}>
                 <Route path="/nutrition" element={<Hub />} />

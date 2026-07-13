@@ -147,3 +147,17 @@ textarea {
   background: var(--accent);
   color: var(--on-accent);
 }
+
+.ds-display-lg { font-size: 36px; line-height: 40px; font-weight: 800; letter-spacing: -1px; }
+.ds-metric-lg  { font-size: 44px; line-height: 48px; font-weight: 800; letter-spacing: -1.5px; }
+.ds-metric-md  { font-size: 28px; line-height: 32px; font-weight: 800; letter-spacing: -0.5px; }
+.ds-metric-sm  { font-size: 18px; line-height: 22px; font-weight: 700; letter-spacing: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

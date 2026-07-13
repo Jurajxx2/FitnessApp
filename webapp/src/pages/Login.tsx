@@ -1,94 +1,52 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { useEffect, useState } from 'react'
+import { ArrowRight, KeyRound } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { AuthLayout } from '../components/AuthLayout'
+import { Button, Input } from '../components/ui'
 import { useAuth } from '../hooks/useAuth'
-import { Input, Button } from '../components/ui'
+import { supabase } from '../lib/supabase'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loadingAction, setLoadingAction] = useState<'password' | 'otp' | null>(null)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
   const { session, isLoading: authLoading } = useAuth()
 
-  useEffect(() => {
-    if (!authLoading && session) navigate('/nutrition', { replace: true })
-  }, [authLoading, session, navigate])
+  useEffect(() => { if (!authLoading && session) navigate('/nutrition', { replace: true }) }, [authLoading, navigate, session])
 
-  async function handlePasswordSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
     setError('')
-    setLoadingAction('password')
-    const clean = email.trim().toLowerCase()
+    setLoading(true)
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: clean, password })
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
       if (signInError) { setError(signInError.message); return }
       navigate('/nutrition', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Neočakávaná chyba.')
+      setError(err instanceof Error ? err.message : 'Prihlásenie sa nepodarilo.')
     } finally {
-      setLoadingAction(null)
+      setLoading(false)
     }
   }
 
-  async function handleOtpLogin(e: React.MouseEvent<HTMLButtonElement>) {
-    const emailInput = e.currentTarget.form?.elements.namedItem('email')
-    if (emailInput instanceof HTMLInputElement && !emailInput.reportValidity()) return
-
-    setError('')
-    setLoadingAction('otp')
-    const clean = email.trim().toLowerCase()
-    try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: clean,
-        options: { shouldCreateUser: false },
-      })
-      if (otpError) { setError(otpError.message); return }
-      sessionStorage.setItem('otp-email', clean)
-      navigate('/verify')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Neočakávaná chyba.')
-    } finally {
-      setLoadingAction(null)
-    }
-  }
-
-  if (authLoading) {
-    return <div className="min-h-dvh bg-background flex items-center justify-center">
-      <p className="text-text-secondary text-sm">Loading…</p>
-    </div>
-  }
+  if (authLoading) return <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-text-secondary">Načítavam účet…</div>
 
   return (
-    <div className="min-h-dvh bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-xs font-bold tracking-widest text-text-primary uppercase mb-8">Coach Foska</div>
-        <h1 className="ds-display-lg text-text-primary mb-2">Ahoj 👋</h1>
-        <p className="text-sm text-text-secondary mb-6 leading-relaxed">
-          Prihlás sa emailom a heslom. Ak heslo nemáš, použi jednorazový kód.
-        </p>
-        <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-4">
-          <Input id="email" name="email" type="email" label="Email" placeholder="ty@email.sk"
-                 value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required autoFocus />
-          <Input id="password" type="password" label="Heslo" placeholder="Tvoje heslo"
-                 value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
-          {error && <p role="alert" className="text-xs text-error">{error}</p>}
-          <Button type="submit" loading={loadingAction === 'password'}
-                  disabled={!email.trim() || !password || loadingAction !== null}>
-            Prihlásiť sa →
-          </Button>
-          <div className="flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1 bg-outline" />
-            <span className="text-xs text-text-secondary">alebo</span>
-            <span className="h-px flex-1 bg-outline" />
-          </div>
-          <Button type="button" variant="secondary" onClick={handleOtpLogin}
-                  loading={loadingAction === 'otp'} disabled={!email.trim() || loadingAction !== null}>
-            Prihlásiť sa jednorazovým kódom
-          </Button>
-        </form>
-      </div>
-    </div>
+    <AuthLayout>
+      <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-action-secondary"><KeyRound size={22} /></div>
+      <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-accent">Vitaj späť</p>
+      <h1 className="text-3xl font-extrabold tracking-[-0.035em]">Prihlás sa do Coach Foska</h1>
+      <p className="mt-3 text-sm leading-6 text-text-secondary">Použi email a heslo priradené k svojmu účtu.</p>
+      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+        <Input id="email" name="email" type="email" label="Email" placeholder="ty@email.sk" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" required autoFocus />
+        <Input id="password" name="password" type="password" label="Heslo" placeholder="Tvoje heslo" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required />
+        {error && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 px-3 py-2.5 text-sm text-error">{error}</p>}
+        <Button type="submit" loading={loading} disabled={!email.trim() || !password} className="w-full">Prihlásiť sa <ArrowRight size={17} /></Button>
+      </form>
+      <div className="my-7 flex items-center gap-3"><span className="h-px flex-1 bg-outline-subtle" /><span className="text-xs text-text-secondary">alebo</span><span className="h-px flex-1 bg-outline-subtle" /></div>
+      <Link to="/login/otp" className="flex h-12 w-full items-center justify-center rounded-xl border border-outline bg-surface text-sm font-semibold text-text-primary hover:bg-surface-elevated">Prihlásiť sa jednorazovým kódom</Link>
+    </AuthLayout>
   )
 }

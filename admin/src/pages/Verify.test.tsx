@@ -22,12 +22,12 @@ vi.mock('../lib/supabase', () => ({
 function renderVerify(email = 'admin@example.com') {
   sessionStorage.setItem('otp-email', email)
   return render(
-    <MemoryRouter initialEntries={['/auth/verify']}>
+    <MemoryRouter initialEntries={['/login/verify']}>
       <Routes>
-        <Route path="/auth/verify" element={<Verify />} />
-        <Route path="/auth" element={<div>Login page</div>} />
+        <Route path="/login/verify" element={<Verify />} />
+        <Route path="/login/otp" element={<div>OTP login page</div>} />
         <Route path="/admin" element={<div>Admin dashboard</div>} />
-        <Route path="/403" element={<div>Not admin</div>} />
+        <Route path="/nutrition" element={<div>Trainee workspace</div>} />
       </Routes>
     </MemoryRouter>
   )
@@ -46,16 +46,16 @@ describe('Verify', () => {
     sessionStorage.clear()
   })
 
-  it('redirects to /auth when no email is stored', () => {
+  it('redirects to the OTP email page when no email is stored', () => {
     render(
-      <MemoryRouter initialEntries={['/auth/verify']}>
+      <MemoryRouter initialEntries={['/login/verify']}>
         <Routes>
-          <Route path="/auth/verify" element={<Verify />} />
-          <Route path="/auth" element={<div>Login page</div>} />
+          <Route path="/login/verify" element={<Verify />} />
+          <Route path="/login/otp" element={<div>OTP login page</div>} />
         </Routes>
       </MemoryRouter>
     )
-    expect(screen.getByText('Login page')).toBeInTheDocument()
+    expect(screen.getByText('OTP login page')).toBeInTheDocument()
   })
 
   it('keeps the submit button disabled until all 6 digits are entered', async () => {
@@ -110,7 +110,7 @@ describe('Verify', () => {
     )
   })
 
-  it('navigates to /403 when verified user is not an admin', async () => {
+  it('navigates to the trainee workspace when verified user is not an admin', async () => {
     mockVerifyOtp.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockSingle.mockResolvedValue({ data: { is_admin: false }, error: null })
     renderVerify()
@@ -119,11 +119,11 @@ describe('Verify', () => {
     await userEvent.click(screen.getByRole('button', { name: /verify code/i }))
 
     await waitFor(() =>
-      expect(screen.getByText('Not admin')).toBeInTheDocument()
+      expect(screen.getByText('Trainee workspace')).toBeInTheDocument()
     )
   })
 
-  it('navigates to /403 when profile fetch fails', async () => {
+  it('fails closed to the trainee workspace when profile fetch fails', async () => {
     mockVerifyOtp.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     mockSingle.mockResolvedValue({ data: null, error: { message: 'row not found' } })
     renderVerify()
@@ -132,7 +132,7 @@ describe('Verify', () => {
     await userEvent.click(screen.getByRole('button', { name: /verify code/i }))
 
     await waitFor(() =>
-      expect(screen.getByText('Not admin')).toBeInTheDocument()
+      expect(screen.getByText('Trainee workspace')).toBeInTheDocument()
     )
   })
 

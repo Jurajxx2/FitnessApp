@@ -38,7 +38,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    navigate('/auth', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   const ThemeIcon = theme === 'dark' ? Moon : Sun
@@ -97,8 +97,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               className="mb-2 flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary"
             >
               <ExternalLink size={17} aria-hidden="true" />
-              <span className="flex-1">Open athlete app</span>
-              <span className="text-[10px] uppercase tracking-wider">Preview</span>
+              <span className="flex-1">Trainee workspace</span>
+              <span className="text-[10px] uppercase tracking-wider">Switch</span>
           </NavLink>
           <button
             onClick={toggleTheme}

@@ -16,7 +16,7 @@ export default function Callback() {
         .select('is_admin')
         .eq('id', session.user.id)
         .single()
-      if (active) navigate(profile?.is_admin ? '/admin' : '/403', { replace: true })
+      if (active) navigate(profile?.is_admin ? '/admin' : '/nutrition', { replace: true })
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {

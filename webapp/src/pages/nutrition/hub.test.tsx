@@ -11,5 +11,5 @@ vi.mock('../../nutrition/hooks', () => ({
 test('Hub shows the day summary and a log CTA', () => {
   render(<MemoryRouter><Hub /></MemoryRouter>)
   expect(screen.getByText('800')).toBeInTheDocument()
-  expect(screen.getByText('+ Zapísať jedlo')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Zapísať jedlo' })).toBeInTheDocument()
 })

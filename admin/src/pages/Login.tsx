@@ -1,81 +1,103 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { ArrowRight, KeyRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { AuthLayout } from '../components/AuthLayout'
+import { Button, Input } from '../components/ui'
 import { useAuth } from '../hooks/useAuth'
-import { Card, Input, Button } from '../components/ui'
+import { supabase } from '../lib/supabase'
 
 export default function Login() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
   const { session, isAdmin, isLoading: authLoading } = useAuth()
 
-  // Redirect already-authenticated users so they don't see the login form.
   useEffect(() => {
-    if (authLoading) return
-    if (session) {
-      navigate(isAdmin ? '/admin' : '/403', { replace: true })
-    }
-  }, [authLoading, session, isAdmin, navigate])
+    if (!authLoading && session) navigate(isAdmin ? '/admin' : '/nutrition', { replace: true })
+  }, [authLoading, isAdmin, navigate, session])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { shouldCreateUser: false },
-    })
-    setLoading(false)
-    if (error) {
-      setError(error.message)
-    } else {
-      sessionStorage.setItem('otp-email', email.trim().toLowerCase())
-      navigate('/auth/verify')
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      })
+      if (signInError) setError(signInError.message)
+      // Successful navigation is driven by the resolved AuthProvider state so
+      // both password and restored sessions use exactly the same role decision.
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'We could not sign you in. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Don't flash the login form while we're resolving the existing session.
   if (authLoading) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-background">
-        <p className="text-sm text-text-secondary">Loading…</p>
-      </div>
-    )
+    return <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-text-secondary">Loading account…</div>
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm p-6 sm:p-7">
-        <div className="mb-8 text-xs font-bold uppercase tracking-widest text-text-primary">Coach Foska</div>
-        <h1 className="mb-2 text-xl font-bold text-text-primary">Sign in</h1>
-        <p className="mb-6 text-sm leading-relaxed text-text-secondary">
-          Enter your email to receive a one-time login code.
-        </p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            id="email"
-            type="email"
-            label="Email address"
-            placeholder="you@example.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            autoFocus
-          />
-          {error && <p className="text-xs text-error">{error}</p>}
-          <Button type="submit" loading={loading} disabled={!email}>
-            Send login code →
-          </Button>
-        </form>
-        <p className="mt-5 text-center text-xs text-text-secondary">
-          Training with Coach Foska?{' '}
-          <Link className="font-semibold text-text-primary underline" to="/login">
-            Open athlete login
-          </Link>
-        </p>
-      </Card>
-    </div>
+    <AuthLayout>
+      <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-action-secondary text-text-primary">
+        <KeyRound size={22} />
+      </div>
+      <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-accent">Welcome back</p>
+      <h1 className="text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Sign in to Coach Foska</h1>
+      <p className="mt-3 text-sm leading-6 text-text-secondary">
+        The same login works for trainees and administrators. We will open the right workspace automatically.
+      </p>
+
+      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          label="Email address"
+          placeholder="you@example.com"
+          value={email}
+          onChange={event => setEmail(event.target.value)}
+          autoComplete="email"
+          required
+          autoFocus
+          className="h-12"
+        />
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          label="Password"
+          placeholder="Your password"
+          value={password}
+          onChange={event => setPassword(event.target.value)}
+          autoComplete="current-password"
+          required
+          className="h-12"
+        />
+        {error && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 px-3 py-2.5 text-sm text-error">{error}</p>}
+        <Button type="submit" loading={loading} disabled={!email.trim() || !password} className="min-h-12 w-full">
+          Sign in <ArrowRight size={17} />
+        </Button>
+      </form>
+
+      <div className="my-7 flex items-center gap-3" aria-hidden="true">
+        <span className="h-px flex-1 bg-outline-subtle" />
+        <span className="text-xs font-medium text-text-secondary">or</span>
+        <span className="h-px flex-1 bg-outline-subtle" />
+      </div>
+      <Link
+        to="/login/otp"
+        className="flex min-h-12 w-full items-center justify-center rounded-xl border border-outline bg-surface px-4 text-sm font-semibold text-text-primary transition-colors hover:bg-surface-elevated"
+      >
+        Login with a one-time code
+      </Link>
+      <p className="mt-6 text-center text-xs leading-5 text-text-secondary">
+        Access is limited to accounts created by your Coach Foska administrator.
+      </p>
+    </AuthLayout>
   )
 }

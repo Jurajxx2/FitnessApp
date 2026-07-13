@@ -18,10 +18,10 @@ export default function CheckInHistory() {
   const { data: checkIns = [], isLoading, error } = useCheckIns()
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
         <button type="button" aria-label="Späť na check-in" onClick={() => navigate('/check-ins')}><ArrowLeft size={22} /></button>
-        <h1 className="text-lg font-bold">História check-inov</h1>
+        <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Weekly progress</p><h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em]">História check-inov</h1></div>
       </div>
 
       {isLoading && <Shimmer className="h-48 w-full" />}
@@ -30,6 +30,7 @@ export default function CheckInHistory() {
         <EmptyState icon={<History size={30} />} title="Zatiaľ žiadne check-iny" message="Odošli svoj prvý týždenný check-in a začni budovať históriu." />
       )}
 
+      <div className="grid items-start gap-4 lg:grid-cols-2">
       {checkIns.map(checkIn => (
         <Card key={checkIn.id} className="flex flex-col gap-4">
           <h2 className="font-bold">Týždeň od {formatCheckInWeek(checkIn.week_of)}</h2>
@@ -54,6 +55,7 @@ export default function CheckInHistory() {
           )}
         </Card>
       ))}
+      </div>
     </div>
   )
 }

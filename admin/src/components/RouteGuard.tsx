@@ -12,7 +12,7 @@ export function AdminRouteGuard() {
     )
   }
 
-  if (!session) return <Navigate to="/auth" replace />
-  if (!isAdmin) return <Navigate to="/403" replace />
+  if (!session) return <Navigate to="/login" replace />
+  if (!isAdmin) return <Navigate to="/nutrition" replace />
   return <Outlet />
 }

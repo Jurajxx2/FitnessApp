@@ -7,7 +7,7 @@ export default function NotAdmin() {
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    navigate('/auth', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return (

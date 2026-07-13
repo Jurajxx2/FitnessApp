@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { ArrowLeft, MailCheck } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { AuthLayout } from '../components/AuthLayout'
 import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
-import { Button, Card } from '../components/ui'
+import { Button } from '../components/ui'
 
 export default function Verify() {
   const [digits, setDigits] = useState(['', '', '', '', '', ''])
@@ -14,7 +16,7 @@ export default function Verify() {
   const [email] = useState(() => sessionStorage.getItem('otp-email') ?? '')
 
   useEffect(() => {
-    if (!email) navigate('/auth')
+    if (!email) navigate('/login/otp')
   }, [email, navigate])
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function Verify() {
       }
 
       sessionStorage.removeItem('otp-email')
-      navigate(profile?.is_admin ? '/admin' : '/403', { replace: true })
+      navigate(profile?.is_admin ? '/admin' : '/nutrition', { replace: true })
     } catch (err) {
       logger.error('Unexpected verification error', err)
       setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.')
@@ -95,20 +97,28 @@ export default function Verify() {
   }
 
   async function handleResend() {
-    await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
+    const { error: resendError } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
+    if (resendError) {
+      setError(resendError.message)
+      return
+    }
     setResendCooldown(60)
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm p-6 sm:p-7">
-        <div className="mb-8 text-xs font-bold uppercase tracking-widest text-text-primary">Coach Foska</div>
-        <h1 className="mb-2 text-xl font-bold text-text-primary">Check your email</h1>
-        <p className="mb-6 text-sm leading-relaxed text-text-secondary">
+    <AuthLayout>
+      <Link to="/login/otp" className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary">
+        <ArrowLeft size={16} /> Use a different email
+      </Link>
+      <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-action-secondary text-text-primary">
+        <MailCheck size={22} />
+      </div>
+        <h1 className="mb-2 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Check your email</h1>
+        <p className="mb-8 text-sm leading-6 text-text-secondary">
           We sent a 6-digit code to <span className="text-text-primary">{email}</span>.
         </p>
         <form onSubmit={handleVerify} className="flex flex-col gap-4">
-          <div className="flex gap-2 justify-center">
+          <div className="flex justify-between gap-2 sm:justify-start">
             {digits.map((d, i) => (
               <input
                 key={i}
@@ -120,21 +130,20 @@ export default function Verify() {
                 onChange={e => handleDigitChange(i, e.target.value)}
                 onKeyDown={e => handleKeyDown(i, e)}
                 autoFocus={i === 0}
-                className="h-12 w-11 rounded-xl border border-outline bg-surface text-center text-lg font-bold text-text-primary outline-none focus:border-accent"
+                className="h-13 min-w-0 flex-1 rounded-xl border border-outline bg-surface text-center text-lg font-bold text-text-primary outline-none transition-colors focus:border-accent sm:w-12 sm:flex-none"
               />
             ))}
           </div>
           {error && <p className="text-center text-xs text-error">{error}</p>}
-          <Button type="submit" loading={loading} disabled={digits.join('').length < 6}>
+          <Button type="submit" loading={loading} disabled={digits.join('').length < 6} className="mt-2 min-h-12 w-full">
             Verify code
           </Button>
         </form>
-        <p className="mt-4 text-center text-xs text-text-secondary">
+        <p className="mt-5 text-center text-xs text-text-secondary">
           {resendCooldown > 0
             ? `Resend in ${resendCooldown}s`
             : <button onClick={handleResend} className="cursor-pointer border-0 bg-transparent text-text-primary underline">Resend code</button>}
         </p>
-      </Card>
-    </div>
+    </AuthLayout>
   )
 }

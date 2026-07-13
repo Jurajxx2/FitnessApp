@@ -13,7 +13,7 @@ export default function Verify() {
   const navigate = useNavigate()
   const [email] = useState(() => sessionStorage.getItem('otp-email') ?? '')
 
-  useEffect(() => { if (!email) navigate('/login') }, [email, navigate])
+  useEffect(() => { if (!email) navigate('/login/otp') }, [email, navigate])
   useEffect(() => {
     if (resendCooldown > 0) {
       const t = setTimeout(() => setResendCooldown(c => c - 1), 1000)

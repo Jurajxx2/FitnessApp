@@ -31,7 +31,7 @@ function renderLogin() {
     <MemoryRouter initialEntries={['/login']}>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/verify" element={<div>Verify page</div>} />
+        <Route path="/login/otp" element={<div>OTP email page</div>} />
         <Route path="/nutrition" element={<div>Nutrition page</div>} />
       </Routes>
     </MemoryRouter>
@@ -45,7 +45,7 @@ test('uses email and password as the primary login path', async () => {
 
   await userEvent.type(screen.getByLabelText('Email'), '  TRAINEE@Example.com  ')
   await userEvent.type(screen.getByLabelText('Heslo'), 'secret-password')
-  await userEvent.click(screen.getByRole('button', { name: /^prihlásiť sa →$/i }))
+  await userEvent.click(screen.getByRole('button', { name: /^prihlásiť sa$/i }))
 
   await waitFor(() => expect(screen.getByText('Nutrition page')).toBeInTheDocument())
   expect(mockSignInWithPassword).toHaveBeenCalledWith({
@@ -55,21 +55,12 @@ test('uses email and password as the primary login path', async () => {
   expect(mockSignInWithOtp).not.toHaveBeenCalled()
 })
 
-test('keeps OTP login as a secondary option without creating arbitrary new accounts', async () => {
-  mockSignInWithOtp.mockResolvedValue({ error: null })
-
+test('keeps OTP login as a secondary option on a separate page', async () => {
   renderLogin()
-
-  await userEvent.type(screen.getByLabelText('Email'), '  TRAINEE@Example.com  ')
-  await userEvent.click(screen.getByRole('button', { name: /jednorazovým kódom/i }))
-
-  await waitFor(() => expect(screen.getByText('Verify page')).toBeInTheDocument())
-  expect(mockSignInWithOtp).toHaveBeenCalledWith({
-    email: 'trainee@example.com',
-    options: { shouldCreateUser: false },
-  })
+  await userEvent.click(screen.getByRole('link', { name: /jednorazovým kódom/i }))
+  expect(screen.getByText('OTP email page')).toBeInTheDocument()
   expect(mockSignInWithPassword).not.toHaveBeenCalled()
-  expect(sessionStorage.getItem('otp-email')).toBe('trainee@example.com')
+  expect(mockSignInWithOtp).not.toHaveBeenCalled()
 })
 
 test('shows a password login error and stays on the login screen', async () => {
@@ -79,7 +70,7 @@ test('shows a password login error and stays on the login screen', async () => {
 
   await userEvent.type(screen.getByLabelText('Email'), 'trainee@example.com')
   await userEvent.type(screen.getByLabelText('Heslo'), 'wrong-password')
-  await userEvent.click(screen.getByRole('button', { name: /^prihlásiť sa →$/i }))
+  await userEvent.click(screen.getByRole('button', { name: /^prihlásiť sa$/i }))
 
   expect(await screen.findByRole('alert')).toHaveTextContent('Invalid login credentials')
   expect(screen.queryByText('Nutrition page')).not.toBeInTheDocument()

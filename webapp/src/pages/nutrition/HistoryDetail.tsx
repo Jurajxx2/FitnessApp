@@ -17,16 +17,19 @@ export default function HistoryDetail() {
   const totals = sumMacros(log.meal_log_foods)
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="flex items-center gap-1 self-start text-sm text-text-secondary"
+        className="flex items-center gap-1 self-start text-sm font-medium text-text-secondary hover:text-text-primary"
       >
         <ChevronLeft size={16} /> Späť
       </button>
-      <h1 className="text-xl font-bold text-text-primary">{log.meal_name}</h1>
-      <Card>
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Meal detail</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{log.meal_name}</h1>
+      </div>
+      <Card className="p-5">
         <StatRow
           items={[
             { label: 'Kcal', value: String(Math.round(totals.calories)) },
@@ -36,9 +39,11 @@ export default function HistoryDetail() {
           ]}
         />
       </Card>
-      <ul className="flex flex-col gap-1">
+      <Card className="p-5">
+      <h2 className="mb-3 font-bold text-text-primary">Potraviny</h2>
+      <ul className="flex flex-col divide-y divide-outline-subtle">
         {log.meal_log_foods.map((food) => (
-          <li key={food.id} className="flex justify-between text-sm">
+          <li key={food.id} className="flex justify-between gap-4 py-3 text-sm">
             <span className="text-text-primary">{food.name}</span>
             <span className="text-text-secondary">
               {Math.round(food.amount)} {food.unit} · {Math.round(food.calories)} kcal
@@ -46,7 +51,8 @@ export default function HistoryDetail() {
           </li>
         ))}
       </ul>
-      {log.notes && <p className="text-sm text-text-secondary">{log.notes}</p>}
+      </Card>
+      {log.notes && <Card className="p-5"><h2 className="mb-2 font-bold text-text-primary">Poznámka</h2><p className="text-sm leading-6 text-text-secondary">{log.notes}</p></Card>}
     </div>
   )
 }

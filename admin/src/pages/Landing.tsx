@@ -117,10 +117,10 @@ export default function Landing() {
           ) : (
             <>
               <button
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate('/login')}
                 className="hidden border-0 bg-transparent text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-colors hover:text-white sm:block"
               >
-                Admin
+                Sign in
               </button>
               <button
                 onClick={() => navigate('/login')}

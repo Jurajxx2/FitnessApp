@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, History, ImagePlus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Card, Chip, Input, SectionHeader, Shimmer } from '../../components/ui'
+import { Button, Card, Chip, Input, Shimmer } from '../../components/ui'
 import { checkInToDraft, emptyCheckInDraft, type CheckInDraft } from '../../checkins/api'
 import { useCurrentCheckIn, useSaveCheckIn, useUploadCheckInPhoto } from '../../checkins/hooks'
 import { useAuth } from '../../hooks/useAuth'
@@ -104,11 +104,15 @@ export default function CheckInForm() {
   }
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={submit}>
-      <SectionHeader
-        title="Týždenný check-in"
-        action={<button type="button" aria-label="História check-inov" onClick={() => navigate('/check-ins/history')}><History size={22} /></button>}
-      />
+    <form className="grid items-start gap-5 lg:grid-cols-2" onSubmit={submit}>
+      <div className="flex flex-col justify-between gap-4 lg:col-span-2 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Weekly progress</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Týždenný check-in</h1>
+          <p className="mt-2 text-sm text-text-secondary">Krátky prehľad pomôže trénerke upraviť ďalší týždeň.</p>
+        </div>
+        <Button type="button" variant="secondary" onClick={() => navigate('/check-ins/history')}><History size={17} /> História</Button>
+      </div>
 
       <Card className="flex flex-col gap-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Telo</h2>
@@ -126,7 +130,7 @@ export default function CheckInForm() {
 
       <Card className="flex flex-col gap-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Fotky pokroku</h2>
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <PhotoSlot label="spredu" selected={!!draft.photoFrontPath} disabled={upload.isPending || save.isPending} onPick={file => void pickPhoto('front', file)} />
           <PhotoSlot label="zboku" selected={!!draft.photoSidePath} disabled={upload.isPending || save.isPending} onPick={file => void pickPhoto('side', file)} />
         </div>
@@ -146,9 +150,9 @@ export default function CheckInForm() {
       </Card>
 
       {(current.error || upload.error || save.error) && (
-        <p role="alert" className="text-sm text-error">Check-in sa nepodarilo uložiť. Skús to znova.</p>
+        <p role="alert" className="text-sm text-error lg:col-span-2">Check-in sa nepodarilo uložiť. Skús to znova.</p>
       )}
-      <Button type="submit" loading={save.isPending} disabled={upload.isPending}>Odoslať check-in</Button>
+      <Button type="submit" loading={save.isPending} disabled={upload.isPending} className="w-full lg:col-span-2 lg:ml-auto lg:w-auto">Odoslať check-in</Button>
     </form>
   )
 }

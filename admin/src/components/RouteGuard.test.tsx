@@ -26,12 +26,12 @@ describe('AdminRouteGuard', () => {
     expect(screen.queryByText('Admin content')).not.toBeInTheDocument()
   })
 
-  it('redirects to /auth when no session', () => {
+  it('redirects to the unified login when no session', () => {
     mockUseAuth.mockReturnValue({ session: null, user: null, profile: null, isAdmin: false, isLoading: false })
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
-          <Route path="/auth" element={<div>Login page</div>} />
+          <Route path="/login" element={<div>Login page</div>} />
           <Route element={<AdminRouteGuard />}>
             <Route path="/admin" element={<div>Admin content</div>} />
           </Route>
@@ -41,19 +41,19 @@ describe('AdminRouteGuard', () => {
     expect(screen.getByText('Login page')).toBeInTheDocument()
   })
 
-  it('redirects to /403 when not admin', () => {
+  it('redirects authenticated non-admins to the trainee workspace', () => {
     mockUseAuth.mockReturnValue({ session: {} as any, user: {} as any, profile: {} as any, isAdmin: false, isLoading: false })
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
-          <Route path="/403" element={<div>Not admin</div>} />
+          <Route path="/nutrition" element={<div>Trainee workspace</div>} />
           <Route element={<AdminRouteGuard />}>
             <Route path="/admin" element={<div>Admin content</div>} />
           </Route>
         </Routes>
       </MemoryRouter>
     )
-    expect(screen.getByText('Not admin')).toBeInTheDocument()
+    expect(screen.getByText('Trainee workspace')).toBeInTheDocument()
   })
 
   it('renders children when admin', () => {
