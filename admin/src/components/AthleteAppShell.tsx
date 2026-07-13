@@ -1,5 +1,6 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
+  ArrowRightLeft,
   BookOpen,
   CalendarDays,
   ClipboardCheck,
@@ -7,6 +8,7 @@ import {
   LogOut,
   Moon,
   Sun,
+  UserRound,
   UtensilsCrossed,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -21,6 +23,7 @@ const NAV = [
   { to: '/nutrition/plan', label: 'Meal plan', icon: CalendarDays, end: false, feature: 'nutrition' },
   { to: '/nutrition/recipes', label: 'Recipes', icon: BookOpen, end: false, feature: 'nutrition' },
   { to: '/check-ins', label: 'Check-in', icon: ClipboardCheck, end: false, feature: 'shared' },
+  { to: '/profile', label: 'Profile', icon: UserRound, end: true, feature: 'shared' },
 ]
 
 function pageTitle(pathname: string) {
@@ -37,13 +40,14 @@ function pageTitle(pathname: string) {
   if (pathname.startsWith('/nutrition/log')) return 'Log a meal'
   if (pathname.startsWith('/check-ins/history')) return 'Check-in history'
   if (pathname.startsWith('/check-ins')) return 'Weekly check-in'
+  if (pathname.startsWith('/profile')) return 'Profile'
   return 'Today'
 }
 
 export function AthleteAppShell() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, profile } = useAuth()
+  const { user, profile, isAdmin } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const initials = (profile?.full_name || user?.email || 'CF')
     .split(/[\s@._-]+/)
@@ -92,6 +96,15 @@ export function AthleteAppShell() {
         </nav>
 
         <div className="border-t border-outline-subtle p-3">
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => navigate('/admin')}
+              className="mb-2 flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-xl border border-outline bg-surface px-3 text-left text-sm font-semibold text-text-primary transition-colors hover:bg-surface-elevated"
+            >
+              <ArrowRightLeft size={17} aria-hidden="true" /> Admin workspace
+            </button>
+          )}
           <button
             type="button"
             onClick={toggleTheme}
@@ -113,11 +126,16 @@ export function AthleteAppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 flex-shrink-0 items-center border-b border-outline-subtle bg-background/95 px-4 backdrop-blur sm:px-6">
+        <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-outline-subtle bg-background/95 px-4 backdrop-blur sm:px-6">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary md:hidden">Coach Foska</p>
             <h1 className="text-base font-semibold text-text-primary">{pageTitle(location.pathname)}</h1>
           </div>
+          {isAdmin && (
+            <button type="button" onClick={() => navigate('/admin')} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-xl border border-outline bg-surface px-3 text-xs font-semibold text-text-primary hover:bg-surface-elevated md:hidden">
+              <ArrowRightLeft size={15} aria-hidden="true" /> Admin
+            </button>
+          )}
         </header>
 
         <main className="flex-1 overflow-y-auto pb-20 md:pb-0">

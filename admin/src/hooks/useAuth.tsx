@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
@@ -12,6 +12,10 @@ interface AuthState {
   isLoading: boolean
 }
 
+interface AuthContextValue extends AuthState {
+  refreshProfile: () => Promise<void>
+}
+
 const initialState: AuthState = {
   session: null,
   user: null,
@@ -20,7 +24,10 @@ const initialState: AuthState = {
   isLoading: true,
 }
 
-const AuthContext = createContext<AuthState>(initialState)
+const AuthContext = createContext<AuthContextValue>({
+  ...initialState,
+  refreshProfile: async () => {},
+})
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
@@ -35,6 +42,16 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(initialState)
+
+  const refreshProfile = useCallback(async () => {
+    if (!state.user) return
+    const profile = await fetchProfile(state.user.id)
+    setState(current => ({
+      ...current,
+      profile,
+      isAdmin: profile?.is_admin ?? false,
+    }))
+  }, [state.user])
 
   useEffect(() => {
     let active = true
@@ -99,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={state}>
+    <AuthContext.Provider value={{ ...state, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )

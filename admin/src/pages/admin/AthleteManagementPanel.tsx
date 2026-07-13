@@ -139,9 +139,9 @@ export function AthleteManagementPanel({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', user.id] })
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-      notify('Athlete profile and access updated.')
+      notify('User profile and access updated.')
     },
-    onError: error => notify(`Couldn’t update athlete: ${error.message}`, 'error'),
+    onError: error => notify(`Couldn’t update user: ${error.message}`, 'error'),
   })
 
   const saveMacros = useMutation({
@@ -231,8 +231,8 @@ export function AthleteManagementPanel({
     <div className="grid gap-5 xl:grid-cols-2">
       <Card className="xl:col-span-2">
         <div className="mb-5">
-          <h2 className="text-base font-bold text-text-primary">Athlete profile and access</h2>
-          <p className="mt-1 text-sm text-text-secondary">Edit coach-managed profile fields and decide which athlete areas are available.</p>
+          <h2 className="text-base font-bold text-text-primary">User profile and access</h2>
+          <p className="mt-1 text-sm text-text-secondary">Edit coach-managed profile fields and decide which user areas are available.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Input label="Full name" value={profile.fullName} onChange={event => setProfile(current => ({ ...current, fullName: event.target.value }))} />
@@ -258,7 +258,7 @@ export function AthleteManagementPanel({
         </div>
 
         <div className="mt-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">Athlete access</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">User access</p>
           <div className="grid gap-3 md:grid-cols-3">
             {ACCESS_OPTIONS.map(option => (
               <label key={option.value} className={`cursor-pointer rounded-2xl border p-4 ${profile.accessMode === option.value ? 'border-accent bg-accent/5' : 'border-outline-subtle bg-surface'}`}>
@@ -270,7 +270,7 @@ export function AthleteManagementPanel({
         </div>
 
         <div className="mt-5">
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">Private admin notes</label>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">Admin notes</label>
           <textarea className="min-h-24 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-accent" value={profile.adminNotes} onChange={event => setProfile(current => ({ ...current, adminNotes: event.target.value }))} placeholder="Context only coaches can see…" />
         </div>
         <div className="mt-4 flex justify-end"><Button onClick={() => saveProfile.mutate()} loading={saveProfile.isPending}>Save profile and access</Button></div>
@@ -310,7 +310,7 @@ export function AthleteManagementPanel({
 
       <Card>
         <h2 className="text-base font-bold text-text-primary">Workout assignments</h2>
-        <p className="mt-1 text-sm text-text-secondary">Select every active coach plan this athlete should see.</p>
+        <p className="mt-1 text-sm text-text-secondary">Select every active coach plan this user should see.</p>
         <div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
           {workoutPlans.length === 0 ? <p className="text-sm text-text-secondary">No active workout plans are available.</p> : workoutPlans.map(workout => (
             <label key={workout.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-outline-subtle bg-surface px-3 py-2.5 text-sm text-text-primary">
@@ -321,7 +321,7 @@ export function AthleteManagementPanel({
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button onClick={() => saveWorkouts.mutate()} loading={saveWorkouts.isPending}>Save workouts</Button>
-          <Button variant="ghost" onClick={() => navigate(`/admin/workouts/new?user=${user.id}`)}>Create workout for athlete</Button>
+          <Button variant="ghost" onClick={() => navigate(`/admin/workouts/new?user=${user.id}`)}>Create workout for {user.full_name ?? 'user'}</Button>
         </div>
       </Card>
     </div>

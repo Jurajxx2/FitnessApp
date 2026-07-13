@@ -4,10 +4,10 @@ import type { Profile } from '../types/database'
 
 type AssignableProfile = Pick<Profile, 'id' | 'email' | 'full_name' | 'is_admin' | 'is_blocked'>
 
-// Only non-admin, non-blocked athletes may be NEWLY assigned. A user assigned
-// before being blocked stays removable (handled at the call site via localIds).
+// Any unblocked profile can receive plans. Admins can use the athlete workspace
+// too, so their role must not exclude them from self-assignment.
 function isAssignable(profile: AssignableProfile) {
-  return !profile.is_admin && !profile.is_blocked
+  return !profile.is_blocked
 }
 
 export function AssignUsersDialog({
@@ -66,7 +66,7 @@ export function AssignUsersDialog({
       if (next.has(id)) {
         next.delete(id)
       } else {
-        // Never newly-assign a blocked/admin profile.
+        // Never newly assign a blocked profile.
         const profile = profiles.find(p => p.id === id)
         if (profile && !isAssignable(profile)) return prev
         next.add(id)
@@ -80,7 +80,7 @@ export function AssignUsersDialog({
     setLocalIds(previous => {
       const next = new Set(previous)
       filtered.forEach(profile => {
-        // Bulk-assign only adds assignable users (already-assigned blocked users
+        // Bulk assignment only adds available users (already-assigned blocked users
         // stay assigned); clearing removes anything shown, blocked users included.
         if (assign) {
           if (isAssignable(profile) || next.has(profile.id)) next.add(profile.id)
@@ -136,7 +136,7 @@ export function AssignUsersDialog({
         <div className="flex flex-col divide-y divide-[var(--border)]">
           {pageItems.map(p => {
             const isAssigned = localIds.has(p.id)
-            // A rendered non-assignable row (blocked/admin) is only here because
+            // A rendered non-assignable row (blocked) is only here because
             // it's already assigned: allow removing it, never newly checking it.
             const disabled = !isAssigned && !isAssignable(p)
             return (
@@ -160,6 +160,9 @@ export function AssignUsersDialog({
                     <span className="truncate">{p.full_name ?? '—'}</span>
                     {p.is_blocked && (
                       <span className="flex-shrink-0 rounded bg-error/10 px-1.5 py-0.5 text-[10px] font-medium text-error">Blocked</span>
+                    )}
+                    {p.is_admin && (
+                      <span className="flex-shrink-0 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">Admin</span>
                     )}
                   </p>
                   <p className="truncate text-xs text-text-secondary">{p.email}</p>

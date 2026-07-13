@@ -23,6 +23,31 @@ export async function uploadRecipePhoto(file: File, fileName: string): Promise<s
   return data.publicUrl
 }
 
+export function getRecipePhotoPath(photoUrl: string | null, fileName: string | null): string | null {
+  if (photoUrl) {
+    try {
+      const marker = `/storage/v1/object/public/${RECIPE_PHOTOS_BUCKET}/`
+      const pathname = new URL(photoUrl).pathname
+      const markerIndex = pathname.indexOf(marker)
+      if (markerIndex === -1) return null
+      const encodedPath = pathname.slice(markerIndex + marker.length)
+      return encodedPath ? decodeURIComponent(encodedPath) : null
+    } catch {
+      return null
+    }
+  }
+
+  return fileName?.replace(/^\/+/, '') || null
+}
+
+export async function removeRecipePhoto(path: string): Promise<void> {
+  const { error } = await supabase.storage
+    .from(RECIPE_PHOTOS_BUCKET)
+    .remove([path])
+
+  if (error) throw error
+}
+
 export async function signedCheckInPhotoUrl(path: string): Promise<string | null> {
   const { data, error } = await supabase.storage
     .from(CHECK_IN_PHOTOS_BUCKET)

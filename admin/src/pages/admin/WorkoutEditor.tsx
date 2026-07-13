@@ -7,17 +7,17 @@ import { ExerciseBrowserSlideOver } from '../../components/ExerciseBrowserSlideO
 import { ExerciseCombobox } from '../../components/ExerciseCombobox'
 import { Button, Card, EditorPage, EmptyState, FormSection, Input, Shimmer, useNotice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
+import { appendUserContext, getUserContextReturn } from '../../lib/adminUserContext'
 import type { Profile, Workout } from '../../types/database'
-import { DAYS, blankExercise, describeInvalidExerciseRows, findBlankNamedExerciseRows, type ExerciseDraft } from './Workouts'
+import { blankExercise, describeInvalidExerciseRows, findBlankNamedExerciseRows, type ExerciseDraft } from './Workouts'
 
 interface WorkoutFormState {
   name: string
-  day_of_week: number | null
   notes: string
   is_active: boolean
 }
 
-const blankForm = (): WorkoutFormState => ({ name: '', day_of_week: null, notes: '', is_active: true })
+const blankForm = (): WorkoutFormState => ({ name: '', notes: '', is_active: true })
 
 function useProfiles() {
   return useQuery<Pick<Profile, 'id' | 'email' | 'full_name' | 'is_admin' | 'is_blocked'>[]>({
@@ -84,7 +84,6 @@ export default function WorkoutEditor() {
     if (!data) return
     setForm({
       name: data.workout.name,
-      day_of_week: data.workout.day_of_week,
       notes: data.workout.notes ?? '',
       is_active: data.workout.is_active,
     })
@@ -105,7 +104,9 @@ export default function WorkoutEditor() {
       const { data: workoutId, error: saveError } = await supabase.rpc('admin_save_workout', {
         p_workout_id: id ?? null,
         p_name: form.name,
-        p_day_of_week: form.day_of_week,
+        // Workout plans are reusable templates. Athletes choose when to train
+        // them, so editing also clears the legacy weekday assignment.
+        p_day_of_week: null,
         p_notes: form.notes,
         p_is_active: form.is_active,
         p_exercises: validExercises.map((exercise, index) => ({ ...exercise, sort_order: index })),
@@ -118,7 +119,9 @@ export default function WorkoutEditor() {
       queryClient.invalidateQueries({ queryKey: ['workouts-admin'] })
       queryClient.invalidateQueries({ queryKey: ['workout-admin', workoutId] })
       notify(isNew ? 'Workout plan created.' : 'Workout plan saved.')
-      if (isNew) navigate(`/admin/workouts/${workoutId}`, { replace: true })
+      if (isNew) {
+        navigate(appendUserContext(`/admin/workouts/${workoutId}`, initialUserId), { replace: true })
+      }
     },
     onError: mutationError => notify(`Couldn’t save workout plan: ${mutationError.message}`, 'error'),
   })
@@ -134,13 +137,16 @@ export default function WorkoutEditor() {
     ))
   }
 
+  const targetUser = profiles.find(profile => profile.id === initialUserId)
+  const { to: returnTo, label: returnLabel } = getUserContextReturn(initialUserId, targetUser, '/admin/workouts', 'Back to workouts')
+
   if (!isNew && isLoading) {
-    return <EditorPage backTo="/admin/workouts" backLabel="Back to workouts" eyebrow="Workout plan" title="Loading plan…"><Shimmer className="h-96 w-full" /></EditorPage>
+    return <EditorPage backTo={returnTo} backLabel={returnLabel} eyebrow="Workout plan" title="Loading plan…"><Shimmer className="h-96 w-full" /></EditorPage>
   }
 
   if (!isNew && (isError || !data)) {
     return (
-      <EditorPage backTo="/admin/workouts" backLabel="Back to workouts" eyebrow="Workout plan" title="Plan unavailable">
+      <EditorPage backTo={returnTo} backLabel={returnLabel} eyebrow="Workout plan" title="Plan unavailable">
         <EmptyState title="This workout plan couldn’t be loaded" description={error?.message ?? 'It may have been deleted.'} />
       </EditorPage>
     )
@@ -148,14 +154,14 @@ export default function WorkoutEditor() {
 
   return (
     <EditorPage
-      backTo="/admin/workouts"
-      backLabel="Back to workouts"
+      backTo={returnTo}
+      backLabel={returnLabel}
       eyebrow="Workout plan"
       title={isNew ? 'Create workout plan' : form.name || 'Edit workout plan'}
-      description="Define the training sequence, coaching notes, schedule, and athlete assignments in one workspace."
+      description="Define the training sequence, coaching notes, and user assignments. Athletes can train the plan whenever it fits their schedule."
       actions={
         <>
-          <Button variant="ghost" onClick={() => navigate('/admin/workouts')}>Cancel</Button>
+          <Button variant="ghost" onClick={() => navigate(returnTo)}>Cancel</Button>
           <Button onClick={() => saveWorkout.mutate()} loading={saveWorkout.isPending} disabled={!form.name.trim()}>
             {isNew ? 'Create plan' : 'Save changes'}
           </Button>
@@ -168,14 +174,13 @@ export default function WorkoutEditor() {
             <h2 className="mt-3 font-bold text-text-primary">Plan summary</h2>
             <div className="mt-4 divide-y divide-outline-subtle text-sm">
               <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Exercises</span><span className="font-semibold text-text-primary">{exercises.filter(exercise => exercise.name.trim()).length}</span></div>
-              <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Schedule</span><span className="font-semibold text-text-primary">{form.day_of_week === null ? 'Any day' : DAYS[form.day_of_week]}</span></div>
               <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Visibility</span><span className="font-semibold text-text-primary">{form.is_active ? 'Active' : 'Inactive'}</span></div>
             </div>
           </Card>
           <Card>
             <Users size={19} className="text-accent" aria-hidden="true" />
-            <h2 className="mt-3 font-bold text-text-primary">Athlete assignments</h2>
-            <p className="mt-2 text-sm leading-5 text-text-secondary">{assignedUserIds.length} athlete{assignedUserIds.length === 1 ? '' : 's'} assigned to this plan.</p>
+            <h2 className="mt-3 font-bold text-text-primary">User assignments</h2>
+            <p className="mt-2 text-sm leading-5 text-text-secondary">{assignedUserIds.length} user{assignedUserIds.length === 1 ? '' : 's'} assigned to this plan.</p>
             <Button variant="ghost" className="mt-4 w-full" onClick={() => setAssignDialogOpen(true)}>Manage assignments</Button>
           </Card>
           <Card>
@@ -192,18 +197,7 @@ export default function WorkoutEditor() {
     >
       <FormSection title="Plan details" description="Give coaches and athletes enough context to recognize the plan quickly.">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Plan name" value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Push / Pull / Legs" required />
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">Day of week</label>
-            <select
-              className="h-10 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary outline-none focus:border-accent"
-              value={form.day_of_week ?? ''}
-              onChange={event => setForm(current => ({ ...current, day_of_week: event.target.value === '' ? null : Number(event.target.value) }))}
-            >
-              <option value="">Any day</option>
-              {DAYS.map((day, index) => <option key={day} value={index}>{day}</option>)}
-            </select>
-          </div>
+          <div className="sm:col-span-2"><Input label="Plan name" value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Push / Pull / Legs" required /></div>
           <div className="sm:col-span-2">
             <Input label="Notes" value={form.notes} onChange={event => setForm(current => ({ ...current, notes: event.target.value }))} placeholder="Optional instructions visible to the athlete" />
           </div>

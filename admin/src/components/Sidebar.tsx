@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
+  ArrowRightLeft,
   Dumbbell,
   LayoutDashboard,
   Library,
@@ -14,6 +15,7 @@ import {
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { athleteHomePath } from '../lib/access'
 
 const NAV_ITEMS = [
   { to: '/admin',           label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -32,7 +34,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { theme, toggleTheme } = useTheme()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
 
   async function handleSignOut() {
@@ -87,6 +89,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-outline-subtle p-3">
+          <button
+            type="button"
+            onClick={() => { navigate(athleteHomePath(profile)); onClose() }}
+            className="mb-2 flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-xl border border-outline bg-surface px-3 text-left text-sm font-semibold text-text-primary transition-colors hover:bg-surface-elevated"
+          >
+            <ArrowRightLeft size={17} aria-hidden="true" />
+            <span>User workspace</span>
+          </button>
           <button
             onClick={toggleTheme}
             className="flex min-h-10 w-full items-center gap-3 rounded-xl border-0 bg-transparent px-3 text-left text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary cursor-pointer"

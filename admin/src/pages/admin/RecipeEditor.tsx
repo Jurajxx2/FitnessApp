@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Image as ImageIcon, Sparkles } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, ConfirmDialog, EditorPage, EmptyState, FormSection, Input, Shimmer, StatRow, useNotice } from '../../components/ui'
-import { uploadRecipePhoto } from '../../lib/storage'
+import { getRecipePhotoPath, removeRecipePhoto, uploadRecipePhoto } from '../../lib/storage'
 import { supabase } from '../../lib/supabase'
 import type { Recipe, RecipeDifficulty, RecipeIngredient } from '../../types/database'
 
@@ -200,6 +200,18 @@ export default function RecipeEditor() {
   const deleteRecipe = useMutation({
     mutationFn: async () => {
       if (!id) throw new Error('Recipe is missing')
+      if (!data?.recipe) throw new Error('Recipe details are unavailable')
+
+      const photoPath = getRecipePhotoPath(data.recipe.photo_url, data.recipe.photo_file_name)
+      if (photoPath) {
+        const sharedReferenceQuery = data.recipe.photo_url
+          ? supabase.from('recipes').select('id').eq('photo_url', data.recipe.photo_url).neq('id', id).limit(1)
+          : supabase.from('recipes').select('id').eq('photo_file_name', data.recipe.photo_file_name).neq('id', id).limit(1)
+        const { data: sharedReferences, error: sharedReferenceError } = await sharedReferenceQuery
+        if (sharedReferenceError) throw sharedReferenceError
+        if (!sharedReferences?.length) await removeRecipePhoto(photoPath)
+      }
+
       const { data: deleted, error: deleteError } = await supabase.from('recipes').delete().eq('id', id).select('id').maybeSingle()
       if (deleteError) throw deleteError
       if (!deleted) throw new Error('No recipe was deleted')
@@ -364,7 +376,7 @@ export default function RecipeEditor() {
       <ConfirmDialog
         open={deleteDialogOpen}
         title="Delete recipe permanently?"
-        description={<>“{form.name}” will be removed from the recipe library. Historical meal-plan entries keep their saved nutrition snapshot.</>}
+        description={<>“{form.name}” and its unshared uploaded photo will be removed. Historical meal-plan entries keep their saved nutrition snapshot.</>}
         pending={deleteRecipe.isPending}
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={() => deleteRecipe.mutate()}

@@ -12,7 +12,7 @@ const mockUseAuth = vi.mocked(useAuth)
 
 describe('AdminRouteGuard', () => {
   it('shows loading while auth resolves', () => {
-    mockUseAuth.mockReturnValue({ session: null, user: null, profile: null, isAdmin: false, isLoading: true })
+    mockUseAuth.mockReturnValue({ session: null, user: null, profile: null, isAdmin: false, isLoading: true, refreshProfile: vi.fn() })
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
@@ -27,7 +27,7 @@ describe('AdminRouteGuard', () => {
   })
 
   it('redirects to the unified login when no session', () => {
-    mockUseAuth.mockReturnValue({ session: null, user: null, profile: null, isAdmin: false, isLoading: false })
+    mockUseAuth.mockReturnValue({ session: null, user: null, profile: null, isAdmin: false, isLoading: false, refreshProfile: vi.fn() })
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
@@ -42,7 +42,7 @@ describe('AdminRouteGuard', () => {
   })
 
   it('redirects authenticated non-admins to the trainee workspace', () => {
-    mockUseAuth.mockReturnValue({ session: {} as any, user: {} as any, profile: {} as any, isAdmin: false, isLoading: false })
+    mockUseAuth.mockReturnValue({ session: {} as any, user: {} as any, profile: {} as any, isAdmin: false, isLoading: false, refreshProfile: vi.fn() })
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
@@ -63,6 +63,7 @@ describe('AdminRouteGuard', () => {
       profile: { is_blocked: true } as any,
       isAdmin: false,
       isLoading: false,
+      refreshProfile: vi.fn(),
     })
     render(
       <MemoryRouter initialEntries={['/admin']}>
@@ -78,7 +79,7 @@ describe('AdminRouteGuard', () => {
   })
 
   it('renders children when admin', () => {
-    mockUseAuth.mockReturnValue({ session: {} as any, user: {} as any, profile: {} as any, isAdmin: true, isLoading: false })
+    mockUseAuth.mockReturnValue({ session: {} as any, user: {} as any, profile: {} as any, isAdmin: true, isLoading: false, refreshProfile: vi.fn() })
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>

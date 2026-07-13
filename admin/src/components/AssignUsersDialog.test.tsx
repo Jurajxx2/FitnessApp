@@ -22,15 +22,16 @@ function renderDialog(value: string[] = ['b', 'c']) {
 describe('AssignUsersDialog', () => {
   afterEach(() => cleanup())
 
-  it('renders assignable athletes and assigned-then-blocked users, but hides blocked/admin who were never assigned', () => {
+  it('renders unblocked users including admins and assigned-then-blocked users', () => {
     renderDialog()
     expect(screen.getByText('Assignable Unassigned')).toBeDefined()
     expect(screen.getByText('Assigned Athlete')).toBeDefined()
     // Assigned BEFORE being blocked → still visible so the coach can remove them.
     expect(screen.getByText('Blocked Assigned')).toBeDefined()
-    // Never assigned + blocked/admin → cannot be newly assigned, so not shown.
+    // Never assigned + blocked → cannot be newly assigned, so not shown.
     expect(screen.queryByText('Blocked Unassigned')).toBeNull()
-    expect(screen.queryByText('Coach Admin')).toBeNull()
+    expect(screen.getByText('Coach Admin')).toBeDefined()
+    expect(screen.getByText('Admin')).toBeDefined()
   })
 
   it('footer count matches the assigned users (including the blocked-assigned one)', () => {
@@ -62,6 +63,13 @@ describe('AssignUsersDialog', () => {
     const ids = calls[calls.length - 1][0] as string[]
     expect(ids).toHaveLength(3)
     expect(ids).toEqual(expect.arrayContaining(['a', 'b', 'c']))
+  })
+
+  it('allows an admin profile to be assigned as a user', () => {
+    const { onChange } = renderDialog()
+    fireEvent.click(screen.getByText('Coach Admin'))
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(onChange).toHaveBeenCalledWith(expect.arrayContaining(['e']))
   })
 
   it('"Assigned only" filter still shows an assigned-but-blocked user', () => {

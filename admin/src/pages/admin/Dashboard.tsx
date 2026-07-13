@@ -10,7 +10,7 @@ function useStats() {
     queryKey: ['admin-stats'],
     queryFn: async () => {
       const [users, workouts, mealPlans, recipes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_admin', false),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('workouts').select('id', { count: 'exact', head: true }),
         supabase.from('meal_plans').select('id', { count: 'exact', head: true }),
         supabase.from('recipes').select('id', { count: 'exact', head: true }),
@@ -66,7 +66,6 @@ function useRecentActivity() {
         supabase
           .from('profiles')
           .select('id, full_name, email, created_at')
-          .eq('is_admin', false)
           .order('created_at', { ascending: false })
           .limit(10),
       ])
@@ -174,7 +173,7 @@ export default function Dashboard() {
             <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/users/new')}>
               + Create athlete
             </Button>
-            <Button variant="primary" className="w-full justify-start" onClick={() => navigate('/admin/workouts/new')}>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/workouts/new')}>
               + Create workout plan
             </Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/nutrition/recipes/new')}>

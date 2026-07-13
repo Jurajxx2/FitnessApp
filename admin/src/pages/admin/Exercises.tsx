@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import { Button, ClickableRow, EmptyState, PageHeader, SearchInput, Table, Td, Th, useNotice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { Exercise, ExerciseCategory } from '../../types/database'
-import ImportExercisesModal from './ImportExercisesModal'
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100]
 
@@ -48,7 +47,6 @@ export default function Exercises() {
   const [activeOnly, setActiveOnly] = useState<boolean | null>(null)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(25)
-  const [importModalOpen, setImportModalOpen] = useState(false)
 
   const { data: { data: exercises = [], count: totalCount = 0 } = {}, isLoading, isError } = useExercises(deferredSearch, filterCategory, activeOnly, page, pageSize)
   const { data: categories = [] } = useCategories()
@@ -76,12 +74,7 @@ export default function Exercises() {
       <PageHeader
         title="Exercises"
         description="Maintain the exercise library used by workout plans and athlete substitutions."
-        actions={
-          <>
-            <Button variant="ghost" onClick={() => setImportModalOpen(true)}>Sync library</Button>
-            <Button onClick={() => navigate('/admin/exercises/new')}>Add exercise</Button>
-          </>
-        }
+        actions={<Button onClick={() => navigate('/admin/exercises/new')}>Add exercise</Button>}
       />
 
       <div className="mb-5 flex flex-wrap gap-3">
@@ -120,7 +113,7 @@ export default function Exercises() {
       ) : exercises.length === 0 ? (
         <EmptyState
           title={search || filterCategory !== null || activeOnly !== null ? 'No exercises match these filters' : 'No exercises in the library yet'}
-          description={search || filterCategory !== null || activeOnly !== null ? 'Try a different name, category, or visibility.' : 'Add an exercise or sync a trusted exercise library.'}
+          description={search || filterCategory !== null || activeOnly !== null ? 'Try a different name, category, or visibility.' : 'Add the first exercise manually.'}
           action={search || filterCategory !== null || activeOnly !== null ? undefined : <Button onClick={() => navigate('/admin/exercises/new')}>Add exercise</Button>}
         />
       ) : (
@@ -178,8 +171,6 @@ export default function Exercises() {
           </div>
         </div>
       )}
-
-      <ImportExercisesModal open={importModalOpen} onClose={() => setImportModalOpen(false)} />
     </div>
   )
 }

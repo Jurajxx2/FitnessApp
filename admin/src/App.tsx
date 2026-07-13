@@ -21,6 +21,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Callback = lazy(() => import('./pages/Callback'))
 const NotAdmin = lazy(() => import('./pages/NotAdmin'))
+const Profile = lazy(() => import('./pages/Profile'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
 const Users = lazy(() => import('./pages/admin/Users'))
 const CreateUser = lazy(() => import('./pages/admin/CreateUser'))
@@ -90,6 +91,7 @@ export default function App() {
                   <Route path="/nutrition/log" element={<LogMeal />} />
                   <Route path="/check-ins" element={<CheckInForm />} />
                   <Route path="/check-ins/history" element={<CheckInHistory />} />
+                  <Route path="/profile" element={<Profile />} />
                   <Route path="/activity" element={<ActivityHub />} />
                   <Route path="/activity/workouts" element={<AthleteWorkouts />} />
                   <Route path="/activity/workouts/:workoutId" element={<AthleteWorkouts />} />

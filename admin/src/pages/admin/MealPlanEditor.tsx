@@ -2,6 +2,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { appendUserContext, getUserContextReturn } from '../../lib/adminUserContext'
 import { Button, Card, ConfirmDialog, EditorPage, FormSection, Input, useNotice } from '../../components/ui'
 import { AssignUsersDialog } from '../../components/AssignUsersDialog'
 import type { NutritionTarget, Profile, Recipe } from '../../types/database'
@@ -239,7 +240,7 @@ export default function MealPlanEditor() {
   const savePlan = useMutation({
     mutationFn: async () => {
       const nonEmpty = meals.filter(m => m.recipes.length > 0)
-      const { error } = await supabase.rpc('admin_save_manual_meal_plan', {
+      const { data: savedPlanId, error } = await supabase.rpc('admin_save_manual_meal_plan', {
         p_plan_id: id ?? null,
         p_name: planName,
         p_description: description,
@@ -252,12 +253,17 @@ export default function MealPlanEditor() {
         p_assigned_user_ids: assignedUserIds,
       })
       if (error) throw error
+      return savedPlanId as string
     },
-    onSuccess: () => {
+    onSuccess: savedPlanId => {
       qc.invalidateQueries({ queryKey: ['meal-plans-admin'] })
       qc.invalidateQueries({ queryKey: ['meal-plan-assignment-counts'] })
       notify(isNew ? 'Meal plan created.' : 'Meal plan saved.')
-      navigate('/admin/nutrition?tab=meal-plans')
+      if (initialUserId) {
+        if (isNew) navigate(appendUserContext(`/admin/nutrition/meal-plans/${savedPlanId}`, initialUserId), { replace: true })
+      } else {
+        navigate('/admin/nutrition?tab=meal-plans')
+      }
     },
     onError: error => notify(`Couldn’t save meal plan: ${error.message}`, 'error'),
   })
@@ -277,17 +283,23 @@ export default function MealPlanEditor() {
       fatG: total.fatG + recipe.fat_g,
     }), { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 })
   const targetAthlete = profiles.find(profile => profile.id === initialUserId)
+  const { to: returnTo, label: returnLabel } = getUserContextReturn(
+    initialUserId,
+    targetAthlete,
+    '/admin/nutrition?tab=meal-plans',
+    'Back to meal plans',
+  )
 
   return (
     <EditorPage
-      backTo="/admin/nutrition?tab=meal-plans"
-      backLabel="Back to meal plans"
+      backTo={returnTo}
+      backLabel={returnLabel}
       eyebrow="Weekly nutrition"
       title={isNew ? 'Create meal plan' : planName || 'Edit meal plan'}
       description="Build a reusable seven-day schedule from active recipes, then assign the finished plan to athletes."
       actions={
         <>
-          <Button variant="ghost" onClick={() => navigate('/admin/nutrition?tab=meal-plans')}>Cancel</Button>
+          <Button variant="ghost" onClick={() => navigate(returnTo)}>Cancel</Button>
           <Button onClick={() => savePlan.mutate()} disabled={!planName.trim()} loading={savePlan.isPending}>{isNew ? 'Create plan' : 'Save changes'}</Button>
         </>
       }
@@ -317,7 +329,7 @@ export default function MealPlanEditor() {
             </Card>
           )}
           <Card>
-            <h2 className="text-sm font-bold text-text-primary">Athlete assignments</h2>
+            <h2 className="text-sm font-bold text-text-primary">User assignments</h2>
             <p className="mt-2 text-xs leading-5 text-text-secondary">Assignments are applied atomically when the plan is saved. Replaced plans remain in assignment history.</p>
             <Button variant="ghost" className="mt-4 w-full" onClick={() => setAssignDialogOpen(true)}>Manage assignments</Button>
           </Card>

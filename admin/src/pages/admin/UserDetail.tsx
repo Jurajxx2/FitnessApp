@@ -641,7 +641,7 @@ export default function UserDetail() {
 
   if (isLoading) {
     return (
-      <EditorPage backTo="/admin/users" backLabel="Back to athletes" eyebrow="Athlete profile" title="Loading athlete…">
+      <EditorPage backTo="/admin/users" backLabel="Back to users" eyebrow="User profile" title="Loading user…">
         <Shimmer className="h-96 w-full" />
       </EditorPage>
     )
@@ -649,27 +649,29 @@ export default function UserDetail() {
 
   if (isError || !user) {
     return (
-      <EditorPage backTo="/admin/users" backLabel="Back to athletes" eyebrow="Athlete profile" title="Athlete unavailable">
+      <EditorPage backTo="/admin/users" backLabel="Back to users" eyebrow="User profile" title="User unavailable">
         <EmptyState
-          title="This athlete couldn’t be loaded"
+          title="This user couldn’t be loaded"
           description={error?.message ?? 'The account may no longer exist or you may not have access.'}
-          action={<Button variant="ghost" onClick={() => navigate('/admin/users')}>Back to athletes</Button>}
+          action={<Button variant="ghost" onClick={() => navigate('/admin/users')}>Back to users</Button>}
         />
       </EditorPage>
     )
   }
 
+  const isSelf = user.id === adminUser?.id
+
   return (
     <EditorPage
       backTo="/admin/users"
-      backLabel="Back to athletes"
-      eyebrow="Athlete profile"
+      backLabel="Back to users"
+      eyebrow={user.is_admin ? 'Admin + user profile' : 'Athlete profile'}
       title={user.full_name ?? user.email}
       description={user.email}
       actions={
         <>
           <Badge status={deriveStatus(user)} />
-          <Button variant="ghost" onClick={() => navigate(`/admin/chat?user=${user.id}`)}>Message athlete</Button>
+          {!isSelf && <Button variant="ghost" onClick={() => navigate(`/admin/chat?user=${user.id}`)}>Message user</Button>}
         </>
       }
       aside={
@@ -733,9 +735,9 @@ export default function UserDetail() {
             </Card>
           )}
 
-          <Card className="border-error/30">
+          {!user.is_admin && <Card className="border-error/30">
             <h2 className="text-sm font-bold text-text-primary">Account status flag</h2>
-            <p className="mt-2 text-xs leading-5 text-text-secondary">This marks the profile as blocked for coaches. It does not revoke an existing Supabase session or enforce backend access by itself.</p>
+            <p className="mt-2 text-xs leading-5 text-text-secondary">Blocking immediately denies protected backend data access. The existing auth session may remain signed in until the user signs out or it expires.</p>
             <Button
               variant={user.is_blocked ? 'ghost' : 'danger'}
               className="mt-4 w-full"
@@ -744,7 +746,7 @@ export default function UserDetail() {
             >
               {user.is_blocked ? 'Clear blocked flag' : 'Mark as blocked'}
             </Button>
-          </Card>
+          </Card>}
         </>
       }
     >

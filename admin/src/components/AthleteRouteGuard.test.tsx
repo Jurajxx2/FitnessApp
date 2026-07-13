@@ -10,7 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 const mockUseAuth = vi.mocked(useAuth)
 
 test('redirects unauthenticated athletes to /login', () => {
-  mockUseAuth.mockReturnValue({ session: null, user: null, profile: null, isAdmin: false, isLoading: false })
+  mockUseAuth.mockReturnValue({ session: null, user: null, profile: null, isAdmin: false, isLoading: false, refreshProfile: vi.fn() })
 
   render(
     <MemoryRouter initialEntries={['/nutrition']}>
@@ -33,6 +33,7 @@ test('allows any authenticated athlete session without requiring admin role', ()
     profile: {} as never,
     isAdmin: false,
     isLoading: false,
+    refreshProfile: vi.fn(),
   })
 
   render(
@@ -55,6 +56,7 @@ test('blocks an authenticated athlete whose profile is blocked', () => {
     profile: { is_blocked: true } as never,
     isAdmin: false,
     isLoading: false,
+    refreshProfile: vi.fn(),
   })
 
   render(
@@ -78,6 +80,7 @@ test('redirects an activity-only athlete away from nutrition routes', () => {
     profile: { access_mode: 'activity' } as never,
     isAdmin: false,
     isLoading: false,
+    refreshProfile: vi.fn(),
   })
 
   render(
@@ -102,6 +105,7 @@ test('redirects a nutrition-only athlete away from activity routes', () => {
     profile: { access_mode: 'nutrition' } as never,
     isAdmin: false,
     isLoading: false,
+    refreshProfile: vi.fn(),
   })
 
   render(

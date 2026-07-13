@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { Badge, Button, Chip, ClickableRow, EmptyState, PageHeader, SearchInput, Table, Th, Td } from '../../components/ui'
 import type { Profile } from '../../types/database'
+import { useAuth } from '../../hooks/useAuth'
 
 function useUsers() {
   return useQuery<Profile[]>({
@@ -44,9 +45,10 @@ export default function Users() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'blocked'>('all')
   const navigate = useNavigate()
+  const { user: currentUser } = useAuth()
 
-  const trainees = users.filter(user => !user.is_admin)
-  const filtered = trainees.filter(u => {
+  const athleteCount = users.filter(user => !user.is_admin).length
+  const filtered = users.filter(u => {
     const q = search.toLowerCase()
     const matchesSearch = u.full_name?.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
     const matchesStatus = statusFilter === 'all' || deriveStatus(u) === statusFilter
@@ -61,7 +63,7 @@ export default function Users() {
     <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Users"
-        description={`${trainees.length} athletes`}
+        description={`${users.length} users · ${athleteCount} athletes`}
         actions={<Button onClick={() => navigate('/admin/users/new')}>Create athlete</Button>}
       />
 
@@ -88,16 +90,17 @@ export default function Users() {
         <EmptyState title="Users couldn’t be loaded" description="Refresh the page to retry the request." />
       ) : filtered.length === 0 ? (
         <EmptyState
-          title={search || statusFilter !== 'all' ? 'No users match these filters' : 'No athletes yet'}
-          description={search || statusFilter !== 'all' ? 'Try a different name, email, or status filter.' : 'New athlete accounts will appear here once they join.'}
+          title={search || statusFilter !== 'all' ? 'No users match these filters' : 'No users yet'}
+          description={search || statusFilter !== 'all' ? 'Try a different name, email, or status filter.' : 'New accounts will appear here once they join.'}
         />
       ) : (
         <>
-          <p className="mb-3 text-sm text-text-secondary">Showing {filtered.length} of {trainees.length} athletes</p>
+          <p className="mb-3 text-sm text-text-secondary">Showing {filtered.length} of {users.length} users</p>
           <Table>
             <thead>
               <tr>
                 <Th>User</Th>
+                <Th>Role</Th>
                 <Th>Goal</Th>
                 <Th>Access</Th>
                 <Th>Status</Th>
@@ -122,6 +125,11 @@ export default function Users() {
                         <p className="text-xs text-text-secondary">{user.email}</p>
                       </div>
                     </div>
+                  </Td>
+                  <Td>
+                    <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${user.is_admin ? 'bg-accent/15 text-accent' : 'bg-surface-highest text-text-secondary'}`}>
+                      {user.id === currentUser?.id ? (user.is_admin ? 'Admin · You' : 'You') : (user.is_admin ? 'Admin' : 'Athlete')}
+                    </span>
                   </Td>
                   <Td>{user.goal ? (GOAL_LABELS[user.goal] ?? user.goal) : '—'}</Td>
                   <Td><span className="whitespace-nowrap text-xs font-semibold text-text-primary">{ACCESS_LABELS[user.access_mode ?? 'both']}</span></Td>
