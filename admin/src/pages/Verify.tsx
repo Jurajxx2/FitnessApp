@@ -5,6 +5,30 @@ import { AuthLayout } from '../components/AuthLayout'
 import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
 import { Button } from '../components/ui'
+import { usePublicLocale } from '../i18n/PublicLocale'
+
+const copy = {
+  en: {
+    differentEmail: 'Use a different email',
+    title: 'Check your email',
+    introBefore: 'We sent a 6-digit code to',
+    verify: 'Verify code',
+    resendIn: 'Resend in',
+    resend: 'Resend code',
+    noUser: 'Verification failed: No user returned',
+    genericError: 'An unexpected error occurred. Please try again.',
+  },
+  cs: {
+    differentEmail: 'Použít jiný e-mail',
+    title: 'Zkontrolujte e-mail',
+    introBefore: 'Poslali jsme šestimístný kód na',
+    verify: 'Ověřit kód',
+    resendIn: 'Znovu poslat za',
+    resend: 'Poslat kód znovu',
+    noUser: 'Ověření se nezdařilo: účet nebyl nalezen',
+    genericError: 'Došlo k neočekávané chybě. Zkuste to prosím znovu.',
+  },
+} as const
 
 export default function Verify() {
   const [digits, setDigits] = useState(['', '', '', '', '', ''])
@@ -14,6 +38,8 @@ export default function Verify() {
   const inputs = useRef<Array<HTMLInputElement | null>>([])
   const navigate = useNavigate()
   const [email] = useState(() => sessionStorage.getItem('otp-email') ?? '')
+  const { locale } = usePublicLocale()
+  const t = copy[locale]
 
   useEffect(() => {
     if (!email) navigate('/login/otp')
@@ -71,7 +97,7 @@ export default function Verify() {
       }
 
       if (!data.user) {
-        setError('Verification failed: No user returned')
+        setError(t.noUser)
         setLoading(false)
         return
       }
@@ -90,7 +116,7 @@ export default function Verify() {
       navigate(profile?.is_admin ? '/admin' : '/nutrition', { replace: true })
     } catch (err) {
       logger.error('Unexpected verification error', err)
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.')
+      setError(err instanceof Error ? err.message : t.genericError)
     } finally {
       setLoading(false)
     }
@@ -108,14 +134,14 @@ export default function Verify() {
   return (
     <AuthLayout>
       <Link to="/login/otp" className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary">
-        <ArrowLeft size={16} /> Use a different email
+        <ArrowLeft size={16} /> {t.differentEmail}
       </Link>
       <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-action-secondary text-text-primary">
         <MailCheck size={22} />
       </div>
-        <h1 className="mb-2 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Check your email</h1>
+        <h1 className="mb-2 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{t.title}</h1>
         <p className="mb-8 text-sm leading-6 text-text-secondary">
-          We sent a 6-digit code to <span className="text-text-primary">{email}</span>.
+          {t.introBefore} <span className="text-text-primary">{email}</span>.
         </p>
         <form onSubmit={handleVerify} className="flex flex-col gap-4">
           <div className="flex justify-between gap-2 sm:justify-start">
@@ -136,13 +162,13 @@ export default function Verify() {
           </div>
           {error && <p className="text-center text-xs text-error">{error}</p>}
           <Button type="submit" loading={loading} disabled={digits.join('').length < 6} className="mt-2 min-h-12 w-full">
-            Verify code
+            {t.verify}
           </Button>
         </form>
         <p className="mt-5 text-center text-xs text-text-secondary">
           {resendCooldown > 0
-            ? `Resend in ${resendCooldown}s`
-            : <button onClick={handleResend} className="cursor-pointer border-0 bg-transparent text-text-primary underline">Resend code</button>}
+            ? `${t.resendIn} ${resendCooldown}s`
+            : <button onClick={handleResend} className="cursor-pointer border-0 bg-transparent text-text-primary underline">{t.resend}</button>}
         </p>
     </AuthLayout>
   )

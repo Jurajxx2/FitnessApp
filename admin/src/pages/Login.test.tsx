@@ -23,6 +23,7 @@ function renderLogin() {
   return render(
     <MemoryRouter initialEntries={['/login']}>
       <Routes>
+        <Route path="/" element={<div>Landing page</div>} />
         <Route path="/login" element={<Login />} />
         <Route path="/login/otp" element={<div>OTP email page</div>} />
         <Route path="/login/forgot-password" element={<div>Password recovery page</div>} />
@@ -55,6 +56,12 @@ test('opens password recovery from the password field', async () => {
   renderLogin()
   await userEvent.click(screen.getByRole('link', { name: /forgot password/i }))
   expect(screen.getByText('Password recovery page')).toBeInTheDocument()
+})
+
+test('returns to the public website from the explicit back link', async () => {
+  renderLogin()
+  await userEvent.click(screen.getByRole('link', { name: /back to the website/i }))
+  expect(screen.getByText('Landing page')).toBeInTheDocument()
 })
 
 test('routes an existing admin session to admin', () => {

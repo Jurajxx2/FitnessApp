@@ -11,6 +11,7 @@ import { AthleteAppShell } from './components/AthleteAppShell'
 import { PageViewLogger } from './components/PageViewLogger'
 import { PasswordRecoveryRedirect } from './components/PasswordRecoveryRedirect'
 import { NoticeProvider } from './components/ui'
+import { PublicLocaleProvider } from './i18n/PublicLocale'
 
 const Landing = lazy(() => import('./pages/Landing'))
 const Login = lazy(() => import('./pages/Login'))
@@ -51,19 +52,23 @@ const AthleteExercises = lazy(() => import('./pages/activity/Exercises'))
 const WorkoutHistory = lazy(() => import('./pages/activity/History'))
 const ActivityProgress = lazy(() => import('./pages/activity/Progress'))
 const LogActivity = lazy(() => import('./pages/activity/LogActivity'))
+const LegalPage = lazy(() => import('./pages/LegalPage'))
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
-          <NoticeProvider>
-            <BrowserRouter>
+        <PublicLocaleProvider>
+          <AuthProvider>
+            <NoticeProvider>
+              <BrowserRouter>
               <PageViewLogger />
               <PasswordRecoveryRedirect />
               <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-background text-sm text-text-secondary">Loading workspace…</div>}>
                 <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+              <Route path="/terms" element={<LegalPage kind="terms" />} />
               <Route path="/login" element={<Login />} />
               <Route path="/login/otp" element={<OtpLogin />} />
               <Route path="/login/forgot-password" element={<ForgotPassword />} />
@@ -124,9 +129,10 @@ export default function App() {
               </Route>
                 </Routes>
               </Suspense>
-            </BrowserRouter>
-          </NoticeProvider>
-        </AuthProvider>
+              </BrowserRouter>
+            </NoticeProvider>
+          </AuthProvider>
+        </PublicLocaleProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )
