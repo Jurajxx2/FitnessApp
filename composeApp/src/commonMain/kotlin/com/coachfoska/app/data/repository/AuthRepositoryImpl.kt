@@ -14,48 +14,11 @@ class AuthRepositoryImpl(
     private val userDataSource: UserRemoteDataSource
 ) : AuthRepository {
 
-    override suspend fun getCurrentUser(): User? {
-        val userInfo = authDataSource.getCurrentUserInfo() ?: return null
-        return runCatching { userDataSource.getProfile(userInfo.id).toDomain() }.getOrNull()
-            ?: User(
-                id = userInfo.id,
-                email = userInfo.email ?: "",
-                fullName = null,
-                age = null,
-                heightCm = null,
-                weightKg = null,
-                goal = null,
-                activityLevel = null,
-                onboardingComplete = false
-            )
-    }
-
-    override suspend fun sendEmailOtp(email: String): Result<Unit> =
-        authDataSource.sendEmailOtp(email)
-
-    override suspend fun verifyEmailOtp(email: String, otp: String): Result<User> = runCatching {
-        val userInfo = authDataSource.verifyEmailOtp(email, otp)
-        runCatching { userDataSource.getProfile(userInfo.id).toDomain() }.getOrElse {
-                User(
-                    id = userInfo.id,
-                    email = userInfo.email ?: email,
-                    fullName = null,
-                    age = null,
-                    heightCm = null,
-                    weightKg = null,
-                    goal = null,
-                    activityLevel = null,
-                    onboardingComplete = false
-                )
-            }
-    }
-
-    override suspend fun signInWithEmailPassword(email: String, password: String): Result<User> = runCatching {
-        val userInfo = authDataSource.signInWithEmailPassword(email, password)
-        runCatching { userDataSource.getProfile(userInfo.id).toDomain() }.getOrElse {
+    private suspend fun resolveSignedInUser(userId: String, email: String): User {
+        val user = runCatching { userDataSource.getProfile(userId).toDomain() }.getOrElse {
             User(
-                id = userInfo.id,
-                email = userInfo.email ?: email,
+                id = userId,
+                email = email,
                 fullName = null,
                 age = null,
                 heightCm = null,
@@ -65,6 +28,30 @@ class AuthRepositoryImpl(
                 onboardingComplete = false
             )
         }
+
+        if (user.isBlocked) {
+            runCatching { authDataSource.signOut() }
+            error("This account has been blocked. Contact your coach.")
+        }
+        return user
+    }
+
+    override suspend fun getCurrentUser(): User? {
+        val userInfo = authDataSource.getCurrentUserInfo() ?: return null
+        return runCatching { resolveSignedInUser(userInfo.id, userInfo.email ?: "") }.getOrNull()
+    }
+
+    override suspend fun sendEmailOtp(email: String): Result<Unit> =
+        authDataSource.sendEmailOtp(email)
+
+    override suspend fun verifyEmailOtp(email: String, otp: String): Result<User> = runCatching {
+        val userInfo = authDataSource.verifyEmailOtp(email, otp)
+        resolveSignedInUser(userInfo.id, userInfo.email ?: email)
+    }
+
+    override suspend fun signInWithEmailPassword(email: String, password: String): Result<User> = runCatching {
+        val userInfo = authDataSource.signInWithEmailPassword(email, password)
+        resolveSignedInUser(userInfo.id, userInfo.email ?: email)
     }
 
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> = runCatching {
@@ -73,36 +60,12 @@ class AuthRepositoryImpl(
 
     override suspend fun signInWithGoogleIdToken(idToken: String): Result<User> = runCatching {
         val userInfo = authDataSource.signInWithGoogleIdToken(idToken)
-        runCatching { userDataSource.getProfile(userInfo.id).toDomain() }.getOrElse {
-            User(
-                id = userInfo.id,
-                email = userInfo.email ?: "",
-                fullName = null,
-                age = null,
-                heightCm = null,
-                weightKg = null,
-                goal = null,
-                activityLevel = null,
-                onboardingComplete = false
-            )
-        }
+        resolveSignedInUser(userInfo.id, userInfo.email ?: "")
     }
 
     override suspend fun signInWithApple(idToken: String, nonce: String): Result<User> = runCatching {
         val userInfo = authDataSource.signInWithApple(idToken, nonce)
-        runCatching { userDataSource.getProfile(userInfo.id).toDomain() }.getOrElse {
-            User(
-                id = userInfo.id,
-                email = userInfo.email ?: "",
-                fullName = null,
-                age = null,
-                heightCm = null,
-                weightKg = null,
-                goal = null,
-                activityLevel = null,
-                onboardingComplete = false
-            )
-        }
+        resolveSignedInUser(userInfo.id, userInfo.email ?: "")
     }
 
     override suspend fun signOut(): Result<Unit> = runCatching {

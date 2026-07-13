@@ -16,7 +16,8 @@ data class UserDto(
     @SerialName("weight_kg") val weightKg: Float? = null,
     val goal: String? = null,
     @SerialName("activity_level") val activityLevel: String? = null,
-    @SerialName("onboarding_complete") val onboardingComplete: Boolean = false
+    @SerialName("onboarding_complete") val onboardingComplete: Boolean = false,
+    @SerialName("is_blocked") val isBlocked: Boolean = false
 ) {
     fun toDomain(): User = User(
         id = id,
@@ -27,6 +28,7 @@ data class UserDto(
         weightKg = weightKg,
         goal = FitnessGoal.fromString(goal),
         activityLevel = ActivityLevel.fromString(activityLevel),
-        onboardingComplete = onboardingComplete
+        onboardingComplete = onboardingComplete,
+        isBlocked = isBlocked
     )
 }

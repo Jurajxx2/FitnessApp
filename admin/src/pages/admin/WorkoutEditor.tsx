@@ -96,44 +96,17 @@ export default function WorkoutEditor() {
       if (invalidRows.length) throw new Error(describeInvalidExerciseRows(invalidRows))
 
       const validExercises = exercises.filter(exercise => exercise.name.trim())
-      let workoutId = id
-      if (workoutId) {
-        const { error: updateError } = await supabase.from('workouts').update(form).eq('id', workoutId)
-        if (updateError) throw updateError
-        const { error: deleteError } = await supabase.from('workout_exercises').delete().eq('workout_id', workoutId)
-        if (deleteError) throw deleteError
-      } else {
-        const { data: workout, error: insertError } = await supabase.from('workouts').insert({ ...form, source: 'coach' }).select().single()
-        if (insertError) throw insertError
-        workoutId = workout.id
-      }
-
-      if (validExercises.length) {
-        const { error: exerciseError } = await supabase.from('workout_exercises').insert(
-          validExercises.map((exercise, index) => ({ ...exercise, workout_id: workoutId!, sort_order: index }))
-        )
-        if (exerciseError) throw exerciseError
-      }
-
-      const { data: currentRows, error: currentRowsError } = await supabase
-        .from('user_workouts')
-        .select('user_id')
-        .eq('workout_id', workoutId!)
-      if (currentRowsError) throw currentRowsError
-      const currentIds = new Set((currentRows ?? []).map(row => row.user_id))
-      const newIds = new Set(assignedUserIds)
-      const toAdd = assignedUserIds.filter(userId => !currentIds.has(userId))
-      const toRemove = [...currentIds].filter(userId => !newIds.has(userId))
-      if (toAdd.length) {
-        const { error: addError } = await supabase.from('user_workouts').insert(toAdd.map(userId => ({ workout_id: workoutId!, user_id: userId })))
-        if (addError) throw addError
-      }
-      if (toRemove.length) {
-        const { error: removeError } = await supabase.from('user_workouts').delete().eq('workout_id', workoutId!).in('user_id', toRemove)
-        if (removeError) throw removeError
-      }
-
-      return workoutId!
+      const { data: workoutId, error: saveError } = await supabase.rpc('admin_save_workout', {
+        p_workout_id: id ?? null,
+        p_name: form.name,
+        p_day_of_week: form.day_of_week,
+        p_notes: form.notes,
+        p_is_active: form.is_active,
+        p_exercises: validExercises.map((exercise, index) => ({ ...exercise, sort_order: index })),
+        p_assigned_user_ids: assignedUserIds,
+      })
+      if (saveError) throw saveError
+      return workoutId as string
     },
     onSuccess: workoutId => {
       queryClient.invalidateQueries({ queryKey: ['workouts-admin'] })

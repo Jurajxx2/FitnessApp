@@ -8,21 +8,12 @@ import { supabase } from '../../lib/supabase'
 import RecipeEditor from './RecipeEditor'
 
 vi.mock('../../lib/storage', () => ({ uploadRecipePhoto: vi.fn() }))
-vi.mock('../../lib/supabase', () => ({ supabase: { from: vi.fn() } }))
+vi.mock('../../lib/supabase', () => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }))
 
 function setupSupabase() {
-  const recipeInsert = vi.fn().mockReturnValue({
-    select: vi.fn().mockReturnValue({
-      single: vi.fn().mockResolvedValue({ data: { id: 'recipe-1' }, error: null }),
-    }),
-  })
-  const ingredientInsert = vi.fn().mockResolvedValue({ error: null })
-  vi.mocked(supabase.from).mockImplementation((table: string) => {
-    if (table === 'recipes') return { insert: recipeInsert } as never
-    if (table === 'recipe_ingredients') return { insert: ingredientInsert } as never
-    throw new Error(`Unexpected table in test: ${table}`)
-  })
-  return { recipeInsert, ingredientInsert }
+  const saveRecipe = vi.fn().mockResolvedValue({ data: 'recipe-1', error: null })
+  vi.mocked(supabase.rpc).mockImplementation(saveRecipe)
+  return { saveRecipe }
 }
 
 function renderRecipeEditor() {
@@ -42,7 +33,7 @@ describe('RecipeEditor ingredient validation', () => {
   afterEach(() => cleanup())
 
   it('blocks saving when an ingredient row has macro data but no name', async () => {
-    const { recipeInsert, ingredientInsert } = setupSupabase()
+    const { saveRecipe } = setupSupabase()
     renderRecipeEditor()
     const user = userEvent.setup()
 
@@ -55,12 +46,11 @@ describe('RecipeEditor ingredient validation', () => {
       'Row 1 has a quantity or macro value but no name. Give it a name or clear its values before saving.'
     )
     expect(screen.getByRole('button', { name: 'Add recipe' })).toBeDisabled()
-    expect(recipeInsert).not.toHaveBeenCalled()
-    expect(ingredientInsert).not.toHaveBeenCalled()
+    expect(saveRecipe).not.toHaveBeenCalled()
   })
 
-  it('saves ingredient-derived macros and drops only a pristine row', async () => {
-    const { recipeInsert, ingredientInsert } = setupSupabase()
+  it('sends only named ingredient rows to the atomic recipe RPC', async () => {
+    const { saveRecipe } = setupSupabase()
     renderRecipeEditor()
     const user = userEvent.setup()
 
@@ -77,15 +67,10 @@ describe('RecipeEditor ingredient validation', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Add recipe' }))
 
-    await waitFor(() => expect(recipeInsert).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'Overnight Oats',
-      calories: 300,
-      protein_g: 10,
-      carbs_g: 0,
-      fat_g: 0,
+    await waitFor(() => expect(saveRecipe).toHaveBeenCalledWith('admin_save_recipe', expect.objectContaining({
+      p_name: 'Overnight Oats',
     })))
-    await waitFor(() => expect(ingredientInsert).toHaveBeenCalled())
-    const inserted = ingredientInsert.mock.calls[0][0] as Array<{ name: string }>
+    const inserted = saveRecipe.mock.calls[0][1].p_ingredients as Array<{ name: string }>
     expect(inserted).toHaveLength(1)
     expect(inserted[0]).toMatchObject({ name: 'Oats', calories: 300, protein_g: 10 })
   })

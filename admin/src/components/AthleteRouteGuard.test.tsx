@@ -47,3 +47,26 @@ test('allows any authenticated athlete session without requiring admin role', ()
 
   expect(screen.getByText('Athlete portal')).toBeInTheDocument()
 })
+
+test('blocks an authenticated athlete whose profile is blocked', () => {
+  mockUseAuth.mockReturnValue({
+    session: {} as never,
+    user: {} as never,
+    profile: { is_blocked: true } as never,
+    isAdmin: false,
+    isLoading: false,
+  })
+
+  render(
+    <MemoryRouter initialEntries={['/nutrition']}>
+      <Routes>
+        <Route element={<AthleteRouteGuard />}>
+          <Route path="/nutrition" element={<div>Athlete portal</div>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByText('Account access is blocked')).toBeInTheDocument()
+  expect(screen.queryByText('Athlete portal')).not.toBeInTheDocument()
+})

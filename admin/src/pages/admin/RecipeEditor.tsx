@@ -163,46 +163,29 @@ export default function RecipeEditor() {
       if (ingredientNumbersInvalid || metadataNumbersInvalid) throw new Error('Servings must be greater than zero and numeric values cannot be negative.')
 
       const validIngredients = ingredients.filter(ingredient => ingredient.name.trim())
-      const totals = calcMacros(validIngredients)
       let photoUrl: string | undefined
       if (photoFile) photoUrl = await uploadRecipePhoto(photoFile, form.photo_file_name || photoFile.name)
 
-      const payload: Record<string, unknown> = {
-        name: form.name.trim(),
-        description: form.description.trim() || null,
-        prep_time_min: form.prep_time_min ? Number(form.prep_time_min) : null,
-        cook_time_min: form.cook_time_min ? Number(form.cook_time_min) : null,
-        servings: Number(form.servings),
-        external_id: form.external_id.trim() || null,
-        photo_file_name: form.photo_file_name.trim() || null,
-        difficulty: form.difficulty || null,
-        tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        steps: steps.map(step => step.trim()).filter(Boolean),
-        is_active: form.is_active,
-        featured: form.featured,
-        ...totals,
-        ...(photoUrl !== undefined ? { photo_url: photoUrl } : {}),
-      }
-
-      let recipeId = id
-      if (recipeId) {
-        const { error: updateError } = await supabase.from('recipes').update(payload).eq('id', recipeId)
-        if (updateError) throw updateError
-        const { error: deleteError } = await supabase.from('recipe_ingredients').delete().eq('recipe_id', recipeId)
-        if (deleteError) throw deleteError
-      } else {
-        const { data: recipe, error: insertError } = await supabase.from('recipes').insert(payload).select('id').single()
-        if (insertError) throw insertError
-        recipeId = recipe.id
-      }
-
-      if (validIngredients.length) {
-        const { error: ingredientError } = await supabase.from('recipe_ingredients').insert(
-          validIngredients.map((ingredient, index) => ({ ...ingredient, recipe_id: recipeId!, sort_order: index }))
-        )
-        if (ingredientError) throw ingredientError
-      }
-      return recipeId!
+      const { data: recipeId, error: saveError } = await supabase.rpc('admin_save_recipe', {
+        p_recipe_id: id ?? null,
+        p_name: form.name,
+        p_description: form.description,
+        p_prep_time_min: form.prep_time_min ? Number(form.prep_time_min) : null,
+        p_cook_time_min: form.cook_time_min ? Number(form.cook_time_min) : null,
+        p_servings: Number(form.servings),
+        p_external_id: form.external_id,
+        p_photo_file_name: form.photo_file_name,
+        p_photo_url: photoUrl ?? null,
+        p_replace_photo: Boolean(photoFile),
+        p_difficulty: form.difficulty || null,
+        p_tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        p_steps: steps.map(step => step.trim()).filter(Boolean),
+        p_is_active: form.is_active,
+        p_featured: form.featured,
+        p_ingredients: validIngredients.map((ingredient, index) => ({ ...ingredient, sort_order: index })),
+      })
+      if (saveError) throw saveError
+      return recipeId as string
     },
     onSuccess: recipeId => {
       queryClient.invalidateQueries({ queryKey: ['recipes-admin'] })

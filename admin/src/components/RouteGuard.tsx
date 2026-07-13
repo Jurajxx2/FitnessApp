@@ -1,8 +1,9 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { BlockedAccount } from './BlockedAccount'
 
 export function AdminRouteGuard() {
-  const { session, isAdmin, isLoading } = useAuth()
+  const { session, profile, isAdmin, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -13,6 +14,7 @@ export function AdminRouteGuard() {
   }
 
   if (!session) return <Navigate to="/login" replace />
+  if (profile?.is_blocked) return <BlockedAccount />
   if (!isAdmin) return <Navigate to="/nutrition" replace />
   return <Outlet />
 }

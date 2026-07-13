@@ -110,6 +110,27 @@ class AuthRepositoryImplTest {
     }
 
     @Test
+    fun `signInWithEmailPassword signs out and rejects a blocked profile`() = runTest {
+        val userInfo = mockk<UserInfo> {
+            every { id } returns "user-1"
+            every { email } returns "test@example.com"
+        }
+        coEvery { authDataSource.signInWithEmailPassword(any(), any()) } returns userInfo
+        coEvery { userDataSource.getProfile("user-1") } returns UserDto(
+            id = "user-1",
+            email = "test@example.com",
+            isBlocked = true
+        )
+        coEvery { authDataSource.signOut() } returns Unit
+
+        val result = repository.signInWithEmailPassword("test@example.com", "secret")
+
+        assertTrue(result.isFailure)
+        assertEquals("This account has been blocked. Contact your coach.", result.exceptionOrNull()?.message)
+        coVerify(exactly = 1) { authDataSource.signOut() }
+    }
+
+    @Test
     fun `signInWithEmailPassword returns skeleton user when profile fetch fails`() = runTest {
         val userInfo = mockk<UserInfo> {
             every { id } returns "user-1"

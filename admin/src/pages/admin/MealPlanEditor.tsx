@@ -16,12 +16,6 @@ const MEAL_LABELS: Record<MealType, string> = {
   dinner: 'DINNER',
   snack: 'SNACK',
 }
-const MEAL_TIMES: Record<MealType, string> = {
-  breakfast: '08:00',
-  lunch: '12:30',
-  dinner: '19:00',
-  snack: '16:00',
-}
 
 interface RecipeDraft {
   recipe_id: string
@@ -229,101 +223,20 @@ export default function MealPlanEditor() {
 
   const savePlan = useMutation({
     mutationFn: async () => {
-      let planId: string
-      if (isNew) {
-        const { data, error } = await supabase
-          .from('meal_plans')
-          .insert({ name: planName, description: description || null, is_active: true })
-          .select()
-          .single()
-        if (error) throw error
-        planId = data.id
-      } else {
-        const { error } = await supabase
-          .from('meal_plans')
-          .update({ name: planName, description: description || null })
-          .eq('id', id!)
-        if (error) throw error
-        planId = id!
-      }
-
-      // Invariant: only meals this editor loaded/manages may be deleted. We
-      // remove every meal on the plan EXCEPT the unmanaged rows captured at load
-      // (meal types/days this editor can't render), then re-insert the managed
-      // drafts below — so an edit+save never destroys an unmanaged meal.
-      // (Deleting a meal cascades to meal_plan_recipes + meal_foods.)
-      let deleteMeals = supabase.from('meals').delete().eq('meal_plan_id', planId)
-      if (unmanagedMealIds.length) {
-        deleteMeals = deleteMeals.not('id', 'in', `(${unmanagedMealIds.join(',')})`)
-      }
-      const { error: deleteMealsError } = await deleteMeals
-      if (deleteMealsError) throw deleteMealsError
-
-      // Insert non-empty meal drafts
       const nonEmpty = meals.filter(m => m.recipes.length > 0)
-      for (const draft of nonEmpty) {
-        const { data: meal, error: mErr } = await supabase
-          .from('meals')
-          .insert({
-            meal_plan_id: planId,
-            name: MEAL_LABELS[draft.meal_type],
-            day_of_week: draft.day_of_week,
-            time_of_day: MEAL_TIMES[draft.meal_type],
-            sort_order: draft.day_of_week * MEAL_TYPES.length + MEAL_TYPES.indexOf(draft.meal_type),
-          })
-          .select()
-          .single()
-        if (mErr) throw mErr
-
-        const { error: mprErr } = await supabase.from('meal_plan_recipes').insert(
-          draft.recipes.map(r => ({
-            meal_plan_id: planId,
-            meal_id: meal.id,
-            recipe_id: r.recipe_id,
-          }))
-        )
-        if (mprErr) throw mprErr
-
-        const { error: mfErr } = await supabase.from('meal_foods').insert(
-          draft.recipes.map(r => ({
-            meal_id: meal.id,
-            name: r.recipe_name,
-            amount_grams: 100,
-            calories: r.calories,
-            protein_g: r.protein_g,
-            carbs_g: r.carbs_g,
-            fat_g: r.fat_g,
-          }))
-        )
-        if (mfErr) throw mfErr
-      }
-
-      // Sync user_meal_plans
-      const { data: currentRows, error: currentRowsError } = await supabase
-        .from('user_meal_plans')
-        .select('user_id')
-        .eq('meal_plan_id', planId)
-        .eq('status', 'current')
-      if (currentRowsError) throw currentRowsError
-      const currentIds = new Set((currentRows ?? []).map(r => r.user_id))
-      const newIds = new Set(assignedUserIds)
-
-      const toAdd = assignedUserIds.filter(uid => !currentIds.has(uid))
-      const toRemove = [...currentIds].filter(uid => !newIds.has(uid))
-
-      if (toAdd.length) {
-        const { error } = await supabase.from('user_meal_plans').insert(
-          toAdd.map(uid => ({ meal_plan_id: planId, user_id: uid, status: 'current', effective_from: new Date().toISOString() }))
-        )
-        if (error) throw error
-      }
-      if (toRemove.length) {
-        const { error } = await supabase.from('user_meal_plans').delete()
-          .eq('meal_plan_id', planId)
-          .eq('status', 'current')
-          .in('user_id', toRemove)
-        if (error) throw error
-      }
+      const { error } = await supabase.rpc('admin_save_manual_meal_plan', {
+        p_plan_id: id ?? null,
+        p_name: planName,
+        p_description: description,
+        p_meals: nonEmpty.map(meal => ({
+          day_of_week: meal.day_of_week,
+          meal_type: meal.meal_type,
+          recipes: meal.recipes.map(recipe => recipe.recipe_id),
+        })),
+        p_preserved_meal_ids: unmanagedMealIds,
+        p_assigned_user_ids: assignedUserIds,
+      })
+      if (error) throw error
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['meal-plans-admin'] })
@@ -366,7 +279,7 @@ export default function MealPlanEditor() {
           </Card>
           <Card>
             <h2 className="text-sm font-bold text-text-primary">Athlete assignments</h2>
-            <p className="mt-2 text-xs leading-5 text-text-secondary">Assignments are applied when the plan is saved. A current generated plan may need backend lifecycle handling before it can be replaced.</p>
+            <p className="mt-2 text-xs leading-5 text-text-secondary">Assignments are applied atomically when the plan is saved. Replaced plans remain in assignment history.</p>
             <Button variant="ghost" className="mt-4 w-full" onClick={() => setAssignDialogOpen(true)}>Manage assignments</Button>
           </Card>
         </>

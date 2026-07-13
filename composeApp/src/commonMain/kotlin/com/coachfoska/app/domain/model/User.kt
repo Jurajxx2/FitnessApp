@@ -9,7 +9,8 @@ data class User(
     val weightKg: Float?,
     val goal: FitnessGoal?,
     val activityLevel: ActivityLevel?,
-    val onboardingComplete: Boolean = false
+    val onboardingComplete: Boolean = false,
+    val isBlocked: Boolean = false
 )
 
 enum class ActivityLevel(val displayName: String, val description: String) {

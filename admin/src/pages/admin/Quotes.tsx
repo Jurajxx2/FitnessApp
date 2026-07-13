@@ -29,10 +29,8 @@ export default function Quotes() {
 
   const setActive = useMutation({
     mutationFn: async (id: string) => {
-      const { error: clearError } = await supabase.from('daily_quotes').update({ is_active: false }).neq('id', id)
-      if (clearError) throw clearError
-      const { error: activateError } = await supabase.from('daily_quotes').update({ is_active: true }).eq('id', id)
-      if (activateError) throw activateError
+      const { error } = await supabase.rpc('admin_activate_quote', { p_quote_id: id })
+      if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotes-admin'] })

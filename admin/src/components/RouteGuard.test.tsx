@@ -56,6 +56,27 @@ describe('AdminRouteGuard', () => {
     expect(screen.getByText('Trainee workspace')).toBeInTheDocument()
   })
 
+  it('blocks an authenticated profile before routing by role', () => {
+    mockUseAuth.mockReturnValue({
+      session: {} as any,
+      user: {} as any,
+      profile: { is_blocked: true } as any,
+      isAdmin: false,
+      isLoading: false,
+    })
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <Routes>
+          <Route element={<AdminRouteGuard />}>
+            <Route path="/admin" element={<div>Admin content</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    )
+    expect(screen.getByText('Account access is blocked')).toBeInTheDocument()
+    expect(screen.queryByText('Admin content')).not.toBeInTheDocument()
+  })
+
   it('renders children when admin', () => {
     mockUseAuth.mockReturnValue({ session: {} as any, user: {} as any, profile: {} as any, isAdmin: true, isLoading: false })
     render(
