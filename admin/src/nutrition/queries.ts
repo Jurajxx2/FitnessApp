@@ -9,9 +9,22 @@ export const qk = {
   dailyLogs: (userId: string, date: string) => ['dailyLogs', userId, date] as const,
   foodSearch: (q: string) => ['foodSearch', q] as const,
   favorites: (userId: string) => ['favorites', userId] as const,
+  macroTarget: (userId: string) => ['macroTarget', userId] as const,
 }
 
 type CurrentMealPlanIdRow = { meal_plan_id: string }
+type ActiveNutritionTargetRow = {
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+}
+
+export async function fetchActiveNutritionTarget(userId: string): Promise<ActiveNutritionTargetRow | null> {
+  const { data, error } = await supabase.rpc('get_active_nutrition_target', { p_user_id: userId })
+  if (error) throw error
+  return (data as ActiveNutritionTargetRow[] | null)?.[0] ?? null
+}
 
 export async function fetchActiveMealPlan(userId: string): Promise<MealPlanRow | null> {
   const { data: resolved, error: resolverError } = await supabase

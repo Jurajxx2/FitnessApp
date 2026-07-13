@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Badge, Button, Chip, EmptyState, PageHeader, SearchInput, Table, Th, Td } from '../../components/ui'
+import { Badge, Button, Chip, ClickableRow, EmptyState, PageHeader, SearchInput, Table, Th, Td } from '../../components/ui'
 import type { Profile } from '../../types/database'
 
 function useUsers() {
@@ -32,6 +32,12 @@ const GOAL_LABELS: Record<string, string> = {
   stay_fit: 'Stay fit',
   get_stronger: 'Get stronger',
 }
+
+const ACCESS_LABELS = {
+  both: 'Nutrition + activity',
+  nutrition: 'Nutrition only',
+  activity: 'Activity only',
+} as const
 
 export default function Users() {
   const { data: users = [], isLoading, isError } = useUsers()
@@ -93,6 +99,7 @@ export default function Users() {
               <tr>
                 <Th>User</Th>
                 <Th>Goal</Th>
+                <Th>Access</Th>
                 <Th>Status</Th>
                 <Th>Joined</Th>
                 <Th>{''}</Th>
@@ -100,9 +107,10 @@ export default function Users() {
             </thead>
             <tbody>
               {filtered.map(user => (
-                <tr
+                <ClickableRow
                   key={user.id}
-                  className="hover:bg-surface-highest"
+                  label={`Open ${user.full_name ?? user.email}`}
+                  onActivate={() => openUser(user.id)}
                 >
                   <Td className="text-text-primary">
                     <div className="flex items-center gap-2">
@@ -116,10 +124,11 @@ export default function Users() {
                     </div>
                   </Td>
                   <Td>{user.goal ? (GOAL_LABELS[user.goal] ?? user.goal) : '—'}</Td>
+                  <Td><span className="whitespace-nowrap text-xs font-semibold text-text-primary">{ACCESS_LABELS[user.access_mode ?? 'both']}</span></Td>
                   <Td><Badge status={deriveStatus(user)} /></Td>
                   <Td>{new Date(user.created_at).toLocaleDateString()}</Td>
                   <Td><Button variant="ghost" className="min-h-9 px-3" onClick={() => openUser(user.id)}>Open</Button></Td>
-                </tr>
+                </ClickableRow>
               ))}
             </tbody>
           </Table>

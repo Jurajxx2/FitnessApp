@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Button, ConfirmDialog, EmptyState, PageHeader, Table, Td, Th, useNotice } from '../../components/ui'
+import { Button, ClickableRow, ConfirmDialog, EmptyState, PageHeader, Table, Td, Th, useNotice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { DailyQuote } from '../../types/database'
 
@@ -72,7 +72,7 @@ export default function Quotes() {
           <thead><tr><Th>Quote</Th><Th>Author</Th><Th>Status</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
           <tbody>
             {quotes.map(quote => (
-              <tr key={quote.id} className="hover:bg-surface-highest">
+              <ClickableRow key={quote.id} label={`Open quote by ${quote.author ?? 'unknown author'}`} onActivate={() => navigate(`/admin/quotes/${quote.id}`)}>
                 <Td className="max-w-xl"><p className="line-clamp-2 text-sm font-medium text-text-primary">“{quote.text}”</p></Td>
                 <Td>{quote.author ?? '—'}</Td>
                 <Td>{quote.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}</Td>
@@ -83,7 +83,7 @@ export default function Quotes() {
                     <Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(quote)}>Delete</Button>
                   </div>
                 </Td>
-              </tr>
+              </ClickableRow>
             ))}
           </tbody>
         </Table>

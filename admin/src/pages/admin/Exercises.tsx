@@ -1,7 +1,7 @@
 import { useDeferredValue, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Button, EmptyState, PageHeader, SearchInput, Table, Td, Th, useNotice } from '../../components/ui'
+import { Button, ClickableRow, EmptyState, PageHeader, SearchInput, Table, Td, Th, useNotice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { Exercise, ExerciseCategory } from '../../types/database'
 import ImportExercisesModal from './ImportExercisesModal'
@@ -130,7 +130,7 @@ export default function Exercises() {
           </thead>
           <tbody>
             {exercises.map(exercise => (
-              <tr key={exercise.id} className="hover:bg-surface-highest">
+              <ClickableRow key={exercise.id} label={`Open ${exercise.name_en}`} onActivate={() => navigate(`/admin/exercises/${exercise.id}`)}>
                 <Td>
                   <div className="flex items-center gap-3">
                     {exercise.image_url ? <img src={exercise.image_url} alt="" className="h-10 w-10 flex-shrink-0 rounded-xl object-cover" /> : <div className="h-10 w-10 flex-shrink-0 rounded-xl bg-surface-highest" />}
@@ -153,7 +153,7 @@ export default function Exercises() {
                   </button>
                 </Td>
                 <Td><Button variant="ghost" className="min-h-9" onClick={() => navigate(`/admin/exercises/${exercise.id}`)}>Open</Button></Td>
-              </tr>
+              </ClickableRow>
             ))}
           </tbody>
         </Table>

@@ -140,11 +140,13 @@ fun HomeScreen(
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.md)) {
-                        DsMetricCard(
-                            value = state.weekWorkoutsDone.toString(),
-                            label = stringResource(Res.string.home_metric_week_workouts),
-                            modifier = Modifier.weight(1f),
-                        )
+                        if (state.user?.accessMode?.canAccessActivity != false) {
+                            DsMetricCard(
+                                value = state.weekWorkoutsDone.toString(),
+                                label = stringResource(Res.string.home_metric_week_workouts),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                         DsMetricCard(
                             value = state.currentWeightKg?.let { formatWeightKg(it) } ?: "--",
                             label = stringResource(Res.string.home_metric_weight),
@@ -156,11 +158,13 @@ fun HomeScreen(
                             animateValue = false,
                             modifier = Modifier.weight(1f),
                         )
-                        DsMetricCard(
-                            value = state.streakWeeks.toString(),
-                            label = stringResource(Res.string.home_metric_streak),
-                            modifier = Modifier.weight(1f),
-                        )
+                        if (state.user?.accessMode?.canAccessActivity != false) {
+                            DsMetricCard(
+                                value = state.streakWeeks.toString(),
+                                label = stringResource(Res.string.home_metric_streak),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                     if (state.metricsError) {
                         TextButton(onClick = { onIntent(HomeIntent.RetryMetrics) }) {
@@ -172,7 +176,7 @@ fun HomeScreen(
 
             if (!state.isLoading && !state.isFirstRun) {
                 // Weekly Activity
-                run {
+                if (state.user?.accessMode?.canAccessActivity != false) run {
                     val today = todayDate()
                     val zone = TimeZone.currentSystemDefault()
                     val weeklyDays = remember(state.workouts, state.workoutHistory, today, zone) {
@@ -192,7 +196,7 @@ fun HomeScreen(
                 }
 
                 // Nutrition Summary
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (state.user?.accessMode?.canAccessNutrition != false) Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
                         text = stringResource(Res.string.daily_nutrition),
                         style = MaterialTheme.typography.labelLarge,
@@ -325,4 +329,3 @@ private fun WaterProgressRow(consumedMl: Int, goalMl: Int, onClick: () -> Unit, 
         )
     }
 }
-

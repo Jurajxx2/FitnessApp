@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { Button, Input } from '../components/ui'
 import { useAuth } from '../hooks/useAuth'
+import { athleteHomePath } from '../lib/access'
 import { supabase } from '../lib/supabase'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
@@ -52,13 +53,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
-  const { session, isAdmin, isLoading: authLoading } = useAuth()
+  const { session, profile, isAdmin, isLoading: authLoading } = useAuth()
   const { locale } = usePublicLocale()
   const t = copy[locale]
 
   useEffect(() => {
-    if (!authLoading && session) navigate(isAdmin ? '/admin' : '/nutrition', { replace: true })
-  }, [authLoading, isAdmin, navigate, session])
+    if (!authLoading && session) navigate(isAdmin ? '/admin' : athleteHomePath(profile), { replace: true })
+  }, [authLoading, isAdmin, navigate, profile, session])
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()

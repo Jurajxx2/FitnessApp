@@ -11,6 +11,7 @@ import com.coachfoska.app.domain.model.Meal
 import com.coachfoska.app.domain.model.MealFood
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealPlan
+import com.coachfoska.app.domain.model.MacroTargets
 import com.coachfoska.app.domain.model.RecipeIngredient
 import com.coachfoska.app.domain.model.User
 import com.coachfoska.app.domain.repository.MealRepository
@@ -18,6 +19,7 @@ import com.coachfoska.app.domain.repository.UserRepository
 import com.coachfoska.app.domain.usecase.nutrition.AnalyzeMealPhotoUseCase
 import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetActiveNutritionTargetUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
@@ -67,6 +69,7 @@ class NutritionViewModelTest {
         toggleFavoriteRecipeUseCase = ToggleFavoriteRecipeUseCase(repo),
         getRecipeByIdUseCase = GetRecipeByIdUseCase(repo),
         getDailyNutritionSummaryUseCase = GetDailyNutritionSummaryUseCase(repo),
+        getActiveNutritionTargetUseCase = GetActiveNutritionTargetUseCase(repo),
         calculateMacroTargetsUseCase = CalculateMacroTargetsUseCase(),
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         lookupFoodByBarcodeUseCase = LookupFoodByBarcodeUseCase(offDataSource),
@@ -79,6 +82,7 @@ class NutritionViewModelTest {
         coEvery { repo.getActiveMealPlan(any()) } returns Result.success(null)
         coEvery { repo.getDailyNutritionSummary(any(), any()) } returns
             Result.success(DailyNutritionSummary(1200f, 80f, 100f, 40f))
+        coEvery { repo.getActiveNutritionTarget(any()) } returns Result.success(null)
         coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())
     }
     @AfterTest fun tearDown() = Dispatchers.resetMain()
@@ -426,6 +430,16 @@ class NutritionViewModelTest {
 
         assertNull(vm.state.value.barcodeFood)
         assertFalse(vm.state.value.barcodeNotFound)
+    }
+
+    @Test
+    fun `active coach target overrides the calculated profile fallback`() = runTest {
+        val coachTarget = MacroTargets(calories = 2450f, proteinG = 180f, carbsG = 260f, fatG = 75f)
+        coEvery { repo.getActiveNutritionTarget(any()) } returns Result.success(coachTarget)
+
+        val vm = viewModel()
+
+        assertEquals(coachTarget, vm.state.value.macroTargets)
     }
 }
 

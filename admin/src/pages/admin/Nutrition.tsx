@@ -2,7 +2,7 @@ import { useDeferredValue, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Star } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Button, Chip, ConfirmDialog, EmptyState, PageHeader, SearchInput, Table, Td, Th, useNotice } from '../../components/ui'
+import { Button, Chip, ClickableRow, ConfirmDialog, EmptyState, PageHeader, SearchInput, Table, Td, Th, useNotice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { Food, MealPlan, Recipe } from '../../types/database'
 import RecipeImportModal from './RecipeImportModal'
@@ -65,7 +65,7 @@ function FoodsTab() {
           <thead><tr><Th>Food</Th><Th>Serving</Th><Th>Calories</Th><Th>Macros</Th><Th>Quality</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
           <tbody>
             {foods.map(food => (
-              <tr key={food.id} className="hover:bg-surface-highest">
+              <ClickableRow key={food.id} label={`Open ${food.name}`} onActivate={() => navigate(`/admin/nutrition/foods/${food.id}`)}>
                 <Td><p className="font-semibold text-text-primary">{food.name}</p><p className="text-xs text-text-secondary">{food.brand ?? 'No brand'}</p></Td>
                 <Td>{food.serving_size}{food.serving_unit}</Td>
                 <Td>{Math.round(food.calories)} kcal</Td>
@@ -77,7 +77,7 @@ function FoodsTab() {
                     <Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(food)}>Delete</Button>
                   </div>
                 </Td>
-              </tr>
+              </ClickableRow>
             ))}
           </tbody>
         </Table>
@@ -115,6 +115,7 @@ function RecipesTab() {
   const [search, setSearch] = useState('')
   const [importOpen, setImportOpen] = useState(false)
   const [photoUploadOpen, setPhotoUploadOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
   const deferredSearch = useDeferredValue(search)
   const { data: recipes = [], isLoading, isError } = useRecipes(deferredSearch)
 
@@ -129,6 +130,20 @@ function RecipesTab() {
       notify('is_active' in variables.patch ? (variables.patch.is_active ? 'Recipe restored.' : 'Recipe archived.') : 'Featured recipe updated.')
     },
     onError: error => notify(`Couldn’t update recipe: ${error.message}`, 'error'),
+  })
+
+  const deleteRecipe = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.from('recipes').delete().eq('id', id).select('id').maybeSingle()
+      if (error) throw error
+      if (!data) throw new Error('No recipe was deleted')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes-admin'] })
+      setDeleteTarget(null)
+      notify('Recipe deleted.')
+    },
+    onError: error => notify(`Couldn’t delete recipe: ${error.message}`, 'error'),
   })
 
   return (
@@ -157,7 +172,7 @@ function RecipesTab() {
           <thead><tr><Th>Recipe</Th><Th>Difficulty</Th><Th>Macros</Th><Th>Status</Th><Th>Featured</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
           <tbody>
             {recipes.map(recipe => (
-              <tr key={recipe.id} className="hover:bg-surface-highest">
+              <ClickableRow key={recipe.id} label={`Open ${recipe.name}`} onActivate={() => navigate(`/admin/nutrition/recipes/${recipe.id}`)}>
                 <Td>
                   <div className="flex min-w-64 items-center gap-3">
                     {recipe.photo_url ? <img src={recipe.photo_url} alt="" className="h-12 w-16 flex-shrink-0 rounded-xl object-cover" /> : <div className="h-12 w-16 flex-shrink-0 rounded-xl bg-surface-highest" />}
@@ -183,9 +198,10 @@ function RecipesTab() {
                     <Button variant={recipe.is_active ? 'danger' : 'secondary'} className="min-h-9 px-3" onClick={() => updateRecipe.mutate({ id: recipe.id, patch: { is_active: !recipe.is_active } })}>
                       {recipe.is_active ? 'Archive' : 'Restore'}
                     </Button>
+                    <Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(recipe)}>Delete</Button>
                   </div>
                 </Td>
-              </tr>
+              </ClickableRow>
             ))}
           </tbody>
         </Table>
@@ -193,6 +209,14 @@ function RecipesTab() {
 
       <RecipeImportModal open={importOpen} onClose={() => setImportOpen(false)} />
       <RecipePhotoUploadModal open={photoUploadOpen} onClose={() => setPhotoUploadOpen(false)} />
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete recipe permanently?"
+        description={<>“{deleteTarget?.name}” will be removed from the library. Historical meal-plan entries keep their saved nutrition snapshot.</>}
+        pending={deleteRecipe.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteRecipe.mutate(deleteTarget.id)}
+      />
     </>
   )
 }
@@ -261,12 +285,12 @@ function MealPlansTab() {
           <thead><tr><Th>Plan</Th><Th>Assigned to</Th><Th>Status</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
           <tbody>
             {mealPlans.map(plan => (
-              <tr key={plan.id} className="hover:bg-surface-highest">
+              <ClickableRow key={plan.id} label={`Open ${plan.name}`} onActivate={() => navigate(`/admin/nutrition/meal-plans/${plan.id}`)}>
                 <Td><p className="font-semibold text-text-primary">{plan.name}</p><p className="max-w-xl truncate text-xs text-text-secondary">{plan.description ?? 'No description'}</p></Td>
                 <Td>{assignmentCounts[plan.id] ?? 0} current</Td>
                 <Td>{plan.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}</Td>
                 <Td><div className="flex justify-end gap-2"><Button variant="ghost" className="min-h-9 px-3" onClick={() => navigate(`/admin/nutrition/meal-plans/${plan.id}`)}>Open</Button><Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(plan)}>Delete</Button></div></Td>
-              </tr>
+              </ClickableRow>
             ))}
           </tbody>
         </Table>

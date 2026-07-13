@@ -4,6 +4,7 @@ export type Goal = 'build_muscle' | 'lose_weight' | 'stay_fit' | 'get_stronger'
 export type RecipeDifficulty = 'easy' | 'medium' | 'hard'
 export type ActivityLevel = 'sedentary' | 'lightly_active' | 'moderately_active' | 'active' | 'very_active'
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+export type AccessMode = 'nutrition' | 'activity' | 'both'
 
 export interface Profile {
   id: string
@@ -18,6 +19,7 @@ export interface Profile {
   onboarding_complete: boolean
   is_admin: boolean
   is_blocked: boolean
+  access_mode: AccessMode
   admin_notes: string | null
   created_at: string
   updated_at: string
@@ -129,8 +131,26 @@ export interface MealPlan {
   valid_from: string | null
   valid_to: string | null
   is_active: boolean
+  origin?: 'manual' | 'generated'
   created_at: string
   updated_at: string
+}
+
+export interface NutritionTarget {
+  id: string
+  user_id: string
+  source: 'calculated' | 'user' | 'admin'
+  created_by: string | null
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  fiber_g_min: number | null
+  version: number
+  is_locked: boolean
+  effective_from: string
+  effective_to: string | null
+  created_at: string
 }
 
 export interface Meal {

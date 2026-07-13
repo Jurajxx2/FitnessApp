@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { usePublicLocale } from '../i18n/PublicLocale'
+import { athleteHomePath } from '../lib/access'
 
 export default function Callback() {
   const navigate = useNavigate()
@@ -15,10 +16,10 @@ export default function Callback() {
     async function resolveDestination(session: Session) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('is_admin, access_mode')
         .eq('id', session.user.id)
         .single()
-      if (active) navigate(profile?.is_admin ? '/admin' : '/nutrition', { replace: true })
+      if (active) navigate(profile?.is_admin ? '/admin' : athleteHomePath(profile), { replace: true })
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {

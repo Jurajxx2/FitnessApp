@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Image as ImageIcon, Sparkles } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Button, Card, EditorPage, EmptyState, FormSection, Input, Shimmer, StatRow, useNotice } from '../../components/ui'
+import { Button, Card, ConfirmDialog, EditorPage, EmptyState, FormSection, Input, Shimmer, StatRow, useNotice } from '../../components/ui'
 import { uploadRecipePhoto } from '../../lib/storage'
 import { supabase } from '../../lib/supabase'
 import type { Recipe, RecipeDifficulty, RecipeIngredient } from '../../types/database'
@@ -109,6 +109,7 @@ export default function RecipeEditor() {
   const [ingredients, setIngredients] = useState<IngredientDraft[]>([blankIngredient(0)])
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -196,6 +197,22 @@ export default function RecipeEditor() {
     onError: mutationError => notify(`Couldn’t save recipe: ${mutationError.message}`, 'error'),
   })
 
+  const deleteRecipe = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error('Recipe is missing')
+      const { data: deleted, error: deleteError } = await supabase.from('recipes').delete().eq('id', id).select('id').maybeSingle()
+      if (deleteError) throw deleteError
+      if (!deleted) throw new Error('No recipe was deleted')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes-admin'] })
+      queryClient.removeQueries({ queryKey: ['recipe-admin', id] })
+      notify('Recipe deleted.')
+      navigate('/admin/nutrition?tab=recipes', { replace: true })
+    },
+    onError: mutationError => notify(`Couldn’t delete recipe: ${mutationError.message}`, 'error'),
+  })
+
   function selectPhoto(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null
     setPhotoFile(file)
@@ -225,6 +242,7 @@ export default function RecipeEditor() {
       description="Build the recipe as athletes will experience it: clear instructions, useful imagery, reliable serving information, and ingredient-derived macros."
       actions={
         <>
+          {!isNew && <Button variant="danger" onClick={() => setDeleteDialogOpen(true)}>Delete recipe</Button>}
           <Button variant="ghost" onClick={() => navigate('/admin/nutrition?tab=recipes')}>Cancel</Button>
           <Button onClick={() => saveRecipe.mutate()} loading={saveRecipe.isPending} disabled={formInvalid}>{isNew ? 'Add recipe' : 'Save changes'}</Button>
         </>
@@ -343,6 +361,14 @@ export default function RecipeEditor() {
       </FormSection>
 
       {saveRecipe.error && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">{saveRecipe.error.message}</p>}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Delete recipe permanently?"
+        description={<>“{form.name}” will be removed from the recipe library. Historical meal-plan entries keep their saved nutrition snapshot.</>}
+        pending={deleteRecipe.isPending}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={() => deleteRecipe.mutate()}
+      />
     </EditorPage>
   )
 }

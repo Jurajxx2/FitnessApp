@@ -13,6 +13,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import com.coachfoska.app.domain.model.Food
+import com.coachfoska.app.domain.model.MacroTargets
 
 @Serializable
 data class FoodDto(
@@ -69,6 +70,26 @@ data class GetCurrentMealPlanIdParams(
 data class CurrentMealPlanIdDto(
     @SerialName("meal_plan_id") val mealPlanId: String
 )
+
+@Serializable
+data class GetActiveNutritionTargetParams(
+    @SerialName("p_user_id") val userId: String
+)
+
+@Serializable
+data class NutritionTargetDto(
+    val calories: Float,
+    @SerialName("protein_g") val proteinG: Float,
+    @SerialName("carbs_g") val carbsG: Float,
+    @SerialName("fat_g") val fatG: Float,
+) {
+    fun toDomain(): MacroTargets = MacroTargets(
+        calories = calories,
+        proteinG = proteinG,
+        carbsG = carbsG,
+        fatG = fatG,
+    )
+}
 
 @Serializable
 data class MealDto(

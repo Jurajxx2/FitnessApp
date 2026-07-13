@@ -18,6 +18,10 @@ class MealRepositoryImpl(
     private val mealPhotoDataSource: MealPhotoDataSource
 ) : MealRepository {
 
+    override suspend fun getActiveNutritionTarget(userId: String) = runCatching {
+        mealDataSource.getActiveNutritionTarget(userId)?.toDomain()
+    }
+
     override suspend fun getRecipes(): Result<List<Recipe>> = runCatching {
         mealDataSource.getRecipes().map { it.toDomain() }
     }

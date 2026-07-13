@@ -3,6 +3,7 @@ package com.coachfoska.app.data.remote.dto
 import com.coachfoska.app.domain.model.ActivityLevel
 import com.coachfoska.app.domain.model.User
 import com.coachfoska.app.domain.model.FitnessGoal
+import com.coachfoska.app.domain.model.AccessMode
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -17,7 +18,8 @@ data class UserDto(
     val goal: String? = null,
     @SerialName("activity_level") val activityLevel: String? = null,
     @SerialName("onboarding_complete") val onboardingComplete: Boolean = false,
-    @SerialName("is_blocked") val isBlocked: Boolean = false
+    @SerialName("is_blocked") val isBlocked: Boolean = false,
+    @SerialName("access_mode") val accessMode: String = "both",
 ) {
     fun toDomain(): User = User(
         id = id,
@@ -29,6 +31,7 @@ data class UserDto(
         goal = FitnessGoal.fromString(goal),
         activityLevel = ActivityLevel.fromString(activityLevel),
         onboardingComplete = onboardingComplete,
-        isBlocked = isBlocked
+        isBlocked = isBlocked,
+        accessMode = AccessMode.fromString(accessMode),
     )
 }

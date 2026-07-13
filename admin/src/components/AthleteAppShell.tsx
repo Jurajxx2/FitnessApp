@@ -12,14 +12,15 @@ import {
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
+import { canAccessActivity, canAccessNutrition } from '../lib/access'
 import { AthletePageTransition } from './AthletePageTransition'
 
 const NAV = [
-  { to: '/nutrition', label: 'Today', icon: UtensilsCrossed, end: true },
-  { to: '/activity', label: 'Activity', icon: Dumbbell, end: false },
-  { to: '/nutrition/plan', label: 'Meal plan', icon: CalendarDays, end: false },
-  { to: '/nutrition/recipes', label: 'Recipes', icon: BookOpen, end: false },
-  { to: '/check-ins', label: 'Check-in', icon: ClipboardCheck, end: false },
+  { to: '/nutrition', label: 'Today', icon: UtensilsCrossed, end: true, feature: 'nutrition' },
+  { to: '/activity', label: 'Activity', icon: Dumbbell, end: false, feature: 'activity' },
+  { to: '/nutrition/plan', label: 'Meal plan', icon: CalendarDays, end: false, feature: 'nutrition' },
+  { to: '/nutrition/recipes', label: 'Recipes', icon: BookOpen, end: false, feature: 'nutrition' },
+  { to: '/check-ins', label: 'Check-in', icon: ClipboardCheck, end: false, feature: 'shared' },
 ]
 
 function pageTitle(pathname: string) {
@@ -51,6 +52,11 @@ export function AthleteAppShell() {
     .map(part => part[0])
     .join('')
     .toUpperCase()
+  const visibleNav = NAV.filter(item =>
+    item.feature === 'shared'
+    || (item.feature === 'nutrition' && canAccessNutrition(profile))
+    || (item.feature === 'activity' && canAccessActivity(profile))
+  )
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -68,7 +74,7 @@ export function AthleteAppShell() {
 
         <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
           <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">Your coaching</p>
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {visibleNav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -121,7 +127,7 @@ export function AthleteAppShell() {
         </main>
 
         <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-outline-subtle bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {visibleNav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}

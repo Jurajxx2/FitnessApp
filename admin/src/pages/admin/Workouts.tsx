@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Button, ConfirmDialog, EmptyState, PageHeader, SearchInput, Table, Td, Th, useNotice } from '../../components/ui'
+import { Button, ClickableRow, ConfirmDialog, EmptyState, PageHeader, SearchInput, Table, Td, Th, useNotice } from '../../components/ui'
 import type { Workout, WorkoutExercise } from '../../types/database'
 
 export const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -130,7 +130,7 @@ export default function Workouts() {
           </thead>
           <tbody>
             {visibleWorkouts.map(workout => (
-              <tr key={workout.id} className="hover:bg-surface-highest">
+              <ClickableRow key={workout.id} label={`Open ${workout.name}`} onActivate={() => navigate(`/admin/workouts/${workout.id}`)}>
                 <Td className="font-semibold text-text-primary">{workout.name}</Td>
                 <Td>{workout.day_of_week !== null ? DAYS[workout.day_of_week] : 'Any day'}</Td>
                 <Td>{workout.exercise_count} exercises</Td>
@@ -143,7 +143,7 @@ export default function Workouts() {
                     <Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(workout)}>Delete</Button>
                   </div>
                 </Td>
-              </tr>
+              </ClickableRow>
             ))}
           </tbody>
         </Table>

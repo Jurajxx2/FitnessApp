@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Dumbbell, Users } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AssignUsersDialog } from '../../components/AssignUsersDialog'
 import { ExerciseBrowserSlideOver } from '../../components/ExerciseBrowserSlideOver'
 import { ExerciseCombobox } from '../../components/ExerciseCombobox'
@@ -68,6 +68,8 @@ export default function WorkoutEditor() {
   const { id } = useParams<{ id: string }>()
   const isNew = !id
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const initialUserId = searchParams.get('user')
   const queryClient = useQueryClient()
   const { notify } = useNotice()
   const { data, isLoading, isError, error } = useWorkoutEditorData(id)
@@ -89,6 +91,10 @@ export default function WorkoutEditor() {
     setExercises(data.exercises.length > 0 ? data.exercises : [blankExercise()])
     setAssignedUserIds(data.assignedUserIds)
   }, [data])
+
+  useEffect(() => {
+    if (isNew && initialUserId) setAssignedUserIds([initialUserId])
+  }, [initialUserId, isNew])
 
   const saveWorkout = useMutation({
     mutationFn: async () => {

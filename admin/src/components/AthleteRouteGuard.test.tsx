@@ -70,3 +70,51 @@ test('blocks an authenticated athlete whose profile is blocked', () => {
   expect(screen.getByText('Account access is blocked')).toBeInTheDocument()
   expect(screen.queryByText('Athlete portal')).not.toBeInTheDocument()
 })
+
+test('redirects an activity-only athlete away from nutrition routes', () => {
+  mockUseAuth.mockReturnValue({
+    session: {} as never,
+    user: {} as never,
+    profile: { access_mode: 'activity' } as never,
+    isAdmin: false,
+    isLoading: false,
+  })
+
+  render(
+    <MemoryRouter initialEntries={['/nutrition/recipes']}>
+      <Routes>
+        <Route element={<AthleteRouteGuard />}>
+          <Route path="/nutrition/recipes" element={<div>Nutrition recipes</div>} />
+          <Route path="/activity" element={<div>Activity home</div>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByText('Activity home')).toBeInTheDocument()
+  expect(screen.queryByText('Nutrition recipes')).not.toBeInTheDocument()
+})
+
+test('redirects a nutrition-only athlete away from activity routes', () => {
+  mockUseAuth.mockReturnValue({
+    session: {} as never,
+    user: {} as never,
+    profile: { access_mode: 'nutrition' } as never,
+    isAdmin: false,
+    isLoading: false,
+  })
+
+  render(
+    <MemoryRouter initialEntries={['/activity/workouts']}>
+      <Routes>
+        <Route element={<AthleteRouteGuard />}>
+          <Route path="/activity/workouts" element={<div>Activity workouts</div>} />
+          <Route path="/nutrition" element={<div>Nutrition home</div>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByText('Nutrition home')).toBeInTheDocument()
+  expect(screen.queryByText('Activity workouts')).not.toBeInTheDocument()
+})

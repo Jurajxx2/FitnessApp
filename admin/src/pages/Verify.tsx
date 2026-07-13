@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
+import { athleteHomePath } from '../lib/access'
 import { Button } from '../components/ui'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
@@ -104,7 +105,7 @@ export default function Verify() {
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('is_admin, access_mode')
         .eq('id', data.user.id)
         .single()
 
@@ -113,7 +114,7 @@ export default function Verify() {
       }
 
       sessionStorage.removeItem('otp-email')
-      navigate(profile?.is_admin ? '/admin' : '/nutrition', { replace: true })
+      navigate(profile?.is_admin ? '/admin' : athleteHomePath(profile), { replace: true })
     } catch (err) {
       logger.error('Unexpected verification error', err)
       setError(err instanceof Error ? err.message : t.genericError)

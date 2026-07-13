@@ -1,10 +1,10 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Button, Card, ConfirmDialog, EditorPage, FormSection, Input, useNotice } from '../../components/ui'
 import { AssignUsersDialog } from '../../components/AssignUsersDialog'
-import type { Profile, Recipe } from '../../types/database'
+import type { NutritionTarget, Profile, Recipe } from '../../types/database'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const
 const DAY_SHORTS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
@@ -103,12 +103,23 @@ function useProfiles() {
 export default function MealPlanEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const initialUserId = searchParams.get('user')
   const qc = useQueryClient()
   const { notify } = useNotice()
   const isNew = !id
 
   const { data: recipes = [] } = useRecipes()
   const { data: profiles = [] } = useProfiles()
+  const { data: target } = useQuery<NutritionTarget | null>({
+    queryKey: ['admin-nutrition-target', initialUserId],
+    enabled: isNew && Boolean(initialUserId),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_active_nutrition_target', { p_user_id: initialUserId! })
+      if (error) throw error
+      return (data as NutritionTarget[] | null)?.[0] ?? null
+    },
+  })
 
   const [planName, setPlanName] = useState('')
   const [description, setDescription] = useState('')
@@ -120,6 +131,10 @@ export default function MealPlanEditor() {
   const [assignedUserIds, setAssignedUserIds] = useState<string[]>([])
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
+
+  useEffect(() => {
+    if (isNew && initialUserId) setAssignedUserIds([initialUserId])
+  }, [initialUserId, isNew])
 
   useEffect(() => {
     if (isNew) return
@@ -253,6 +268,15 @@ export default function MealPlanEditor() {
 
   const selectedDayRecipeCount = MEAL_TYPES.reduce((sum, type) => sum + getDraft(selectedDay, type).recipes.length, 0)
   const weeklyRecipeCount = meals.reduce((sum, meal) => sum + meal.recipes.length, 0)
+  const selectedDayMacros = MEAL_TYPES
+    .flatMap(type => getDraft(selectedDay, type).recipes)
+    .reduce((total, recipe) => ({
+      calories: total.calories + recipe.calories,
+      proteinG: total.proteinG + recipe.protein_g,
+      carbsG: total.carbsG + recipe.carbs_g,
+      fatG: total.fatG + recipe.fat_g,
+    }), { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 })
+  const targetAthlete = profiles.find(profile => profile.id === initialUserId)
 
   return (
     <EditorPage
@@ -277,6 +301,21 @@ export default function MealPlanEditor() {
               <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Assignments</span><span className="font-semibold text-text-primary">{assignedUserIds.length}</span></div>
             </div>
           </Card>
+          {isNew && initialUserId && (
+            <Card>
+              <h2 className="text-sm font-bold text-text-primary">Target-aware plan</h2>
+              <p className="mt-2 text-xs text-text-secondary">Preassigned to {targetAthlete?.full_name ?? targetAthlete?.email ?? 'the selected athlete'}.</p>
+              {target ? (
+                <div className="mt-4 space-y-2 text-xs">
+                  <div className="flex justify-between gap-3"><span className="text-text-secondary">Calories</span><span className="font-semibold text-text-primary">{Math.round(selectedDayMacros.calories)} / {Math.round(target.calories)}</span></div>
+                  <div className="flex justify-between gap-3"><span className="text-text-secondary">Protein</span><span className="font-semibold text-text-primary">{Math.round(selectedDayMacros.proteinG)}g / {Math.round(target.protein_g)}g</span></div>
+                  <div className="flex justify-between gap-3"><span className="text-text-secondary">Carbs</span><span className="font-semibold text-text-primary">{Math.round(selectedDayMacros.carbsG)}g / {Math.round(target.carbs_g)}g</span></div>
+                  <div className="flex justify-between gap-3"><span className="text-text-secondary">Fat</span><span className="font-semibold text-text-primary">{Math.round(selectedDayMacros.fatG)}g / {Math.round(target.fat_g)}g</span></div>
+                  <p className="border-t border-outline-subtle pt-2 text-text-secondary">Values compare the selected day with the athlete’s active coach target.</p>
+                </div>
+              ) : <p className="mt-3 text-xs text-error">No active macro target was found.</p>}
+            </Card>
+          )}
           <Card>
             <h2 className="text-sm font-bold text-text-primary">Athlete assignments</h2>
             <p className="mt-2 text-xs leading-5 text-text-secondary">Assignments are applied atomically when the plan is saved. Replaced plans remain in assignment history.</p>

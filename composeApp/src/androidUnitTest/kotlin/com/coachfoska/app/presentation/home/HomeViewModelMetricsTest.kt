@@ -15,6 +15,7 @@ import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
 import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
 import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetActiveNutritionTargetUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
@@ -53,6 +54,7 @@ class HomeViewModelMetricsTest {
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         getAssignedWorkoutsUseCase = GetAssignedWorkoutsUseCase(workoutRepo),
         getDailyNutritionSummaryUseCase = GetDailyNutritionSummaryUseCase(mealRepo),
+        getActiveNutritionTargetUseCase = GetActiveNutritionTargetUseCase(mealRepo),
         observeChatMessagesUseCase = ObserveChatMessagesUseCase(chatRepo),
         hydrationRepository = hydrationRepo,
         calculateWaterGoalUseCase = CalculateWaterGoalUseCase(),
@@ -69,6 +71,7 @@ class HomeViewModelMetricsTest {
         Dispatchers.setMain(testDispatcher)
         every { chatRepo.observeMessages(any(), any()) } returns flowOf(emptyList())
         coEvery { hydrationRepo.getTodayLogs(any()) } returns Result.success(emptyList())
+        coEvery { mealRepo.getActiveNutritionTarget(any()) } returns Result.success(null)
         coEvery { hydrationRepo.getContainers(any()) } returns Result.success(emptyList())
         coEvery { workoutRepo.getWorkoutHistory(any()) } returns Result.success(emptyList())
         coEvery { userRepo.getProfile(any()) } returns Result.success(aUser())

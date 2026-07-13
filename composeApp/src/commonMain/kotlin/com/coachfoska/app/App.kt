@@ -24,6 +24,7 @@ import androidx.navigation.toRoute
 import com.coachfoska.app.core.logging.AppLogger
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.SessionAuthState
+import com.coachfoska.app.domain.model.AccessMode
 import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.navigation.*
 import com.coachfoska.app.ui.auth.EmailOtpRoute
@@ -88,6 +89,7 @@ fun App(openHumanChat: Boolean = false) {
         val observeSession = koinInject<ObserveSessionUseCase>()
         val sessionState by observeSession().collectAsState()
         val authenticatedUserId = (sessionState as? SessionAuthState.Authenticated)?.user?.id
+        val accessMode = (sessionState as? SessionAuthState.Authenticated)?.user?.accessMode ?: AccessMode.BOTH
 
         LaunchedEffect(openHumanChat, authenticatedUserId) {
             if (openHumanChat && authenticatedUserId != null) {
@@ -120,11 +122,21 @@ fun App(openHumanChat: Boolean = false) {
                 currentRoute.toBottomNavTab() ?: BottomNavTab.Home
             }
         }
+        val availableTabs = remember(accessMode) {
+            BottomNavTab.entries.filter { it.isAvailableFor(accessMode) }
+        }
+
+        LaunchedEffect(currentRoute, authenticatedUserId, accessMode) {
+            val currentTab = currentRoute.toBottomNavTab()
+            if (authenticatedUserId != null && currentTab != null && !currentTab.isAvailableFor(accessMode)) {
+                navController.navigateToBottomTab(BottomNavTab.Home, resetToRoot = true)
+            }
+        }
 
         Scaffold(
             bottomBar = {
                 if (showBottomBar) {
-                    val tabs = BottomNavTab.entries.map { tab ->
+                    val tabs = availableTabs.map { tab ->
                         DsBottomNavItem(id = tab.name, icon = tab.icon, label = stringResource(tab.labelRes))
                     }
                     DsBottomNav(
@@ -741,6 +753,12 @@ private fun BottomNavTab.rootRoute(): Any = when (this) {
     BottomNavTab.Coach -> Chat
     BottomNavTab.Nutrition -> MealPlan
     BottomNavTab.Profile -> Profile
+}
+
+private fun BottomNavTab.isAvailableFor(accessMode: AccessMode): Boolean = when (this) {
+    BottomNavTab.Activity -> accessMode.canAccessActivity
+    BottomNavTab.Nutrition -> accessMode.canAccessNutrition
+    else -> true
 }
 
 private fun String?.toBottomNavTab(): BottomNavTab? {

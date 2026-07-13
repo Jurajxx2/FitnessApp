@@ -54,6 +54,7 @@ import com.coachfoska.app.domain.usecase.exercise.GetExercisesUseCase
 import com.coachfoska.app.domain.usecase.exercise.GetFavoriteExerciseIdsUseCase
 import com.coachfoska.app.domain.usecase.exercise.ToggleFavoriteExerciseUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetActiveNutritionTargetUseCase
 import com.coachfoska.app.domain.usecase.recipe.ScaleRecipeUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
@@ -237,6 +238,7 @@ val useCaseModule = module {
 
     // Nutrition
     factory { GetActiveMealPlanUseCase(get()) }
+    factory { GetActiveNutritionTargetUseCase(get()) }
     factory { AnalyzeMealPhotoUseCase(get()) }
     factory { LogMealUseCase(get()) }
     factory { GetMealHistoryUseCase(get()) }
@@ -276,10 +278,10 @@ val viewModelModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::AuthViewModel)
     viewModelOf(::SettingsViewModel)
-    viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> ActivityLogViewModel(get(), get(), userId) }
-    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (recipeId: String, userId: String) -> RecipeDetailViewModel(get(), get(), get(), get(), recipeId, userId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }

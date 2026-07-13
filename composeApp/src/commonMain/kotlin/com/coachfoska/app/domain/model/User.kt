@@ -10,8 +10,23 @@ data class User(
     val goal: FitnessGoal?,
     val activityLevel: ActivityLevel?,
     val onboardingComplete: Boolean = false,
-    val isBlocked: Boolean = false
+    val isBlocked: Boolean = false,
+    val accessMode: AccessMode = AccessMode.BOTH,
 )
+
+enum class AccessMode {
+    NUTRITION,
+    ACTIVITY,
+    BOTH;
+
+    val canAccessNutrition: Boolean get() = this != ACTIVITY
+    val canAccessActivity: Boolean get() = this != NUTRITION
+
+    companion object {
+        fun fromString(value: String?): AccessMode =
+            entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: BOTH
+    }
+}
 
 enum class ActivityLevel(val displayName: String, val description: String) {
     SEDENTARY("Sedentary", "Little or no exercise"),

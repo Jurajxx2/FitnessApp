@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { calcMacroTargets, sumMacros, type Macros } from './calc'
 import {
   qk, fetchActiveMealPlan, fetchRecipes, fetchRecipe, fetchMealHistory,
-  fetchDailyLogs, searchFoods, fetchFavoriteIds,
+  fetchDailyLogs, searchFoods, fetchFavoriteIds, fetchActiveNutritionTarget,
 } from './queries'
 
 export function useActiveMealPlan() {
@@ -34,9 +34,14 @@ export function useDailySummary(date: string): { data: Macros; isLoading: boolea
   return { data: sumMacros(foods), isLoading }
 }
 export function useMacroTargets(): Macros | null {
-  const { profile } = useAuth()
-  if (!profile) return null
-  return calcMacroTargets(profile)
+  const { user, profile } = useAuth()
+  const { data } = useQuery({
+    queryKey: qk.macroTarget(user?.id ?? ''),
+    queryFn: () => fetchActiveNutritionTarget(user!.id),
+    enabled: !!user,
+  })
+  if (data) return data
+  return profile ? calcMacroTargets(profile) : null
 }
 export function useFoodSearch(query: string) {
   return useQuery({

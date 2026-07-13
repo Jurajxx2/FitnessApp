@@ -1,6 +1,7 @@
 package com.coachfoska.app.presentation.home
 
 import com.coachfoska.app.domain.model.DailyNutritionSummary
+import com.coachfoska.app.domain.model.AccessMode
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.repository.ChatRepository
 import com.coachfoska.app.domain.repository.HydrationRepository
@@ -14,6 +15,7 @@ import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
 import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
 import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetActiveNutritionTargetUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
@@ -57,6 +59,7 @@ class HomeViewModelTest {
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         getAssignedWorkoutsUseCase = GetAssignedWorkoutsUseCase(workoutRepo),
         getDailyNutritionSummaryUseCase = GetDailyNutritionSummaryUseCase(mealRepo),
+        getActiveNutritionTargetUseCase = GetActiveNutritionTargetUseCase(mealRepo),
         observeChatMessagesUseCase = ObserveChatMessagesUseCase(chatRepo),
         hydrationRepository = hydrationRepo,
         calculateWaterGoalUseCase = CalculateWaterGoalUseCase(),
@@ -73,6 +76,7 @@ class HomeViewModelTest {
         Dispatchers.setMain(testDispatcher)
         every { chatRepo.observeMessages(any(), any()) } returns flowOf(emptyList())
         coEvery { hydrationRepo.getTodayLogs(any()) } returns Result.success(emptyList())
+        coEvery { mealRepo.getActiveNutritionTarget(any()) } returns Result.success(null)
         coEvery { hydrationRepo.getContainers(any()) } returns Result.success(emptyList())
         coEvery { workoutRepo.getWorkoutHistory(any()) } returns Result.success(emptyList())
         coEvery { userRepo.getWeightHistory(any()) } returns Result.success(emptyList())
@@ -277,5 +281,33 @@ class HomeViewModelTest {
         assertTrue(vm.state.value.workoutHistory.isEmpty())
         assertFalse(vm.state.value.isLoading)
         assertNull(vm.state.value.error)
+    }
+
+    @Test
+    fun `nutrition-only access skips activity data loads`() = runTest {
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser().copy(accessMode = AccessMode.NUTRITION))
+        coEvery { mealRepo.getDailyNutritionSummary(any(), any()) } returns Result.success(DailyNutritionSummary(1200f, 90f, 100f, 40f))
+
+        val vm = viewModel()
+
+        assertFalse(vm.state.value.isFirstRun)
+        assertNotNull(vm.state.value.nutritionSummary)
+        coVerify(exactly = 0) { workoutRepo.getAssignedWorkouts(any()) }
+        coVerify(exactly = 0) { workoutRepo.getWorkoutHistory(any()) }
+        coVerify(exactly = 0) { workoutRepo.getCurrentStreak(any()) }
+    }
+
+    @Test
+    fun `activity-only access skips nutrition and hydration data loads`() = runTest {
+        coEvery { userRepo.getProfile(any()) } returns Result.success(aUser().copy(accessMode = AccessMode.ACTIVITY))
+        coEvery { workoutRepo.getAssignedWorkouts(any()) } returns Result.success(emptyList())
+
+        val vm = viewModel()
+
+        assertNull(vm.state.value.nutritionSummary)
+        coVerify(exactly = 0) { mealRepo.getDailyNutritionSummary(any(), any()) }
+        coVerify(exactly = 0) { mealRepo.getActiveNutritionTarget(any()) }
+        coVerify(exactly = 0) { hydrationRepo.getTodayLogs(any()) }
+        coVerify(exactly = 0) { hydrationRepo.getContainers(any()) }
     }
 }

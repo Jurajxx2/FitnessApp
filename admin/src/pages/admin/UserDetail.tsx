@@ -1,12 +1,13 @@
 // admin/src/pages/admin/UserDetail.tsx
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { Badge, Button, Card, EditorPage, EmptyState, Input, Shimmer, useNotice } from '../../components/ui'
+import { Badge, Button, Card, EditorPage, EmptyState, Shimmer, useNotice } from '../../components/ui'
 import { BodyFocusMap } from '../../components/BodyFocusMap'
 import { CheckInsSection } from './CheckInsSection'
+import { AthleteManagementPanel } from './AthleteManagementPanel'
 import type {
   ExerciseLog,
   MealLog,
@@ -48,7 +49,7 @@ function useWorkoutPlans() {
   return useQuery<Pick<Workout, 'id' | 'name'>[]>({
     queryKey: ['workout-plans'],
     queryFn: async () => {
-      const { data } = await supabase.from('workouts').select('id, name').order('name')
+      const { data } = await supabase.from('workouts').select('id, name').eq('source', 'coach').eq('is_active', true).order('name')
       return (data ?? []) as Pick<Workout, 'id' | 'name'>[]
     },
   })
@@ -228,7 +229,7 @@ function useMealPlans() {
   return useQuery<Pick<MealPlan, 'id' | 'name'>[]>({
     queryKey: ['meal-plans-admin'],
     queryFn: async () => {
-      const { data } = await supabase.from('meal_plans').select('id, name').order('name')
+      const { data } = await supabase.from('meal_plans').select('id, name').eq('origin', 'manual').eq('is_active', true).order('name')
       return data ?? []
     },
   })
@@ -265,11 +266,6 @@ const GOAL_LABELS: Record<string, string> = {
   stay_fit: 'Stay fit',
   get_stronger: 'Get stronger',
 }
-const ACTIVITY_LABELS: Record<string, string> = {
-  sedentary: 'Sedentary', lightly_active: 'Lightly active',
-  moderately_active: 'Moderately active', active: 'Active', very_active: 'Very active',
-}
-
 function deriveStatus(p: Profile): 'active' | 'inactive' | 'blocked' {
   if (p.is_blocked) return 'blocked'
   if (!p.onboarding_complete) return 'inactive'
@@ -587,12 +583,6 @@ export default function UserDetail() {
   const mealLogs = useRecentMealLogs(id!)
   const { data: workoutFeedback = [] } = useWorkoutFeedback(id!)
 
-  const [adminNotes, setAdminNotes] = useState('')
-
-  useEffect(() => {
-    setAdminNotes(user?.admin_notes ?? '')
-  }, [user?.admin_notes])
-
   const updateProfile = useMutation({
     mutationFn: async (patch: Partial<Profile>) => {
       const { error } = await supabase.from('profiles').update(patch).eq('id', id!)
@@ -702,20 +692,6 @@ export default function UserDetail() {
             </div>
           </Card>
 
-          <Card>
-            <h2 className="mb-4 text-sm font-bold text-text-primary">Profile</h2>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-              <Field label="Full name" value={user.full_name} />
-              <Field label="Age" value={user.age} />
-              <Field label="Height" value={user.height_cm ? `${user.height_cm} cm` : null} />
-              <Field label="Weight" value={user.weight_kg ? `${user.weight_kg} kg` : null} />
-              <Field label="Goal" value={user.goal ? GOAL_LABELS[user.goal] : null} />
-              <Field label="Activity" value={user.activity_level ? ACTIVITY_LABELS[user.activity_level] : null} />
-              <Field label="Joined" value={new Date(user.created_at).toLocaleDateString()} />
-              <Field label="Onboarding" value={user.onboarding_complete ? 'Complete' : 'Incomplete'} />
-            </div>
-          </Card>
-
           {onboarding && (
             <Card>
               <h2 className="mb-4 text-sm font-bold text-text-primary">Onboarding</h2>
@@ -743,34 +719,6 @@ export default function UserDetail() {
             </Card>
           )}
 
-          <Card>
-            <h2 className="mb-4 text-sm font-bold text-text-primary">Assignments</h2>
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Current meal plan</p>
-                <p className="mt-1 text-sm font-medium text-text-primary">
-                  {userMealPlanId
-                    ? (mealPlans.find(plan => plan.id === userMealPlanId)?.name ?? `Assigned plan ${userMealPlanId.slice(0, 8)}…`)
-                    : 'None assigned'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Workout plans</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {userWorkoutPlanIds.length > 0 ? userWorkoutPlanIds.map(workoutId => (
-                    <span key={workoutId} className="rounded-full border border-outline bg-surface px-2.5 py-1 text-xs text-text-primary">
-                      {workoutPlans.find(plan => plan.id === workoutId)?.name ?? 'Unknown plan'}
-                    </span>
-                  )) : <span className="text-sm text-text-secondary">None assigned</span>}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 border-t border-outline-subtle pt-4">
-                <Button variant="ghost" className="px-2 text-xs" onClick={() => navigate('/admin/nutrition?tab=meal-plans')}>Meal plans</Button>
-                <Button variant="ghost" className="px-2 text-xs" onClick={() => navigate('/admin/workouts')}>Workouts</Button>
-              </div>
-            </div>
-          </Card>
-
           {weightHistory.length > 0 && (
             <Card>
               <h2 className="mb-3 text-sm font-bold text-text-primary">Weight history</h2>
@@ -784,24 +732,6 @@ export default function UserDetail() {
               </div>
             </Card>
           )}
-
-          <Card>
-            <Input
-              label="Private admin notes"
-              value={adminNotes}
-              onChange={event => setAdminNotes(event.target.value)}
-              placeholder="Context only coaches can see…"
-            />
-            <Button
-              variant="ghost"
-              className="mt-3 w-full"
-              onClick={() => updateProfile.mutate({ admin_notes: adminNotes })}
-              loading={updateProfile.isPending}
-              disabled={adminNotes === (user.admin_notes ?? '')}
-            >
-              Save notes
-            </Button>
-          </Card>
 
           <Card className="border-error/30">
             <h2 className="text-sm font-bold text-text-primary">Account status flag</h2>
@@ -818,6 +748,14 @@ export default function UserDetail() {
         </>
       }
     >
+      <AthleteManagementPanel
+        user={user}
+        mealPlans={mealPlans}
+        workoutPlans={workoutPlans}
+        currentMealPlanId={userMealPlanId}
+        currentWorkoutIds={userWorkoutPlanIds}
+      />
+
       <Card>
         <WorkoutLogsSection
           logs={workoutLogs.data ?? []}

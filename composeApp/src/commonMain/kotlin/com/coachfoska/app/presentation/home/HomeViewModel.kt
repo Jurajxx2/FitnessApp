@@ -13,6 +13,7 @@ import com.coachfoska.app.domain.usecase.hydration.CalculateWaterGoalUseCase
 import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
 import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetActiveNutritionTargetUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.GetAssignedWorkoutsUseCase
@@ -37,6 +38,7 @@ class HomeViewModel(
     private val getUserProfileUseCase: GetUserProfileUseCase,
     private val getAssignedWorkoutsUseCase: GetAssignedWorkoutsUseCase,
     private val getDailyNutritionSummaryUseCase: GetDailyNutritionSummaryUseCase,
+    private val getActiveNutritionTargetUseCase: GetActiveNutritionTargetUseCase,
     private val observeChatMessagesUseCase: ObserveChatMessagesUseCase,
     private val hydrationRepository: HydrationRepository,
     private val calculateWaterGoalUseCase: CalculateWaterGoalUseCase,
@@ -97,36 +99,41 @@ class HomeViewModel(
                 .dayOfWeek
                 .ordinal // 0=Monday in kotlinx.datetime
 
-            val profileDeferred = async { getUserProfileUseCase(userId) }
-            val workoutsDeferred = async { getAssignedWorkoutsUseCase(userId) }
-            val historyDeferred = async { getWorkoutHistoryUseCase(userId) }
-            val nutritionDeferred = async { getDailyNutritionSummaryUseCase(userId, today) }
+            val profileResult = getUserProfileUseCase(userId)
+            val loadedUser = profileResult.getOrNull()
+            val canAccessActivity = loadedUser?.accessMode?.canAccessActivity ?: true
+            val canAccessNutrition = loadedUser?.accessMode?.canAccessNutrition ?: true
+            val workoutsDeferred = if (canAccessActivity) async { getAssignedWorkoutsUseCase(userId) } else null
+            val historyDeferred = if (canAccessActivity) async { getWorkoutHistoryUseCase(userId) } else null
+            val nutritionDeferred = if (canAccessNutrition) async { getDailyNutritionSummaryUseCase(userId, today) } else null
+            val macroTargetDeferred = if (canAccessNutrition) async { getActiveNutritionTargetUseCase(userId) } else null
             val chatDeferred = async {
                 runCatching {
                     observeChatMessagesUseCase(userId, ChatType.Human).first().lastOrNull()
                 }.getOrNull()
             }
-            val waterLogsDeferred = async { hydrationRepository.getTodayLogs(userId) }
-            val containersDeferred = async { getWaterContainersUseCase(userId) }
+            val waterLogsDeferred = if (canAccessNutrition) async { hydrationRepository.getTodayLogs(userId) } else null
+            val containersDeferred = if (canAccessNutrition) async { getWaterContainersUseCase(userId) } else null
             val weightHistoryDeferred = async { getWeightHistoryUseCase(userId) }
-            val streakDeferred = async { workoutRepository.getCurrentStreak(userId) }
+            val streakDeferred = if (canAccessActivity) async { workoutRepository.getCurrentStreak(userId) } else null
 
-            val profileResult = profileDeferred.await()
-            val workoutsResult = workoutsDeferred.await()
-            val historyResult = historyDeferred.await()
-            val nutritionResult = nutritionDeferred.await()
+            val workoutsResult = workoutsDeferred?.await() ?: Result.success(emptyList())
+            val historyResult = historyDeferred?.await() ?: Result.success(emptyList())
+            val nutritionResult = nutritionDeferred?.await() ?: Result.success(null)
+            val macroTargetResult = macroTargetDeferred?.await() ?: Result.success(null)
             val lastCoachMessage = chatDeferred.await()
-            val waterLogsResult = waterLogsDeferred.await()
-            val containers = containersDeferred.await().getOrDefault(emptyList())
+            val waterLogsResult = waterLogsDeferred?.await() ?: Result.success(emptyList())
+            val containers = containersDeferred?.await()?.getOrDefault(emptyList()) ?: emptyList()
             val waterConsumed = waterLogsResult.getOrDefault(emptyList()).sumOf { it.amountMl }
             val waterGoal = profileResult.getOrNull()?.let { calculateWaterGoalUseCase(it) } ?: 2000
             val quickAddVolume = (containers.firstOrNull { it.isFavorite } ?: containers.firstOrNull())?.volumeMl ?: 250
             val weightResult = weightHistoryDeferred.await()
-            val streakResult = streakDeferred.await()
+            val streakResult = streakDeferred?.await() ?: Result.success(0)
 
             profileResult.onFailure { e -> Napier.e("loadProfile failed", e, tag = TAG) }
             workoutsResult.onFailure { e -> Napier.e("loadWorkouts failed", e, tag = TAG) }
             nutritionResult.onFailure { e -> Napier.e("loadNutrition failed", e, tag = TAG) }
+            macroTargetResult.onFailure { e -> Napier.e("loadMacroTarget failed; using calculated fallback", e, tag = TAG) }
             waterLogsResult.onFailure { e -> Napier.e("loadWaterLogs failed", e, tag = TAG) }
             historyResult.onFailure { e -> Napier.e("loadHistory failed", e, tag = TAG) }
             weightResult.onFailure { e -> Napier.e("loadWeightHistory failed", e, tag = TAG) }
@@ -138,7 +145,6 @@ class HomeViewModel(
 
             val workouts = workoutsResult.getOrNull() ?: emptyList()
             val todayWorkout = workouts.firstOrNull { it.dayOfWeek?.index == todayDayOfWeek }
-            val loadedUser = profileResult.getOrNull()
             val workoutHistory = historyResult.getOrDefault(emptyList())
 
             val weekWorkoutsDone =
@@ -148,7 +154,7 @@ class HomeViewModel(
 
             val streakWeeks = streakResult.getOrDefault(0)
             // First-run: no workout history AND no coach-assigned workouts
-            val isFirstRun = workoutHistory.isEmpty() && workouts.isEmpty()
+            val isFirstRun = canAccessActivity && workoutHistory.isEmpty() && workouts.isEmpty()
             // Metrics error is non-fatal — other cards still render
             val metricsError = weightResult.isFailure || streakResult.isFailure
 
@@ -160,7 +166,8 @@ class HomeViewModel(
                     workouts = workouts,
                     workoutHistory = workoutHistory,
                     nutritionSummary = nutritionResult.getOrNull(),
-                    macroTargets = loadedUser?.let { u -> calculateMacroTargetsUseCase(u) },
+                    macroTargets = macroTargetResult.getOrNull()
+                        ?: loadedUser?.let { u -> calculateMacroTargetsUseCase(u) },
                     lastCoachMessage = lastCoachMessage,
                     hasUnreadCoachMessage = lastCoachMessage != null && lastCoachMessage != clearedCoachMessage,
                     waterConsumedMl = waterConsumed,

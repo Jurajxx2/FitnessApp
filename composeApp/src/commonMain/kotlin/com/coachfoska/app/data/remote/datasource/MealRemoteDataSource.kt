@@ -6,6 +6,8 @@ import com.coachfoska.app.data.remote.dto.MealLogFoodInsertDto
 import com.coachfoska.app.data.remote.dto.MealLogInsertDto
 import com.coachfoska.app.data.remote.dto.CurrentMealPlanIdDto
 import com.coachfoska.app.data.remote.dto.GetCurrentMealPlanIdParams
+import com.coachfoska.app.data.remote.dto.GetActiveNutritionTargetParams
+import com.coachfoska.app.data.remote.dto.NutritionTargetDto
 import com.coachfoska.app.data.remote.dto.MealPlanDto
 import com.coachfoska.app.data.remote.dto.RecipeDetailDto
 import com.coachfoska.app.data.remote.dto.RecipeDto
@@ -21,6 +23,12 @@ import kotlinx.serialization.Serializable
 private const val RECIPE_FAVORITES_TABLE = "recipe_favorites"
 
 class MealRemoteDataSource(private val supabase: SupabaseClient) {
+
+    suspend fun getActiveNutritionTarget(userId: String): NutritionTargetDto? =
+        supabase.postgrest
+            .rpc("get_active_nutrition_target", GetActiveNutritionTargetParams(userId))
+            .decodeList<NutritionTargetDto>()
+            .firstOrNull()
 
     suspend fun getActiveMealPlan(userId: String): MealPlanDto? {
         val mealPlanId = supabase.postgrest

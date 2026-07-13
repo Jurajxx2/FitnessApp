@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.usecase.nutrition.AnalyzeMealPhotoUseCase
 import com.coachfoska.app.domain.usecase.nutrition.CalculateMacroTargetsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetActiveMealPlanUseCase
+import com.coachfoska.app.domain.usecase.nutrition.GetActiveNutritionTargetUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetDailyNutritionSummaryUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.GetMealHistoryUseCase
@@ -38,6 +39,7 @@ class NutritionViewModel(
     private val toggleFavoriteRecipeUseCase: ToggleFavoriteRecipeUseCase,
     private val getRecipeByIdUseCase: GetRecipeByIdUseCase,
     private val getDailyNutritionSummaryUseCase: GetDailyNutritionSummaryUseCase,
+    private val getActiveNutritionTargetUseCase: GetActiveNutritionTargetUseCase,
     private val calculateMacroTargetsUseCase: CalculateMacroTargetsUseCase,
     private val getUserProfileUseCase: GetUserProfileUseCase,
     private val lookupFoodByBarcodeUseCase: LookupFoodByBarcodeUseCase,
@@ -274,14 +276,18 @@ class NutritionViewModel(
             val today = todayDate()
             val summaryDeferred = async { getDailyNutritionSummaryUseCase(userId, today) }
             val profileDeferred = async { getUserProfileUseCase(userId) }
+            val targetDeferred = async { getActiveNutritionTargetUseCase(userId) }
 
             val summaryResult = summaryDeferred.await()
             val profileResult = profileDeferred.await()
+            val targetResult = targetDeferred.await()
 
             summaryResult.onFailure { e -> Napier.e("loadDailySummary summary failed", e, tag = TAG) }
             profileResult.onFailure { e -> Napier.e("loadDailySummary profile failed", e, tag = TAG) }
+            targetResult.onFailure { e -> Napier.e("loadDailySummary target failed; using calculated fallback", e, tag = TAG) }
 
-            val targets = profileResult.getOrNull()?.let { calculateMacroTargetsUseCase(it) }
+            val targets = targetResult.getOrNull()
+                ?: profileResult.getOrNull()?.let { calculateMacroTargetsUseCase(it) }
             _state.update {
                 it.copy(
                     isSummaryLoading = false,

@@ -5,10 +5,14 @@ import com.coachfoska.app.domain.model.Food
 import com.coachfoska.app.domain.model.MealLog
 import com.coachfoska.app.domain.model.MealLogFood
 import com.coachfoska.app.domain.model.MealPlan
+import com.coachfoska.app.domain.model.MacroTargets
 import com.coachfoska.app.domain.model.Recipe
 import kotlinx.datetime.LocalDate
 
 interface MealRepository {
+    /** Returns the effective versioned nutrition target, preferring coach goals. */
+    suspend fun getActiveNutritionTarget(userId: String): Result<MacroTargets?>
+
     /** Returns the active coach-assigned meal plan for the user. */
     suspend fun getActiveMealPlan(userId: String): Result<MealPlan?>
 
