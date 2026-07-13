@@ -120,7 +120,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
 
   return (
-    <div className="max-w-5xl p-4 sm:p-6">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
       <PageHeader title="Dashboard" description="Your coaching workspace at a glance." />
 
       {/* Stats */}
@@ -171,16 +171,19 @@ export default function Dashboard() {
         <Card>
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">Quick Actions</p>
           <div className="flex flex-col gap-2">
-            <Button variant="primary" className="w-full justify-start" onClick={() => navigate('/admin/workouts?new=1')}>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/users/new')}>
+              + Create athlete
+            </Button>
+            <Button variant="primary" className="w-full justify-start" onClick={() => navigate('/admin/workouts/new')}>
               + Create workout plan
             </Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/nutrition?tab=recipes&new=recipe')}>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/nutrition/recipes/new')}>
               + Add recipe
             </Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/nutrition/meal-plans/new')}>
               + Create meal plan
             </Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/quotes')}>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/admin/quotes/new')}>
               ✏️ Update active quote
             </Button>
           </div>

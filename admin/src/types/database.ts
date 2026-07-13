@@ -54,6 +54,9 @@ export interface Workout {
   is_active: boolean
   created_at: string
   updated_at: string
+  source?: 'coach' | 'user'
+  owner_user_id?: string | null
+  forked_from_workout_id?: string | null
 }
 
 export interface WorkoutExercise {
@@ -190,6 +193,7 @@ export interface Recipe {
   carbs_g: number
   fat_g: number
   featured: boolean
+  is_active: boolean
   created_at: string
   updated_at: string
 }

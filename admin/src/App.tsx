@@ -19,11 +19,17 @@ const Callback = lazy(() => import('./pages/Callback'))
 const NotAdmin = lazy(() => import('./pages/NotAdmin'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
 const Users = lazy(() => import('./pages/admin/Users'))
+const CreateUser = lazy(() => import('./pages/admin/CreateUser'))
 const UserDetail = lazy(() => import('./pages/admin/UserDetail'))
 const Workouts = lazy(() => import('./pages/admin/Workouts'))
+const WorkoutEditor = lazy(() => import('./pages/admin/WorkoutEditor'))
 const Nutrition = lazy(() => import('./pages/admin/Nutrition'))
+const RecipeEditor = lazy(() => import('./pages/admin/RecipeEditor'))
+const FoodEditor = lazy(() => import('./pages/admin/FoodEditor'))
 const Quotes = lazy(() => import('./pages/admin/Quotes'))
+const QuoteEditor = lazy(() => import('./pages/admin/QuoteEditor'))
 const Exercises = lazy(() => import('./pages/admin/Exercises'))
+const ExerciseEditor = lazy(() => import('./pages/admin/ExerciseEditor'))
 const Chat = lazy(() => import('./pages/admin/Chat'))
 const MealPlanEditor = lazy(() => import('./pages/admin/MealPlanEditor'))
 const NutritionHub = lazy(() => import('./pages/nutrition/Hub'))
@@ -88,15 +94,25 @@ export default function App() {
               <Route element={<AdminRouteGuard />}>
                 <Route element={<AdminLayout />}>
                   <Route path="/admin"           element={<Dashboard />} />
-                  <Route path="/admin/users" element={<Users />}>
-                    <Route path=":id" element={<UserDetail />} />
-                  </Route>
+                  <Route path="/admin/users" element={<Users />} />
+                  <Route path="/admin/users/new" element={<CreateUser />} />
+                  <Route path="/admin/users/:id" element={<UserDetail />} />
                   <Route path="/admin/workouts"  element={<Workouts />} />
+                  <Route path="/admin/workouts/new" element={<WorkoutEditor />} />
+                  <Route path="/admin/workouts/:id" element={<WorkoutEditor />} />
                   <Route path="/admin/nutrition" element={<Nutrition />} />
+                  <Route path="/admin/nutrition/recipes/new" element={<RecipeEditor />} />
+                  <Route path="/admin/nutrition/recipes/:id" element={<RecipeEditor />} />
+                  <Route path="/admin/nutrition/foods/new" element={<FoodEditor />} />
+                  <Route path="/admin/nutrition/foods/:id" element={<FoodEditor />} />
                   <Route path="/admin/nutrition/meal-plans/new" element={<MealPlanEditor />} />
                   <Route path="/admin/nutrition/meal-plans/:id"  element={<MealPlanEditor />} />
                   <Route path="/admin/quotes"     element={<Quotes />} />
+                  <Route path="/admin/quotes/new" element={<QuoteEditor />} />
+                  <Route path="/admin/quotes/:id" element={<QuoteEditor />} />
                   <Route path="/admin/exercises" element={<Exercises />} />
+                  <Route path="/admin/exercises/new" element={<ExerciseEditor />} />
+                  <Route path="/admin/exercises/:id" element={<ExerciseEditor />} />
                   <Route path="/admin/chat"      element={<Chat />} />
                 </Route>
               </Route>

@@ -194,7 +194,7 @@ export default function Chat() {
   const selectedProfile = profiles.find(p => p.id === selectedUserId)
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden">
+    <div className="flex h-full min-h-0 overflow-hidden">
       {/* Left: conversation list */}
       <div className={`${selectedUserId ? 'hidden sm:flex' : 'flex'} w-full sm:w-72 flex-shrink-0 flex-col overflow-hidden border-r border-outline`}>
         <div className="flex-shrink-0 border-b border-outline px-4 py-3">

@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Button, ConfirmDialog, Input, useNotice } from '../../components/ui'
+import { Button, Card, ConfirmDialog, EditorPage, FormSection, Input, useNotice } from '../../components/ui'
 import { AssignUsersDialog } from '../../components/AssignUsersDialog'
 import type { Profile, Recipe } from '../../types/database'
 
@@ -83,7 +83,7 @@ function useRecipes() {
   return useQuery<Recipe[]>({
     queryKey: ['recipes-admin'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('recipes').select('*').order('name')
+      const { data, error } = await supabase.from('recipes').select('*').eq('is_active', true).order('name')
       if (error) throw error
       return data ?? []
     },
@@ -182,6 +182,7 @@ export default function MealPlanEditor() {
         .from('user_meal_plans')
         .select('user_id')
         .eq('meal_plan_id', id!)
+        .eq('status', 'current')
       setAssignedUserIds((assignments ?? []).map(a => a.user_id))
     }
     load()
@@ -302,6 +303,7 @@ export default function MealPlanEditor() {
         .from('user_meal_plans')
         .select('user_id')
         .eq('meal_plan_id', planId)
+        .eq('status', 'current')
       if (currentRowsError) throw currentRowsError
       const currentIds = new Set((currentRows ?? []).map(r => r.user_id))
       const newIds = new Set(assignedUserIds)
@@ -311,13 +313,14 @@ export default function MealPlanEditor() {
 
       if (toAdd.length) {
         const { error } = await supabase.from('user_meal_plans').insert(
-          toAdd.map(uid => ({ meal_plan_id: planId, user_id: uid }))
+          toAdd.map(uid => ({ meal_plan_id: planId, user_id: uid, status: 'current', effective_from: new Date().toISOString() }))
         )
         if (error) throw error
       }
       if (toRemove.length) {
         const { error } = await supabase.from('user_meal_plans').delete()
           .eq('meal_plan_id', planId)
+          .eq('status', 'current')
           .in('user_id', toRemove)
         if (error) throw error
       }
@@ -326,7 +329,7 @@ export default function MealPlanEditor() {
       qc.invalidateQueries({ queryKey: ['meal-plans-admin'] })
       qc.invalidateQueries({ queryKey: ['meal-plan-assignment-counts'] })
       notify(isNew ? 'Meal plan created.' : 'Meal plan saved.')
-      navigate('/admin/nutrition')
+      navigate('/admin/nutrition?tab=meal-plans')
     },
     onError: error => notify(`Couldn’t save meal plan: ${error.message}`, 'error'),
   })
@@ -335,146 +338,107 @@ export default function MealPlanEditor() {
     return meals.find(m => m.day_of_week === d && m.meal_type === t)!
   }
 
+  const selectedDayRecipeCount = MEAL_TYPES.reduce((sum, type) => sum + getDraft(selectedDay, type).recipes.length, 0)
+  const weeklyRecipeCount = meals.reduce((sum, meal) => sum + meal.recipes.length, 0)
+
   return (
-    <div className="p-4 sm:p-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <button
-          onClick={() => navigate('/admin/nutrition')}
-          className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border-0 cursor-pointer shrink-0"
-        >
-          ← Meal Plans
-        </button>
-        <div className="flex-1 min-w-40">
-          <Input
-            value={planName}
-            onChange={e => setPlanName(e.target.value)}
-            placeholder="Plan name…"
-          />
-        </div>
-        <button
-          onClick={() => setAssignDialogOpen(true)}
-          className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] bg-transparent border border-[var(--border)] rounded-md px-3 py-2 cursor-pointer whitespace-nowrap shrink-0"
-        >
-          Assigned Users ({assignedUserIds.length})
-        </button>
-        <Button
-          onClick={() => savePlan.mutate()}
-          disabled={!planName || savePlan.isPending}
-          className="shrink-0"
-        >
-          {savePlan.isPending ? 'Saving…' : 'Save'}
-        </Button>
-      </div>
-
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-outline bg-surface-elevated px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold text-text-primary">Build one day, then reuse it</p>
-          <p className="mt-0.5 text-xs text-text-secondary">Copy the selected day to the rest of the week and make any exceptions afterward.</p>
-        </div>
-        <Button variant="ghost" onClick={() => setCopyDialogOpen(true)} disabled={MEAL_TYPES.every(type => getDraft(selectedDay, type).recipes.length === 0)}>
-          Copy {DAY_SHORTS[selectedDay]} to week
-        </Button>
-      </div>
-
-      <div className="mb-5">
-        <Input
-          label="Description"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          placeholder="Optional description"
-        />
-      </div>
-
-      {/* Day tabs */}
-      <div className="flex gap-0 mb-6 border-b border-[var(--border)] overflow-x-auto">
-        {DAY_SHORTS.map((day, i) => (
-          <button
-            key={day}
-            onClick={() => setSelectedDay(i)}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px cursor-pointer bg-transparent whitespace-nowrap transition-colors ${
-              selectedDay === i
-                ? 'border-[var(--text)] text-[var(--text)]'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)]'
-            }`}
-          >
-            {day}
-            {MEAL_TYPES.reduce((sum, type) => sum + getDraft(i, type).recipes.length, 0) > 0 && (
-              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${selectedDay === i ? 'bg-surface-elevated text-text-primary' : 'bg-surface-highest text-text-secondary'}`}>
-                {MEAL_TYPES.reduce((sum, type) => sum + getDraft(i, type).recipes.length, 0)}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Meal columns */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {MEAL_TYPES.map(mealType => {
-          const draft = getDraft(selectedDay, mealType)
-          return (
-            <div key={mealType} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-4">
-              <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">
-                {MEAL_LABELS[mealType]}
-              </p>
-
-              {draft.recipes.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {draft.recipes.map((r, ri) => (
-                    <span
-                      key={ri}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-[var(--bg)] border border-[var(--border)] rounded text-xs text-[var(--text-muted)]"
-                    >
-                      {r.recipe_name}
-                      <button
-                        onClick={() => removeRecipe(selectedDay, mealType, ri)}
-                        className="text-[var(--text-disabled)] hover:text-red-400 bg-transparent border-0 cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <select
-                className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-xs text-[var(--text)] outline-none"
-                value=""
-                onChange={e => { if (e.target.value) addRecipe(selectedDay, mealType, e.target.value) }}
-              >
-                <option value="" disabled>+ Add recipe…</option>
-                {recipes
-                  .filter(r => !draft.recipes.some(d => d.recipe_id === r.id))
-                  .map(r => <option key={r.id} value={r.id}>{r.name}</option>)
-                }
-              </select>
+    <EditorPage
+      backTo="/admin/nutrition?tab=meal-plans"
+      backLabel="Back to meal plans"
+      eyebrow="Weekly nutrition"
+      title={isNew ? 'Create meal plan' : planName || 'Edit meal plan'}
+      description="Build a reusable seven-day schedule from active recipes, then assign the finished plan to athletes."
+      actions={
+        <>
+          <Button variant="ghost" onClick={() => navigate('/admin/nutrition?tab=meal-plans')}>Cancel</Button>
+          <Button onClick={() => savePlan.mutate()} disabled={!planName.trim()} loading={savePlan.isPending}>{isNew ? 'Create plan' : 'Save changes'}</Button>
+        </>
+      }
+      aside={
+        <>
+          <Card>
+            <h2 className="text-sm font-bold text-text-primary">Plan summary</h2>
+            <div className="mt-3 divide-y divide-outline-subtle text-sm">
+              <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Weekly recipes</span><span className="font-semibold text-text-primary">{weeklyRecipeCount}</span></div>
+              <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Selected day</span><span className="font-semibold text-text-primary">{selectedDayRecipeCount}</span></div>
+              <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Assignments</span><span className="font-semibold text-text-primary">{assignedUserIds.length}</span></div>
             </div>
-          )
-        })}
-      </div>
+          </Card>
+          <Card>
+            <h2 className="text-sm font-bold text-text-primary">Athlete assignments</h2>
+            <p className="mt-2 text-xs leading-5 text-text-secondary">Assignments are applied when the plan is saved. A current generated plan may need backend lifecycle handling before it can be replaced.</p>
+            <Button variant="ghost" className="mt-4 w-full" onClick={() => setAssignDialogOpen(true)}>Manage assignments</Button>
+          </Card>
+        </>
+      }
+    >
+      <FormSection title="Plan details" description="Use a name coaches can recognize quickly and a short athlete-facing description.">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label="Plan name" value={planName} onChange={event => setPlanName(event.target.value)} placeholder="Balanced performance week" required autoFocus={isNew} />
+          <Input label="Description" value={description} onChange={event => setDescription(event.target.value)} placeholder="Optional description" />
+        </div>
+      </FormSection>
 
-      {savePlan.isError && (
-        <p className="mt-4 text-sm text-red-400">
-          Save failed: {(savePlan.error as Error).message}
-        </p>
-      )}
+      <Card className="p-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-subtle p-5">
+          <div>
+            <h2 className="font-bold text-text-primary">Weekly schedule</h2>
+            <p className="mt-1 text-xs text-text-secondary">Build one day, copy it to the week, then fine-tune exceptions.</p>
+          </div>
+          <Button variant="ghost" onClick={() => setCopyDialogOpen(true)} disabled={selectedDayRecipeCount === 0}>Copy {DAY_SHORTS[selectedDay]} to week</Button>
+        </div>
 
-      <AssignUsersDialog
-        open={assignDialogOpen}
-        onClose={() => setAssignDialogOpen(false)}
-        profiles={profiles}
-        value={assignedUserIds}
-        onChange={setAssignedUserIds}
-      />
+        <div className="flex overflow-x-auto border-b border-outline-subtle px-3 pt-2">
+          {DAY_SHORTS.map((day, index) => {
+            const count = MEAL_TYPES.reduce((sum, type) => sum + getDraft(index, type).recipes.length, 0)
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => setSelectedDay(index)}
+                className={`min-h-11 cursor-pointer whitespace-nowrap border-x-0 border-t-0 border-b-2 bg-transparent px-4 text-sm font-semibold transition-colors ${selectedDay === index ? 'border-accent text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+              >
+                {day}{count > 0 && <span className="ml-1.5 rounded-full bg-surface-highest px-1.5 py-0.5 text-[10px]">{count}</span>}
+              </button>
+            )
+          })}
+        </div>
 
-      <ConfirmDialog
-        open={copyDialogOpen}
-        title={`Copy ${DAYS[selectedDay]} to the week?`}
-        description="This replaces the recipe selections for the other six days. You can fine-tune individual days right after copying."
-        confirmLabel="Copy day"
-        onClose={() => setCopyDialogOpen(false)}
-        onConfirm={copySelectedDayToWeek}
-      />
-    </div>
+        <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4">
+          {MEAL_TYPES.map(mealType => {
+            const draft = getDraft(selectedDay, mealType)
+            return (
+              <section key={mealType} className="rounded-2xl border border-outline-subtle bg-surface p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-text-secondary">{MEAL_LABELS[mealType]}</p>
+                {draft.recipes.length > 0 ? (
+                  <div className="mb-3 space-y-2">
+                    {draft.recipes.map((recipe, recipeIndex) => (
+                      <div key={`${recipe.recipe_id}-${recipeIndex}`} className="flex items-center justify-between gap-2 rounded-xl border border-outline-subtle bg-surface-elevated px-3 py-2">
+                        <span className="min-w-0 truncate text-xs font-medium text-text-primary">{recipe.recipe_name}</span>
+                        <button type="button" aria-label={`Remove ${recipe.recipe_name}`} onClick={() => removeRecipe(selectedDay, mealType, recipeIndex)} className="min-h-8 cursor-pointer rounded-lg border-0 bg-transparent px-1 text-xs text-error hover:bg-error/10">Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="mb-3 text-xs text-text-secondary">No recipe selected.</p>}
+                <select
+                  aria-label={`Add recipe to ${MEAL_LABELS[mealType].toLowerCase()}`}
+                  className="h-10 w-full rounded-xl border border-outline bg-surface-elevated px-3 text-xs text-text-primary outline-none focus:border-accent"
+                  value=""
+                  onChange={event => { if (event.target.value) addRecipe(selectedDay, mealType, event.target.value) }}
+                >
+                  <option value="" disabled>Add recipe…</option>
+                  {recipes.filter(recipe => !draft.recipes.some(item => item.recipe_id === recipe.id)).map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}
+                </select>
+              </section>
+            )
+          })}
+        </div>
+      </Card>
+
+      {savePlan.isError && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">Save failed: {(savePlan.error as Error).message}</p>}
+
+      <AssignUsersDialog open={assignDialogOpen} onClose={() => setAssignDialogOpen(false)} profiles={profiles} value={assignedUserIds} onChange={setAssignedUserIds} />
+      <ConfirmDialog open={copyDialogOpen} title={`Copy ${DAYS[selectedDay]} to the week?`} description="This replaces the recipe selections for the other six days. You can fine-tune individual days right after copying." confirmLabel="Copy day" onClose={() => setCopyDialogOpen(false)} onConfirm={copySelectedDayToWeek} />
+    </EditorPage>
   )
 }

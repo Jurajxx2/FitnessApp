@@ -1,11 +1,10 @@
 // admin/src/pages/admin/Users.tsx
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate, Outlet } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { Badge, Button, Chip, EmptyState, PageHeader, SearchInput, Table, Th, Td } from '../../components/ui'
 import type { Profile } from '../../types/database'
-import { CreateUserModal } from './CreateUserModal'
 
 function useUsers() {
   return useQuery<Profile[]>({
@@ -38,7 +37,6 @@ export default function Users() {
   const { data: users = [], isLoading, isError } = useUsers()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'blocked'>('all')
-  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false)
   const navigate = useNavigate()
 
   const trainees = users.filter(user => !user.is_admin)
@@ -54,11 +52,11 @@ export default function Users() {
   }
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Users"
         description={`${trainees.length} athletes`}
-        actions={<Button onClick={() => setIsCreateUserOpen(true)}>Create athlete</Button>}
+        actions={<Button onClick={() => navigate('/admin/users/new')}>Create athlete</Button>}
       />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -104,15 +102,7 @@ export default function Users() {
               {filtered.map(user => (
                 <tr
                   key={user.id}
-                  tabIndex={0}
-                  className="cursor-pointer outline-none hover:bg-surface-highest focus-visible:bg-surface-highest"
-                  onClick={() => openUser(user.id)}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      openUser(user.id)
-                    }
-                  }}
+                  className="hover:bg-surface-highest"
                 >
                   <Td className="text-text-primary">
                     <div className="flex items-center gap-2">
@@ -128,22 +118,13 @@ export default function Users() {
                   <Td>{user.goal ? (GOAL_LABELS[user.goal] ?? user.goal) : '—'}</Td>
                   <Td><Badge status={deriveStatus(user)} /></Td>
                   <Td>{new Date(user.created_at).toLocaleDateString()}</Td>
-                  <Td><span className="text-xs font-medium text-text-primary">Open →</span></Td>
+                  <Td><Button variant="ghost" className="min-h-9 px-3" onClick={() => openUser(user.id)}>Open</Button></Td>
                 </tr>
               ))}
             </tbody>
           </Table>
         </>
       )}
-      <CreateUserModal
-        open={isCreateUserOpen}
-        onClose={() => setIsCreateUserOpen(false)}
-        onCreated={userId => {
-          setIsCreateUserOpen(false)
-          navigate(`/admin/users/${userId}`)
-        }}
-      />
-      <Outlet />
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { SlideOver, Button, Input, Badge, useNotice } from '../../components/ui'
+import { Badge, Button, Card, EditorPage, EmptyState, Input, Shimmer, useNotice } from '../../components/ui'
 import { BodyFocusMap } from '../../components/BodyFocusMap'
 import { CheckInsSection } from './CheckInsSection'
 import type {
@@ -238,28 +238,23 @@ function useUserMealPlan(userId: string) {
   return useQuery<string | null>({
     queryKey: ['user-meal-plan', userId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('user_meal_plans')
-        .select('meal_plan_id')
-        .eq('user_id', userId)
-        .limit(1)
-        .maybeSingle()
-      return data?.meal_plan_id ?? null
+      const { data, error } = await supabase.rpc('get_current_meal_plan_id', { p_user_id: userId })
+      if (error) throw error
+      return (data as Array<{ meal_plan_id: string }> | null)?.[0]?.meal_plan_id ?? null
     },
   })
 }
 
-function useUserWorkoutPlan(userId: string) {
-  return useQuery<string | null>({
-    queryKey: ['user-workout-plan', userId],
+function useUserWorkoutPlans(userId: string) {
+  return useQuery<string[]>({
+    queryKey: ['user-workout-plans', userId],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('user_workouts')
         .select('workout_id')
         .eq('user_id', userId)
-        .limit(1)
-        .maybeSingle()
-      return data?.workout_id ?? null
+      if (error) throw error
+      return (data ?? []).map(row => row.workout_id)
     },
   })
 }
@@ -584,7 +579,7 @@ export default function UserDetail() {
   const { data: workoutPlans = [] } = useWorkoutPlans()
   const { data: mealPlans = [] } = useMealPlans()
   const { data: userMealPlanId } = useUserMealPlan(id!)
-  const { data: userWorkoutPlanId } = useUserWorkoutPlan(id!)
+  const { data: userWorkoutPlanIds = [] } = useUserWorkoutPlans(id!)
   const { data: weightHistory = [] } = useWeightHistory(id!)
   const { data: compliance } = useUserCompliance(id!)
   const { data: onboarding } = useOnboardingResponse(id!)
@@ -609,43 +604,6 @@ export default function UserDetail() {
       notify('User updated.')
     },
     onError: error => notify(`Couldn’t update user: ${error.message}`, 'error'),
-  })
-
-  const assignMealPlan = useMutation({
-    mutationFn: async (mealPlanId: string | null) => {
-      const { error: deleteError } = await supabase.from('user_meal_plans').delete().eq('user_id', id!)
-      if (deleteError) throw deleteError
-      if (mealPlanId) {
-        const { error } = await supabase
-          .from('user_meal_plans')
-          .insert({ user_id: id!, meal_plan_id: mealPlanId })
-        if (error) throw error
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['user-meal-plan', id] })
-      qc.invalidateQueries({ queryKey: ['meal-plan-assignment-counts'] })
-      notify('Meal plan assignment updated.')
-    },
-    onError: error => notify(`Couldn’t update meal plan assignment: ${error.message}`, 'error'),
-  })
-
-  const assignWorkoutPlan = useMutation({
-    mutationFn: async (workoutId: string | null) => {
-      const { error: deleteError } = await supabase.from('user_workouts').delete().eq('user_id', id!)
-      if (deleteError) throw deleteError
-      if (workoutId) {
-        const { error } = await supabase
-          .from('user_workouts')
-          .insert({ user_id: id!, workout_id: workoutId })
-        if (error) throw error
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['user-workout-plan', id] })
-      notify('Workout plan assignment updated.')
-    },
-    onError: error => notify(`Couldn’t update workout assignment: ${error.message}`, 'error'),
   })
 
   const addWorkoutFeedback = useMutation({
@@ -685,64 +643,182 @@ export default function UserDetail() {
   function Field({ label, value }: { label: string; value: string | number | null }) {
     return (
       <div>
-        <p className="text-[10px] text-[var(--text-disabled)] uppercase tracking-wider mb-0.5">{label}</p>
-        <p className="text-sm text-[var(--text)]">{value ?? '—'}</p>
+        <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">{label}</p>
+        <p className="text-sm text-text-primary">{value ?? '—'}</p>
       </div>
     )
   }
 
   if (isLoading) {
     return (
-      <SlideOver open title="User Detail" onClose={() => navigate('/admin/users')}>
-        <p className="text-sm text-[var(--text-disabled)]">Loading…</p>
-      </SlideOver>
+      <EditorPage backTo="/admin/users" backLabel="Back to athletes" eyebrow="Athlete profile" title="Loading athlete…">
+        <Shimmer className="h-96 w-full" />
+      </EditorPage>
     )
   }
 
   if (isError || !user) {
     return (
-      <SlideOver open title="User Detail" onClose={() => navigate('/admin/users')}>
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-error">Couldn’t load this athlete{error ? `: ${error.message}` : '.'}</p>
-          <Button variant="ghost" onClick={() => navigate('/admin/users')}>Back to users</Button>
-        </div>
-      </SlideOver>
+      <EditorPage backTo="/admin/users" backLabel="Back to athletes" eyebrow="Athlete profile" title="Athlete unavailable">
+        <EmptyState
+          title="This athlete couldn’t be loaded"
+          description={error?.message ?? 'The account may no longer exist or you may not have access.'}
+          action={<Button variant="ghost" onClick={() => navigate('/admin/users')}>Back to athletes</Button>}
+        />
+      </EditorPage>
     )
   }
 
   return (
-    <SlideOver open title={user.full_name ?? user.email} onClose={() => navigate('/admin/users')}>
-      <div className="flex flex-col gap-6">
-        {/* Status */}
-        <div className="flex items-center justify-between gap-3">
+    <EditorPage
+      backTo="/admin/users"
+      backLabel="Back to athletes"
+      eyebrow="Athlete profile"
+      title={user.full_name ?? user.email}
+      description={user.email}
+      actions={
+        <>
           <Badge status={deriveStatus(user)} />
-          <button
-            onClick={() => navigate(`/admin/chat?user=${user.id}`)}
-            className="cursor-pointer border-0 bg-transparent text-sm font-medium text-text-secondary hover:text-text-primary"
-          >
-            Message athlete →
-          </button>
-        </div>
+          <Button variant="ghost" onClick={() => navigate(`/admin/chat?user=${user.id}`)}>Message athlete</Button>
+        </>
+      }
+      aside={
+        <>
+          <Card>
+            <h2 className="mb-4 text-sm font-bold text-text-primary">Last 7 days</h2>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-2xl font-extrabold text-text-primary">{compliance?.workoutsCompleted ?? 0}</p>
+                <p className="mt-1 text-[10px] uppercase tracking-wider text-text-secondary">Workouts</p>
+              </div>
+              <div className="border-x border-outline-subtle px-2">
+                <p className="text-2xl font-extrabold text-text-primary">{compliance?.avgCalories ?? 0}</p>
+                <p className="mt-1 text-[10px] uppercase tracking-wider text-text-secondary">Avg kcal</p>
+              </div>
+              <div>
+                <p className="text-2xl font-extrabold text-text-primary">{compliance?.avgProtein ?? 0}g</p>
+                <p className="mt-1 text-[10px] uppercase tracking-wider text-text-secondary">Avg protein</p>
+              </div>
+            </div>
+          </Card>
 
-        {/* Compliance Dashboard */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-[10px] text-[var(--text-disabled)] uppercase mb-1">Workouts</p>
-            <p className="text-lg font-bold text-[var(--text)]">{compliance?.workoutsCompleted ?? 0}</p>
-            <p className="text-[10px] text-[var(--text-muted)]">last 7d</p>
-          </div>
-          <div className="text-center border-x border-[var(--border)]">
-            <p className="text-[10px] text-[var(--text-disabled)] uppercase mb-1">Avg kcal</p>
-            <p className="text-lg font-bold text-[var(--text)]">{compliance?.avgCalories ?? 0}</p>
-            <p className="text-[10px] text-[var(--text-muted)]">daily</p>
-          </div>
-          <div className="text-center">
-            <p className="text-[10px] text-[var(--text-disabled)] uppercase mb-1">Avg prot</p>
-            <p className="text-lg font-bold text-[var(--text)]">{compliance?.avgProtein ?? 0}g</p>
-            <p className="text-[10px] text-[var(--text-muted)]">daily</p>
-          </div>
-        </div>
+          <Card>
+            <h2 className="mb-4 text-sm font-bold text-text-primary">Profile</h2>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <Field label="Full name" value={user.full_name} />
+              <Field label="Age" value={user.age} />
+              <Field label="Height" value={user.height_cm ? `${user.height_cm} cm` : null} />
+              <Field label="Weight" value={user.weight_kg ? `${user.weight_kg} kg` : null} />
+              <Field label="Goal" value={user.goal ? GOAL_LABELS[user.goal] : null} />
+              <Field label="Activity" value={user.activity_level ? ACTIVITY_LABELS[user.activity_level] : null} />
+              <Field label="Joined" value={new Date(user.created_at).toLocaleDateString()} />
+              <Field label="Onboarding" value={user.onboarding_complete ? 'Complete' : 'Incomplete'} />
+            </div>
+          </Card>
 
+          {onboarding && (
+            <Card>
+              <h2 className="mb-4 text-sm font-bold text-text-primary">Onboarding</h2>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                <Field label="Gender" value={onboarding.gender} />
+                <Field label="Goal" value={onboarding.goal ? GOAL_LABELS[onboarding.goal] : null} />
+                <Field label="Experience" value={onboarding.experience_level ? EXPERIENCE_LABELS[onboarding.experience_level] : null} />
+                <Field label="Equipment" value={onboarding.equipment ? EQUIPMENT_LABELS[onboarding.equipment] : null} />
+                <Field label="Frequency" value={onboarding.frequency_per_week ? `${onboarding.frequency_per_week}× / week` : null} />
+                <Field label="Training" value={onboarding.training_preference ? TRAINING_LABELS[onboarding.training_preference] : null} />
+                <Field label="BMI" value={onboarding.bmi ? onboarding.bmi.toFixed(1) : null} />
+                <Field label="Completed" value={onboarding.completed_at ? new Date(onboarding.completed_at).toLocaleDateString() : null} />
+              </div>
+              {onboarding.focus_areas?.length > 0 && (
+                <div className="mt-5 border-t border-outline-subtle pt-4">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">Focus areas</p>
+                  <BodyFocusMap focusAreas={onboarding.focus_areas} />
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {onboarding.focus_areas.map(area => (
+                      <span key={area} className="rounded-full border border-outline bg-surface px-2.5 py-1 text-[11px] text-text-secondary">{area}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+
+          <Card>
+            <h2 className="mb-4 text-sm font-bold text-text-primary">Assignments</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Current meal plan</p>
+                <p className="mt-1 text-sm font-medium text-text-primary">
+                  {userMealPlanId
+                    ? (mealPlans.find(plan => plan.id === userMealPlanId)?.name ?? `Assigned plan ${userMealPlanId.slice(0, 8)}…`)
+                    : 'None assigned'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Workout plans</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {userWorkoutPlanIds.length > 0 ? userWorkoutPlanIds.map(workoutId => (
+                    <span key={workoutId} className="rounded-full border border-outline bg-surface px-2.5 py-1 text-xs text-text-primary">
+                      {workoutPlans.find(plan => plan.id === workoutId)?.name ?? 'Unknown plan'}
+                    </span>
+                  )) : <span className="text-sm text-text-secondary">None assigned</span>}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 border-t border-outline-subtle pt-4">
+                <Button variant="ghost" className="px-2 text-xs" onClick={() => navigate('/admin/nutrition?tab=meal-plans')}>Meal plans</Button>
+                <Button variant="ghost" className="px-2 text-xs" onClick={() => navigate('/admin/workouts')}>Workouts</Button>
+              </div>
+            </div>
+          </Card>
+
+          {weightHistory.length > 0 && (
+            <Card>
+              <h2 className="mb-3 text-sm font-bold text-text-primary">Weight history</h2>
+              <div className="divide-y divide-outline-subtle">
+                {weightHistory.map(entry => (
+                  <div key={entry.id} className="flex justify-between gap-3 py-2 text-xs">
+                    <span className="text-text-secondary">{entry.recorded_at}</span>
+                    <span className="font-semibold text-text-primary">{entry.weight_kg} kg</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          <Card>
+            <Input
+              label="Private admin notes"
+              value={adminNotes}
+              onChange={event => setAdminNotes(event.target.value)}
+              placeholder="Context only coaches can see…"
+            />
+            <Button
+              variant="ghost"
+              className="mt-3 w-full"
+              onClick={() => updateProfile.mutate({ admin_notes: adminNotes })}
+              loading={updateProfile.isPending}
+              disabled={adminNotes === (user.admin_notes ?? '')}
+            >
+              Save notes
+            </Button>
+          </Card>
+
+          <Card className="border-error/30">
+            <h2 className="text-sm font-bold text-text-primary">Account status flag</h2>
+            <p className="mt-2 text-xs leading-5 text-text-secondary">This marks the profile as blocked for coaches. It does not revoke an existing Supabase session or enforce backend access by itself.</p>
+            <Button
+              variant={user.is_blocked ? 'ghost' : 'danger'}
+              className="mt-4 w-full"
+              onClick={() => updateProfile.mutate({ is_blocked: !user.is_blocked })}
+              loading={updateProfile.isPending}
+            >
+              {user.is_blocked ? 'Clear blocked flag' : 'Mark as blocked'}
+            </Button>
+          </Card>
+        </>
+      }
+    >
+      <Card>
         <WorkoutLogsSection
           logs={workoutLogs.data ?? []}
           isLoading={workoutLogs.isLoading}
@@ -752,127 +828,19 @@ export default function UserDetail() {
           onDeleteFeedback={feedbackId => deleteWorkoutFeedback.mutate(feedbackId)}
           isFeedbackPending={addWorkoutFeedback.isPending || deleteWorkoutFeedback.isPending}
         />
+      </Card>
 
+      <Card>
         <MealLogsSection
           logs={mealLogs.data ?? []}
           isLoading={mealLogs.isLoading}
           error={mealLogs.error}
         />
+      </Card>
 
+      <Card>
         <CheckInsSection userId={id!} adminUserId={adminUser?.id} />
-
-        {/* Profile info */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-          <Field label="Full name"  value={user.full_name} />
-          <Field label="Email"      value={user.email} />
-          <Field label="Age"        value={user.age} />
-          <Field label="Height"     value={user.height_cm ? `${user.height_cm} cm` : null} />
-          <Field label="Weight"     value={user.weight_kg ? `${user.weight_kg} kg` : null} />
-          <Field label="Goal"       value={user.goal ? GOAL_LABELS[user.goal] : null} />
-          <Field label="Activity"   value={user.activity_level ? ACTIVITY_LABELS[user.activity_level] : null} />
-          <Field label="Joined"     value={new Date(user.created_at).toLocaleDateString()} />
-          <Field label="Onboarding" value={user.onboarding_complete ? 'Complete' : 'Incomplete'} />
-        </div>
-
-        {/* Onboarding quiz */}
-        {onboarding && (
-          <div>
-            <SectionTitle>Onboarding Quiz</SectionTitle>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-              <Field label="Gender"     value={onboarding.gender} />
-              <Field label="Goal"       value={onboarding.goal ? GOAL_LABELS[onboarding.goal] : null} />
-              <Field label="Experience" value={onboarding.experience_level ? EXPERIENCE_LABELS[onboarding.experience_level] : null} />
-              <Field label="Equipment"  value={onboarding.equipment ? EQUIPMENT_LABELS[onboarding.equipment] : null} />
-              <Field label="Frequency"  value={onboarding.frequency_per_week ? `${onboarding.frequency_per_week}× / week` : null} />
-              <Field label="Training"   value={onboarding.training_preference ? TRAINING_LABELS[onboarding.training_preference] : null} />
-              <Field label="BMI"        value={onboarding.bmi ? onboarding.bmi.toFixed(1) : null} />
-              <Field label="Completed"  value={onboarding.completed_at ? new Date(onboarding.completed_at).toLocaleDateString() : null} />
-            </div>
-            {onboarding.focus_areas?.length > 0 && (
-              <div className="mt-3">
-                <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Focus Areas</p>
-                <BodyFocusMap focusAreas={onboarding.focus_areas} />
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {onboarding.focus_areas.map(a => (
-                    <span key={a} className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)]">{a}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Assign Meal Plan */}
-        <div>
-          <SectionTitle>Meal Plan</SectionTitle>
-          <select
-            className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] outline-none"
-            value={userMealPlanId ?? ''}
-            onChange={e => assignMealPlan.mutate(e.target.value || null)}
-            disabled={assignMealPlan.isPending}
-          >
-            <option value="">None</option>
-            {mealPlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </div>
-
-        {/* Assign Workout Plan */}
-        <div>
-          <SectionTitle>Workout Plan</SectionTitle>
-          <select
-            className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] outline-none"
-            value={userWorkoutPlanId ?? ''}
-            onChange={e => assignWorkoutPlan.mutate(e.target.value || null)}
-            disabled={assignWorkoutPlan.isPending}
-          >
-            <option value="">None</option>
-            {workoutPlans.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select>
-        </div>
-
-        {/* Weight history */}
-        {weightHistory.length > 0 && (
-          <div>
-            <SectionTitle>Weight History</SectionTitle>
-            <div className="flex flex-col gap-1">
-              {weightHistory.map(e => (
-                <div key={e.id} className="flex justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">{e.recorded_at}</span>
-                  <span className="text-[var(--text)] font-semibold">{e.weight_kg} kg</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Admin notes */}
-        <div>
-          <Input
-            label="Admin Notes"
-            value={adminNotes}
-            onChange={e => setAdminNotes(e.target.value)}
-            placeholder="Private notes about this user…"
-          />
-          <Button
-            variant="ghost"
-            className="mt-2 w-full"
-            onClick={() => updateProfile.mutate({ admin_notes: adminNotes })}
-            loading={updateProfile.isPending}
-          >
-            Save notes
-          </Button>
-        </div>
-
-        {/* Block / Unblock */}
-        <Button
-          variant={user.is_blocked ? 'ghost' : 'danger'}
-          className="w-full"
-          onClick={() => updateProfile.mutate({ is_blocked: !user.is_blocked })}
-          loading={updateProfile.isPending}
-        >
-          {user.is_blocked ? 'Unblock user' : 'Block user'}
-        </Button>
-      </div>
-    </SlideOver>
+      </Card>
+    </EditorPage>
   )
 }

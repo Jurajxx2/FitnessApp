@@ -16,9 +16,20 @@ export function useAdminLayoutActions() {
 }
 
 function deriveTitle(pathname: string): string {
-  const segment = pathname.replace(/^\/admin\/?/, '').split('/')[0]
-  if (!segment) return 'Dashboard'
-  return segment.charAt(0).toUpperCase() + segment.slice(1)
+  const parts = pathname.replace(/^\/admin\/?/, '').split('/').filter(Boolean)
+  if (parts.length === 0) return 'Dashboard'
+  if (parts[0] === 'users' && parts[1] === 'new') return 'Create athlete'
+  if (parts[0] === 'users' && parts[1]) return 'Athlete profile'
+  if (parts[0] === 'workouts' && parts[1] === 'new') return 'Create workout plan'
+  if (parts[0] === 'workouts' && parts[1]) return 'Workout plan'
+  if (parts[0] === 'exercises' && parts[1] === 'new') return 'Add exercise'
+  if (parts[0] === 'exercises' && parts[1]) return 'Exercise'
+  if (parts[0] === 'quotes' && parts[1] === 'new') return 'Add quote'
+  if (parts[0] === 'quotes' && parts[1]) return 'Quote'
+  if (parts[0] === 'nutrition' && parts[1] === 'recipes') return parts[2] === 'new' ? 'Add recipe' : 'Recipe'
+  if (parts[0] === 'nutrition' && parts[1] === 'foods') return parts[2] === 'new' ? 'Add food' : 'Food'
+  if (parts[0] === 'nutrition' && parts[1] === 'meal-plans') return parts[2] === 'new' ? 'Create meal plan' : 'Meal plan'
+  return parts[0].charAt(0).toUpperCase() + parts[0].slice(1)
 }
 
 export function AdminLayout() {

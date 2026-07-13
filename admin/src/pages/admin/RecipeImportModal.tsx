@@ -116,9 +116,14 @@ export default function RecipeImportModal({ open, onClose }: Props) {
         if (recipeErr) { failed++; continue }
 
         if (row.ingredients.length) {
-          await supabase.from('recipe_ingredients').insert(
+          const { error: ingredientError } = await supabase.from('recipe_ingredients').insert(
             row.ingredients.map((ing, i) => ({ ...ing, recipe_id: recipe.id, sort_order: i })),
           )
+          if (ingredientError) {
+            await supabase.from('recipes').delete().eq('id', recipe.id)
+            failed++
+            continue
+          }
         }
         inserted++
       }

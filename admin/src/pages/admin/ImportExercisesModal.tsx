@@ -109,8 +109,8 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
             if (localUrl) imageUrl = localUrl
           }
 
-          let nameCs = null
-          let descCs = null
+          let nameCs: string | null = null
+          let descCs: string | null = null
           if (aiTranslate) {
             nameCs = await translateText(ex.name)
             if (ex.instructions) {
@@ -121,8 +121,8 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
           return {
             name_en: ex.name,
             description_en: Array.isArray(ex.instructions) ? ex.instructions.join('\n\n') : '',
-            name_cs: nameCs,
-            description_cs: descCs,
+            ...(nameCs ? { name_cs: nameCs } : {}),
+            ...(descCs ? { description_cs: descCs } : {}),
             category_id: CATEGORY_MAP[ex.category?.toLowerCase()] ?? 10,
             image_url: imageUrl,
             difficulty: ex.level ?? null,
@@ -170,18 +170,22 @@ export default function ImportExercisesModal({ open, onClose }: ImportExercisesM
         const batch = withSecondImage.slice(i, i + batchSize)
         setStatus(`Uploading photos ${i + 1}–${Math.min(i + batchSize, withSecondImage.length)} of ${withSecondImage.length}…`)
 
-        await Promise.all(batch.map(async (ex: any) => {
+        const results = await Promise.all(batch.map(async (ex: any) => {
           const githubUrl = `${IMAGE_BASE_URL}${ex.images[1]}`
           const fileName = `${ex.id}_2.jpg`
           const publicUrl = await uploadImageToSupabase(githubUrl, fileName)
-          if (!publicUrl) return
+          if (!publicUrl) return false
 
-          await supabase
+          const { error } = await supabase
             .from('exercises')
             .update({ image_url_2: publicUrl })
             .eq('external_id', ex.id)
             .eq('source_provider', 'yuhonas')
+          return !error
         }))
+
+        const failed = results.filter(result => !result).length
+        if (failed > 0) throw new Error(`${failed} photo update${failed === 1 ? '' : 's'} failed in this batch`)
 
         setProgress(p => ({ ...p, current: Math.min(i + batchSize, withSecondImage.length) }))
       }
