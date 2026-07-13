@@ -7,6 +7,7 @@ interface ConfirmDialogProps {
   title: string
   description: ReactNode
   confirmLabel?: string
+  confirmVariant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   pending?: boolean
   onConfirm: () => void
   onClose: () => void
@@ -17,6 +18,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = 'Delete',
+  confirmVariant = 'danger',
   pending = false,
   onConfirm,
   onClose,
@@ -30,7 +32,7 @@ export function ConfirmDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={pending}>Cancel</Button>
-          <Button variant="danger" onClick={onConfirm} loading={pending}>{confirmLabel}</Button>
+          <Button variant={confirmVariant} onClick={onConfirm} loading={pending}>{confirmLabel}</Button>
         </>
       }
     >

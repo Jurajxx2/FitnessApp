@@ -5,7 +5,7 @@ import { useRecipes, useFavorites } from '../../nutrition/hooks'
 import { useToggleFavorite } from '../../nutrition/mutations'
 import { Card, Chip, EmptyState, Shimmer } from '../../components/ui'
 
-export default function Recipes() {
+export default function Recipes({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate()
   const { data: recipes, isLoading } = useRecipes()
   const { data: favorites } = useFavorites()
@@ -25,8 +25,8 @@ export default function Recipes() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Recipe library</p>
-          <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Recepty</h2>
+          {!embedded && <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Recipe library</p>}
+          <h2 className={`${embedded ? 'text-2xl' : 'mt-1 text-3xl'} font-extrabold tracking-[-0.035em] text-text-primary`}>Recepty</h2>
           <p className="mt-2 text-sm text-text-secondary">Jedlá vybrané pre tvoje ciele a makrá.</p>
         </div>
         <Chip selected={onlyFavs} onClick={() => setOnlyFavs(v => !v)}>Obľúbené</Chip>

@@ -43,7 +43,11 @@ export default function History() {
                   onClick={() => navigate(`/nutrition/history/${log.id}`)}
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-surface text-text-secondary"><UtensilsCrossed size={18} /></span>
+                    {log.image_url ? (
+                      <img src={log.image_url} alt="" className="h-12 w-12 flex-shrink-0 rounded-xl object-cover" />
+                    ) : (
+                      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-surface text-text-secondary"><UtensilsCrossed size={18} /></span>
+                    )}
                     <div className="min-w-0">
                     <p className="font-semibold text-text-primary">{log.meal_name}</p>
                     <p className="text-xs text-text-secondary">

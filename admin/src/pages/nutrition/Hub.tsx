@@ -1,10 +1,67 @@
-import { useNavigate } from 'react-router-dom'
-import { BookOpen, CalendarDays, ChevronRight, History, Plus } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { BookOpen, CalendarDays, ChevronRight, History, LayoutDashboard, Plus } from 'lucide-react'
 import { useDailySummary, useMacroTargets, useRecipes } from '../../nutrition/hooks'
 import { todayIso } from '../../nutrition/date'
 import { Card, SectionHeader, Button, Shimmer, MacroRing } from '../../components/ui'
+import Plan from './Plan'
+import Recipes from './Recipes'
+
+const TABS = [
+  { label: 'Dnes', to: '/nutrition', icon: LayoutDashboard },
+  { label: 'Jedálniček', to: '/nutrition/plan', icon: CalendarDays },
+  { label: 'Recepty', to: '/nutrition/recipes', icon: BookOpen },
+] as const
 
 export default function Hub() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const activeTab = location.pathname === '/nutrition/plan'
+    ? 'plan'
+    : location.pathname === '/nutrition/recipes'
+      ? 'recipes'
+      : 'today'
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Your nutrition</p>
+          <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Výživa</h2>
+          <p className="mt-2 text-sm text-text-secondary">Denné ciele, jedálniček a recepty na jednom mieste.</p>
+        </div>
+        <Button onClick={() => navigate('/nutrition/log')} className="w-full sm:w-auto">
+          <Plus size={17} /> Zapísať jedlo
+        </Button>
+      </div>
+
+      <nav aria-label="Nutrition sections" className="grid grid-cols-3 gap-1 rounded-2xl border border-outline-subtle bg-surface-elevated p-1.5">
+        {TABS.map(({ label, to, icon: Icon }) => {
+          const selected = to === '/nutrition'
+            ? activeTab === 'today'
+            : location.pathname === to
+          return (
+            <button
+              key={to}
+              type="button"
+              aria-current={selected ? 'page' : undefined}
+              onClick={() => navigate(to)}
+              className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-0 px-2 text-xs font-semibold transition-colors sm:text-sm ${selected ? 'bg-surface-highest text-text-primary shadow-sm' : 'bg-transparent text-text-secondary hover:text-text-primary'}`}
+            >
+              <Icon size={17} aria-hidden="true" />
+              {label}
+            </button>
+          )
+        })}
+      </nav>
+
+      {activeTab === 'today' && <TodayOverview />}
+      {activeTab === 'plan' && <Plan embedded />}
+      {activeTab === 'recipes' && <Recipes embedded />}
+    </div>
+  )
+}
+
+function TodayOverview() {
   const navigate = useNavigate()
   const { data: summary, isLoading } = useDailySummary(todayIso())
   const targets = useMacroTargets()
@@ -13,17 +70,12 @@ export default function Hub() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Daily overview</p>
-          <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Dnes</h2>
-          <p className="mt-1 text-sm text-text-secondary">
-            {new Intl.DateTimeFormat('sk-SK', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}
-          </p>
-        </div>
-        <Button onClick={() => navigate('/nutrition/log')} className="w-full sm:w-auto">
-          <Plus size={17} /> Zapísať jedlo
-        </Button>
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Daily overview</p>
+        <h3 className="mt-1 text-2xl font-extrabold tracking-[-0.025em] text-text-primary">Dnes</h3>
+        <p className="mt-1 text-sm text-text-secondary">
+          {new Intl.DateTimeFormat('sk-SK', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}
+        </p>
       </div>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -46,22 +98,14 @@ export default function Hub() {
           )}
         </Card>
 
-        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-          {[
-            { label: 'Jedálniček', detail: 'Pozrieť dnešný plán', to: '/nutrition/plan', icon: CalendarDays },
-            { label: 'Recepty', detail: 'Nájsť ďalšie jedlo', to: '/nutrition/recipes', icon: BookOpen },
-            { label: 'História', detail: 'Skontrolovať záznamy', to: '/nutrition/history', icon: History },
-          ].map(({ label, detail, to, icon: Icon }) => (
-            <button key={to} type="button" onClick={() => navigate(to)} className="group flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border border-outline-subtle bg-surface-elevated p-4 text-left transition-colors hover:bg-surface-highest">
-              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-surface text-text-primary"><Icon size={19} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-text-primary">{label}</span>
-                <span className="mt-0.5 block text-xs text-text-secondary">{detail}</span>
-              </span>
-              <ChevronRight size={17} className="text-text-secondary transition-transform group-hover:translate-x-0.5" />
-            </button>
-          ))}
-        </div>
+        <button type="button" onClick={() => navigate('/nutrition/history')} className="group flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border border-outline-subtle bg-surface-elevated p-4 text-left transition-colors hover:bg-surface-highest">
+          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-surface text-text-primary"><History size={19} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-text-primary">História jedál</span>
+            <span className="mt-0.5 block text-xs text-text-secondary">Skontrolovať záznamy a denné makrá</span>
+          </span>
+          <ChevronRight size={17} className="text-text-secondary transition-transform group-hover:translate-x-0.5" />
+        </button>
       </section>
 
       {featured.length > 0 && (

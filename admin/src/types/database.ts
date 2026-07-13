@@ -354,6 +354,12 @@ export interface MealFoodRow {
   fat_g: number
 }
 
+export interface MealPlanRecipeRow {
+  id: string
+  recipe_id: string | null
+  snapshot_recipe_name: string | null
+}
+
 export interface MealRow {
   id: string
   meal_plan_id: string
@@ -362,6 +368,7 @@ export interface MealRow {
   sort_order: number
   day_of_week: number | null
   meal_foods: MealFoodRow[]
+  meal_plan_recipes: MealPlanRecipeRow[]
 }
 
 export interface MealPlanRow {

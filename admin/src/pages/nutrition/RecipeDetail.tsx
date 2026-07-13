@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Plus } from 'lucide-react'
 import { useRecipe } from '../../nutrition/hooks'
-import { Card, StatRow, EmptyState, Shimmer } from '../../components/ui'
+import { Button, Card, StatRow, EmptyState, Shimmer } from '../../components/ui'
 
 export default function RecipeDetail() {
   const { id = '' } = useParams()
@@ -51,19 +51,22 @@ export default function RecipeDetail() {
               { label: 'Tuky', value: `${Math.round(recipe.fat_g)}g` },
             ]} />
           </Card>
-      {ingredients.length > 0 && (
-        <Card className="p-5">
-          <h2 className="mb-3 font-bold text-text-primary">Ingrediencie</h2>
-          <ul className="flex flex-col divide-y divide-outline-subtle">
-            {ingredients.map(i => (
-              <li key={i.id} className="flex justify-between gap-4 py-2.5 text-sm">
-                <span className="text-text-primary">{i.name}</span>
-                <span className="text-text-secondary">{i.quantity ?? ''} {i.unit ?? ''}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+          <Button className="w-full" onClick={() => navigate(`/nutrition/log?recipeId=${recipe.id}`)}>
+            <Plus size={17} aria-hidden="true" /> Zapísať tento recept
+          </Button>
+          {ingredients.length > 0 && (
+            <Card className="p-5">
+              <h2 className="mb-3 font-bold text-text-primary">Ingrediencie</h2>
+              <ul className="flex flex-col divide-y divide-outline-subtle">
+                {ingredients.map(i => (
+                  <li key={i.id} className="flex justify-between gap-4 py-2.5 text-sm">
+                    <span className="text-text-primary">{i.name}</span>
+                    <span className="text-text-secondary">{i.quantity ?? ''} {i.unit ?? ''}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
         </aside>
       </div>
     </div>

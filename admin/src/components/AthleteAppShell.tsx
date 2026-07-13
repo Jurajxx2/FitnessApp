@@ -1,8 +1,6 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowRightLeft,
-  BookOpen,
-  CalendarDays,
   ClipboardCheck,
   Dumbbell,
   LogOut,
@@ -18,10 +16,8 @@ import { canAccessActivity, canAccessNutrition } from '../lib/access'
 import { AthletePageTransition } from './AthletePageTransition'
 
 const NAV = [
-  { to: '/nutrition', label: 'Today', icon: UtensilsCrossed, end: true, feature: 'nutrition' },
+  { to: '/nutrition', label: 'Nutrition', icon: UtensilsCrossed, end: false, feature: 'nutrition' },
   { to: '/activity', label: 'Activity', icon: Dumbbell, end: false, feature: 'activity' },
-  { to: '/nutrition/plan', label: 'Meal plan', icon: CalendarDays, end: false, feature: 'nutrition' },
-  { to: '/nutrition/recipes', label: 'Recipes', icon: BookOpen, end: false, feature: 'nutrition' },
   { to: '/check-ins', label: 'Check-in', icon: ClipboardCheck, end: false, feature: 'shared' },
   { to: '/profile', label: 'Profile', icon: UserRound, end: true, feature: 'shared' },
 ]
@@ -34,14 +30,14 @@ function pageTitle(pathname: string) {
   if (pathname.startsWith('/activity/log')) return 'Log activity'
   if (pathname.startsWith('/activity/workouts')) return 'Workout plans'
   if (pathname.startsWith('/activity')) return 'Activity'
-  if (pathname.startsWith('/nutrition/plan')) return 'Meal plan'
-  if (pathname.startsWith('/nutrition/recipes')) return 'Recipes'
   if (pathname.startsWith('/nutrition/history')) return 'Nutrition history'
   if (pathname.startsWith('/nutrition/log')) return 'Log a meal'
+  if (pathname.startsWith('/nutrition/recipes/')) return 'Recipe detail'
+  if (pathname.startsWith('/nutrition')) return 'Nutrition'
   if (pathname.startsWith('/check-ins/history')) return 'Check-in history'
   if (pathname.startsWith('/check-ins')) return 'Weekly check-in'
   if (pathname.startsWith('/profile')) return 'Profile'
-  return 'Today'
+  return 'Nutrition'
 }
 
 export function AthleteAppShell() {

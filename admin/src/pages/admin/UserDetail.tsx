@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { Badge, Button, Card, EditorPage, EmptyState, Shimmer, useNotice } from '../../components/ui'
+import { Badge, Button, Card, ConfirmDialog, EditorPage, EmptyState, Shimmer, useNotice } from '../../components/ui'
 import { BodyFocusMap } from '../../components/BodyFocusMap'
 import { CheckInsSection } from './CheckInsSection'
 import { AthleteManagementPanel } from './AthleteManagementPanel'
@@ -33,6 +33,114 @@ type MealLogWithFoods = MealLog & {
 type FeedbackTarget =
   | { type: 'workout'; id: string }
   | { type: 'exercise'; id: string }
+
+export type AccountAction = 'block' | 'unblock' | 'promote_admin' | 'delete'
+
+interface ManageUserResponse {
+  action: AccountAction
+  userId: string
+}
+
+const ACCOUNT_ACTION_COPY: Record<AccountAction, {
+  title: string
+  description: (name: string) => string
+  confirmLabel: string
+  confirmVariant: 'primary' | 'danger'
+  success: string
+}> = {
+  block: {
+    title: 'Disable this account?',
+    description: name => `${name} will immediately lose access to protected app data. Their existing session may stay open until it refreshes or expires.`,
+    confirmLabel: 'Disable account',
+    confirmVariant: 'danger',
+    success: 'User account disabled.',
+  },
+  unblock: {
+    title: 'Activate this account?',
+    description: name => `${name} will regain access to the athlete app and protected data.`,
+    confirmLabel: 'Activate account',
+    confirmVariant: 'primary',
+    success: 'User account activated.',
+  },
+  promote_admin: {
+    title: 'Grant admin access?',
+    description: name => `${name} will be able to manage users, plans, workouts, nutrition, and other admin data. This also activates a disabled account.`,
+    confirmLabel: 'Make admin',
+    confirmVariant: 'primary',
+    success: 'Admin access granted.',
+  },
+  delete: {
+    title: 'Permanently delete this user?',
+    description: name => `${name} and the account’s related app data will be permanently removed. This cannot be undone.`,
+    confirmLabel: 'Delete user',
+    confirmVariant: 'danger',
+    success: 'User deleted.',
+  },
+}
+
+export function AccountAccessControls({
+  userName,
+  isBlocked,
+  pending,
+  onConfirm,
+}: {
+  userName: string
+  isBlocked: boolean
+  pending: boolean
+  onConfirm: (action: AccountAction) => Promise<unknown>
+}) {
+  const [action, setAction] = useState<AccountAction | null>(null)
+  const dialog = action ? ACCOUNT_ACTION_COPY[action] : null
+
+  async function confirm() {
+    if (!action) return
+    try {
+      await onConfirm(action)
+      setAction(null)
+    } catch {
+      // The owning mutation shows the error and the dialog stays open for retry.
+    }
+  }
+
+  return (
+    <>
+      <Card className="border-error/30">
+        <h2 className="text-sm font-bold text-text-primary">Account access</h2>
+        <p className="mt-2 text-xs leading-5 text-text-secondary">
+          {isBlocked
+            ? 'This account is disabled and cannot access protected app data.'
+            : 'This athlete can currently access the app. Confirm every access or role change before it is applied.'}
+        </p>
+        <div className="mt-4 grid gap-2">
+          <Button
+            variant={isBlocked ? 'primary' : 'danger'}
+            className="w-full"
+            onClick={() => setAction(isBlocked ? 'unblock' : 'block')}
+          >
+            {isBlocked ? 'Activate account' : 'Disable account'}
+          </Button>
+          <Button variant="ghost" className="w-full" onClick={() => setAction('promote_admin')}>
+            Make user an admin
+          </Button>
+          <Button variant="danger" className="w-full" onClick={() => setAction('delete')}>
+            Delete user
+          </Button>
+        </div>
+      </Card>
+
+      <ConfirmDialog
+        open={dialog !== null}
+        title={dialog?.title ?? ''}
+        description={dialog?.description(userName) ?? ''}
+        confirmLabel={dialog?.confirmLabel}
+        confirmVariant={dialog?.confirmVariant}
+        pending={pending}
+        onClose={() => { if (!pending) setAction(null) }}
+        onConfirm={confirm}
+      />
+    </>
+  )
+}
 
 function useUser(id: string) {
   return useQuery<Profile>({
@@ -583,17 +691,21 @@ export default function UserDetail() {
   const mealLogs = useRecentMealLogs(id!)
   const { data: workoutFeedback = [] } = useWorkoutFeedback(id!)
 
-  const updateProfile = useMutation({
-    mutationFn: async (patch: Partial<Profile>) => {
-      const { error } = await supabase.from('profiles').update(patch).eq('id', id!)
+  const manageAccount = useMutation({
+    mutationFn: async (action: AccountAction) => {
+      const { data, error } = await supabase.functions.invoke<ManageUserResponse>('admin-manage-user', {
+        body: { action, userId: id! },
+      })
       if (error) throw error
+      if (data?.action !== action || data.userId !== id) throw new Error('The server returned an unexpected response')
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['user', id] })
-      qc.invalidateQueries({ queryKey: ['admin-users'] })
-      notify('User updated.')
+    onSuccess: async (_, action) => {
+      await qc.invalidateQueries({ queryKey: ['admin-users'] })
+      if (action === 'delete') navigate('/admin/users', { replace: true })
+      else await qc.invalidateQueries({ queryKey: ['user', id] })
+      notify(ACCOUNT_ACTION_COPY[action].success, 'success')
     },
-    onError: error => notify(`Couldn’t update user: ${error.message}`, 'error'),
+    onError: error => notify(`Couldn’t update this account: ${error.message}`, 'error'),
   })
 
   const addWorkoutFeedback = useMutation({
@@ -660,6 +772,7 @@ export default function UserDetail() {
   }
 
   const isSelf = user.id === adminUser?.id
+  const userDisplayName = user.full_name ?? user.email
 
   return (
     <EditorPage
@@ -735,18 +848,14 @@ export default function UserDetail() {
             </Card>
           )}
 
-          {!user.is_admin && <Card className="border-error/30">
-            <h2 className="text-sm font-bold text-text-primary">Account status flag</h2>
-            <p className="mt-2 text-xs leading-5 text-text-secondary">Blocking immediately denies protected backend data access. The existing auth session may remain signed in until the user signs out or it expires.</p>
-            <Button
-              variant={user.is_blocked ? 'ghost' : 'danger'}
-              className="mt-4 w-full"
-              onClick={() => updateProfile.mutate({ is_blocked: !user.is_blocked })}
-              loading={updateProfile.isPending}
-            >
-              {user.is_blocked ? 'Clear blocked flag' : 'Mark as blocked'}
-            </Button>
-          </Card>}
+          {!isSelf && !user.is_admin && (
+            <AccountAccessControls
+              userName={userDisplayName}
+              isBlocked={user.is_blocked}
+              pending={manageAccount.isPending}
+              onConfirm={manageAccount.mutateAsync}
+            />
+          )}
         </>
       }
     >

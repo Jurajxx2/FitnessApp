@@ -3,17 +3,24 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { qk } from './queries'
 import { todayIso } from './date'
+import { uploadMealPhoto } from '../lib/storage'
 
 export type LogFoodInput = {
   name: string; amount: number; unit: string
   calories: number; protein_g: number; carbs_g: number; fat_g: number
 }
 
+export type LogMealResult = {
+  id: string
+  photoAttached: boolean
+  photoError: string | null
+}
+
 export function useLogMeal() {
   const { user } = useAuth()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ mealName, foods, notes }: { mealName: string; foods: LogFoodInput[]; notes?: string }) => {
+    mutationFn: async ({ mealName, foods, notes, photoFile }: { mealName: string; foods: LogFoodInput[]; notes?: string; photoFile?: File | null }): Promise<LogMealResult> => {
       const { data: log, error: logErr } = await supabase
         .from('meal_logs')
         .insert({ user_id: user!.id, meal_name: mealName, logged_at: new Date().toISOString(), notes: notes ?? null, image_url: null })
@@ -38,6 +45,28 @@ export function useLogMeal() {
         // phantom 0-kcal meal (or duplicates on retry). Do not swallow foodErr.
         await supabase.from('meal_logs').delete().eq('id', (log as { id: string }).id)
         throw foodErr
+      }
+
+      const logId = (log as { id: string }).id
+      if (!photoFile) return { id: logId, photoAttached: false, photoError: null }
+
+      try {
+        const imageUrl = await uploadMealPhoto(user!.id, logId, photoFile)
+        const { error: photoUpdateError } = await supabase
+          .from('meal_logs')
+          .update({ image_url: imageUrl })
+          .eq('id', logId)
+          .eq('user_id', user!.id)
+        if (photoUpdateError) throw photoUpdateError
+        return { id: logId, photoAttached: true, photoError: null }
+      } catch (error) {
+        // The meal itself is already safely logged. Return a partial-success
+        // result so the UI does not encourage a retry that would duplicate it.
+        return {
+          id: logId,
+          photoAttached: false,
+          photoError: error instanceof Error ? error.message : 'Photo upload failed',
+        }
       }
     },
     onSuccess: () => {

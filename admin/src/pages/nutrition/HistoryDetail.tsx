@@ -29,6 +29,7 @@ export default function HistoryDetail() {
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Meal detail</p>
         <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{log.meal_name}</h1>
       </div>
+      {log.image_url && <img src={log.image_url} alt={log.meal_name} className="max-h-[520px] w-full rounded-2xl object-cover" />}
       <Card className="p-5">
         <StatRow
           items={[
@@ -40,17 +41,17 @@ export default function HistoryDetail() {
         />
       </Card>
       <Card className="p-5">
-      <h2 className="mb-3 font-bold text-text-primary">Potraviny</h2>
-      <ul className="flex flex-col divide-y divide-outline-subtle">
-        {log.meal_log_foods.map((food) => (
-          <li key={food.id} className="flex justify-between gap-4 py-3 text-sm">
-            <span className="text-text-primary">{food.name}</span>
-            <span className="text-text-secondary">
-              {Math.round(food.amount)} {food.unit} · {Math.round(food.calories)} kcal
-            </span>
-          </li>
-        ))}
-      </ul>
+        <h2 className="mb-3 font-bold text-text-primary">Potraviny</h2>
+        <ul className="flex flex-col divide-y divide-outline-subtle">
+          {log.meal_log_foods.map((food) => (
+            <li key={food.id} className="flex justify-between gap-4 py-3 text-sm">
+              <span className="text-text-primary">{food.name}</span>
+              <span className="text-text-secondary">
+                {Math.round(food.amount)} {food.unit} · {Math.round(food.calories)} kcal
+              </span>
+            </li>
+          ))}
+        </ul>
       </Card>
       {log.notes && <Card className="p-5"><h2 className="mb-2 font-bold text-text-primary">Poznámka</h2><p className="text-sm leading-6 text-text-secondary">{log.notes}</p></Card>}
     </div>

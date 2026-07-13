@@ -3,6 +3,10 @@ import { supabase } from './supabase'
 
 const RECIPE_PHOTOS_BUCKET = 'recipe-photos'
 const CHECK_IN_PHOTOS_BUCKET = 'check-in-photos'
+const MEAL_PHOTOS_BUCKET = 'meal-photos'
+
+export const MAX_MEAL_PHOTO_BYTES = 10 * 1024 * 1024
+export const MEAL_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
 
 /**
  * Uploads a recipe photo to Supabase Storage.
@@ -46,6 +50,28 @@ export async function removeRecipePhoto(path: string): Promise<void> {
     .remove([path])
 
   if (error) throw error
+}
+
+export function validateMealPhoto(file: File): string | null {
+  if (!MEAL_PHOTO_TYPES.includes(file.type as typeof MEAL_PHOTO_TYPES[number])) {
+    return 'Vyber fotografiu vo formáte JPG, PNG alebo WebP.'
+  }
+  if (file.size > MAX_MEAL_PHOTO_BYTES) {
+    return 'Fotografia môže mať najviac 10 MB.'
+  }
+  return null
+}
+
+export async function uploadMealPhoto(userId: string, mealLogId: string, file: File): Promise<string> {
+  const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+  const path = `${userId}/meal_${mealLogId}.${extension}`
+  const { error } = await supabase.storage
+    .from(MEAL_PHOTOS_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false })
+
+  if (error) throw error
+
+  return supabase.storage.from(MEAL_PHOTOS_BUCKET).getPublicUrl(path).data.publicUrl
 }
 
 export async function signedCheckInPhotoUrl(path: string): Promise<string | null> {

@@ -6,12 +6,12 @@ import {
   fetchDailyLogs, searchFoods, fetchFavoriteIds, fetchActiveNutritionTarget,
 } from './queries'
 
-export function useActiveMealPlan() {
+export function useActiveMealPlan(enabled = true) {
   const { user } = useAuth()
   return useQuery({
     queryKey: qk.mealPlan(user?.id ?? ''),
     queryFn: () => fetchActiveMealPlan(user!.id),
-    enabled: !!user,
+    enabled: !!user && enabled,
   })
 }
 export function useRecipes() {

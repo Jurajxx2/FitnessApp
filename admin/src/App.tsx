@@ -38,8 +38,6 @@ const ExerciseEditor = lazy(() => import('./pages/admin/ExerciseEditor'))
 const Chat = lazy(() => import('./pages/admin/Chat'))
 const MealPlanEditor = lazy(() => import('./pages/admin/MealPlanEditor'))
 const NutritionHub = lazy(() => import('./pages/nutrition/Hub'))
-const NutritionPlan = lazy(() => import('./pages/nutrition/Plan'))
-const AthleteRecipes = lazy(() => import('./pages/nutrition/Recipes'))
 const AthleteRecipeDetail = lazy(() => import('./pages/nutrition/RecipeDetail'))
 const NutritionHistory = lazy(() => import('./pages/nutrition/History'))
 const NutritionHistoryDetail = lazy(() => import('./pages/nutrition/HistoryDetail'))
@@ -83,8 +81,8 @@ export default function App() {
               <Route element={<AthleteRouteGuard />}>
                 <Route element={<AthleteAppShell />}>
                   <Route path="/nutrition" element={<NutritionHub />} />
-                  <Route path="/nutrition/plan" element={<NutritionPlan />} />
-                  <Route path="/nutrition/recipes" element={<AthleteRecipes />} />
+                  <Route path="/nutrition/plan" element={<NutritionHub />} />
+                  <Route path="/nutrition/recipes" element={<NutritionHub />} />
                   <Route path="/nutrition/recipes/:id" element={<AthleteRecipeDetail />} />
                   <Route path="/nutrition/history" element={<NutritionHistory />} />
                   <Route path="/nutrition/history/:id" element={<NutritionHistoryDetail />} />
