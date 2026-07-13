@@ -49,7 +49,7 @@ export default function Login() {
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-accent">Welcome back</p>
       <h1 className="text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Sign in to Coach Foska</h1>
       <p className="mt-3 text-sm leading-6 text-text-secondary">
-        The same login works for trainees and administrators. We will open the right workspace automatically.
+        Enter your email and password to continue.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
@@ -78,6 +78,12 @@ export default function Login() {
           required
           className="h-12"
         />
+        <Link
+          to="/login/forgot-password"
+          className="-mt-3 self-end text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
+        >
+          Forgot password?
+        </Link>
         {error && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 px-3 py-2.5 text-sm text-error">{error}</p>}
         <Button type="submit" loading={loading} disabled={!email.trim() || !password} className="min-h-12 w-full">
           Sign in <ArrowRight size={17} />
@@ -96,7 +102,7 @@ export default function Login() {
         Login with a one-time code
       </Link>
       <p className="mt-6 text-center text-xs leading-5 text-text-secondary">
-        Access is limited to accounts created by your Coach Foska administrator.
+        Access is limited to invited Coach Foska accounts.
       </p>
     </AuthLayout>
   )

@@ -9,12 +9,15 @@ import { AdminLayout } from './components/AdminLayout'
 import { AthleteRouteGuard } from './components/AthleteRouteGuard'
 import { AthleteAppShell } from './components/AthleteAppShell'
 import { PageViewLogger } from './components/PageViewLogger'
+import { PasswordRecoveryRedirect } from './components/PasswordRecoveryRedirect'
 import { NoticeProvider } from './components/ui'
 
 const Landing = lazy(() => import('./pages/Landing'))
 const Login = lazy(() => import('./pages/Login'))
 const Verify = lazy(() => import('./pages/Verify'))
 const OtpLogin = lazy(() => import('./pages/OtpLogin'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Callback = lazy(() => import('./pages/Callback'))
 const NotAdmin = lazy(() => import('./pages/NotAdmin'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -57,11 +60,14 @@ export default function App() {
           <NoticeProvider>
             <BrowserRouter>
               <PageViewLogger />
+              <PasswordRecoveryRedirect />
               <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-background text-sm text-text-secondary">Loading workspace…</div>}>
                 <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/login/otp" element={<OtpLogin />} />
+              <Route path="/login/forgot-password" element={<ForgotPassword />} />
+              <Route path="/login/reset-password" element={<ResetPassword />} />
               <Route path="/login/verify" element={<Verify />} />
               <Route path="/auth" element={<Navigate to="/login" replace />} />
               <Route path="/auth/verify" element={<Navigate to="/login/verify" replace />} />

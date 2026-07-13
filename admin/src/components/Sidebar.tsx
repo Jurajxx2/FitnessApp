@@ -1,7 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Dumbbell,
-  ExternalLink,
   LayoutDashboard,
   Library,
   MessageCircle,
@@ -55,10 +54,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside className={`fixed top-0 left-0 z-50 flex h-full w-64 flex-shrink-0 flex-col border-r border-outline bg-background transition-transform duration-300 md:relative md:z-auto md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="flex h-16 items-center justify-between border-b border-outline-subtle px-5">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-text-primary">Coach Foska</p>
-            <p className="mt-0.5 text-[10px] font-medium uppercase tracking-widest text-text-secondary">Admin workspace</p>
-          </div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-text-primary">Coach Foska</p>
           <button
             aria-label="Close menu"
             onClick={onClose}
@@ -69,7 +65,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
-          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">Workspace</p>
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">Manage</p>
           {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -91,15 +87,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-outline-subtle p-3">
-          <NavLink
-              to="/nutrition"
-              onClick={onClose}
-              className="mb-2 flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary"
-            >
-              <ExternalLink size={17} aria-hidden="true" />
-              <span className="flex-1">Trainee workspace</span>
-              <span className="text-[10px] uppercase tracking-wider">Switch</span>
-          </NavLink>
           <button
             onClick={toggleTheme}
             className="flex min-h-10 w-full items-center gap-3 rounded-xl border-0 bg-transparent px-3 text-left text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary cursor-pointer"

@@ -25,8 +25,9 @@ function renderLogin() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/login/otp" element={<div>OTP email page</div>} />
-        <Route path="/nutrition" element={<div>Trainee workspace</div>} />
-        <Route path="/admin" element={<div>Admin workspace</div>} />
+        <Route path="/login/forgot-password" element={<div>Password recovery page</div>} />
+        <Route path="/nutrition" element={<div>Nutrition page</div>} />
+        <Route path="/admin" element={<div>Dashboard page</div>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -50,15 +51,21 @@ test('opens OTP email collection on a separate page', async () => {
   expect(mockSignInWithPassword).not.toHaveBeenCalled()
 })
 
+test('opens password recovery from the password field', async () => {
+  renderLogin()
+  await userEvent.click(screen.getByRole('link', { name: /forgot password/i }))
+  expect(screen.getByText('Password recovery page')).toBeInTheDocument()
+})
+
 test('routes an existing admin session to admin', () => {
   authState.session = {} as never
   authState.isAdmin = true
   renderLogin()
-  expect(screen.getByText('Admin workspace')).toBeInTheDocument()
+  expect(screen.getByText('Dashboard page')).toBeInTheDocument()
 })
 
-test('routes an existing trainee session to the trainee workspace', () => {
+test('routes an existing client session to nutrition', () => {
   authState.session = {} as never
   renderLogin()
-  expect(screen.getByText('Trainee workspace')).toBeInTheDocument()
+  expect(screen.getByText('Nutrition page')).toBeInTheDocument()
 })

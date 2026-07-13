@@ -4,7 +4,6 @@ import {
   CalendarDays,
   ClipboardCheck,
   Dumbbell,
-  LayoutDashboard,
   LogOut,
   Moon,
   Sun,
@@ -43,7 +42,7 @@ function pageTitle(pathname: string) {
 export function AthleteAppShell() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, profile, isAdmin } = useAuth()
+  const { user, profile } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const initials = (profile?.full_name || user?.email || 'CF')
     .split(/[\s@._-]+/)
@@ -64,13 +63,10 @@ export function AthleteAppShell() {
     <div className="flex h-dvh overflow-hidden bg-background">
       <aside className="hidden h-full w-64 flex-shrink-0 flex-col border-r border-outline-subtle bg-background md:flex">
         <div className="flex h-16 items-center border-b border-outline-subtle px-5">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-text-primary">Coach Foska</p>
-            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-secondary">Trainee workspace</p>
-          </div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-text-primary">Coach Foska</p>
         </div>
 
-        <nav aria-label="Trainee navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
+        <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
           <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">Your coaching</p>
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink
@@ -90,16 +86,6 @@ export function AthleteAppShell() {
         </nav>
 
         <div className="border-t border-outline-subtle p-3">
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => navigate('/admin')}
-              className="mb-1 flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-xl border-0 bg-transparent px-3 text-left text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary"
-            >
-              <LayoutDashboard size={17} /> Admin workspace
-              <span className="ml-auto text-[10px] uppercase tracking-wider">Switch</span>
-            </button>
-          )}
           <button
             type="button"
             onClick={toggleTheme}
@@ -121,16 +107,11 @@ export function AthleteAppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-outline-subtle bg-background/95 px-4 backdrop-blur sm:px-6">
+        <header className="flex h-16 flex-shrink-0 items-center border-b border-outline-subtle bg-background/95 px-4 backdrop-blur sm:px-6">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary md:hidden">Coach Foska</p>
             <h1 className="text-base font-semibold text-text-primary">{pageTitle(location.pathname)}</h1>
           </div>
-          {isAdmin && (
-            <button type="button" onClick={() => navigate('/admin')} className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-xl border border-outline bg-surface px-3 text-xs font-semibold text-text-secondary hover:bg-surface-elevated hover:text-text-primary md:hidden">
-              <LayoutDashboard size={15} /> Admin
-            </button>
-          )}
         </header>
 
         <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
@@ -139,7 +120,7 @@ export function AthleteAppShell() {
           </div>
         </main>
 
-        <nav aria-label="Trainee navigation" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-outline-subtle bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-outline-subtle bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}

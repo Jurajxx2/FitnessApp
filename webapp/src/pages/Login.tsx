@@ -42,6 +42,7 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
         <Input id="email" name="email" type="email" label="Email" placeholder="ty@email.sk" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" required autoFocus />
         <Input id="password" name="password" type="password" label="Heslo" placeholder="Tvoje heslo" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required />
+        <Link to="/login/forgot-password" className="-mt-3 self-end text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary">Zabudol si heslo?</Link>
         {error && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 px-3 py-2.5 text-sm text-error">{error}</p>}
         <Button type="submit" loading={loading} disabled={!email.trim() || !password} className="w-full">Prihlásiť sa <ArrowRight size={17} /></Button>
       </form>

@@ -43,12 +43,9 @@ export function AppShell() {
     <div className="flex h-dvh overflow-hidden bg-background">
       <aside className="hidden h-full w-64 flex-shrink-0 flex-col border-r border-outline-subtle bg-background md:flex">
         <div className="flex h-16 items-center border-b border-outline-subtle px-5">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-text-primary">Coach Foska</p>
-            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-secondary">Trainee workspace</p>
-          </div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-text-primary">Coach Foska</p>
         </div>
-        <nav aria-label="Trainee navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
+        <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
           <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">Your coaching</p>
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} className={({ isActive }) => `flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm transition-colors ${isActive ? 'bg-surface-elevated font-semibold text-text-primary' : 'text-text-secondary hover:bg-surface hover:text-text-primary'}`}>
@@ -78,7 +75,7 @@ export function AppShell() {
         <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
           <div className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8"><PageTransition /></div>
         </main>
-        <nav aria-label="Trainee navigation" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-outline-subtle bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-outline-subtle bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} className={({ isActive }) => `flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-2 text-[10px] font-medium ${isActive ? 'text-text-primary' : 'text-text-secondary'}`}>
               <Icon size={20} strokeWidth={1.9} /><span className="truncate">{label}</span>

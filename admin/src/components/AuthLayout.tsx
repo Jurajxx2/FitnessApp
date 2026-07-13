@@ -19,25 +19,25 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             Your plan, progress and coaching in one place.
           </h1>
           <p className="mt-6 max-w-lg text-base leading-7 text-text-secondary">
-            Sign in once. Coach Foska automatically opens the right workspace for your account.
+            Stay connected to your training, nutrition and progress wherever you are.
           </p>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-outline-subtle bg-background/70 p-4 backdrop-blur">
               <Utensils size={21} className="mb-4 text-accent" />
-              <p className="text-sm font-semibold text-text-primary">Trainee workspace</p>
+              <p className="text-sm font-semibold text-text-primary">Nutrition</p>
               <p className="mt-1 text-xs leading-5 text-text-secondary">Nutrition, meal plans, recipes and weekly check-ins.</p>
             </div>
             <div className="rounded-2xl border border-outline-subtle bg-background/70 p-4 backdrop-blur">
               <Dumbbell size={21} className="mb-4 text-accent" />
-              <p className="text-sm font-semibold text-text-primary">Admin workspace</p>
-              <p className="mt-1 text-xs leading-5 text-text-secondary">Clients, workouts, content and coaching operations.</p>
+              <p className="text-sm font-semibold text-text-primary">Training</p>
+              <p className="mt-1 text-xs leading-5 text-text-secondary">Workouts, exercises, activity history and progress.</p>
             </div>
           </div>
         </div>
 
         <p className="relative z-10 flex items-center gap-2 text-xs text-text-secondary">
-          <CheckCircle2 size={15} className="text-success" /> Your account permissions determine the workspace.
+          <CheckCircle2 size={15} className="text-success" /> Secure access to your Coach Foska account.
         </p>
       </section>
 

@@ -98,21 +98,12 @@ export default function Landing() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 hidden lg:inline">
                 Account: <span className="text-zinc-400">{profile?.full_name || session.user.email}</span>
               </span>
-              {isAdmin ? (
-                <button
-                  onClick={() => navigate('/admin')}
-                  className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
-                >
-                  Open admin <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => navigate('/nutrition')}
-                  className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
-                >
-                  Open trainee app <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              )}
+              <button
+                onClick={() => navigate(isAdmin ? '/admin' : '/nutrition')}
+                className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 text-black text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-emerald-400 transition-all active:scale-95"
+              >
+                Open Coach Foska <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </button>
             </div>
           ) : (
             <>

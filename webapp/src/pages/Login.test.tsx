@@ -32,6 +32,7 @@ function renderLogin() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/login/otp" element={<div>OTP email page</div>} />
+        <Route path="/login/forgot-password" element={<div>Password recovery page</div>} />
         <Route path="/nutrition" element={<div>Nutrition page</div>} />
       </Routes>
     </MemoryRouter>
@@ -61,6 +62,12 @@ test('keeps OTP login as a secondary option on a separate page', async () => {
   expect(screen.getByText('OTP email page')).toBeInTheDocument()
   expect(mockSignInWithPassword).not.toHaveBeenCalled()
   expect(mockSignInWithOtp).not.toHaveBeenCalled()
+})
+
+test('opens password recovery from the password field', async () => {
+  renderLogin()
+  await userEvent.click(screen.getByRole('link', { name: /zabudol si heslo/i }))
+  expect(screen.getByText('Password recovery page')).toBeInTheDocument()
 })
 
 test('shows a password login error and stays on the login screen', async () => {

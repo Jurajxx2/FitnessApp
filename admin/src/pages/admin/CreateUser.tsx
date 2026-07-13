@@ -50,7 +50,7 @@ export default function CreateUser({ onCreated }: { onCreated?: (userId: string)
       backLabel="Back to athletes"
       eyebrow="Athlete account"
       title="Create athlete"
-      description="Provision a trainee account and send a secure email invitation. You’ll land on their profile as soon as the account is ready."
+      description="Create a client account and send a secure email invitation. You’ll land on their profile as soon as the account is ready."
       maxWidth="5xl"
       actions={
         <>
@@ -63,7 +63,7 @@ export default function CreateUser({ onCreated }: { onCreated?: (userId: string)
           <Card>
             <Mail size={19} className="text-accent" aria-hidden="true" />
             <h2 className="mt-3 font-bold text-text-primary">What the athlete receives</h2>
-            <p className="mt-2 text-sm leading-6 text-text-secondary">An email invitation to the trainee workspace. They sign in securely with a one-time code and complete onboarding there.</p>
+            <p className="mt-2 text-sm leading-6 text-text-secondary">They receive an email invitation, sign in securely with a one-time code, and complete onboarding.</p>
           </Card>
           <Card>
             <ShieldCheck size={19} className="text-success" aria-hidden="true" />

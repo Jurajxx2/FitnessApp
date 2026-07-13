@@ -4,9 +4,12 @@ import { queryClient } from './lib/queryClient'
 import { AuthProvider } from './hooks/useAuth'
 import { RouteGuard } from './components/RouteGuard'
 import { AppShell } from './components/AppShell'
+import { PasswordRecoveryRedirect } from './components/PasswordRecoveryRedirect'
 import Login from './pages/Login'
 import Verify from './pages/Verify'
 import OtpLogin from './pages/OtpLogin'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Hub from './pages/nutrition/Hub'
 import Plan from './pages/nutrition/Plan'
 import Recipes from './pages/nutrition/Recipes'
@@ -22,9 +25,12 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <PasswordRecoveryRedirect />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/login/otp" element={<OtpLogin />} />
+            <Route path="/login/forgot-password" element={<ForgotPassword />} />
+            <Route path="/login/reset-password" element={<ResetPassword />} />
             <Route path="/login/verify" element={<Verify />} />
             <Route path="/verify" element={<Navigate to="/login/verify" replace />} />
             <Route element={<RouteGuard />}>

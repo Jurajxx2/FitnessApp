@@ -57,7 +57,7 @@ export default function Quotes() {
     <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Quotes"
-        description="Maintain the motivational message shown in the athlete workspace."
+        description="Maintain the motivational message shown in Coach Foska."
         actions={<Button onClick={() => navigate('/admin/quotes/new')}>Add quote</Button>}
       />
 
@@ -66,7 +66,7 @@ export default function Quotes() {
       ) : isError ? (
         <EmptyState title="Quotes couldn’t be loaded" description="Refresh the page to retry." />
       ) : quotes.length === 0 ? (
-        <EmptyState title="No quotes yet" description="Add a quote to set the tone in the athlete workspace." action={<Button onClick={() => navigate('/admin/quotes/new')}>Add quote</Button>} />
+        <EmptyState title="No quotes yet" description="Add a quote to set the tone in Coach Foska." action={<Button onClick={() => navigate('/admin/quotes/new')}>Add quote</Button>} />
       ) : (
         <Table>
           <thead><tr><Th>Quote</Th><Th>Author</Th><Th>Status</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
