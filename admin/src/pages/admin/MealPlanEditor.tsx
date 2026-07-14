@@ -146,6 +146,10 @@ export default function MealPlanEditor() {
         .eq('id', id!)
         .single()
       if (!plan) return
+      if (plan.origin && plan.origin !== 'manual') {
+        navigate(`/admin/nutrition/meal-plans/${id}/preview`, { replace: true })
+        return
+      }
 
       setPlanName(plan.name)
       setDescription(plan.description ?? '')

@@ -37,6 +37,7 @@ const Exercises = lazy(() => import('./pages/admin/Exercises'))
 const ExerciseEditor = lazy(() => import('./pages/admin/ExerciseEditor'))
 const Chat = lazy(() => import('./pages/admin/Chat'))
 const MealPlanEditor = lazy(() => import('./pages/admin/MealPlanEditor'))
+const GeneratePlan = lazy(() => import('./pages/admin/GeneratePlan'))
 const NutritionHub = lazy(() => import('./pages/nutrition/Hub'))
 const AthleteRecipeDetail = lazy(() => import('./pages/nutrition/RecipeDetail'))
 const NutritionHistory = lazy(() => import('./pages/nutrition/History'))
@@ -117,6 +118,8 @@ export default function App() {
                   <Route path="/admin/nutrition/foods/new" element={<FoodEditor />} />
                   <Route path="/admin/nutrition/foods/:id" element={<FoodEditor />} />
                   <Route path="/admin/nutrition/meal-plans/new" element={<MealPlanEditor />} />
+                  <Route path="/admin/nutrition/meal-plans/generate" element={<GeneratePlan />} />
+                  <Route path="/admin/nutrition/meal-plans/:id/preview" element={<GeneratePlan />} />
                   <Route path="/admin/nutrition/meal-plans/:id"  element={<MealPlanEditor />} />
                   <Route path="/admin/quotes"     element={<Quotes />} />
                   <Route path="/admin/quotes/new" element={<QuoteEditor />} />

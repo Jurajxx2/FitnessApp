@@ -308,6 +308,9 @@ export function AthleteManagementPanel({
           <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="ghost" onClick={() => saveMealPlan.mutate()} loading={saveMealPlan.isPending} disabled={currentMealPlanUnavailable && mealPlanId === currentMealPlanId}>Save assignment</Button>
             <Button variant="secondary" onClick={() => navigate(`/admin/nutrition/meal-plans/new?user=${user.id}`)} disabled={!targetQuery.data}>Create plan for these macros</Button>
+            <Button onClick={() => navigate(`/admin/nutrition/meal-plans/generate?user=${user.id}`)} disabled={!targetQuery.data}>
+              Generate plan from macros
+            </Button>
           </div>
           {!targetQuery.data && <p className="mt-2 text-xs text-text-secondary">Save macro goals first to open a target-aware meal-plan editor.</p>}
           {currentMealPlanUnavailable && <p className="mt-2 text-xs text-text-secondary">The current plan is generated, inactive, or unavailable in the manual library. Choose another plan or “No meal plan” to replace it.</p>}
