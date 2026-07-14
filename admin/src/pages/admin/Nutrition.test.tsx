@@ -12,8 +12,10 @@ vi.mock('../../lib/supabase', () => ({ supabase: { from: vi.fn(), rpc: vi.fn() }
 
 function setupSupabase() {
   const saveRecipe = vi.fn().mockResolvedValue({ data: 'recipe-1', error: null })
+  const updateRecipe = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
   vi.mocked(supabase.rpc).mockImplementation(saveRecipe)
-  return { saveRecipe }
+  vi.mocked(supabase.from).mockReturnValue({ update: updateRecipe } as never)
+  return { saveRecipe, updateRecipe }
 }
 
 function renderRecipeEditor() {
@@ -50,7 +52,7 @@ describe('RecipeEditor ingredient validation', () => {
   })
 
   it('sends only named ingredient rows to the atomic recipe RPC', async () => {
-    const { saveRecipe } = setupSupabase()
+    const { saveRecipe, updateRecipe } = setupSupabase()
     renderRecipeEditor()
     const user = userEvent.setup()
 
@@ -73,5 +75,17 @@ describe('RecipeEditor ingredient validation', () => {
     const inserted = saveRecipe.mock.calls[0][1].p_ingredients as Array<{ name: string }>
     expect(inserted).toHaveLength(1)
     expect(inserted[0]).toMatchObject({ name: 'Oats', calories: 300, protein_g: 10 })
+
+    expect(updateRecipe).toHaveBeenCalledWith(expect.objectContaining({
+      eligible_for_generator: false,
+      macros_verified: false,
+      is_scalable: true,
+      allowed_portions: null,
+      fiber_g: null,
+      meal_types: [],
+      dietary_patterns: [],
+      allergens: [],
+    }))
+    expect(await screen.findByText('Recipe added.')).toBeInTheDocument()
   })
 })
