@@ -153,6 +153,20 @@ export interface NutritionTarget {
   created_at: string
 }
 
+export interface UserNutritionPreferences {
+  user_id: string
+  dietary_patterns: string[]
+  excluded_allergens: string[]
+  disliked_recipe_ids: string[]
+  favourite_recipe_ids: string[]
+  meals_per_day: number
+  include_snack: boolean
+  meal_distribution: Partial<Record<MealType, number>> | null
+  max_prep_time_min: number | null
+  max_recipe_repeats_per_week: number
+  updated_at: string
+}
+
 export interface Meal {
   id: string
   meal_plan_id: string
@@ -214,6 +228,14 @@ export interface Recipe {
   fat_g: number
   featured: boolean
   is_active: boolean
+  meal_types: MealType[]
+  dietary_patterns: string[]
+  allergens: string[]
+  fiber_g: number | null
+  is_scalable: boolean
+  allowed_portions: number[] | null
+  eligible_for_generator: boolean
+  macros_verified: boolean
   created_at: string
   updated_at: string
 }
