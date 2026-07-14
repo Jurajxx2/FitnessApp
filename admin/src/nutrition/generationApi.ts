@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabase'
 import type { GeneratedDay, GeneratedPlan, GeneratedSlot, GeneratorRecipe, SlotType } from './generator'
 
+const SLOT_ORDER: SlotType[] = ['breakfast', 'lunch', 'snack', 'dinner']
+
 export async function fetchGeneratorPool(): Promise<GeneratorRecipe[]> {
   const { data, error } = await supabase
     .from('recipes')
@@ -68,6 +70,7 @@ export async function fetchGeneratedPlan(planId: string): Promise<GeneratedPlanR
         calories: row.snapshot_calories ?? 0, protein_g: row.snapshot_protein_g ?? 0,
         carbs_g: row.snapshot_carbs_g ?? 0, fat_g: row.snapshot_fat_g ?? 0,
       }))
+      .sort((a, b) => SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot))
     const totals = slots.reduce(
       (acc, slot) => ({
         calories: acc.calories + slot.calories, protein_g: acc.protein_g + slot.protein_g,
