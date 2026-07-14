@@ -4,14 +4,15 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Lock, LockOpen, RefreshCw } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { Button, Card, ConfirmDialog, EditorPage, Input, useNotice, Shimmer, EmptyState } from '../../components/ui'
-import { NutritionPreferencesForm } from '../../components/NutritionPreferencesForm'
 import { useNutritionPreferences } from '../../nutrition/preferences'
-import { generateWeek, KCAL_TOLERANCE, type GeneratedPlan, type GeneratedSlot, type GeneratorOptions, type GeneratorTarget } from '../../nutrition/generator'
-import { deletePlan, fetchGeneratedPlan, fetchGeneratorPool, publishPlan, saveGeneratedPlan } from '../../nutrition/generationApi'
+import { generateWeek, restorePinnedSlotLockState, type GeneratedPlan, type GeneratedSlot, type GeneratorOptions, type GeneratorTarget } from '../../nutrition/generator'
+import { deletePlan, fetchGeneratedPlan, fetchGeneratorPool, fetchNutritionTargetVersion, persistCurrentPlanThenPublish, publishPlan, saveGeneratedPlan } from '../../nutrition/generationApi'
+import { combineReadiness, getGeneratedPlanActionState, getGenerationReadiness, getPublishReadiness, isGeneratorGuardrailsApproved } from '../../nutrition/generationReadiness'
 import type { NutritionTarget, UserNutritionPreferences } from '../../types/database'
 
 const DAY_SHORTS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
 const SLOT_LABELS: Record<string, string> = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
+const GENERATOR_GUARDRAILS_APPROVED = isGeneratorGuardrailsApproved(import.meta.env.VITE_MEAL_PLAN_GENERATOR_GUARDRAILS_APPROVED)
 
 function optionsFromPreferences(preferences: UserNutritionPreferences, seed: number): GeneratorOptions {
   return {
@@ -21,14 +22,15 @@ function optionsFromPreferences(preferences: UserNutritionPreferences, seed: num
     excludedAllergens: preferences.excluded_allergens,
     maxPrepTimeMin: preferences.max_prep_time_min,
     maxRecipeRepeatsPerWeek: preferences.max_recipe_repeats_per_week,
+    dislikedRecipeIds: preferences.disliked_recipe_ids,
     favouriteRecipeIds: preferences.favourite_recipe_ids,
     seed,
   }
 }
 
-function deltaChip(value: number, target: number) {
+function deltaChip(value: number, target: number, tolerancePct: number) {
   const pct = target > 0 ? (value - target) / target : 0
-  const ok = Math.abs(pct) <= KCAL_TOLERANCE
+  const ok = Math.abs(pct) <= tolerancePct / 100 + Number.EPSILON
   return (
     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${ok ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
       {pct >= 0 ? '+' : ''}{Math.round(pct * 100)}%
@@ -50,11 +52,21 @@ export default function GeneratePlan() {
     queryFn: () => fetchGeneratedPlan(previewPlanId!),
   })
   const userId = isPreview ? (previewQuery.data?.user_id ?? '') : (searchParams.get('user') ?? '')
+  const previewTargetId = previewQuery.data?.nutrition_target_id ?? ''
+  const previewTargetVersion = previewQuery.data?.target_version ?? null
 
   const targetQuery = useQuery<NutritionTarget | null>({
-    queryKey: ['admin-nutrition-target', userId],
-    enabled: Boolean(userId),
+    queryKey: isPreview
+      ? ['generated-plan-target', previewTargetId, previewTargetVersion]
+      : ['admin-nutrition-target', userId],
+    enabled: isPreview
+      ? Boolean(previewTargetId && previewTargetVersion != null)
+      : Boolean(userId),
     queryFn: async () => {
+      if (isPreview) {
+        if (!previewTargetId || previewTargetVersion == null) return null
+        return fetchNutritionTargetVersion(previewTargetId, previewTargetVersion)
+      }
       const { data, error } = await supabase.rpc('get_active_nutrition_target', { p_user_id: userId })
       if (error) throw error
       return (data as NutritionTarget[] | null)?.[0] ?? null
@@ -62,8 +74,8 @@ export default function GeneratePlan() {
   })
   const poolQuery = useQuery({ queryKey: ['generator-pool'], queryFn: fetchGeneratorPool })
   const preferencesQuery = useNutritionPreferences(userId)
+  const preferences = preferencesQuery.data ?? null
 
-  const [preferences, setPreferences] = useState<UserNutritionPreferences | null>(null)
   const [planName, setPlanName] = useState('')
   const [seed, setSeed] = useState(1)
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
@@ -71,9 +83,6 @@ export default function GeneratePlan() {
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  useEffect(() => {
-    if (preferencesQuery.data && !preferences) setPreferences(preferencesQuery.data)
-  }, [preferencesQuery.data, preferences])
   useEffect(() => {
     if (isPreview && previewQuery.data) {
       setPlanName(previewQuery.data.name)
@@ -91,8 +100,33 @@ export default function GeneratePlan() {
   }, [isPreview, planName, targetQuery.data])
 
   const target: GeneratorTarget | null = targetQuery.data
-    ? { calories: targetQuery.data.calories, protein_g: targetQuery.data.protein_g, carbs_g: targetQuery.data.carbs_g, fat_g: targetQuery.data.fat_g }
+    ? {
+        calories: targetQuery.data.calories,
+        protein_g: targetQuery.data.protein_g,
+        carbs_g: targetQuery.data.carbs_g,
+        fat_g: targetQuery.data.fat_g,
+        calorie_tol_pct: targetQuery.data.calorie_tol_pct,
+        protein_tol_pct: targetQuery.data.protein_tol_pct,
+        carbs_tol_pct: targetQuery.data.carbs_tol_pct,
+        fat_tol_pct: targetQuery.data.fat_tol_pct,
+      }
     : null
+  const generationOptions = preferences ? optionsFromPreferences(preferences, seed) : null
+  const generationReadiness = generationOptions && poolQuery.data
+    ? getGenerationReadiness(poolQuery.data, generationOptions, GENERATOR_GUARDRAILS_APPROVED)
+    : {
+        ready: false,
+        blockers: [poolQuery.isError
+          ? 'Couldn’t load the generator-ready recipe pool. Retry before generating or publishing.'
+          : 'Couldn’t load the athlete’s nutrition preferences. Retry before generating or publishing.'],
+      }
+  const publishReadiness = plan && target && generationOptions && poolQuery.data
+    ? getPublishReadiness(plan, target, generationOptions, poolQuery.data)
+    : { ready: false, blockers: [] }
+  const actionState = getGeneratedPlanActionState(isPreview, previewQuery.data?.generation_status)
+  const publishGate = combineReadiness(generationReadiness, publishReadiness)
+  const canPublish = actionState.actionable && publishGate.ready
+  const published = previewQuery.data?.generation_status === 'published'
 
   const lockedSlots = useMemo(() => {
     const map = new Map<string, GeneratedSlot>()
@@ -101,7 +135,7 @@ export default function GeneratePlan() {
   }, [plan])
 
   function regenerate(newSeed: number, keepLocks: boolean) {
-    if (!target || !preferences || !poolQuery.data) return
+    if (!actionState.actionable || !generationReadiness.ready || !target || !preferences || !poolQuery.data) return
     setSeed(newSeed)
     setPlan(generateWeek(poolQuery.data, target, optionsFromPreferences(preferences, newSeed), keepLocks ? lockedSlots : undefined))
   }
@@ -116,8 +150,8 @@ export default function GeneratePlan() {
     }))
   }
 
-  function swapSlot(dayOfWeek: number, slotType: string) {
-    if (!target || !preferences || !poolQuery.data || !plan) return
+  function swapSlot(dayOfWeek: number, slotType: GeneratedSlot['slot']) {
+    if (!generationReadiness.ready || !target || !preferences || !poolQuery.data || !plan) return
     const nextSeed = seed + 1000 + dayOfWeek * 7
     setSeed(nextSeed)
     const locks = new Map(lockedSlots)
@@ -127,13 +161,15 @@ export default function GeneratePlan() {
       if (!(day.dayOfWeek === dayOfWeek && slot.slot === slotType)) locks.set(key, slot)
       else locks.delete(key)
     }))
-    setPlan(generateWeek(poolQuery.data, target, optionsFromPreferences(preferences, nextSeed), locks))
+    const regenerated = generateWeek(poolQuery.data, target, optionsFromPreferences(preferences, nextSeed), locks)
+    setPlan(restorePinnedSlotLockState(regenerated, plan, dayOfWeek, slotType))
   }
 
   const saveDraft = useMutation({
-    mutationFn: async () => {
-      if (!plan || !targetQuery.data || !userId) throw new Error('Nothing to save yet')
-      return saveGeneratedPlan({ planId: savedPlanId, userId, name: planName, description: '', targetId: targetQuery.data.id, plan })
+    mutationFn: async (planToSave: GeneratedPlan) => {
+      if (!actionState.actionable) throw new Error('This saved plan is read-only')
+      if (!targetQuery.data || !userId) throw new Error('Nothing to save yet')
+      return saveGeneratedPlan({ planId: savedPlanId, userId, name: planName, description: '', targetId: targetQuery.data.id, plan: planToSave })
     },
     onSuccess: planId => {
       setSavedPlanId(planId)
@@ -145,8 +181,14 @@ export default function GeneratePlan() {
 
   const publish = useMutation({
     mutationFn: async () => {
-      const planId = savedPlanId ?? await saveDraft.mutateAsync()
-      await publishPlan(userId, planId)
+      if (!plan || !canPublish) {
+        throw new Error(publishGate.blockers.join(' ') || 'Nothing to publish yet')
+      }
+      await persistCurrentPlanThenPublish(
+        plan,
+        currentPlan => saveDraft.mutateAsync(currentPlan),
+        planId => publishPlan(userId, planId),
+      )
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-meal-plan', userId] })
@@ -159,7 +201,10 @@ export default function GeneratePlan() {
   })
 
   const removeDraft = useMutation({
-    mutationFn: async () => { if (savedPlanId) await deletePlan(savedPlanId) },
+    mutationFn: async () => {
+      if (!actionState.actionable) throw new Error('This saved plan is read-only')
+      if (savedPlanId) await deletePlan(savedPlanId)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans-admin'] })
       notify('Draft deleted.')
@@ -167,19 +212,44 @@ export default function GeneratePlan() {
     },
     onError: error => notify(`Couldn’t delete draft: ${error.message}`, 'error'),
   })
+  const isSavingOrPublishing = saveDraft.isPending || publish.isPending
 
-  if ((isPreview && previewQuery.isLoading) || targetQuery.isLoading || poolQuery.isLoading) {
+  if ((isPreview && previewQuery.isLoading) || targetQuery.isLoading || poolQuery.isLoading || preferencesQuery.isLoading) {
     return <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Loading…"><Shimmer className="h-96 w-full" /></EditorPage>
   }
-  if (!userId || !target) {
+  if (isPreview && previewQuery.isError) {
+    const message = previewQuery.error instanceof Error ? previewQuery.error.message : 'Unknown error'
     return (
-      <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Generate meal plan">
-        <EmptyState title="No active macro target" description="Save macro goals for the athlete first, then generate a plan." />
+      <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Couldn’t load generated plan">
+        <EmptyState title="Generated plan unavailable" description={`The plan request failed: ${message}. Retry or check admin access.`} />
       </EditorPage>
     )
   }
-
-  const published = previewQuery.data?.generation_status === 'published'
+  if (targetQuery.isError) {
+    const message = targetQuery.error instanceof Error ? targetQuery.error.message : 'Unknown error'
+    return (
+      <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Couldn’t load nutrition target">
+        <EmptyState title="Nutrition target unavailable" description={`The target request failed: ${message}. Retry or check admin access.`} />
+      </EditorPage>
+    )
+  }
+  if (isPreview && (!previewTargetId || previewTargetVersion == null)) {
+    return (
+      <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Saved target unavailable">
+        <EmptyState title="Saved target reference missing" description="This generated plan does not identify the nutrition target version it was built against, so it cannot be safely reviewed or published." />
+      </EditorPage>
+    )
+  }
+  if (!userId || !target) {
+    const previewDescription = isPreview
+      ? 'The exact nutrition target version stored on this draft no longer exists. Restore it before reviewing or publishing the plan.'
+      : 'Save macro goals for the athlete first, then generate a plan.'
+    return (
+      <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Generate meal plan">
+        <EmptyState title={isPreview ? 'Saved nutrition target not found' : 'No active macro target'} description={previewDescription} />
+      </EditorPage>
+    )
+  }
 
   return (
     <EditorPage
@@ -190,12 +260,12 @@ export default function GeneratePlan() {
       description="Deterministic draft built from the athlete's macro target and preferences. Swap or lock slots, regenerate, then publish."
       actions={
         <>
-          {savedPlanId && !published && <Button variant="danger" onClick={() => setDeleteDialogOpen(true)}>Delete draft</Button>}
-          <Button variant="ghost" onClick={() => regenerate(seed + 1, true)} disabled={!poolQuery.data?.length}>
+          {savedPlanId && actionState.actionable && <Button variant="danger" onClick={() => setDeleteDialogOpen(true)} disabled={isSavingOrPublishing}>Delete draft</Button>}
+          <Button variant="ghost" onClick={() => regenerate(seed + 1, true)} disabled={!actionState.actionable || !poolQuery.data?.length || isSavingOrPublishing || !generationReadiness.ready} title={actionState.actionable ? generationReadiness.blockers[0] : undefined}>
             <RefreshCw size={15} /> Regenerate
           </Button>
-          <Button variant="secondary" onClick={() => saveDraft.mutate()} loading={saveDraft.isPending} disabled={!plan || published}>Save draft</Button>
-          <Button onClick={() => setPublishDialogOpen(true)} disabled={!plan || published} loading={publish.isPending}>
+          <Button variant="secondary" onClick={() => { if (plan) saveDraft.mutate(plan) }} loading={saveDraft.isPending} disabled={!plan || !actionState.actionable || publish.isPending}>Save draft</Button>
+          <Button onClick={() => setPublishDialogOpen(true)} disabled={!plan || !actionState.actionable || saveDraft.isPending || !canPublish} loading={publish.isPending} title={actionState.actionable && !canPublish ? publishGate.blockers[0] : undefined}>
             {published ? 'Published' : 'Publish to athlete'}
           </Button>
         </>
@@ -226,14 +296,40 @@ export default function GeneratePlan() {
         </>
       }
     >
+      {!actionState.actionable && actionState.title && (
+        <Card className="border-outline bg-surface-secondary" role="status">
+          <h2 className="text-sm font-bold text-text-primary">{actionState.title}</h2>
+          <p className="mt-1 text-sm text-text-secondary">{actionState.message}</p>
+        </Card>
+      )}
+
+      {actionState.actionable && generationReadiness.blockers.length > 0 && (
+        <Card className="border-warning/40 bg-warning/5" role="alert">
+          <h2 className="text-sm font-bold text-text-primary">Generator launch blocked</h2>
+          <p className="mt-1 text-xs text-text-secondary">Generation and publishing stay disabled until every launch requirement below is resolved.</p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-warning">
+            {generationReadiness.blockers.map(blocker => <li key={blocker}>{blocker}</li>)}
+          </ul>
+        </Card>
+      )}
+
+      {plan && actionState.actionable && publishReadiness.blockers.length > 0 && (
+        <Card className="border-warning/40 bg-warning/5" role="alert">
+          <h2 className="text-sm font-bold text-text-primary">Publish blocked</h2>
+          <p className="mt-1 text-xs text-text-secondary">You can still save this draft. Complete or adjust it before publishing to the athlete.</p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-warning">
+            {publishReadiness.blockers.map(blocker => <li key={blocker}>{blocker}</li>)}
+          </ul>
+        </Card>
+      )}
+
       {!isPreview && preferences && (
         <Card className="p-5">
           <h2 className="mb-1 text-sm font-bold text-text-primary">Generation options</h2>
-          <p className="mb-4 text-xs text-text-secondary">Prefilled from the athlete's preferences. Changes here apply to this run only.</p>
-          <NutritionPreferencesForm value={preferences} onChange={setPreferences} locale="en" />
+          <p className="mb-4 text-xs text-text-secondary">Generation uses the athlete's saved nutrition preferences. Edit them on the athlete profile before generating if they need to change.</p>
           <div className="mt-4 flex items-end gap-3">
-            <Input label="Plan name" value={planName} onChange={event => setPlanName(event.target.value)} className="flex-1" />
-            <Button onClick={() => regenerate(seed, false)} disabled={!poolQuery.data?.length}>Generate</Button>
+            <Input label="Plan name" value={planName} onChange={event => setPlanName(event.target.value)} className="flex-1" disabled={isSavingOrPublishing} />
+            <Button onClick={() => regenerate(seed, false)} disabled={!poolQuery.data?.length || isSavingOrPublishing || !generationReadiness.ready} title={generationReadiness.blockers[0]}>Generate</Button>
           </div>
           {!poolQuery.data?.length && <p className="mt-3 text-sm text-error">No generator-ready recipes exist. Mark recipes as eligible with verified macros first.</p>}
         </Card>
@@ -245,7 +341,7 @@ export default function GeneratePlan() {
             <Card key={day.dayOfWeek} className="min-w-44 p-3">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-wider text-text-secondary">{DAY_SHORTS[day.dayOfWeek]}</p>
-                {deltaChip(day.totals.calories, target.calories)}
+                {deltaChip(day.totals.calories, target.calories, target.calorie_tol_pct)}
               </div>
               <div className="space-y-2">
                 {day.slots.map(slot => (
@@ -255,8 +351,8 @@ export default function GeneratePlan() {
                     <p className="mt-1 text-[11px] text-text-secondary">{slot.portionMultiplier !== 1 && `${slot.portionMultiplier}× · `}{Math.round(slot.calories)} kcal · P {Math.round(slot.protein_g)}g</p>
                     {!isPreview && !published && (
                       <div className="mt-2 flex gap-1">
-                        <button type="button" aria-label={`Swap ${SLOT_LABELS[slot.slot]} on ${DAY_SHORTS[day.dayOfWeek]}`} onClick={() => swapSlot(day.dayOfWeek, slot.slot)} className="min-h-7 flex-1 cursor-pointer rounded-lg border border-outline bg-transparent text-[10px] font-semibold text-text-secondary hover:text-text-primary">Swap</button>
-                        <button type="button" aria-label={`${slot.locked ? 'Unlock' : 'Lock'} ${SLOT_LABELS[slot.slot]} on ${DAY_SHORTS[day.dayOfWeek]}`} onClick={() => toggleLock(day.dayOfWeek, slot.slot)} className="flex min-h-7 w-8 cursor-pointer items-center justify-center rounded-lg border border-outline bg-transparent text-text-secondary hover:text-text-primary">
+                        <button type="button" aria-label={`Swap ${SLOT_LABELS[slot.slot]} on ${DAY_SHORTS[day.dayOfWeek]}`} onClick={() => swapSlot(day.dayOfWeek, slot.slot)} disabled={isSavingOrPublishing || !generationReadiness.ready} title={generationReadiness.blockers[0]} className="min-h-7 flex-1 cursor-pointer rounded-lg border border-outline bg-transparent text-[10px] font-semibold text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40">Swap</button>
+                        <button type="button" aria-label={`${slot.locked ? 'Unlock' : 'Lock'} ${SLOT_LABELS[slot.slot]} on ${DAY_SHORTS[day.dayOfWeek]}`} onClick={() => toggleLock(day.dayOfWeek, slot.slot)} disabled={isSavingOrPublishing} className="flex min-h-7 w-8 cursor-pointer items-center justify-center rounded-lg border border-outline bg-transparent text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40">
                           {slot.locked ? <Lock size={11} /> : <LockOpen size={11} />}
                         </button>
                       </div>
@@ -276,7 +372,7 @@ export default function GeneratePlan() {
         open={publishDialogOpen}
         title="Publish this plan to the athlete?"
         description="It replaces the athlete's current meal plan. The previous plan stays in assignment history."
-        pending={publish.isPending}
+        pending={isSavingOrPublishing}
         onClose={() => setPublishDialogOpen(false)}
         onConfirm={() => { setPublishDialogOpen(false); publish.mutate() }}
       />

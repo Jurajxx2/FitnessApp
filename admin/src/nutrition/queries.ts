@@ -36,7 +36,7 @@ export async function fetchActiveMealPlan(userId: string): Promise<MealPlanRow |
 
   const { data, error } = await supabase
     .from('meal_plans')
-    .select('*, meals(*, meal_foods(*), meal_plan_recipes(id, recipe_id, snapshot_recipe_name))')
+    .select('*, meals(*, meal_foods(*), meal_plan_recipes(id, recipe_id, snapshot_recipe_name, portion_multiplier))')
     .eq('id', mealPlanId)
     .maybeSingle()
   if (error) throw error

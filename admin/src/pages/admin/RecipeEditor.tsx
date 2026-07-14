@@ -59,6 +59,43 @@ function toggleValue(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter(item => item !== value) : [...list, value]
 }
 
+function describeError(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
+    return error.message
+  }
+  return String(error)
+}
+
+class RecipePhotoCleanupError extends Error {
+  readonly cause: unknown
+  readonly cleanupError: unknown
+
+  constructor(saveError: unknown, cleanupError: unknown) {
+    super(`${describeError(saveError)} Photo cleanup also failed: ${describeError(cleanupError)}`)
+    this.name = 'RecipePhotoCleanupError'
+    this.cause = saveError
+    this.cleanupError = cleanupError
+  }
+}
+
+async function cleanupFailedRecipePhotoUpload(photoUrl: string, fileName: string): Promise<void> {
+  const uploadedPath = getRecipePhotoPath(photoUrl, fileName)
+  if (!uploadedPath) throw new Error('the uploaded recipe-photo path could not be determined')
+
+  // uploadRecipePhoto uses upsert. Do not remove a path that the failed request
+  // may have overwritten or that another recipe already shares.
+  const { data: references, error: referencesError } = await supabase
+    .from('recipes')
+    .select('photo_url, photo_file_name')
+  if (referencesError) throw referencesError
+
+  const isReferenced = (references ?? []).some(reference =>
+    getRecipePhotoPath(reference.photo_url, reference.photo_file_name) === uploadedPath
+  )
+  if (!isReferenced) await removeRecipePhoto(uploadedPath)
+}
+
 function GeneratorChipRow({ label, options, selected, onToggle }: {
   label: string; options: Array<{ value: string; adminLabel: string }>; selected: string[]; onToggle: (value: string) => void
 }) {
@@ -196,59 +233,82 @@ export default function RecipeEditor() {
   const invalidIngredientRows = findBlankNamedRowsWithData(ingredients)
   const ingredientsError = describeInvalidIngredientRows(invalidIngredientRows)
   const macros = calcMacros(ingredients.filter(ingredient => ingredient.name.trim()))
+  const servings = Number(form.servings)
+  const perServingMacros = Number.isFinite(servings) && servings > 0
+    ? {
+        calories: macros.calories / servings,
+        protein_g: macros.protein_g / servings,
+        carbs_g: macros.carbs_g / servings,
+        fat_g: macros.fat_g / servings,
+      }
+    : { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
+  const allowedPortions = form.allowed_portions.trim()
+    ? form.allowed_portions.split(',').map(part => Number(part.trim()))
+    : []
+  const nonScalablePortionsInvalid = !form.is_scalable
+    && allowedPortions.some(value => Number.isFinite(value) && !Number.isInteger(value))
   const ingredientNumbersInvalid = ingredients.some(ingredient =>
     [ingredient.quantity ?? 0, ingredient.calories, ingredient.protein_g, ingredient.carbs_g, ingredient.fat_g]
       .some(value => !Number.isFinite(value) || value < 0)
   )
-  const metadataNumbersInvalid = Number(form.servings) <= 0
-    || (form.prep_time_min !== '' && Number(form.prep_time_min) < 0)
-    || (form.cook_time_min !== '' && Number(form.cook_time_min) < 0)
+  const metadataNumbersInvalid = !Number.isFinite(servings) || servings <= 0
+    || (form.prep_time_min !== '' && (!Number.isFinite(Number(form.prep_time_min)) || Number(form.prep_time_min) < 0))
+    || (form.cook_time_min !== '' && (!Number.isFinite(Number(form.cook_time_min)) || Number(form.cook_time_min) < 0))
+    || (form.fiber_g !== '' && (!Number.isFinite(Number(form.fiber_g)) || Number(form.fiber_g) < 0))
+    || allowedPortions.some(value => !Number.isFinite(value) || value <= 0)
+    || nonScalablePortionsInvalid
   const formInvalid = !form.name.trim() || invalidIngredientRows.length > 0 || ingredientNumbersInvalid || metadataNumbersInvalid
 
   const saveRecipe = useMutation({
     mutationFn: async () => {
       if (invalidIngredientRows.length) throw new Error(ingredientsError)
-      if (ingredientNumbersInvalid || metadataNumbersInvalid) throw new Error('Servings must be greater than zero and numeric values cannot be negative.')
+      if (ingredientNumbersInvalid || metadataNumbersInvalid) throw new Error('Servings and allowed portions must be positive; all other numeric values must be finite and non-negative. Non-scalable recipes require whole allowed portions.')
 
       const validIngredients = ingredients.filter(ingredient => ingredient.name.trim())
       let photoUrl: string | undefined
-      if (photoFile) photoUrl = await uploadRecipePhoto(photoFile, form.photo_file_name || photoFile.name)
+      const uploadedFileName = photoFile ? (form.photo_file_name || photoFile.name) : null
+      if (photoFile && uploadedFileName) photoUrl = await uploadRecipePhoto(photoFile, uploadedFileName)
 
-      const { data: recipeId, error: saveError } = await supabase.rpc('admin_save_recipe', {
-        p_recipe_id: id ?? null,
-        p_name: form.name,
-        p_description: form.description,
-        p_prep_time_min: form.prep_time_min ? Number(form.prep_time_min) : null,
-        p_cook_time_min: form.cook_time_min ? Number(form.cook_time_min) : null,
-        p_servings: Number(form.servings),
-        p_external_id: form.external_id,
-        p_photo_file_name: form.photo_file_name,
-        p_photo_url: photoUrl ?? null,
-        p_replace_photo: Boolean(photoFile),
-        p_difficulty: form.difficulty || null,
-        p_tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        p_steps: steps.map(step => step.trim()).filter(Boolean),
-        p_is_active: form.is_active,
-        p_featured: form.featured,
-        p_ingredients: validIngredients.map((ingredient, index) => ({ ...ingredient, sort_order: index })),
-      })
-      if (saveError) throw saveError
-
-      const allowedPortions = form.allowed_portions
-        .split(',').map(part => Number(part.trim())).filter(value => Number.isFinite(value) && value > 0)
-      const { error: generatorError } = await supabase.from('recipes').update({
-        eligible_for_generator: form.eligible_for_generator,
-        macros_verified: form.macros_verified,
-        is_scalable: form.is_scalable,
-        allowed_portions: allowedPortions.length ? allowedPortions : null,
-        fiber_g: form.fiber_g ? Number(form.fiber_g) : null,
-        meal_types: form.meal_types,
-        dietary_patterns: form.dietary_patterns,
-        allergens: form.allergens,
-      }).eq('id', recipeId as string)
-      if (generatorError) throw generatorError
-
-      return recipeId as string
+      try {
+        const { data: recipeId, error: saveError } = await supabase.rpc('admin_save_recipe_v2', {
+          p_recipe_id: id ?? null,
+          p_name: form.name,
+          p_description: form.description,
+          p_prep_time_min: form.prep_time_min ? Number(form.prep_time_min) : null,
+          p_cook_time_min: form.cook_time_min ? Number(form.cook_time_min) : null,
+          p_servings: Number(form.servings),
+          p_external_id: form.external_id,
+          p_photo_file_name: form.photo_file_name,
+          p_photo_url: photoUrl ?? null,
+          p_replace_photo: Boolean(photoFile),
+          p_difficulty: form.difficulty || null,
+          p_tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
+          p_steps: steps.map(step => step.trim()).filter(Boolean),
+          p_is_active: form.is_active,
+          p_featured: form.featured,
+          p_ingredients: validIngredients.map((ingredient, index) => ({ ...ingredient, sort_order: index })),
+          p_eligible_for_generator: form.eligible_for_generator,
+          p_macros_verified: form.macros_verified,
+          p_is_scalable: form.is_scalable,
+          p_allowed_portions: allowedPortions.length ? allowedPortions : null,
+          p_fiber_g: form.fiber_g ? Number(form.fiber_g) : null,
+          p_meal_types: form.meal_types,
+          p_dietary_patterns: form.dietary_patterns,
+          p_allergens: form.allergens,
+        })
+        if (saveError) throw saveError
+        if (!recipeId) throw new Error('Recipe save returned no id')
+        return recipeId as string
+      } catch (saveError) {
+        if (photoUrl && uploadedFileName) {
+          try {
+            await cleanupFailedRecipePhotoUpload(photoUrl, uploadedFileName)
+          } catch (cleanupError) {
+            throw new RecipePhotoCleanupError(saveError, cleanupError)
+          }
+        }
+        throw saveError
+      }
     },
     onSuccess: recipeId => {
       queryClient.invalidateQueries({ queryKey: ['recipes-admin'] })
@@ -337,13 +397,14 @@ export default function RecipeEditor() {
           </Card>
 
           <Card>
+            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-text-secondary">Per serving</p>
             <StatRow items={[
-              { label: 'Kcal', value: String(Math.round(macros.calories)) },
-              { label: 'Protein', value: `${macros.protein_g.toFixed(1)}g` },
-              { label: 'Carbs', value: `${macros.carbs_g.toFixed(1)}g` },
-              { label: 'Fat', value: `${macros.fat_g.toFixed(1)}g` },
+              { label: 'Kcal', value: String(Math.round(perServingMacros.calories)) },
+              { label: 'Protein', value: `${perServingMacros.protein_g.toFixed(1)}g` },
+              { label: 'Carbs', value: `${perServingMacros.carbs_g.toFixed(1)}g` },
+              { label: 'Fat', value: `${perServingMacros.fat_g.toFixed(1)}g` },
             ]} />
-            <p className="mt-4 text-xs leading-5 text-text-secondary">Totals are calculated from named ingredient rows, matching the values stored on the recipe.</p>
+            <p className="mt-4 text-xs leading-5 text-text-secondary">Ingredient macros are whole-recipe totals; this summary and the saved recipe values are divided by servings.</p>
           </Card>
 
           <Card>
@@ -407,7 +468,7 @@ export default function RecipeEditor() {
         </div>
       </FormSection>
 
-      <FormSection title="Ingredients" description="Named rows are saved in order. Macro totals update immediately in the summary rail.">
+      <FormSection title="Ingredients" description="Named rows are saved in order. Enter whole-recipe macro totals; the summary converts them to one serving.">
         {ingredientsError && <p role="alert" className="mb-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">{ingredientsError}</p>}
         <div className="space-y-4">
           {ingredients.map((ingredient, index) => (
@@ -431,7 +492,7 @@ export default function RecipeEditor() {
           ))}
         </div>
         <Button variant="ghost" className="mt-4" onClick={() => setIngredients(current => [...current, blankIngredient(current.length)])}>Add ingredient</Button>
-        {(ingredientNumbersInvalid || metadataNumbersInvalid) && <p role="alert" className="mt-4 text-sm text-error">Servings must be greater than zero and numeric values cannot be negative.</p>}
+        {(ingredientNumbersInvalid || metadataNumbersInvalid) && <p role="alert" className="mt-4 text-sm text-error">Servings and allowed portions must be positive; all other numeric values must be finite and non-negative. Non-scalable recipes require whole allowed portions.</p>}
       </FormSection>
 
       <FormSection title="Generator" description="Only recipes marked eligible with verified macros are used by the meal-plan generator. Tag meal types so the recipe lands in the right slot.">
@@ -449,7 +510,7 @@ export default function RecipeEditor() {
             <span><span className="block text-sm font-semibold text-text-primary">Scalable portions</span><span className="mt-1 block text-xs text-text-secondary">The generator may scale this recipe between 0.5× and 2×.</span></span>
           </label>
           <Input label="Allowed portions (comma-separated ×)" value={form.allowed_portions} onChange={event => setForm(current => ({ ...current, allowed_portions: event.target.value }))} placeholder="0.5, 1, 1.5, 2" />
-          <Input label="Fiber (g)" type="number" min="0" step="any" value={form.fiber_g} onChange={event => setForm(current => ({ ...current, fiber_g: event.target.value }))} />
+          <Input label="Fiber per serving (g)" type="number" min="0" step="any" value={form.fiber_g} onChange={event => setForm(current => ({ ...current, fiber_g: event.target.value }))} />
         </div>
         <div className="mt-5 space-y-4">
           <GeneratorChipRow label="Meal types" options={MEAL_TYPE_OPTIONS} selected={form.meal_types} onToggle={value => setForm(current => ({ ...current, meal_types: toggleValue(current.meal_types, value) }))} />

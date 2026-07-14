@@ -39,6 +39,11 @@ export default function Plan({ embedded = false }: { embedded?: boolean }) {
               .filter(recipe => recipe.recipe_id && recipe.snapshot_recipe_name)
               .map(recipe => [recipe.snapshot_recipe_name!, recipe.recipe_id!]),
           )
+          const multiplierBySnapshotName = new Map(
+            meal.meal_plan_recipes
+              .filter(recipe => recipe.snapshot_recipe_name && recipe.portion_multiplier !== 1)
+              .map(recipe => [recipe.snapshot_recipe_name!, recipe.portion_multiplier]),
+          )
           return (
             <Card key={meal.id} className="p-5">
             <div className="flex items-baseline justify-between mb-2">
@@ -52,6 +57,11 @@ export default function Plan({ embedded = false }: { embedded?: boolean }) {
                   <>
                     <span className="flex min-w-0 items-center gap-1 font-medium text-text-primary">
                       <span className="truncate">{f.name}</span>
+                      {multiplierBySnapshotName.has(f.name) && (
+                        <span className="flex-shrink-0 rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                          {multiplierBySnapshotName.get(f.name)}× porcia
+                        </span>
+                      )}
                       {recipeId && <ChevronRight size={15} className="flex-shrink-0 text-accent" aria-hidden="true" />}
                     </span>
                     <span className="flex-shrink-0 text-text-secondary">{Math.round(f.amount_grams)} g · {Math.round(f.calories)} kcal</span>

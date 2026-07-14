@@ -9,8 +9,8 @@ vi.mock('../../nutrition/hooks', () => ({ useActiveMealPlan: vi.fn() }))
 
 const mockUseActiveMealPlan = vi.mocked(useActiveMealPlan)
 
-beforeEach(() => {
-  mockUseActiveMealPlan.mockReturnValue({
+function planFixture(): ReturnType<typeof useActiveMealPlan> {
+  return {
     data: {
       id: 'plan-1',
       name: 'Test plan',
@@ -29,13 +29,17 @@ beforeEach(() => {
           { id: 'food-2', meal_id: 'meal-1', name: 'Archived recipe snapshot', amount_grams: 100, calories: 300, protein_g: 20, carbs_g: 35, fat_g: 8 },
         ],
         meal_plan_recipes: [
-          { id: 'slot-1', recipe_id: 'recipe-1', snapshot_recipe_name: 'Protein pancakes' },
-          { id: 'slot-2', recipe_id: null, snapshot_recipe_name: 'Archived recipe snapshot' },
+          { id: 'slot-1', recipe_id: 'recipe-1', snapshot_recipe_name: 'Protein pancakes', portion_multiplier: 1 },
+          { id: 'slot-2', recipe_id: null, snapshot_recipe_name: 'Archived recipe snapshot', portion_multiplier: 1 },
         ],
       }],
     },
     isLoading: false,
-  } as ReturnType<typeof useActiveMealPlan>)
+  } as ReturnType<typeof useActiveMealPlan>
+}
+
+beforeEach(() => {
+  mockUseActiveMealPlan.mockReturnValue(planFixture())
 })
 
 test('links planned recipes to their athlete recipe detail page', () => {
@@ -60,4 +64,26 @@ test('starts a meal log prefilled from the selected meal card', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Zapísať toto jedlo' }))
 
   expect(screen.getByTestId('location')).toHaveTextContent('/nutrition/log?mealId=meal-1')
+})
+
+test('shows a portion chip for scaled recipe rows', () => {
+  const base = planFixture()
+  mockUseActiveMealPlan.mockReturnValue({
+    ...base,
+    data: {
+      ...base.data!,
+      meals: [{
+        ...base.data!.meals[0],
+        meal_plan_recipes: [
+          { id: 'slot-1', recipe_id: 'recipe-1', snapshot_recipe_name: 'Protein pancakes', portion_multiplier: 1.5 },
+          { id: 'slot-2', recipe_id: null, snapshot_recipe_name: 'Archived recipe snapshot', portion_multiplier: 1 },
+        ],
+      }],
+    },
+  } as ReturnType<typeof useActiveMealPlan>)
+
+  render(<MemoryRouter initialEntries={['/nutrition/plan']}><Plan /></MemoryRouter>)
+
+  expect(screen.getByText('1.5× porcia')).toBeInTheDocument()
+  expect(screen.queryByText('1× porcia')).not.toBeInTheDocument()
 })

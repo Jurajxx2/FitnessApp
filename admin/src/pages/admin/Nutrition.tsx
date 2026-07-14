@@ -266,11 +266,24 @@ function MealPlansTab() {
   const { data: mealPlans = [], isLoading, isError } = useMealPlans()
   const { data: assignmentCounts = {} } = usePlanAssignmentCounts()
   const [deleteTarget, setDeleteTarget] = useState<MealPlan | null>(null)
+  const [originFilter, setOriginFilter] = useState<'all' | 'manual' | 'generated'>('all')
+  const visiblePlans = mealPlans.filter(plan => originFilter === 'all' || (plan.origin ?? 'manual') === originFilter)
+
+  const planRoute = (plan: MealPlan) =>
+    plan.origin === 'generated' ? `/admin/nutrition/meal-plans/${plan.id}/preview` : `/admin/nutrition/meal-plans/${plan.id}`
 
   const deletePlan = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('meal_plans').delete().eq('id', id)
+    mutationFn: async (plan: MealPlan) => {
+      if (plan.origin === 'generated') {
+        const { data, error } = await supabase.rpc('admin_delete_generated_meal_plan', { p_plan_id: plan.id })
+        if (error) throw error
+        if (data !== plan.id) throw new Error('No generated meal plan was deleted')
+        return
+      }
+
+      const { data, error } = await supabase.from('meal_plans').delete().eq('id', plan.id).select('id').maybeSingle()
       if (error) throw error
+      if (!data) throw new Error('No meal plan was deleted')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans-admin'] })
@@ -284,7 +297,14 @@ function MealPlansTab() {
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-text-secondary">{mealPlans.length} meal plans</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-text-secondary">{mealPlans.length} meal plans</p>
+          <div className="flex gap-2">
+            {(['all', 'manual', 'generated'] as const).map(option => (
+              <Chip key={option} selected={originFilter === option} onClick={() => setOriginFilter(option)} className="capitalize">{option}</Chip>
+            ))}
+          </div>
+        </div>
         <Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>Create meal plan</Button>
       </div>
       {isLoading ? (
@@ -297,12 +317,19 @@ function MealPlansTab() {
         <Table>
           <thead><tr><Th>Plan</Th><Th>Assigned to</Th><Th>Status</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
           <tbody>
-            {mealPlans.map(plan => (
-              <ClickableRow key={plan.id} label={`Open ${plan.name}`} onActivate={() => navigate(`/admin/nutrition/meal-plans/${plan.id}`)}>
+            {visiblePlans.map(plan => (
+              <ClickableRow key={plan.id} label={`Open ${plan.name}`} onActivate={() => navigate(planRoute(plan))}>
                 <Td><p className="font-semibold text-text-primary">{plan.name}</p><p className="max-w-xl truncate text-xs text-text-secondary">{plan.description ?? 'No description'}</p></Td>
                 <Td>{assignmentCounts[plan.id] ?? 0} current</Td>
-                <Td>{plan.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}</Td>
-                <Td><div className="flex justify-end gap-2"><Button variant="ghost" className="min-h-9 px-3" onClick={() => navigate(`/admin/nutrition/meal-plans/${plan.id}`)}>Open</Button><Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(plan)}>Delete</Button></div></Td>
+                <Td>
+                  {plan.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}
+                  {plan.origin === 'generated' && (
+                    <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
+                      Generated{plan.generation_status === 'draft' ? ' · draft' : ''}
+                    </span>
+                  )}
+                </Td>
+                <Td><div className="flex justify-end gap-2"><Button variant="ghost" className="min-h-9 px-3" onClick={() => navigate(planRoute(plan))}>Open</Button><Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(plan)}>Delete</Button></div></Td>
               </ClickableRow>
             ))}
           </tbody>
@@ -315,7 +342,7 @@ function MealPlansTab() {
         description={<>“{deleteTarget?.name}” will be permanently removed.</>}
         pending={deletePlan.isPending}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteTarget && deletePlan.mutate(deleteTarget.id)}
+        onConfirm={() => deleteTarget && deletePlan.mutate(deleteTarget)}
       />
     </>
   )

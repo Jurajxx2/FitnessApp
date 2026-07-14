@@ -132,6 +132,7 @@ export interface MealPlan {
   valid_to: string | null
   is_active: boolean
   origin?: 'manual' | 'generated'
+  generation_status?: string | null
   created_at: string
   updated_at: string
 }
@@ -146,6 +147,10 @@ export interface NutritionTarget {
   carbs_g: number
   fat_g: number
   fiber_g_min: number | null
+  calorie_tol_pct: number
+  protein_tol_pct: number
+  carbs_tol_pct: number
+  fat_tol_pct: number
   version: number
   is_locked: boolean
   effective_from: string
@@ -380,6 +385,7 @@ export interface MealPlanRecipeRow {
   id: string
   recipe_id: string | null
   snapshot_recipe_name: string | null
+  portion_multiplier: number
 }
 
 export interface MealRow {

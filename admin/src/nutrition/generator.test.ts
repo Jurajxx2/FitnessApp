@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
-  bestPortion, filterPool, generateWeek, KCAL_TOLERANCE, mulberry32, PROTEIN_FLOOR, scoreCandidate, slotBudgets,
-  type GeneratedSlot, type GeneratorOptions, type GeneratorRecipe,
+  bestPortion, filterPool, generateWeek, isWithinTargetTolerances, KCAL_TOLERANCE, mulberry32, PROTEIN_FLOOR, scoreCandidate, slotBudgets,
+  restorePinnedSlotLockState, type GeneratedSlot, type GeneratorOptions, type GeneratorRecipe,
 } from './generator'
 
 export const baseOptions: GeneratorOptions = {
   includeSnack: false, mealDistribution: null, dietaryPatterns: [], excludedAllergens: [],
-  maxPrepTimeMin: null, maxRecipeRepeatsPerWeek: 2, favouriteRecipeIds: [], seed: 42,
+  maxPrepTimeMin: null, maxRecipeRepeatsPerWeek: 2,
+  dislikedRecipeIds: [], favouriteRecipeIds: [], seed: 42,
 }
 
 export function recipe(overrides: Partial<GeneratorRecipe> & { id: string }): GeneratorRecipe {
@@ -14,6 +15,7 @@ export function recipe(overrides: Partial<GeneratorRecipe> & { id: string }): Ge
     name: overrides.id, calories: 500, protein_g: 30, carbs_g: 50, fat_g: 15,
     fiber_g: null, prep_time_min: 10, cook_time_min: 10,
     meal_types: ['lunch'], dietary_patterns: [], allergens: [],
+    is_active: true, eligible_for_generator: true, macros_verified: true,
     is_scalable: true, allowed_portions: null,
     ...overrides,
   }
@@ -27,7 +29,10 @@ describe('mulberry32', () => {
 })
 
 describe('slotBudgets', () => {
-  const target = { calories: 2000, protein_g: 150, carbs_g: 200, fat_g: 60 }
+  const target = {
+    calories: 2000, protein_g: 150, carbs_g: 200, fat_g: 60,
+    calorie_tol_pct: 5, protein_tol_pct: 10, carbs_tol_pct: 15, fat_tol_pct: 15,
+  }
   it('splits 30/40/30 without snack', () => {
     const budgets = slotBudgets(target, baseOptions)
     expect(budgets.map(item => item.slot)).toEqual(['breakfast', 'lunch', 'dinner'])
@@ -56,6 +61,24 @@ describe('filterPool', () => {
     ]
     const options = { ...baseOptions, excludedAllergens: ['nuts'], dietaryPatterns: ['vegan'], maxPrepTimeMin: 30 }
     expect(filterPool(pool, 'lunch', options).map(item => item.id)).toEqual(['vegan-ok'])
+  })
+
+  it('hard-excludes recipes the athlete disliked', () => {
+    const pool = [recipe({ id: 'liked' }), recipe({ id: 'disliked' })]
+    const options = { ...baseOptions, dislikedRecipeIds: ['disliked'] }
+
+    expect(filterPool(pool, 'lunch', options).map(item => item.id)).toEqual(['liked'])
+  })
+
+  it('hard-excludes inactive, ineligible, or unverified recipes', () => {
+    const pool = [
+      recipe({ id: 'ready' }),
+      recipe({ id: 'inactive', is_active: false }),
+      recipe({ id: 'ineligible', eligible_for_generator: false }),
+      recipe({ id: 'unverified', macros_verified: false }),
+    ]
+
+    expect(filterPool(pool, 'lunch', baseOptions).map(item => item.id)).toEqual(['ready'])
   })
 })
 
@@ -111,7 +134,13 @@ function richPool(): GeneratorRecipe[] {
 }
 
 describe('generateWeek', () => {
-  const target = { calories: 2000, protein_g: 140, carbs_g: 200, fat_g: 60 }
+  const target = {
+    calories: 2000, protein_g: 140, carbs_g: 200, fat_g: 60,
+    calorie_tol_pct: KCAL_TOLERANCE * 100,
+    protein_tol_pct: 25,
+    carbs_tol_pct: 25,
+    fat_tol_pct: 25,
+  }
 
   it('produces 7 days x 3 slots within tolerance for a rich pool', () => {
     const plan = generateWeek(richPool(), target, baseOptions)
@@ -131,6 +160,20 @@ describe('generateWeek', () => {
     const key = (plan: typeof first) => plan.days.map(day => day.slots.map(slot => `${slot.recipeId}@${slot.portionMultiplier}`).join('|')).join('//')
     expect(key(first)).toEqual(key(second))
     expect(key(other)).not.toEqual(key(first))
+  })
+
+  it('is deterministic for equal-scored recipes regardless of input order', () => {
+    const equalPool = ['breakfast', 'lunch', 'dinner'].flatMap(slot => [
+      recipe({ id: `${slot}-b`, meal_types: [slot], calories: slot === 'lunch' ? 800 : 600, protein_g: slot === 'lunch' ? 56 : 42 }),
+      recipe({ id: `${slot}-a`, meal_types: [slot], calories: slot === 'lunch' ? 800 : 600, protein_g: slot === 'lunch' ? 56 : 42 }),
+    ])
+    const options = { ...baseOptions, maxRecipeRepeatsPerWeek: 7 }
+    const key = (plan: ReturnType<typeof generateWeek>) => plan.days
+      .map(day => day.slots.map(slot => `${slot.recipeId}@${slot.portionMultiplier}`).join('|'))
+      .join('//')
+
+    expect(key(generateWeek(equalPool, target, options)))
+      .toEqual(key(generateWeek([...equalPool].reverse(), target, options)))
   })
 
   it('respects max repeats per week', () => {
@@ -163,11 +206,71 @@ describe('generateWeek', () => {
     const locked: GeneratedSlot = {
       slot: 'lunch', recipeId: source.id, recipeName: source.name, portionMultiplier: 1,
       calories: source.calories, protein_g: source.protein_g, carbs_g: source.carbs_g, fat_g: source.fat_g,
+      fiber_g: source.fiber_g,
       locked: true,
     }
     const plan = generateWeek(pool, target, { ...baseOptions, maxRecipeRepeatsPerWeek: 1 }, new Map([['6:lunch', locked]]))
     const uses = plan.days.flatMap(day => day.slots).filter(slot => slot.recipeId === 'lunch-0')
     expect(uses).toHaveLength(1)
     expect(plan.days[6].slots.find(slot => slot.slot === 'lunch')?.recipeId).toBe('lunch-0')
+  })
+
+  it('restores prior lock flags after temporarily pinning every non-swapped slot', () => {
+    const original = generateWeek(richPool(), target, baseOptions)
+    const previous = {
+      ...original,
+      days: original.days.map(day => ({
+        ...day,
+        slots: day.slots.map(slot => ({
+          ...slot,
+          locked: day.dayOfWeek === 0 && slot.slot === 'lunch',
+        })),
+      })),
+    }
+    const swappedDay = 0
+    const swappedSlot = 'breakfast'
+    const temporarilyPinned = {
+      ...previous,
+      days: previous.days.map(day => ({
+        ...day,
+        slots: day.slots.map(slot => ({
+          ...slot,
+          locked: !(day.dayOfWeek === swappedDay && slot.slot === swappedSlot),
+        })),
+      })),
+    }
+
+    const restored = restorePinnedSlotLockState(temporarilyPinned, previous, swappedDay, swappedSlot)
+    const lockedKeys = restored.days.flatMap(day => day.slots
+      .filter(slot => slot.locked)
+      .map(slot => `${day.dayOfWeek}:${slot.slot}`))
+
+    expect(lockedKeys).toEqual(['0:lunch'])
+    expect(restored.days[0].slots.find(slot => slot.slot === 'breakfast')?.locked).toBe(false)
+  })
+})
+
+describe('isWithinTargetTolerances', () => {
+  const target = {
+    calories: 2000, protein_g: 150, carbs_g: 200, fat_g: 60,
+    calorie_tol_pct: 5, protein_tol_pct: 10, carbs_tol_pct: 15, fat_tol_pct: 15,
+  }
+
+  it('rejects carb and fat violations even when calories and protein pass', () => {
+    expect(isWithinTargetTolerances(
+      { calories: 2000, protein_g: 150, carbs_g: 240, fat_g: 75 },
+      target,
+    )).toBe(false)
+  })
+
+  it('honours custom symmetric tolerances and handles zero targets safely', () => {
+    expect(isWithinTargetTolerances(
+      { calories: 2100, protein_g: 165, carbs_g: 240, fat_g: 72 },
+      { ...target, calorie_tol_pct: 5, protein_tol_pct: 10, carbs_tol_pct: 20, fat_tol_pct: 20 },
+    )).toBe(true)
+    expect(isWithinTargetTolerances(
+      { calories: 2000, protein_g: 1, carbs_g: 200, fat_g: 60 },
+      { ...target, protein_g: 0, protein_tol_pct: 100 },
+    )).toBe(false)
   })
 })
