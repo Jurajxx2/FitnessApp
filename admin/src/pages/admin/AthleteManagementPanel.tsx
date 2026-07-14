@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Input, useNotice } from '../../components/ui'
+import { NutritionPreferencesForm } from '../../components/NutritionPreferencesForm'
 import { calcMacroTargets } from '../../nutrition/calc'
+import { defaultPreferences, useNutritionPreferences, useSaveNutritionPreferences } from '../../nutrition/preferences'
 import { supabase } from '../../lib/supabase'
-import type { AccessMode, MealPlan, NutritionTarget, Profile, Workout } from '../../types/database'
+import type { AccessMode, MealPlan, NutritionTarget, Profile, UserNutritionPreferences, Workout } from '../../types/database'
 
 type PlanOption = Pick<MealPlan, 'id' | 'name'>
 type WorkoutOption = Pick<Workout, 'id' | 'name'>
@@ -97,6 +99,10 @@ export function AthleteManagementPanel({
   const [macros, setMacros] = useState<MacroDraft>(() => macroDraft(null))
   const [mealPlanId, setMealPlanId] = useState('')
   const [workoutIds, setWorkoutIds] = useState<string[]>([])
+  const preferencesQuery = useNutritionPreferences(user.id)
+  const savePreferences = useSaveNutritionPreferences(user.id)
+  const [preferences, setPreferences] = useState<UserNutritionPreferences>(() => defaultPreferences(user.id))
+  useEffect(() => { if (preferencesQuery.data) setPreferences(preferencesQuery.data) }, [preferencesQuery.data])
 
   useEffect(() => setProfile(profileDraft(user)), [user])
   useEffect(() => setMacros(macroDraft(targetQuery.data)), [targetQuery.data])
@@ -322,6 +328,25 @@ export function AthleteManagementPanel({
         <div className="mt-4 flex flex-wrap gap-2">
           <Button onClick={() => saveWorkouts.mutate()} loading={saveWorkouts.isPending}>Save workouts</Button>
           <Button variant="ghost" onClick={() => navigate(`/admin/workouts/new?user=${user.id}`)}>Create workout for {user.full_name ?? 'user'}</Button>
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="text-base font-bold text-text-primary">Nutrition preferences</h2>
+        <p className="mt-1 text-sm text-text-secondary">Inputs for the meal-plan generator. The athlete can also edit these on their profile.</p>
+        <div className="mt-4">
+          <NutritionPreferencesForm value={preferences} onChange={setPreferences} locale="en" />
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button
+            onClick={() => savePreferences.mutate(preferences, {
+              onSuccess: () => notify('Nutrition preferences saved.'),
+              onError: error => notify(`Couldn’t save preferences: ${error.message}`, 'error'),
+            })}
+            loading={savePreferences.isPending}
+          >
+            Save preferences
+          </Button>
         </div>
       </Card>
     </div>

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button, Card, EmptyState, Input, PageHeader, useNotice } from '../components/ui'
+import { NutritionPreferencesForm } from '../components/NutritionPreferencesForm'
 import { useAuth } from '../hooks/useAuth'
+import { defaultPreferences, useNutritionPreferences, useSaveNutritionPreferences } from '../nutrition/preferences'
 import { supabase } from '../lib/supabase'
-import type { ActivityLevel, Goal, Profile as ProfileRecord } from '../types/database'
+import type { ActivityLevel, Goal, Profile as ProfileRecord, UserNutritionPreferences } from '../types/database'
 
 interface ProfileDraft {
   fullName: string
@@ -82,6 +84,11 @@ export default function Profile() {
     onError: error => notify(`Couldn’t update profile: ${error.message}`, 'error'),
   })
 
+  const preferencesQuery = useNutritionPreferences(user?.id ?? '')
+  const savePreferences = useSaveNutritionPreferences(user?.id ?? '')
+  const [preferences, setPreferences] = useState<UserNutritionPreferences>(() => defaultPreferences(user?.id ?? ''))
+  useEffect(() => { if (preferencesQuery.data) setPreferences(preferencesQuery.data) }, [preferencesQuery.data])
+
   if (!profile || !draft) {
     return (
       <div className="mx-auto w-full max-w-4xl">
@@ -147,6 +154,25 @@ export default function Profile() {
           <p className="mt-4 text-xs leading-5 text-text-secondary">Role and coaching access are managed separately and cannot be changed from this page.</p>
         </Card>
       </div>
+
+      <Card className="mt-6 p-5 sm:p-6">
+        <h2 className="text-base font-bold text-text-primary">Stravovacie preferencie</h2>
+        <p className="mt-1 text-sm text-text-secondary">Tieto nastavenia používa tréner pri tvorbe tvojho jedálnička.</p>
+        <div className="mt-4">
+          <NutritionPreferencesForm value={preferences} onChange={setPreferences} locale="sk" />
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button
+            onClick={() => savePreferences.mutate(preferences, {
+              onSuccess: () => notify('Preferencie boli uložené.'),
+              onError: () => notify('Preferencie sa nepodarilo uložiť.', 'error'),
+            })}
+            loading={savePreferences.isPending}
+          >
+            Uložiť preferencie
+          </Button>
+        </div>
+      </Card>
     </div>
   )
 }
