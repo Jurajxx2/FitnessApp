@@ -344,6 +344,7 @@ export function AthleteManagementPanel({
               onError: error => notify(`Couldn’t save preferences: ${error.message}`, 'error'),
             })}
             loading={savePreferences.isPending}
+            disabled={preferencesQuery.isLoading}
           >
             Save preferences
           </Button>

@@ -168,6 +168,7 @@ export default function Profile() {
               onError: () => notify('Preferencie sa nepodarilo uložiť.', 'error'),
             })}
             loading={savePreferences.isPending}
+            disabled={preferencesQuery.isLoading}
           >
             Uložiť preferencie
           </Button>
