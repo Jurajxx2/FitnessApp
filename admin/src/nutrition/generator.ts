@@ -98,3 +98,136 @@ export function scoreCandidate(
     + context.usedCount * REPEAT_PENALTY
     - (context.isFavourite ? FAVOURITE_BONUS : 0)
 }
+
+export interface GeneratedSlot {
+  slot: SlotType; recipeId: string; recipeName: string; portionMultiplier: number
+  calories: number; protein_g: number; carbs_g: number; fat_g: number
+  locked: boolean
+}
+export interface GeneratedDay {
+  dayOfWeek: number  // 0 = Monday … 6 = Sunday
+  slots: GeneratedSlot[]
+  totals: GeneratorTarget
+  withinTolerance: boolean
+}
+export interface GeneratorDiagnostics {
+  poolSizePerSlot: Record<string, number>
+  daysOutOfTolerance: number[]
+  notes: string[]
+}
+export interface GeneratedPlan { days: GeneratedDay[]; score: number; diagnostics: GeneratorDiagnostics }
+export const KCAL_TOLERANCE = 0.05
+export const PROTEIN_FLOOR = 0.95
+
+function scaledSlot(slot: SlotType, recipe: GeneratorRecipe, multiplier: number): GeneratedSlot {
+  return {
+    slot, recipeId: recipe.id, recipeName: recipe.name, portionMultiplier: multiplier,
+    calories: recipe.calories * multiplier, protein_g: recipe.protein_g * multiplier,
+    carbs_g: recipe.carbs_g * multiplier, fat_g: recipe.fat_g * multiplier, locked: false,
+  }
+}
+
+function dayTotals(slots: GeneratedSlot[]): GeneratorTarget {
+  return slots.reduce(
+    (acc, item) => ({
+      calories: acc.calories + item.calories, protein_g: acc.protein_g + item.protein_g,
+      carbs_g: acc.carbs_g + item.carbs_g, fat_g: acc.fat_g + item.fat_g,
+    }),
+    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
+  )
+}
+
+function withinTolerance(totals: GeneratorTarget, target: GeneratorTarget): boolean {
+  return Math.abs(totals.calories - target.calories) / target.calories <= KCAL_TOLERANCE
+    && totals.protein_g >= target.protein_g * PROTEIN_FLOOR
+}
+
+// Nudge the most scalable un-locked slot so the day lands inside tolerance.
+function adjustDay(slots: GeneratedSlot[], recipesById: Map<string, GeneratorRecipe>, target: GeneratorTarget): GeneratedSlot[] {
+  const totals = dayTotals(slots)
+  if (withinTolerance(totals, target)) return slots
+  const gap = target.calories - totals.calories
+  let bestIndex = -1
+  let bestKcalPerStep = 0
+  slots.forEach((item, index) => {
+    const source = recipesById.get(item.recipeId)
+    if (!source || item.locked || !source.is_scalable || source.allowed_portions?.length) return
+    if (source.calories > bestKcalPerStep) { bestKcalPerStep = source.calories; bestIndex = index }
+  })
+  if (bestIndex === -1) return slots
+  const source = recipesById.get(slots[bestIndex].recipeId)!
+  const current = slots[bestIndex].portionMultiplier
+  const desired = current + gap / source.calories
+  const snapped = Math.min(PORTION_MAX, Math.max(PORTION_MIN, Math.round(desired / PORTION_STEP) * PORTION_STEP))
+  if (snapped === current) return slots
+  return slots.map((item, index) => index === bestIndex ? scaledSlot(item.slot, source, snapped) : item)
+}
+
+export function generateWeek(
+  recipes: GeneratorRecipe[],
+  target: GeneratorTarget,
+  options: GeneratorOptions,
+  lockedSlots?: Map<string, GeneratedSlot>,
+): GeneratedPlan {
+  const rng = mulberry32(options.seed)
+  const budgets = slotBudgets(target, options)
+  const recipesById = new Map(recipes.map(item => [item.id, item]))
+  const favouriteIds = new Set(options.favouriteRecipeIds)
+  const usage = new Map<string, number>()
+  const diagnostics: GeneratorDiagnostics = { poolSizePerSlot: {}, daysOutOfTolerance: [], notes: [] }
+
+  for (const budget of budgets) {
+    const size = filterPool(recipes, budget.slot, options).length
+    diagnostics.poolSizePerSlot[budget.slot] = size
+    if (size === 0) diagnostics.notes.push(`No eligible recipes for ${budget.slot}. Tag more recipes or relax filters.`)
+    else if (size < 4) diagnostics.notes.push(`Only ${size} eligible recipes for ${budget.slot}; expect repetition.`)
+  }
+
+  const days: GeneratedDay[] = []
+  for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek += 1) {
+    let slots: GeneratedSlot[] = []
+    for (const budget of budgets) {
+      const lockKey = `${dayOfWeek}:${budget.slot}`
+      const locked = lockedSlots?.get(lockKey)
+      if (locked) {
+        slots.push({ ...locked, locked: true })
+        usage.set(locked.recipeId, (usage.get(locked.recipeId) ?? 0) + 1)
+        continue
+      }
+      const pool = filterPool(recipes, budget.slot, options)
+      if (!pool.length) continue
+      const scored = pool
+        .map(candidate => {
+          const multiplier = bestPortion(candidate, budget.calories)
+          const score = scoreCandidate(candidate, multiplier, budget, {
+            usedCount: usage.get(candidate.id) ?? 0,
+            maxRepeats: options.maxRecipeRepeatsPerWeek,
+            isFavourite: favouriteIds.has(candidate.id),
+          })
+          return { candidate, multiplier, score }
+        })
+        .filter(entry => entry.score !== Infinity)
+        .sort((a, b) => a.score - b.score)
+      if (!scored.length) {
+        diagnostics.notes.push(`Day ${dayOfWeek + 1}: every ${budget.slot} candidate hit the repeat limit.`)
+        continue
+      }
+      // Randomize among near-equal top candidates so regeneration varies.
+      const best = scored[0].score
+      const contenders = scored.filter(entry => entry.score <= best + 40)
+      const chosen = contenders[Math.floor(rng() * contenders.length)]
+      slots.push(scaledSlot(budget.slot, chosen.candidate, chosen.multiplier))
+      usage.set(chosen.candidate.id, (usage.get(chosen.candidate.id) ?? 0) + 1)
+    }
+    slots = adjustDay(slots, recipesById, target)
+    const totals = dayTotals(slots)
+    const ok = withinTolerance(totals, target)
+    if (!ok) diagnostics.daysOutOfTolerance.push(dayOfWeek)
+    days.push({ dayOfWeek, slots, totals, withinTolerance: ok })
+  }
+
+  const score = days.length
+    ? days.reduce((sum, day) => sum + Math.abs(day.totals.calories - target.calories) / target.calories, 0) / days.length
+    : 1
+  return { days, score, diagnostics }
+}

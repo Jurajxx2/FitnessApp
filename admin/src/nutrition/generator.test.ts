@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { bestPortion, filterPool, mulberry32, scoreCandidate, slotBudgets, type GeneratorOptions, type GeneratorRecipe } from './generator'
+import {
+  bestPortion, filterPool, generateWeek, KCAL_TOLERANCE, mulberry32, PROTEIN_FLOOR, scoreCandidate, slotBudgets,
+  type GeneratorOptions, type GeneratorRecipe,
+} from './generator'
 
 export const baseOptions: GeneratorOptions = {
   includeSnack: false, mealDistribution: null, dietaryPatterns: [], excludedAllergens: [],
@@ -89,5 +92,68 @@ describe('scoreCandidate', () => {
     const repeated = scoreCandidate(recipe({ id: 'd', calories: 600, protein_g: 45 }), 1, budget, { usedCount: 1, maxRepeats: 3, isFavourite: false })
     expect(favourite).toBeLessThan(plain)
     expect(repeated).toBeGreaterThan(plain)
+  })
+})
+
+function richPool(): GeneratorRecipe[] {
+  const pool: GeneratorRecipe[] = []
+  const slots: Array<[string, number, number]> = [['breakfast', 450, 30], ['lunch', 700, 45], ['dinner', 550, 40]]
+  for (const [slot, kcal, protein] of slots) {
+    for (let index = 0; index < 6; index += 1) {
+      pool.push(recipe({
+        id: `${slot}-${index}`, meal_types: [slot],
+        calories: kcal + index * 40, protein_g: protein + index * 4,
+        carbs_g: 50, fat_g: 15, is_scalable: true, allowed_portions: null,
+      }))
+    }
+  }
+  return pool
+}
+
+describe('generateWeek', () => {
+  const target = { calories: 2000, protein_g: 140, carbs_g: 200, fat_g: 60 }
+
+  it('produces 7 days x 3 slots within tolerance for a rich pool', () => {
+    const plan = generateWeek(richPool(), target, baseOptions)
+    expect(plan.days).toHaveLength(7)
+    for (const day of plan.days) {
+      expect(day.slots).toHaveLength(3)
+      expect(Math.abs(day.totals.calories - target.calories) / target.calories).toBeLessThanOrEqual(KCAL_TOLERANCE + 1e-9)
+      expect(day.totals.protein_g).toBeGreaterThanOrEqual(target.protein_g * PROTEIN_FLOOR - 1e-9)
+    }
+    expect(plan.diagnostics.daysOutOfTolerance).toHaveLength(0)
+  })
+
+  it('is deterministic for the same seed and differs for another', () => {
+    const first = generateWeek(richPool(), target, baseOptions)
+    const second = generateWeek(richPool(), target, baseOptions)
+    const other = generateWeek(richPool(), target, { ...baseOptions, seed: 43 })
+    const key = (plan: typeof first) => plan.days.map(day => day.slots.map(slot => `${slot.recipeId}@${slot.portionMultiplier}`).join('|')).join('//')
+    expect(key(first)).toEqual(key(second))
+    expect(key(other)).not.toEqual(key(first))
+  })
+
+  it('respects max repeats per week', () => {
+    const plan = generateWeek(richPool(), target, { ...baseOptions, maxRecipeRepeatsPerWeek: 2 })
+    const counts = new Map<string, number>()
+    for (const day of plan.days) for (const slot of day.slots) counts.set(slot.recipeId, (counts.get(slot.recipeId) ?? 0) + 1)
+    for (const count of counts.values()) expect(count).toBeLessThanOrEqual(2)
+  })
+
+  it('reports thin pools in diagnostics instead of throwing', () => {
+    const tiny = [recipe({ id: 'only-lunch', meal_types: ['lunch'] })]
+    const plan = generateWeek(tiny, target, baseOptions)
+    expect(plan.diagnostics.poolSizePerSlot.breakfast).toBe(0)
+    expect(plan.diagnostics.notes.some(note => note.includes('breakfast'))).toBe(true)
+  })
+
+  it('keeps locked slots on regeneration', () => {
+    const first = generateWeek(richPool(), target, baseOptions)
+    const locked = first.days[0].slots[0]
+    const lockedMap = new Map([[`0:${locked.slot}`, { ...locked, locked: true }]])
+    const second = generateWeek(richPool(), target, { ...baseOptions, seed: 99 }, lockedMap)
+    const kept = second.days[0].slots.find(slot => slot.slot === locked.slot)
+    expect(kept?.recipeId).toBe(locked.recipeId)
+    expect(kept?.portionMultiplier).toBe(locked.portionMultiplier)
   })
 })
