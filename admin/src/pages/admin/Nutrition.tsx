@@ -116,8 +116,13 @@ function RecipesTab() {
   const [importOpen, setImportOpen] = useState(false)
   const [photoUploadOpen, setPhotoUploadOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
+  const [generatorOnly, setGeneratorOnly] = useState(false)
   const deferredSearch = useDeferredValue(search)
   const { data: recipes = [], isLoading, isError } = useRecipes(deferredSearch)
+  const generatorReadyCount = recipes.filter(recipe => recipe.eligible_for_generator && recipe.macros_verified && recipe.is_active).length
+  const visibleRecipes = generatorOnly
+    ? recipes.filter(recipe => recipe.eligible_for_generator && recipe.macros_verified)
+    : recipes
 
   const updateRecipe = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<Recipe, 'featured' | 'is_active'>> }) => {
@@ -150,6 +155,9 @@ function RecipesTab() {
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <SearchInput placeholder="Search recipes…" value={search} onChange={event => setSearch(event.target.value)} onClear={() => setSearch('')} className="w-full sm:w-72" />
+        <Chip selected={generatorOnly} onClick={() => setGeneratorOnly(current => !current)}>
+          Generator-ready · {generatorReadyCount} of {recipes.length}
+        </Chip>
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={() => setPhotoUploadOpen(true)}>Upload photos</Button>
           <Button variant="ghost" onClick={() => setImportOpen(true)}>Import JSON</Button>
@@ -171,7 +179,7 @@ function RecipesTab() {
         <Table>
           <thead><tr><Th>Recipe</Th><Th>Difficulty</Th><Th>Macros</Th><Th>Status</Th><Th>Featured</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
           <tbody>
-            {recipes.map(recipe => (
+            {visibleRecipes.map(recipe => (
               <ClickableRow key={recipe.id} label={`Open ${recipe.name}`} onActivate={() => navigate(`/admin/nutrition/recipes/${recipe.id}`)}>
                 <Td>
                   <div className="flex min-w-64 items-center gap-3">
@@ -181,7 +189,12 @@ function RecipesTab() {
                 </Td>
                 <Td className="capitalize">{recipe.difficulty ?? '—'}</Td>
                 <Td><span className="whitespace-nowrap">{Math.round(recipe.calories)} kcal · P {recipe.protein_g.toFixed(0)}g</span></Td>
-                <Td>{recipe.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Archived</span>}</Td>
+                <Td>
+                  {recipe.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Archived</span>}
+                  {recipe.eligible_for_generator && recipe.macros_verified && (
+                    <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">Generator</span>
+                  )}
+                </Td>
                 <Td>
                   <button
                     type="button"
