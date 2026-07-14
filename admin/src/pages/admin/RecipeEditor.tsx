@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, ConfirmDialog, EditorPage, EmptyState, FormSection, Input, Shimmer, StatRow, useNotice } from '../../components/ui'
 import { getRecipePhotoPath, removeRecipePhoto, uploadRecipePhoto } from '../../lib/storage'
 import { supabase } from '../../lib/supabase'
+import { ALLERGEN_OPTIONS, DIETARY_PATTERN_OPTIONS, MEAL_TYPE_OPTIONS } from '../../nutrition/constants'
 import type { Recipe, RecipeDifficulty, RecipeIngredient } from '../../types/database'
 
 export type IngredientDraft = Omit<RecipeIngredient, 'id' | 'recipe_id'>
@@ -54,6 +55,28 @@ export function describeInvalidIngredientRows(rowIndexes: number[]) {
   return `${rowWord} ${rowNumbers} ${verb} a quantity or macro value but no name. Give it a name or clear its values before saving.`
 }
 
+function toggleValue(list: string[], value: string): string[] {
+  return list.includes(value) ? list.filter(item => item !== value) : [...list, value]
+}
+
+function GeneratorChipRow({ label, options, selected, onToggle }: {
+  label: string; options: Array<{ value: string; adminLabel: string }>; selected: string[]; onToggle: (value: string) => void
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map(option => (
+          <button key={option.value} type="button" aria-pressed={selected.includes(option.value)} onClick={() => onToggle(option.value)}
+            className={`min-h-9 cursor-pointer rounded-xl border px-3 text-xs font-semibold transition-colors ${selected.includes(option.value) ? 'border-accent bg-accent/10 text-text-primary' : 'border-outline bg-surface text-text-secondary hover:text-text-primary'}`}>
+            {option.adminLabel}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 interface RecipeFormState {
   name: string
   description: string
@@ -65,6 +88,14 @@ interface RecipeFormState {
   difficulty: RecipeDifficulty | ''
   is_active: boolean
   featured: boolean
+  eligible_for_generator: boolean
+  macros_verified: boolean
+  is_scalable: boolean
+  allowed_portions: string
+  fiber_g: string
+  meal_types: string[]
+  dietary_patterns: string[]
+  allergens: string[]
 }
 
 const blankForm = (): RecipeFormState => ({
@@ -78,6 +109,14 @@ const blankForm = (): RecipeFormState => ({
   difficulty: '',
   is_active: true,
   featured: false,
+  eligible_for_generator: false,
+  macros_verified: false,
+  is_scalable: true,
+  allowed_portions: '',
+  fiber_g: '',
+  meal_types: [],
+  dietary_patterns: [],
+  allergens: [],
 })
 
 function useRecipeEditorData(id: string | undefined) {
@@ -126,6 +165,14 @@ export default function RecipeEditor() {
       difficulty: recipe.difficulty ?? '',
       is_active: recipe.is_active,
       featured: recipe.featured,
+      eligible_for_generator: recipe.eligible_for_generator,
+      macros_verified: recipe.macros_verified,
+      is_scalable: recipe.is_scalable,
+      allowed_portions: (recipe.allowed_portions ?? []).join(', '),
+      fiber_g: recipe.fiber_g == null ? '' : String(recipe.fiber_g),
+      meal_types: recipe.meal_types ?? [],
+      dietary_patterns: recipe.dietary_patterns ?? [],
+      allergens: recipe.allergens ?? [],
     })
     setSteps(recipe.steps?.length ? recipe.steps : [''])
     setTags(recipe.tags?.join(', ') ?? '')
@@ -186,6 +233,21 @@ export default function RecipeEditor() {
         p_ingredients: validIngredients.map((ingredient, index) => ({ ...ingredient, sort_order: index })),
       })
       if (saveError) throw saveError
+
+      const allowedPortions = form.allowed_portions
+        .split(',').map(part => Number(part.trim())).filter(value => Number.isFinite(value) && value > 0)
+      const { error: generatorError } = await supabase.from('recipes').update({
+        eligible_for_generator: form.eligible_for_generator,
+        macros_verified: form.macros_verified,
+        is_scalable: form.is_scalable,
+        allowed_portions: allowedPortions.length ? allowedPortions : null,
+        fiber_g: form.fiber_g ? Number(form.fiber_g) : null,
+        meal_types: form.meal_types,
+        dietary_patterns: form.dietary_patterns,
+        allergens: form.allergens,
+      }).eq('id', recipeId as string)
+      if (generatorError) throw generatorError
+
       return recipeId as string
     },
     onSuccess: recipeId => {
@@ -370,6 +432,30 @@ export default function RecipeEditor() {
         </div>
         <Button variant="ghost" className="mt-4" onClick={() => setIngredients(current => [...current, blankIngredient(current.length)])}>Add ingredient</Button>
         {(ingredientNumbersInvalid || metadataNumbersInvalid) && <p role="alert" className="mt-4 text-sm text-error">Servings must be greater than zero and numeric values cannot be negative.</p>}
+      </FormSection>
+
+      <FormSection title="Generator" description="Only recipes marked eligible with verified macros are used by the meal-plan generator. Tag meal types so the recipe lands in the right slot.">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex items-start gap-3">
+            <input type="checkbox" className="mt-1" checked={form.eligible_for_generator} onChange={event => setForm(current => ({ ...current, eligible_for_generator: event.target.checked }))} />
+            <span><span className="block text-sm font-semibold text-text-primary">Eligible for generator</span><span className="mt-1 block text-xs text-text-secondary">Include this recipe in generated meal plans.</span></span>
+          </label>
+          <label className="flex items-start gap-3">
+            <input type="checkbox" className="mt-1" checked={form.macros_verified} onChange={event => setForm(current => ({ ...current, macros_verified: event.target.checked }))} />
+            <span><span className="block text-sm font-semibold text-text-primary">Macros verified</span><span className="mt-1 block text-xs text-text-secondary">Confirm the per-serving macros are accurate.</span></span>
+          </label>
+          <label className="flex items-start gap-3">
+            <input type="checkbox" className="mt-1" checked={form.is_scalable} onChange={event => setForm(current => ({ ...current, is_scalable: event.target.checked }))} />
+            <span><span className="block text-sm font-semibold text-text-primary">Scalable portions</span><span className="mt-1 block text-xs text-text-secondary">The generator may scale this recipe between 0.5× and 2×.</span></span>
+          </label>
+          <Input label="Allowed portions (comma-separated ×)" value={form.allowed_portions} onChange={event => setForm(current => ({ ...current, allowed_portions: event.target.value }))} placeholder="0.5, 1, 1.5, 2" />
+          <Input label="Fiber (g)" type="number" min="0" step="any" value={form.fiber_g} onChange={event => setForm(current => ({ ...current, fiber_g: event.target.value }))} />
+        </div>
+        <div className="mt-5 space-y-4">
+          <GeneratorChipRow label="Meal types" options={MEAL_TYPE_OPTIONS} selected={form.meal_types} onToggle={value => setForm(current => ({ ...current, meal_types: toggleValue(current.meal_types, value) }))} />
+          <GeneratorChipRow label="Dietary patterns" options={DIETARY_PATTERN_OPTIONS} selected={form.dietary_patterns} onToggle={value => setForm(current => ({ ...current, dietary_patterns: toggleValue(current.dietary_patterns, value) }))} />
+          <GeneratorChipRow label="Contains allergens" options={ALLERGEN_OPTIONS} selected={form.allergens} onToggle={value => setForm(current => ({ ...current, allergens: toggleValue(current.allergens, value) }))} />
+        </div>
       </FormSection>
 
       {saveRecipe.error && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">{saveRecipe.error.message}</p>}
