@@ -183,6 +183,18 @@ export function generateWeek(
     else if (size < 4) diagnostics.notes.push(`Only ${size} eligible recipes for ${budget.slot}; expect repetition.`)
   }
 
+  // Count every lock that the day loop will consume up front, so selection on
+  // earlier days already sees repeat usage from locks on later days.
+  if (lockedSlots) {
+    for (const [key, locked] of lockedSlots) {
+      const [dayPart, slotPart] = key.split(':')
+      const day = Number(dayPart)
+      if (!Number.isInteger(day) || day < 0 || day > 6) continue
+      if (!budgets.some(budget => budget.slot === slotPart)) continue
+      usage.set(locked.recipeId, (usage.get(locked.recipeId) ?? 0) + 1)
+    }
+  }
+
   const days: GeneratedDay[] = []
   for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek += 1) {
     let slots: GeneratedSlot[] = []
@@ -190,8 +202,8 @@ export function generateWeek(
       const lockKey = `${dayOfWeek}:${budget.slot}`
       const locked = lockedSlots?.get(lockKey)
       if (locked) {
+        // Usage for locks was pre-counted above; do not increment again here.
         slots.push({ ...locked, locked: true })
-        usage.set(locked.recipeId, (usage.get(locked.recipeId) ?? 0) + 1)
         continue
       }
       const pool = filterPool(recipes, budget.slot, options)

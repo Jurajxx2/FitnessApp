@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   bestPortion, filterPool, generateWeek, KCAL_TOLERANCE, mulberry32, PROTEIN_FLOOR, scoreCandidate, slotBudgets,
-  type GeneratorOptions, type GeneratorRecipe,
+  type GeneratedSlot, type GeneratorOptions, type GeneratorRecipe,
 } from './generator'
 
 export const baseOptions: GeneratorOptions = {
@@ -155,5 +155,19 @@ describe('generateWeek', () => {
     const kept = second.days[0].slots.find(slot => slot.slot === locked.slot)
     expect(kept?.recipeId).toBe(locked.recipeId)
     expect(kept?.portionMultiplier).toBe(locked.portionMultiplier)
+  })
+
+  it('counts locked slots toward the repeat cap before selection', () => {
+    const pool = richPool()
+    const source = pool.find(item => item.id === 'lunch-0')!
+    const locked: GeneratedSlot = {
+      slot: 'lunch', recipeId: source.id, recipeName: source.name, portionMultiplier: 1,
+      calories: source.calories, protein_g: source.protein_g, carbs_g: source.carbs_g, fat_g: source.fat_g,
+      locked: true,
+    }
+    const plan = generateWeek(pool, target, { ...baseOptions, maxRecipeRepeatsPerWeek: 1 }, new Map([['6:lunch', locked]]))
+    const uses = plan.days.flatMap(day => day.slots).filter(slot => slot.recipeId === 'lunch-0')
+    expect(uses).toHaveLength(1)
+    expect(plan.days[6].slots.find(slot => slot.slot === 'lunch')?.recipeId).toBe('lunch-0')
   })
 })
