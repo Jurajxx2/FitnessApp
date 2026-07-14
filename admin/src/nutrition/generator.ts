@@ -60,3 +60,41 @@ export function filterPool(recipes: GeneratorRecipe[], slot: SlotType, options: 
     return true
   })
 }
+
+const PORTION_MIN = 0.5
+const PORTION_MAX = 2.0
+const PORTION_STEP = 0.25
+
+export function bestPortion(recipe: GeneratorRecipe, kcalBudget: number): number {
+  if (recipe.calories <= 0) return 1
+  if (recipe.allowed_portions?.length) {
+    return [...recipe.allowed_portions].sort(
+      (a, b) => Math.abs(a * recipe.calories - kcalBudget) - Math.abs(b * recipe.calories - kcalBudget),
+    )[0]
+  }
+  if (!recipe.is_scalable) return 1
+  const raw = kcalBudget / recipe.calories
+  const snapped = Math.round(raw / PORTION_STEP) * PORTION_STEP
+  return Math.min(PORTION_MAX, Math.max(PORTION_MIN, snapped))
+}
+
+export interface ScoreContext { usedCount: number; maxRepeats: number; isFavourite: boolean }
+
+const PROTEIN_WEIGHT = 2      // kcal-equivalent weight per gram of protein deviation
+const REPEAT_PENALTY = 120    // kcal-equivalent per prior use this week
+const FAVOURITE_BONUS = 60    // kcal-equivalent
+
+export function scoreCandidate(
+  recipe: GeneratorRecipe,
+  multiplier: number,
+  budget: { calories: number; protein_g: number },
+  context: ScoreContext,
+): number {
+  if (context.maxRepeats > 0 && context.usedCount >= context.maxRepeats) return Infinity
+  const kcalDeviation = Math.abs(recipe.calories * multiplier - budget.calories)
+  const proteinDeviation = Math.abs(recipe.protein_g * multiplier - budget.protein_g)
+  return kcalDeviation
+    + proteinDeviation * PROTEIN_WEIGHT
+    + context.usedCount * REPEAT_PENALTY
+    - (context.isFavourite ? FAVOURITE_BONUS : 0)
+}
