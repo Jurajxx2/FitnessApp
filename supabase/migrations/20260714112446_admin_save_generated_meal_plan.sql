@@ -112,8 +112,9 @@ BEGIN
                recipe.fat_g, recipe.fiber_g,
                entry.portion_multiplier,
                entry.ordinality::INTEGER - 1 AS sort_order
-        FROM jsonb_to_recordset(meal_record.recipes)
-          WITH ORDINALITY AS entry(recipe_id UUID, portion_multiplier NUMERIC, ordinality)
+        FROM ROWS FROM (
+          jsonb_to_recordset(meal_record.recipes) AS (recipe_id UUID, portion_multiplier NUMERIC)
+        ) WITH ORDINALITY AS entry(recipe_id, portion_multiplier, ordinality)
         JOIN public.recipes recipe ON recipe.id = entry.recipe_id
         WHERE recipe.is_active AND recipe.eligible_for_generator AND recipe.macros_verified
         ORDER BY entry.ordinality
