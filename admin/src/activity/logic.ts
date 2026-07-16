@@ -29,6 +29,8 @@ export interface WeekDaySummary {
 
 export function buildWeek(workouts: WorkoutRow[], logs: WorkoutLogRow[], now = new Date()): WeekDaySummary[] {
   const weekStart = startOfWeek(now)
+  const nextWeekStart = new Date(weekStart)
+  nextWeekStart.setDate(weekStart.getDate() + 7)
   const todayIndex = mondayIndex(now)
 
   return DAY_NAMES.map((_, dayIndex) => {
@@ -37,7 +39,7 @@ export function buildWeek(workouts: WorkoutRow[], logs: WorkoutLogRow[], now = n
     const workout = workouts.find(item => item.day_of_week === dayIndex) ?? null
     const log = logs.find(item => {
       const logged = new Date(item.logged_at)
-      return logged >= weekStart && mondayIndex(logged) === dayIndex && workout != null && matchesWorkout(item, workout)
+      return logged >= weekStart && logged < nextWeekStart && mondayIndex(logged) === dayIndex && workout != null && matchesWorkout(item, workout)
     }) ?? null
     const status: WeekStatus = log
       ? 'completed'

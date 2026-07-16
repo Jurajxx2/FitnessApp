@@ -39,6 +39,13 @@ describe('activity logic', () => {
     expect(matchesWorkout(otherLog, workout)).toBe(false)
   })
 
+  it('does not count a matching log from the following week', () => {
+    const futureLog = { ...log, logged_at: '2026-07-20T08:00:00.000Z' }
+    const days = buildWeek([workout], [futureLog], new Date('2026-07-15T12:00:00.000Z'))
+
+    expect(days[0].status).toBe('missed')
+  })
+
   it('parses target labels and keeps timed work separate from reps', () => {
     expect(parseTargetReps('8-12')).toBe(8)
     expect(parseTargetReps('Hold')).toBeNull()
