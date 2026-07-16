@@ -1,9 +1,11 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   ArrowRightLeft,
   ClipboardCheck,
   Dumbbell,
   LogOut,
+  MessageCircle,
   Moon,
   Sun,
   UserRound,
@@ -14,30 +16,33 @@ import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import { canAccessActivity, canAccessNutrition } from '../lib/access'
 import { AthletePageTransition } from './AthletePageTransition'
+import { countUnreadFromCoach, fetchMyMessages } from '../chat/athleteApi'
 
 const NAV = [
-  { to: '/nutrition', label: 'Nutrition', icon: UtensilsCrossed, end: false, feature: 'nutrition' },
-  { to: '/activity', label: 'Activity', icon: Dumbbell, end: false, feature: 'activity' },
+  { to: '/nutrition', label: 'Výživa', icon: UtensilsCrossed, end: false, feature: 'nutrition' },
+  { to: '/activity', label: 'Tréning', icon: Dumbbell, end: false, feature: 'activity' },
   { to: '/check-ins', label: 'Check-in', icon: ClipboardCheck, end: false, feature: 'shared' },
-  { to: '/profile', label: 'Profile', icon: UserRound, end: true, feature: 'shared' },
+  { to: '/messages', label: 'Správy', icon: MessageCircle, end: true, feature: 'shared' },
+  { to: '/profile', label: 'Profil', icon: UserRound, end: true, feature: 'shared' },
 ]
 
 function pageTitle(pathname: string) {
-  if (pathname.startsWith('/activity/session')) return 'Workout session'
-  if (pathname.startsWith('/activity/exercises')) return 'Exercise library'
-  if (pathname.startsWith('/activity/history')) return 'Workout history'
-  if (pathname.startsWith('/activity/progress')) return 'Progress'
-  if (pathname.startsWith('/activity/log')) return 'Log activity'
-  if (pathname.startsWith('/activity/workouts')) return 'Workout plans'
-  if (pathname.startsWith('/activity')) return 'Activity'
-  if (pathname.startsWith('/nutrition/history')) return 'Nutrition history'
-  if (pathname.startsWith('/nutrition/log')) return 'Log a meal'
-  if (pathname.startsWith('/nutrition/recipes/')) return 'Recipe detail'
-  if (pathname.startsWith('/nutrition')) return 'Nutrition'
-  if (pathname.startsWith('/check-ins/history')) return 'Check-in history'
-  if (pathname.startsWith('/check-ins')) return 'Weekly check-in'
-  if (pathname.startsWith('/profile')) return 'Profile'
-  return 'Nutrition'
+  if (pathname.startsWith('/activity/session')) return 'Tréning'
+  if (pathname.startsWith('/activity/exercises')) return 'Knižnica cvikov'
+  if (pathname.startsWith('/activity/history')) return 'História tréningov'
+  if (pathname.startsWith('/activity/progress')) return 'Pokrok'
+  if (pathname.startsWith('/activity/log')) return 'Zapísať aktivitu'
+  if (pathname.startsWith('/activity/workouts')) return 'Tréningové plány'
+  if (pathname.startsWith('/activity')) return 'Tréning'
+  if (pathname.startsWith('/nutrition/history')) return 'História jedál'
+  if (pathname.startsWith('/nutrition/log')) return 'Zapísať jedlo'
+  if (pathname.startsWith('/nutrition/recipes/')) return 'Detail receptu'
+  if (pathname.startsWith('/nutrition')) return 'Výživa'
+  if (pathname.startsWith('/check-ins/history')) return 'História check-inov'
+  if (pathname.startsWith('/check-ins')) return 'Týždenný check-in'
+  if (pathname.startsWith('/messages')) return 'Správy'
+  if (pathname.startsWith('/profile')) return 'Profil'
+  return 'Výživa'
 }
 
 export function AthleteAppShell() {
@@ -45,6 +50,13 @@ export function AthleteAppShell() {
   const location = useLocation()
   const { user, profile, isAdmin } = useAuth()
   const { theme, toggleTheme } = useTheme()
+  const unreadQuery = useQuery({
+    queryKey: ['athlete-chat-unread', user?.id ?? ''],
+    enabled: Boolean(user?.id),
+    refetchInterval: 60_000,
+    queryFn: async () => countUnreadFromCoach(await fetchMyMessages(user!.id)),
+  })
+  const unread = unreadQuery.data ?? 0
   const initials = (profile?.full_name || user?.email || 'CF')
     .split(/[\s@._-]+/)
     .filter(Boolean)
@@ -73,7 +85,7 @@ export function AthleteAppShell() {
         </div>
 
         <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
-          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">Your coaching</p>
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">Tvoj koučing</p>
           {visibleNav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -87,6 +99,11 @@ export function AthleteAppShell() {
             >
               <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
               {label}
+              {to === '/messages' && unread > 0 && (
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-on-accent">
+                  {unread > 9 ? '9+' : unread}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -98,7 +115,7 @@ export function AthleteAppShell() {
               onClick={() => navigate('/admin')}
               className="mb-2 flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-xl border border-outline bg-surface px-3 text-left text-sm font-semibold text-text-primary transition-colors hover:bg-surface-elevated"
             >
-              <ArrowRightLeft size={17} aria-hidden="true" /> Admin workspace
+              <ArrowRightLeft size={17} aria-hidden="true" /> Administrácia
             </button>
           )}
           <button
@@ -106,15 +123,15 @@ export function AthleteAppShell() {
             onClick={toggleTheme}
             className="flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-xl border-0 bg-transparent px-3 text-left text-sm text-text-secondary transition-colors hover:bg-surface-elevated hover:text-text-primary"
           >
-            <ThemeIcon size={17} /> {theme === 'dark' ? 'Dark appearance' : 'Light appearance'}
+            <ThemeIcon size={17} /> {theme === 'dark' ? 'Tmavý vzhľad' : 'Svetlý vzhľad'}
           </button>
           <div className="mt-2 flex items-center gap-3 rounded-xl bg-surface p-3">
             <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-surface-highest text-xs font-bold text-text-primary">{initials}</div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-text-primary">{profile?.full_name || 'My account'}</p>
+              <p className="truncate text-xs font-semibold text-text-primary">{profile?.full_name || 'Môj účet'}</p>
               <p className="truncate text-[11px] text-text-secondary">{user?.email}</p>
             </div>
-            <button type="button" onClick={handleSignOut} aria-label="Sign out" className="cursor-pointer border-0 bg-transparent p-1 text-text-secondary hover:text-error">
+            <button type="button" onClick={handleSignOut} aria-label="Odhlásiť sa" className="cursor-pointer border-0 bg-transparent p-1 text-text-secondary hover:text-error">
               <LogOut size={16} />
             </button>
           </div>
@@ -148,7 +165,14 @@ export function AthleteAppShell() {
               end={end}
               className={({ isActive }) => `flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-2 text-[10px] font-medium ${isActive ? 'text-text-primary' : 'text-text-secondary'}`}
             >
-              <Icon size={20} strokeWidth={1.9} />
+              <span className="relative">
+                <Icon size={20} strokeWidth={1.9} />
+                {to === '/messages' && unread > 0 && (
+                  <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-on-accent">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </span>
               <span className="truncate">{label}</span>
             </NavLink>
           ))}

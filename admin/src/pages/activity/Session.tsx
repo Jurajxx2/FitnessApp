@@ -20,7 +20,7 @@ function draftFromSet(set: SetLogRow): SetDraft {
     reps: set.actual_reps?.toString() ?? '',
     weight: set.actual_weight_kg?.toString() ?? '',
     duration: set.actual_duration_seconds?.toString() ?? '',
-    rpe: set.rpe?.toString() ?? '',
+    rpe: set.rpe?.toString() ?? ''
   }
 }
 
@@ -42,12 +42,12 @@ export default function WorkoutSession() {
     queryKey: ['activity', 'active', userId],
     queryFn: () => getActiveWorkout(userId),
     enabled: Boolean(userId),
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: false
   })
   const workoutQuery = useQuery({
     queryKey: ['activity', 'workout', activeQuery.data?.workout_id],
     queryFn: () => getWorkout(activeQuery.data!.workout_id!),
-    enabled: Boolean(activeQuery.data?.workout_id),
+    enabled: Boolean(activeQuery.data?.workout_id)
   })
 
   useEffect(() => {
@@ -67,27 +67,45 @@ export default function WorkoutSession() {
     mutationFn: (log: WorkoutLogRow) => finishWorkout(log, notes.trim() || null),
     onSuccess: async (_duration, log) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['activity', 'active', userId] }),
-        queryClient.invalidateQueries({ queryKey: ['activity', 'history', userId] }),
+        queryClient.invalidateQueries({
+          queryKey: ['activity', 'active', userId]
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['activity', 'history', userId]
+        })
       ])
       navigate(`/activity/history/${log.id}`, { replace: true })
-    },
+    }
   })
   const discardMutation = useMutation({
     mutationFn: discardWorkout,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['activity', 'active', userId] })
+      await queryClient.invalidateQueries({
+        queryKey: ['activity', 'active', userId]
+      })
       navigate('/activity', { replace: true })
-    },
+    }
   })
 
-  if (activeQuery.isLoading) return <ActivityPage><LoadingBlock label="Reopening workout…" /></ActivityPage>
-  if (activeQuery.isError) return <ActivityPage><ErrorBlock message="The active workout could not be loaded." /></ActivityPage>
+  if (activeQuery.isLoading)
+    return (
+      <ActivityPage>
+        <LoadingBlock label="Tréning sa znovu otvára…" />
+      </ActivityPage>
+    )
+  if (activeQuery.isError)
+    return (
+      <ActivityPage>
+        <ErrorBlock message="Aktívny tréning sa nepodarilo načítať." />
+      </ActivityPage>
+    )
   if (!activeQuery.data) {
     return (
       <ActivityPage>
-        <PageIntro eyebrow="Activity" title="No workout in progress" description="Start a workout from your plan. Your completed sets will be saved as you go." />
-        <button type="button" onClick={() => navigate('/activity/workouts')} className="min-h-11 cursor-pointer rounded-xl border-0 bg-action-primary px-5 text-sm font-bold text-on-action-primary">Choose a workout</button>
+        <PageIntro eyebrow="Aktivita" title="Žiadny tréning neprebieha" description="Začni tréning z plánu. Dokončené série sa budú priebežne ukladať." />
+        <button type="button" onClick={() => navigate('/activity/workouts')} className="min-h-11 cursor-pointer rounded-xl border-0 bg-action-primary px-5 text-sm font-bold text-on-action-primary">
+          Vybrať tréning
+        </button>
       </ActivityPage>
     )
   }
@@ -99,18 +117,22 @@ export default function WorkoutSession() {
 
   return (
     <ActivityPage>
-      <PageIntro
-        eyebrow="Workout in progress"
-        title={active.workout_name}
-        description={`${completeCount} of ${setCount} sets completed. Every completed set is saved to your account.`}
-        action={<div className="rounded-full bg-surface-highest px-4 py-2 text-sm font-bold text-text-primary">{setCount ? Math.round(completeCount / setCount * 100) : 0}%</div>}
-      />
+      <PageIntro eyebrow="Prebiehajúci tréning" title={active.workout_name} description={`${completeCount} z ${setCount} sérií je dokončených. Každá dokončená séria sa ukladá do tvojho účtu.`} action={<div className="rounded-full bg-surface-highest px-4 py-2 text-sm font-bold text-text-primary">{setCount ? Math.round((completeCount / setCount) * 100) : 0}%</div>} />
 
       {restUntil && (
         <div className="sticky top-2 z-20 flex items-center gap-4 rounded-2xl border border-accent/50 bg-background/95 p-4 shadow-xl backdrop-blur">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white"><TimerReset size={20} /></span>
-          <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wider text-text-accent">Rest timer</p><p className="text-xl font-bold tabular-nums text-text-primary">{Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}</p></div>
-          <button type="button" onClick={() => setRestUntil(null)} className="cursor-pointer rounded-xl border border-outline bg-surface px-3 py-2 text-sm font-semibold text-text-primary">Skip</button>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white">
+            <TimerReset size={20} />
+          </span>
+          <div className="flex-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-text-accent">Časovač odpočinku</p>
+            <p className="text-xl font-bold tabular-nums text-text-primary">
+              {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
+            </p>
+          </div>
+          <button type="button" onClick={() => setRestUntil(null)} className="cursor-pointer rounded-xl border border-outline bg-surface px-3 py-2 text-sm font-semibold text-text-primary">
+            Preskočiť
+          </button>
         </div>
       )}
 
@@ -134,8 +156,10 @@ export default function WorkoutSession() {
       </div>
 
       <div className="rounded-2xl border border-outline bg-surface-elevated p-5">
-        <label htmlFor="session-notes" className="text-xs font-bold uppercase tracking-wider text-text-secondary">Session notes</label>
-        <textarea id="session-notes" value={notes} onChange={event => setNotes(event.target.value)} rows={3} placeholder="How did the workout feel?" className="mt-2 w-full resize-y rounded-xl border border-outline bg-surface p-3 text-sm text-text-primary outline-none focus:border-accent" />
+        <label htmlFor="session-notes" className="text-xs font-bold uppercase tracking-wider text-text-secondary">
+          Poznámky k tréningu
+        </label>
+        <textarea id="session-notes" value={notes} onChange={event => setNotes(event.target.value)} rows={3} placeholder="Ako si sa pri tréningu cítil?" className="mt-2 w-full resize-y rounded-xl border border-outline bg-surface p-3 text-sm text-text-primary outline-none focus:border-accent" />
       </div>
 
       {(finishMutation.isError || discardMutation.isError) && <ErrorBlock message={(finishMutation.error ?? discardMutation.error)?.message} />}
@@ -144,30 +168,22 @@ export default function WorkoutSession() {
         <button
           type="button"
           onClick={() => {
-            if (window.confirm('Discard this workout? Saved sets will remain in the discarded session but will not count toward progress.')) discardMutation.mutate(active.id)
+            if (window.confirm('Zahodiť tento tréning? Uložené série zostanú v zahodenom tréningu, ale nebudú sa započítavať do pokroku.')) discardMutation.mutate(active.id)
           }}
           disabled={discardMutation.isPending || finishMutation.isPending}
           className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-error/40 bg-error/10 px-4 text-sm font-semibold text-error disabled:opacity-40"
-        ><X size={17} /> Discard</button>
-        <button
-          type="button"
-          onClick={() => finishMutation.mutate(active)}
-          disabled={!completeCount || discardMutation.isPending || finishMutation.isPending}
-          className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-0 bg-action-primary px-5 text-sm font-bold text-on-action-primary disabled:cursor-not-allowed disabled:opacity-40"
-        ><CircleStop size={18} /> {finishMutation.isPending ? 'Finishing…' : 'Finish workout'}</button>
+        >
+          <X size={17} /> Zahodiť
+        </button>
+        <button type="button" onClick={() => finishMutation.mutate(active)} disabled={!completeCount || discardMutation.isPending || finishMutation.isPending} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-0 bg-action-primary px-5 text-sm font-bold text-on-action-primary disabled:cursor-not-allowed disabled:opacity-40">
+          <CircleStop size={18} /> {finishMutation.isPending ? 'Dokončuje sa…' : 'Ukončiť tréning'}
+        </button>
       </div>
     </ActivityPage>
   )
 }
 
-function ExerciseSessionCard({ exercise, index, targetLabel, restSeconds, onChanged, onRest }: {
-  exercise: ExerciseLogRow
-  index: number
-  targetLabel: string | null
-  restSeconds: number
-  onChanged: () => Promise<unknown>
-  onRest: (seconds: number) => void
-}) {
+function ExerciseSessionCard({ exercise, index, targetLabel, restSeconds, onChanged, onRest }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; restSeconds: number; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void }) {
   const [open, setOpen] = useState(true)
   const timed = targetLabel ? isTimedTarget(targetLabel) : exercise.set_logs.some(set => set.actual_duration_seconds != null)
   const addMutation = useMutation({
@@ -175,22 +191,34 @@ function ExerciseSessionCard({ exercise, index, targetLabel, restSeconds, onChan
       const last = exercise.set_logs[exercise.set_logs.length - 1]
       return addSet(exercise.id, (last?.sort_order ?? 0) + 1, last?.target_reps ?? null, last?.target_rest_seconds ?? restSeconds)
     },
-    onSuccess: onChanged,
+    onSuccess: onChanged
   })
-  const deleteMutation = useMutation({ mutationFn: removeSet, onSuccess: onChanged })
+  const deleteMutation = useMutation({
+    mutationFn: removeSet,
+    onSuccess: onChanged
+  })
   const complete = exercise.set_logs.filter(set => set.completed).length
 
   return (
     <section className="overflow-hidden rounded-2xl border border-outline bg-surface-elevated">
       <button type="button" onClick={() => setOpen(value => !value)} className="flex w-full cursor-pointer items-center gap-4 border-0 bg-transparent p-5 text-left text-text-primary">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-highest text-sm font-bold">{index + 1}</span>
-        <span className="min-w-0 flex-1"><span className="block truncate text-base font-bold">{exercise.exercise_name}</span><span className="mt-0.5 block text-xs text-text-secondary">{complete}/{exercise.set_logs.length} sets · {targetLabel ?? 'Track your set'}</span></span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-base font-bold">{exercise.exercise_name}</span>
+          <span className="mt-0.5 block text-xs text-text-secondary">
+            {complete}/{exercise.set_logs.length} sérií · {targetLabel ?? 'Zapíš svoju sériu'}
+          </span>
+        </span>
         {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
       </button>
       {open && (
         <div className="border-t border-outline-subtle px-3 pb-4 sm:px-5">
           <div className="hidden grid-cols-[2.5rem_1fr_1fr_5rem_3rem] gap-2 py-3 text-[10px] font-bold uppercase tracking-wider text-text-secondary sm:grid">
-            <span>Set</span><span>{timed ? 'Time (sec)' : 'Reps'}</span><span>{timed ? 'RPE' : 'Weight (kg)'}</span><span>RPE</span><span></span>
+            <span>Séria</span>
+            <span>{timed ? 'Čas (s)' : 'Opakovania'}</span>
+            <span>{timed ? 'RPE' : 'Váha (kg)'}</span>
+            <span>RPE</span>
+            <span></span>
           </div>
           <div className="space-y-2">
             {exercise.set_logs.map(set => (
@@ -208,54 +236,77 @@ function ExerciseSessionCard({ exercise, index, targetLabel, restSeconds, onChan
               />
             ))}
           </div>
-          <button type="button" onClick={() => addMutation.mutate()} disabled={addMutation.isPending} className="mt-3 inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent px-1 py-2 text-sm font-semibold text-text-secondary hover:text-text-primary"><Plus size={16} /> Add set</button>
-          {(addMutation.isError || deleteMutation.isError) && <p role="alert" className="mt-2 text-sm text-error">{(addMutation.error ?? deleteMutation.error)?.message}</p>}
+          <button type="button" onClick={() => addMutation.mutate()} disabled={addMutation.isPending} className="mt-3 inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent px-1 py-2 text-sm font-semibold text-text-secondary hover:text-text-primary">
+            <Plus size={16} /> Pridať sériu
+          </button>
+          {(addMutation.isError || deleteMutation.isError) && (
+            <p role="alert" className="mt-2 text-sm text-error">
+              {(addMutation.error ?? deleteMutation.error)?.message}
+            </p>
+          )}
         </div>
       )}
     </section>
   )
 }
 
-function SessionSetRow({ set, timed, canDelete, deleting, onDelete, onSaved }: {
-  set: SetLogRow
-  timed: boolean
-  canDelete: boolean
-  deleting: boolean
-  onDelete: () => void
-  onSaved: (completedNow: boolean) => Promise<unknown>
-}) {
+function SessionSetRow({ set, timed, canDelete, deleting, onDelete, onSaved }: { set: SetLogRow; timed: boolean; canDelete: boolean; deleting: boolean; onDelete: () => void; onSaved: (completedNow: boolean) => Promise<unknown> }) {
   const [draft, setDraft] = useState(() => draftFromSet(set))
-  const payload = useMemo(() => ({
-    actual_reps: timed ? null : nullableNumber(draft.reps),
-    actual_weight_kg: timed ? null : nullableNumber(draft.weight),
-    actual_duration_seconds: timed ? nullableNumber(draft.duration) : null,
-    rpe: nullableNumber(draft.rpe),
-  }), [draft, timed])
+  const payload = useMemo(
+    () => ({
+      actual_reps: timed ? null : nullableNumber(draft.reps),
+      actual_weight_kg: timed ? null : nullableNumber(draft.weight),
+      actual_duration_seconds: timed ? nullableNumber(draft.duration) : null,
+      rpe: nullableNumber(draft.rpe)
+    }),
+    [draft, timed]
+  )
   const saveMutation = useMutation({
     mutationFn: (completed: boolean) => saveSet(set.id, { ...payload, completed }),
-    onSuccess: (_data, completed) => onSaved(completed && !set.completed),
+    onSuccess: (_data, completed) => onSaved(completed && !set.completed)
   })
 
   return (
     <div className={`grid grid-cols-[2.5rem_1fr_1fr_3rem] gap-2 rounded-xl border p-2 sm:grid-cols-[2.5rem_1fr_1fr_5rem_3rem] ${set.completed ? 'border-success/50 bg-success/10' : 'border-outline-subtle bg-surface'}`}>
       <span className="flex items-center justify-center text-sm font-bold text-text-secondary">{set.sort_order}</span>
-      <input aria-label={timed ? `Set ${set.sort_order} duration seconds` : `Set ${set.sort_order} reps`} type="number" min="0" inputMode="decimal" value={timed ? draft.duration : draft.reps} onChange={event => setDraft(value => ({ ...value, [timed ? 'duration' : 'reps']: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
+      <input
+        aria-label={timed ? `Séria ${set.sort_order} trvanie v sekundách` : `Séria ${set.sort_order} opakovania`}
+        type="number"
+        min="0"
+        inputMode="decimal"
+        value={timed ? draft.duration : draft.reps}
+        onChange={event =>
+          setDraft(value => ({
+            ...value,
+            [timed ? 'duration' : 'reps']: event.target.value
+          }))
+        }
+        className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
+      />
       {timed ? (
         <>
-          <input aria-label={`Set ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent sm:hidden" />
+          <input aria-label={`Séria ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent sm:hidden" />
           <span className="hidden items-center text-text-secondary sm:flex">—</span>
         </>
       ) : (
-        <input aria-label={`Set ${set.sort_order} weight kilograms`} type="number" min="0" step="0.5" inputMode="decimal" value={draft.weight} onChange={event => setDraft(value => ({ ...value, weight: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
+        <input aria-label={`Séria ${set.sort_order} váha v kilogramoch`} type="number" min="0" step="0.5" inputMode="decimal" value={draft.weight} onChange={event => setDraft(value => ({ ...value, weight: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
       )}
-      <input aria-label={`Set ${set.sort_order} RPE desktop`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="hidden min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent sm:block" />
+      <input aria-label={`Séria ${set.sort_order} RPE na počítači`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="hidden min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent sm:block" />
       <div className="flex items-center justify-end gap-1">
-        {canDelete && !set.completed && <button type="button" aria-label={`Remove set ${set.sort_order}`} onClick={onDelete} disabled={deleting} className="hidden cursor-pointer border-0 bg-transparent p-1 text-text-secondary hover:text-error sm:block"><Trash2 size={15} /></button>}
-        <button type="button" aria-label={set.completed ? `Mark set ${set.sort_order} incomplete` : `Complete set ${set.sort_order}`} onClick={() => saveMutation.mutate(!set.completed)} disabled={saveMutation.isPending} className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border ${set.completed ? 'border-success bg-success text-white' : 'border-outline bg-surface-highest text-text-primary'}`}>
+        {canDelete && !set.completed && (
+          <button type="button" aria-label={`Odstrániť sériu ${set.sort_order}`} onClick={onDelete} disabled={deleting} className="hidden cursor-pointer border-0 bg-transparent p-1 text-text-secondary hover:text-error sm:block">
+            <Trash2 size={15} />
+          </button>
+        )}
+        <button type="button" aria-label={set.completed ? `Označiť sériu ${set.sort_order} ako nedokončenú` : `Dokončiť sériu ${set.sort_order}`} onClick={() => saveMutation.mutate(!set.completed)} disabled={saveMutation.isPending} className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border ${set.completed ? 'border-success bg-success text-white' : 'border-outline bg-surface-highest text-text-primary'}`}>
           {saveMutation.isPending ? <Save size={15} /> : <Check size={17} />}
         </button>
       </div>
-      {saveMutation.isError && <p role="alert" className="col-span-full text-xs text-error">{saveMutation.error.message}</p>}
+      {saveMutation.isError && (
+        <p role="alert" className="col-span-full text-xs text-error">
+          {saveMutation.error.message}
+        </p>
+      )}
     </div>
   )
 }

@@ -52,6 +52,8 @@ const AthleteExercises = lazy(() => import('./pages/activity/Exercises'))
 const WorkoutHistory = lazy(() => import('./pages/activity/History'))
 const ActivityProgress = lazy(() => import('./pages/activity/Progress'))
 const LogActivity = lazy(() => import('./pages/activity/LogActivity'))
+const Messages = lazy(() => import('./pages/Messages'))
+const NotFound = lazy(() => import('./pages/NotFound'))
 const LegalPage = lazy(() => import('./pages/LegalPage'))
 
 export default function App() {
@@ -90,6 +92,7 @@ export default function App() {
                   <Route path="/nutrition/log" element={<LogMeal />} />
                   <Route path="/check-ins" element={<CheckInForm />} />
                   <Route path="/check-ins/history" element={<CheckInHistory />} />
+                  <Route path="/messages" element={<Messages />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/activity" element={<ActivityHub />} />
                   <Route path="/activity/workouts" element={<AthleteWorkouts />} />
@@ -130,6 +133,7 @@ export default function App() {
                   <Route path="/admin/chat"      element={<Chat />} />
                 </Route>
               </Route>
+              <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
               </BrowserRouter>

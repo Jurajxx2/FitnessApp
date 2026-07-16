@@ -96,7 +96,7 @@ export default function CheckInForm() {
     return (
       <div className="min-h-[65dvh] flex flex-col items-center justify-center text-center gap-4 px-6">
         <div className="w-18 h-18 rounded-full bg-action-secondary flex items-center justify-center"><Check size={36} /></div>
-        <h1 className="text-xl font-bold">Check-in odoslaný</h1>
+        <h1 className="text-xl font-bold">Check-in bol odoslaný</h1>
         <p className="text-sm text-text-secondary">Trénerka si ho čoskoro pozrie. Skvelá práca, že si konzistentný!</p>
         <Button onClick={() => navigate('/check-ins/history')}>Pozrieť históriu</Button>
       </div>
@@ -107,7 +107,7 @@ export default function CheckInForm() {
     <form className="grid items-start gap-5 lg:grid-cols-2" onSubmit={submit}>
       <div className="flex flex-col justify-between gap-4 lg:col-span-2 sm:flex-row sm:items-end">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Weekly progress</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Týždenný pokrok</p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Týždenný check-in</h1>
           <p className="mt-2 text-sm text-text-secondary">Krátky prehľad pomôže trénerke upraviť ďalší týždeň.</p>
         </div>

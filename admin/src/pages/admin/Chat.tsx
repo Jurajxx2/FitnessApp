@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { logger } from '../../lib/logger'
 import type { ChatMessage, Profile } from '../../types/database'
 import { SearchInput, useNotice } from '../../components/ui'
+import { ChatImage } from '../../chat/ChatImage'
 
 // ─── Pure helpers (exported for tests) ──────────────────────────────────────
 
@@ -270,7 +271,12 @@ export default function Chat() {
                     }`}
                   >
                     {m.content_type === 'image' && m.image_url ? (
-                      <img src={m.image_url} alt="Chat attachment" className="rounded-lg max-w-[200px]" />
+                      <ChatImage
+                        imageRef={m.image_url}
+                        alt="Chat attachment"
+                        className="rounded-lg max-w-[200px]"
+                        unavailableText="Couldn’t load image."
+                      />
                     ) : (
                       <p className="whitespace-pre-wrap break-words">{m.text_content}</p>
                     )}
