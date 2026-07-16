@@ -1,9 +1,11 @@
 import { FormEvent, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bike, Footprints, PersonStanding, Waves } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { getGeneralActivities, logGeneralActivity } from '../../activity/api'
 import { formatDate, formatDuration } from '../../activity/logic'
 import type { ActivityDraft, ActivityType } from '../../activity/types'
+import { useNotice } from '../../components/ui'
 import { useAuth } from '../../hooks/useAuth'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
 
@@ -24,6 +26,8 @@ function localDateTimeNow() {
 export default function LogActivity() {
   const { user } = useAuth()
   const userId = user?.id ?? ''
+  const navigate = useNavigate()
+  const { notify } = useNotice()
   const queryClient = useQueryClient()
   const [type, setType] = useState<ActivityType>('WALKING')
   const [duration, setDuration] = useState('30')
@@ -36,7 +40,8 @@ export default function LogActivity() {
     mutationFn: (draft: ActivityDraft) => logGeneralActivity(userId, draft),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['activity', 'general', userId] })
-      setDuration('30'); setDistance(''); setRpe(''); setNotes(''); setLoggedAt(localDateTimeNow())
+      notify('Activity saved.')
+      navigate('/activity')
     },
   })
 
@@ -65,7 +70,6 @@ export default function LogActivity() {
           </div>
           <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary">Notes (optional)<textarea value={notes} onChange={event => setNotes(event.target.value)} rows={3} className="mt-2 w-full resize-y rounded-xl border border-outline bg-surface p-3 text-sm font-normal normal-case tracking-normal text-text-primary outline-none focus:border-accent" /></label>
           <button type="submit" disabled={mutation.isPending} className="min-h-11 w-full cursor-pointer rounded-xl border-0 bg-action-primary px-5 text-sm font-bold text-on-action-primary disabled:opacity-40">{mutation.isPending ? 'Saving…' : 'Save activity'}</button>
-          {mutation.isSuccess && <p role="status" className="text-sm text-success">Activity saved.</p>}
           {mutation.isError && <p role="alert" className="text-sm text-error">{mutation.error.message}</p>}
         </form>
         <section>
