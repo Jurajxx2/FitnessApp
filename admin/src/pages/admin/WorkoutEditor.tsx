@@ -15,9 +15,10 @@ interface WorkoutFormState {
   name: string
   notes: string
   is_active: boolean
+  day_of_week: string
 }
 
-const blankForm = (): WorkoutFormState => ({ name: '', notes: '', is_active: true })
+const blankForm = (): WorkoutFormState => ({ name: '', notes: '', is_active: true, day_of_week: '' })
 
 function useProfiles() {
   return useQuery<Pick<Profile, 'id' | 'email' | 'full_name' | 'is_admin' | 'is_blocked'>[]>({
@@ -86,6 +87,7 @@ export default function WorkoutEditor() {
       name: data.workout.name,
       notes: data.workout.notes ?? '',
       is_active: data.workout.is_active,
+      day_of_week: data.workout.day_of_week == null ? '' : String(data.workout.day_of_week),
     })
     setExercises(data.exercises.length > 0 ? data.exercises : [blankExercise()])
     setAssignedUserIds(data.assignedUserIds)
@@ -104,9 +106,7 @@ export default function WorkoutEditor() {
       const { data: workoutId, error: saveError } = await supabase.rpc('admin_save_workout', {
         p_workout_id: id ?? null,
         p_name: form.name,
-        // Workout plans are reusable templates. Athletes choose when to train
-        // them, so editing also clears the legacy weekday assignment.
-        p_day_of_week: null,
+        p_day_of_week: form.day_of_week === '' ? null : Number(form.day_of_week),
         p_notes: form.notes,
         p_is_active: form.is_active,
         p_exercises: validExercises.map((exercise, index) => ({ ...exercise, sort_order: index })),
@@ -197,7 +197,21 @@ export default function WorkoutEditor() {
     >
       <FormSection title="Plan details" description="Give coaches and athletes enough context to recognize the plan quickly.">
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2"><Input label="Plan name" value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Push / Pull / Legs" required /></div>
+          <Input label="Plan name" value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Push / Pull / Legs" required />
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">Preferred day</label>
+            <select
+              className="h-10 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary"
+              value={form.day_of_week}
+              onChange={event => setForm(current => ({ ...current, day_of_week: event.target.value }))}
+            >
+              <option value="">Any day (flexible)</option>
+              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, index) => (
+                <option key={day} value={index}>{day}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-text-secondary">Flexible workouts appear as a weekly checklist the athlete can do any day.</p>
+          </div>
           <div className="sm:col-span-2">
             <Input label="Notes" value={form.notes} onChange={event => setForm(current => ({ ...current, notes: event.target.value }))} placeholder="Optional instructions visible to the athlete" />
           </div>
