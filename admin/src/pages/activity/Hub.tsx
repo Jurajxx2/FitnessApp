@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Activity, ArrowRight, BarChart3, Clock3, Dumbbell, Play } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getActiveWorkout, getAssignedWorkouts, getWorkoutHistory, getWorkoutLibrary, startWorkout } from '../../activity/api'
-import { buildWeek, DAY_SHORT, formatDuration, mondayIndex } from '../../activity/logic'
+import { buildWeek, DAY_SHORT, formatDuration, mondayIndex, splitAssigned, weeklyProgress } from '../../activity/logic'
 import type { WorkoutRow } from '../../activity/types'
 import { useAuth } from '../../hooks/useAuth'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro, SectionTitle, StartButton, WorkoutCard } from './shared'
@@ -30,11 +30,14 @@ export default function ActivityHub() {
   const history = historyQuery.data ?? []
   const hasPlan = assigned.length > 0
   const plan = hasPlan ? assigned : library
-  const week = buildWeek(assigned, history)
-  const completedAssigned = week.filter(day => day.workout && day.log).length
-  const scheduled = week.filter(day => day.workout).length
-  const todayWorkout = assigned.find(workout => workout.day_of_week === mondayIndex(new Date())) ?? null
+  const { pinned, flexible } = splitAssigned(assigned)
+  const week = buildWeek(pinned, history)
+  const progress = weeklyProgress(assigned, history)
+  const todayPinned = pinned.find(workout => workout.day_of_week === mondayIndex(new Date())) ?? null
   const todaySummary = week[mondayIndex(new Date())]
+  const nextFlexible = progress.items.find(item => item.workout.day_of_week == null && !item.log)?.workout ?? null
+  const todayWorkout = todayPinned ?? nextFlexible
+  const todayDone = todayPinned ? Boolean(todaySummary?.log) : false
 
   const startMutation = useMutation({
     mutationFn: (workout: WorkoutRow) => startWorkout(userId, workout),
@@ -70,18 +73,42 @@ export default function ActivityHub() {
 
       {hasPlan && (
         <section className="space-y-3">
-          <SectionTitle title="This week" action={<span className="text-sm font-semibold text-text-secondary">{completedAssigned}/{scheduled} done</span>} />
-          <div className="grid grid-cols-7 gap-1.5 sm:gap-3">
-            {week.map((day, index) => (
-              <div key={day.date.toISOString()} className="min-w-0 text-center">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-text-secondary">{DAY_SHORT[index]}</p>
-                <div className={`mx-auto flex aspect-square max-w-12 items-center justify-center rounded-full border text-xs font-bold ${statusClass[day.status]}`}>
-                  {day.status === 'completed' ? '✓' : day.date.getDate()}
+          <SectionTitle title="This week" action={<span className="text-sm font-semibold text-text-secondary">{progress.completed}/{progress.total} done</span>} />
+          {pinned.length > 0 && (
+            <div className="grid grid-cols-7 gap-1.5 sm:gap-3">
+              {week.map((day, index) => (
+                <div key={day.date.toISOString()} className="min-w-0 text-center">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-text-secondary">{DAY_SHORT[index]}</p>
+                  <div className={`mx-auto flex aspect-square max-w-12 items-center justify-center rounded-full border text-xs font-bold ${statusClass[day.status]}`}>
+                    {day.status === 'completed' ? '✓' : day.date.getDate()}
+                  </div>
+                  <p className="mt-2 truncate text-[10px] text-text-secondary">{day.workout?.name ?? ''}</p>
                 </div>
-                <p className="mt-2 truncate text-[10px] text-text-secondary">{day.workout?.name ?? 'Rest'}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+          {flexible.length > 0 && (
+            <div className="space-y-2">
+              {progress.items.filter(item => item.workout.day_of_week == null).map(({ workout, log }) => (
+                <div key={workout.id} className={`flex items-center gap-3 rounded-2xl border p-4 ${log ? 'border-success/40 bg-success/5' : 'border-outline bg-surface-elevated'}`}>
+                  <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border text-xs font-bold ${log ? 'border-success bg-success text-white' : 'border-outline text-text-secondary'}`}>
+                    {log ? '✓' : ''}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-text-primary">{workout.name}</p>
+                    <p className="text-xs text-text-secondary">{formatDuration(workout.duration_minutes)} · {workout.workout_exercises.length} exercises · any day</p>
+                  </div>
+                  {log ? (
+                    <Link to={`/activity/history/${log.id}`} className="flex-shrink-0 text-xs font-semibold text-text-secondary no-underline hover:text-text-primary">View</Link>
+                  ) : (
+                    <button type="button" disabled={startMutation.isPending} onClick={() => startMutation.mutate(workout)} className="min-h-9 flex-shrink-0 cursor-pointer rounded-xl border-0 bg-action-primary px-4 text-xs font-bold text-on-action-primary disabled:opacity-40">
+                      Start
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
@@ -90,7 +117,7 @@ export default function ActivityHub() {
           <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-end md:p-8">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-accent">
-                {todaySummary?.log ? 'Completed today' : "Today's workout"}
+                {todayDone ? 'Completed today' : todayPinned ? "Today's workout" : 'Suggested next workout'}
               </p>
               <h3 className="mt-2 text-2xl font-bold text-text-primary">{todayWorkout.name}</h3>
               <p className="mt-2 text-sm text-text-secondary">
@@ -100,7 +127,7 @@ export default function ActivityHub() {
                 {todayWorkout.workout_exercises.slice(0, 4).map(item => item.name).join(' · ')}
               </p>
             </div>
-            {todaySummary?.log ? (
+            {todayDone && todaySummary?.log ? (
               <Link to={`/activity/history/${todaySummary.log.id}`} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-outline px-5 text-sm font-semibold text-text-primary no-underline">View summary</Link>
             ) : (
               <StartButton pending={startMutation.isPending} onClick={() => startMutation.mutate(todayWorkout)} />
@@ -109,8 +136,8 @@ export default function ActivityHub() {
         ) : (
           <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-end md:p-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-accent">{hasPlan ? 'Rest day' : 'Start training'}</p>
-              <h3 className="mt-2 text-2xl font-bold text-text-primary">{hasPlan ? 'Recover today. Keep the plan moving tomorrow.' : 'Choose a workout and make it count.'}</h3>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-accent">{hasPlan ? (progress.completed >= progress.total ? 'All done this week' : 'Rest day') : 'Start training'}</p>
+              <h3 className="mt-2 text-2xl font-bold text-text-primary">{hasPlan ? (progress.completed >= progress.total ? 'Plan complete. Recover and get ready for next week.' : 'Recover today. Keep the plan moving tomorrow.') : 'Choose a workout and make it count.'}</h3>
               <p className="mt-3 text-sm text-text-secondary">{hasPlan ? 'You can still log another activity if you go for a walk, run, ride, or swim.' : 'Browse the available plans or ask your coach to assign one.'}</p>
             </div>
             <Link to={hasPlan ? '/activity/log' : '/activity/workouts'} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-action-primary px-5 text-sm font-bold text-on-action-primary no-underline">
