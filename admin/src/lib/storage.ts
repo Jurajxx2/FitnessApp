@@ -62,16 +62,37 @@ export function validateMealPhoto(file: File): string | null {
   return null
 }
 
-export async function uploadMealPhoto(userId: string, mealLogId: string, file: File): Promise<string> {
+export async function uploadMealPhoto(userId: string, mealLogId: string, file: File, options?: { upsert?: boolean }): Promise<string> {
   const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
   const path = `${userId}/meal_${mealLogId}.${extension}`
   const { error } = await supabase.storage
     .from(MEAL_PHOTOS_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false })
+    .upload(path, file, { contentType: file.type, upsert: options?.upsert ?? false })
 
   if (error) throw error
 
   return supabase.storage.from(MEAL_PHOTOS_BUCKET).getPublicUrl(path).data.publicUrl
+}
+
+export function getMealPhotoPath(imageUrl: string): string | null {
+  try {
+    const marker = `/storage/v1/object/public/${MEAL_PHOTOS_BUCKET}/`
+    const pathname = new URL(imageUrl).pathname
+    const markerIndex = pathname.indexOf(marker)
+    if (markerIndex === -1) return null
+    const encodedPath = pathname.slice(markerIndex + marker.length)
+    return encodedPath ? decodeURIComponent(encodedPath) : null
+  } catch {
+    return null
+  }
+}
+
+export async function removeMealPhoto(imageUrl: string): Promise<void> {
+  const path = getMealPhotoPath(imageUrl)
+  if (!path) return
+
+  const { error } = await supabase.storage.from(MEAL_PHOTOS_BUCKET).remove([path])
+  if (error) throw error
 }
 
 export async function signedCheckInPhotoUrl(path: string): Promise<string | null> {

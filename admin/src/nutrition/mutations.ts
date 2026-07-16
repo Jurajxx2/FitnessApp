@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { qk } from './queries'
 import { todayIso } from './date'
-import { uploadMealPhoto } from '../lib/storage'
+import { removeMealPhoto, uploadMealPhoto } from '../lib/storage'
 
 export type LogFoodInput = {
   name: string; amount: number; unit: string
@@ -72,6 +72,125 @@ export function useLogMeal() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.dailyLogs(user!.id, todayIso()) })
       qc.invalidateQueries({ queryKey: qk.history(user!.id) })
+    },
+  })
+}
+
+export function useDeleteMealLog() {
+  const { user } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ logId, imageUrl }: { logId: string; imageUrl: string | null }) => {
+      const { error } = await supabase
+        .from('meal_logs')
+        .delete()
+        .eq('id', logId)
+        .eq('user_id', user!.id)
+      if (error) throw error
+
+      if (imageUrl) {
+        // The database row is already gone; do not make a stale object prevent
+        // the athlete from deleting their meal log.
+        try {
+          await removeMealPhoto(imageUrl)
+        } catch {
+          // Best-effort cleanup only.
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.history(user!.id) })
+      qc.invalidateQueries({ queryKey: ['dailyLogs', user!.id] })
+    },
+  })
+}
+
+export function useUpdateMealLog() {
+  const { user } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ logId, mealName, foods, notes, photoFile, removePhoto, existingImageUrl }: {
+      logId: string
+      mealName: string
+      foods: LogFoodInput[]
+      notes?: string
+      photoFile?: File | null
+      removePhoto?: boolean
+      existingImageUrl: string | null
+    }): Promise<LogMealResult> => {
+      const { error: updateError } = await supabase
+        .from('meal_logs')
+        .update({ meal_name: mealName, notes: notes ?? null })
+        .eq('id', logId)
+        .eq('user_id', user!.id)
+      if (updateError) throw updateError
+
+      const { error: deleteError } = await supabase
+        .from('meal_log_foods')
+        .delete()
+        .eq('meal_log_id', logId)
+      if (deleteError) throw deleteError
+
+      const rows = foods.map(food => ({
+        meal_log_id: logId,
+        name: food.name,
+        amount: food.amount,
+        unit: food.unit,
+        amount_grams: food.amount,
+        calories: food.calories,
+        protein_g: food.protein_g,
+        carbs_g: food.carbs_g,
+        fat_g: food.fat_g,
+      }))
+      const { error: insertError } = await supabase.from('meal_log_foods').insert(rows)
+      if (insertError) throw insertError
+
+      if (removePhoto && existingImageUrl && !photoFile) {
+        const { error: clearPhotoError } = await supabase
+          .from('meal_logs')
+          .update({ image_url: null })
+          .eq('id', logId)
+          .eq('user_id', user!.id)
+        if (clearPhotoError) throw clearPhotoError
+        try {
+          await removeMealPhoto(existingImageUrl)
+        } catch {
+          // The database reference is already cleared; stale storage can be
+          // removed later without breaking the athlete's meal history.
+        }
+      }
+
+      if (!photoFile) return { id: logId, photoAttached: false, photoError: null }
+
+      try {
+        // Keep the current image until the replacement has uploaded and its
+        // database reference is durable, so a failed upload is non-destructive.
+        const imageUrl = await uploadMealPhoto(user!.id, logId, photoFile, { upsert: true })
+        const { error: photoUpdateError } = await supabase
+          .from('meal_logs')
+          .update({ image_url: imageUrl })
+          .eq('id', logId)
+          .eq('user_id', user!.id)
+        if (photoUpdateError) throw photoUpdateError
+        if (existingImageUrl && existingImageUrl !== imageUrl) {
+          try {
+            await removeMealPhoto(existingImageUrl)
+          } catch {
+            // The new image is already connected to the meal log.
+          }
+        }
+        return { id: logId, photoAttached: true, photoError: null }
+      } catch (error) {
+        return {
+          id: logId,
+          photoAttached: false,
+          photoError: error instanceof Error ? error.message : 'Photo upload failed',
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.history(user!.id) })
+      qc.invalidateQueries({ queryKey: ['dailyLogs', user!.id] })
     },
   })
 }

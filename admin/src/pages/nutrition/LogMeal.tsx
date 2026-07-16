@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, ImagePlus, Plus, Search, X } from 'lucide-react'
+import { Camera, ImagePlus, Plus, Search, Sparkles, X } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useActiveMealPlan, useFoodSearch, useRecipe } from '../../nutrition/hooks'
-import { useLogMeal, type LogFoodInput } from '../../nutrition/mutations'
+import { useActiveMealPlan, useFoodSearch, useMealHistory, useRecipe } from '../../nutrition/hooks'
+import { useLogMeal, useUpdateMealLog, type LogFoodInput } from '../../nutrition/mutations'
 import { scaleFood, sumMacros, type Macros } from '../../nutrition/calc'
 import { validateMealPhoto } from '../../lib/storage'
+import { analyzeMealPhoto, mergeAnalysis } from '../../nutrition/photoAnalysis'
 import type { FoodRow, MealRow, RecipeRow } from '../../types/database'
-import { Button, Card, Input, Shimmer, useNotice } from '../../components/ui'
+import { Button, Card, EmptyState, Input, Shimmer, useNotice } from '../../components/ui'
 
 type MacroField = keyof Macros
 
@@ -123,8 +124,11 @@ export default function LogMeal() {
   const [searchParams] = useSearchParams()
   const recipeId = searchParams.get('recipeId') ?? ''
   const mealId = searchParams.get('mealId') ?? ''
+  const logId = searchParams.get('logId') ?? ''
+  const isEdit = Boolean(logId)
   const recipeQuery = useRecipe(recipeId)
   const mealPlanQuery = useActiveMealPlan(Boolean(mealId) && !recipeId)
+  const historyQuery = useMealHistory()
   const { notify } = useNotice()
   const [mealName, setMealName] = useState('')
   const [notes, setNotes] = useState('')
@@ -132,14 +136,36 @@ export default function LogMeal() {
   const [items, setItems] = useState<LogFoodDraft[]>(() => [emptyIngredient()])
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false)
   const [photoError, setPhotoError] = useState('')
+  const [analyzing, setAnalyzing] = useState(false)
   const photoInput = useRef<HTMLInputElement>(null)
   const prefillApplied = useRef(false)
   const { data: results, isFetching } = useFoodSearch(query)
   const logMeal = useLogMeal()
+  const updateMeal = useUpdateMealLog()
+  const existingLog = isEdit ? (historyQuery.data ?? []).find(entry => entry.id === logId) ?? null : null
 
   useEffect(() => {
     if (prefillApplied.current) return
+
+    if (isEdit) {
+      if (!existingLog) return
+      setMealName(existingLog.meal_name)
+      setNotes(existingLog.notes ?? '')
+      setItems(existingLog.meal_log_foods.map(food => draftFromFood({
+        name: food.name,
+        amount: food.amount ?? food.amount_grams ?? 1,
+        unit: food.unit ?? 'g',
+        calories: food.calories,
+        protein_g: food.protein_g,
+        carbs_g: food.carbs_g,
+        fat_g: food.fat_g,
+      })))
+      if (existingLog.image_url) setPhotoPreview(existingLog.image_url)
+      prefillApplied.current = true
+      return
+    }
 
     if (recipeId && recipeQuery.data) {
       setMealName(recipeQuery.data.name)
@@ -156,17 +182,17 @@ export default function LogMeal() {
       }
       prefillApplied.current = true
     }
-  }, [mealId, mealPlanQuery.data, recipeId, recipeQuery.data])
+  }, [existingLog, isEdit, mealId, mealPlanQuery.data, recipeId, recipeQuery.data])
 
   useEffect(() => {
     if (!photoFile) {
-      setPhotoPreview(null)
+      if (!isEdit || removeExistingPhoto) setPhotoPreview(null)
       return
     }
     const preview = URL.createObjectURL(photoFile)
     setPhotoPreview(preview)
     return () => URL.revokeObjectURL(preview)
-  }, [photoFile])
+  }, [isEdit, photoFile, removeExistingPhoto])
 
   function addFood(food: FoodRow) {
     const scaled = scaleFood(food, food.serving_size)
@@ -189,7 +215,23 @@ export default function LogMeal() {
       return
     }
     setPhotoError('')
+    setRemoveExistingPhoto(false)
     setPhotoFile(file)
+  }
+
+  async function analyzePhoto() {
+    if (!photoFile) return
+    setAnalyzing(true)
+    try {
+      const analysis = await analyzeMealPhoto(photoFile)
+      setItems(current => mergeAnalysis(current, analysis))
+      if (!mealName.trim()) setMealName(analysis.mealName)
+      notify('Ingrediencie boli doplnené z fotografie. Skontroluj porcie.', 'success')
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Analýza zlyhala.', 'error')
+    } finally {
+      setAnalyzing(false)
+    }
   }
 
   async function save() {
@@ -197,6 +239,22 @@ export default function LogMeal() {
     if (!mealName.trim() || foods.length === 0) return
 
     try {
+      if (isEdit) {
+        const result = await updateMeal.mutateAsync({
+          logId,
+          mealName: mealName.trim(),
+          foods,
+          notes: notes.trim() || undefined,
+          photoFile,
+          removePhoto: removeExistingPhoto,
+          existingImageUrl: existingLog?.image_url ?? null,
+        })
+        if (result.photoError) notify('Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.', 'error')
+        else notify('Zmeny boli uložené.', 'success')
+        navigate(`/nutrition/history/${logId}`)
+        return
+      }
+
       const result = await logMeal.mutateAsync({
         mealName: mealName.trim(),
         foods,
@@ -213,13 +271,17 @@ export default function LogMeal() {
 
   const totals = sumMacros(items.filter(item => item.name.trim()))
   const hasIngredient = items.some(item => item.name.trim())
-  const isPrefilling = (recipeId && recipeQuery.isLoading) || (mealId && mealPlanQuery.isLoading)
+  const isPrefilling = (isEdit && historyQuery.isLoading) || (recipeId && recipeQuery.isLoading) || (mealId && mealPlanQuery.isLoading)
+
+  if (isEdit && !historyQuery.isLoading && !existingLog) {
+    return <EmptyState title="Záznam sa nenašiel" message="Toto jedlo už bolo pravdepodobne vymazané." action={<Button onClick={() => navigate('/nutrition/history')}>Späť do histórie</Button>} />
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Nutrition log</p>
-        <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Zapísať jedlo</h1>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{isEdit ? 'Upraviť jedlo' : 'Zapísať jedlo'}</h1>
         <p className="mt-2 text-sm text-text-secondary">Uprav ingrediencie, porcie a výživové hodnoty podľa toho, čo si skutočne zjedol.</p>
       </div>
 
@@ -243,12 +305,21 @@ export default function LogMeal() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Fotografia jedla</p>
                     <p className="mt-1 text-xs text-text-secondary">JPG, PNG alebo WebP · max. 10 MB</p>
                   </div>
-                  {photoFile && <button type="button" onClick={() => setPhotoFile(null)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error" aria-label="Odstrániť fotografiu"><X size={16} /></button>}
+                  {photoPreview && <button type="button" onClick={() => {
+                    setPhotoFile(null)
+                    if (isEdit) setRemoveExistingPhoto(true)
+                    setPhotoPreview(null)
+                  }} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error" aria-label="Odstrániť fotografiu"><X size={16} /></button>}
                 </div>
                 <button type="button" onClick={() => photoInput.current?.click()} className="flex min-h-28 w-full cursor-pointer items-center justify-center gap-3 overflow-hidden rounded-2xl border border-dashed border-outline bg-surface text-sm font-semibold text-text-secondary hover:border-accent hover:text-text-primary">
                   {photoPreview ? <img src={photoPreview} alt="Náhľad jedla" className="h-48 w-full object-cover" /> : <><ImagePlus size={24} /><span>Pridať fotografiu</span></>}
                 </button>
                 <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) selectPhoto(file); event.target.value = '' }} />
+                {photoFile && (
+                  <Button variant="secondary" className="mt-3 w-full" loading={analyzing} onClick={analyzePhoto}>
+                    <Sparkles size={16} aria-hidden="true" /> Analyzovať fotografiu (AI)
+                  </Button>
+                )}
                 {photoError && <p role="alert" className="mt-2 text-xs text-error">{photoError}</p>}
               </div>
 
@@ -310,9 +381,9 @@ export default function LogMeal() {
               </Button>
             </section>
 
-            {logMeal.isError && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">Jedlo sa nepodarilo uložiť. Skontroluj pripojenie a skús to znova.</p>}
-            <Button className="w-full sm:self-end sm:w-auto" loading={logMeal.isPending} disabled={!mealName.trim() || !hasIngredient} onClick={save}>
-              <Camera size={17} aria-hidden="true" /> Uložiť jedlo
+            {(logMeal.isError || updateMeal.isError) && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">Jedlo sa nepodarilo uložiť. Skontroluj pripojenie a skús to znova.</p>}
+            <Button className="w-full sm:self-end sm:w-auto" loading={logMeal.isPending || updateMeal.isPending} disabled={!mealName.trim() || !hasIngredient} onClick={save}>
+              <Camera size={17} aria-hidden="true" /> {isEdit ? 'Uložiť zmeny' : 'Uložiť jedlo'}
             </Button>
           </div>
 

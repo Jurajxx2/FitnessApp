@@ -1,13 +1,18 @@
-import { ChevronLeft } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { ChevronLeft, Pencil, Trash2 } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMealHistory } from '../../nutrition/hooks'
 import { sumMacros } from '../../nutrition/calc'
-import { Card, EmptyState, Shimmer, StatRow } from '../../components/ui'
+import { useDeleteMealLog } from '../../nutrition/mutations'
+import { Button, Card, ConfirmDialog, EmptyState, Shimmer, StatRow, useNotice } from '../../components/ui'
 
 export default function HistoryDetail() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { data: logs, isLoading } = useMealHistory()
+  const { notify } = useNotice()
+  const deleteMealLog = useDeleteMealLog()
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   if (isLoading) return <Shimmer className="h-64 w-full" />
 
@@ -25,9 +30,19 @@ export default function HistoryDetail() {
       >
         <ChevronLeft size={16} /> Späť
       </button>
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Meal detail</p>
-        <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{log.meal_name}</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Meal detail</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{log.meal_name}</h1>
+        </div>
+        <div className="flex gap-2">
+          <Link to={`/nutrition/log?logId=${log.id}`} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-outline bg-surface px-4 text-sm font-semibold text-text-primary no-underline hover:bg-surface-elevated">
+            <Pencil size={15} aria-hidden="true" /> Upraviť
+          </Link>
+          <Button variant="danger" onClick={() => setDeleteOpen(true)}>
+            <Trash2 size={15} aria-hidden="true" /> Vymazať
+          </Button>
+        </div>
       </div>
       {log.image_url && <img src={log.image_url} alt={log.meal_name} className="max-h-[520px] w-full rounded-2xl object-cover" />}
       <Card className="p-5">
@@ -54,6 +69,22 @@ export default function HistoryDetail() {
         </ul>
       </Card>
       {log.notes && <Card className="p-5"><h2 className="mb-2 font-bold text-text-primary">Poznámka</h2><p className="text-sm leading-6 text-text-secondary">{log.notes}</p></Card>}
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Vymazať tento záznam?"
+        description="Jedlo aj jeho fotografia budú natrvalo odstránené."
+        confirmLabel="Vymazať"
+        cancelLabel="Zrušiť"
+        pending={deleteMealLog.isPending}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => deleteMealLog.mutate({ logId: log.id, imageUrl: log.image_url }, {
+          onSuccess: () => {
+            notify('Záznam bol vymazaný.')
+            navigate('/nutrition/history')
+          },
+          onError: () => notify('Záznam sa nepodarilo vymazať.', 'error'),
+        })}
+      />
     </div>
   )
 }
