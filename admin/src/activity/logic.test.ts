@@ -1,4 +1,4 @@
-import { buildWeek, completedSets, isTimedTarget, matchesWorkout, parseTargetReps, startOfWeek, workoutVolume } from './logic'
+import { buildWeek, completedSets, isTimedTarget, matchesWorkout, parseTargetReps, splitAssigned, startOfWeek, weeklyProgress, workoutVolume } from './logic'
 import type { WorkoutLogRow, WorkoutRow } from './types'
 
 const workout: WorkoutRow = {
@@ -49,5 +49,84 @@ describe('activity logic', () => {
   it('derives completed sets and volume only from completed rows', () => {
     expect(completedSets(log)).toBe(1)
     expect(workoutVolume(log)).toBe(500)
+  })
+})
+
+function assignedWorkout(id: string, dayOfWeek: number | null): WorkoutRow {
+  return {
+    id, user_id: null, owner_user_id: null, name: `Workout ${id}`, day_of_week: dayOfWeek,
+    duration_minutes: 45, notes: null, is_active: true, source: 'coach', workout_exercises: [],
+  }
+}
+
+function weeklyLog(id: string, workoutId: string | null, loggedAt: string): WorkoutLogRow {
+  return {
+    id, user_id: 'u1', workout_id: workoutId, workout_name: `Workout ${workoutId}`,
+    duration_minutes: 40, notes: null, status: 'completed', logged_at: loggedAt,
+    created_at: loggedAt, exercise_logs: [],
+  }
+}
+
+describe('splitAssigned', () => {
+  it('separates pinned from flexible workouts', () => {
+    const { pinned, flexible } = splitAssigned([
+      assignedWorkout('a', 0), assignedWorkout('b', null), assignedWorkout('c', 4),
+    ])
+
+    expect(pinned.map(item => item.id)).toEqual(['a', 'c'])
+    expect(flexible.map(item => item.id)).toEqual(['b'])
+  })
+})
+
+describe('weeklyProgress', () => {
+  const now = new Date('2026-07-15T10:00:00')
+  const monday = new Date('2026-07-13T09:00:00')
+  const lastWeek = new Date('2026-07-05T09:00:00')
+
+  it('counts this-week completions once per workout', () => {
+    const workouts = [assignedWorkout('a', null), assignedWorkout('b', null)]
+    const logs = [
+      weeklyLog('l1', 'a', monday.toISOString()),
+      weeklyLog('l2', 'a', now.toISOString()),
+      weeklyLog('l3', 'b', lastWeek.toISOString()),
+    ]
+
+    const progress = weeklyProgress(workouts, logs, now)
+
+    expect(progress.total).toBe(2)
+    expect(progress.completed).toBe(1)
+    expect(progress.items.find(item => item.workout.id === 'a')?.log?.id).toBe('l1')
+    expect(progress.items.find(item => item.workout.id === 'b')?.log).toBeNull()
+  })
+
+  it('excludes future-week logs', () => {
+    const progress = weeklyProgress(
+      [assignedWorkout('a', null)],
+      [weeklyLog('future', 'a', '2026-07-20T09:00:00.000Z')],
+      now,
+    )
+
+    expect(progress.completed).toBe(0)
+    expect(progress.items[0].log).toBeNull()
+  })
+})
+
+describe('buildWeek with flexible workouts', () => {
+  it('does not place flexible workouts on any day', () => {
+    const week = buildWeek([assignedWorkout('flex', null)], [], new Date('2026-07-15T10:00:00'))
+
+    expect(week.every(day => day.workout === null)).toBe(true)
+  })
+
+  it('does not complete a rest day from an unrelated log', () => {
+    const week = buildWeek(
+      [assignedWorkout('pinned', 0)],
+      [weeklyLog('flex-log', null, '2026-07-15T09:00:00.000Z')],
+      new Date('2026-07-15T10:00:00'),
+    )
+
+    expect(week[2].workout).toBeNull()
+    expect(week[2].log).toBeNull()
+    expect(week[2].status).toBe('today')
   })
 })

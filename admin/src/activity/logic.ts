@@ -37,7 +37,7 @@ export function buildWeek(workouts: WorkoutRow[], logs: WorkoutLogRow[], now = n
     const workout = workouts.find(item => item.day_of_week === dayIndex) ?? null
     const log = logs.find(item => {
       const logged = new Date(item.logged_at)
-      return logged >= weekStart && mondayIndex(logged) === dayIndex && (!workout || matchesWorkout(item, workout))
+      return logged >= weekStart && mondayIndex(logged) === dayIndex && workout != null && matchesWorkout(item, workout)
     }) ?? null
     const status: WeekStatus = log
       ? 'completed'
@@ -84,4 +84,40 @@ export function formatDuration(minutes: number) {
 
 export function formatDate(value: string, options?: Intl.DateTimeFormatOptions) {
   return new Intl.DateTimeFormat(undefined, options ?? { dateStyle: 'medium' }).format(new Date(value))
+}
+
+export function splitAssigned(workouts: WorkoutRow[]): { pinned: WorkoutRow[]; flexible: WorkoutRow[] } {
+  return {
+    pinned: workouts.filter(item => item.day_of_week != null),
+    flexible: workouts.filter(item => item.day_of_week == null),
+  }
+}
+
+export interface WeeklyItem {
+  workout: WorkoutRow
+  log: WorkoutLogRow | null
+}
+
+export interface WeeklyProgress {
+  items: WeeklyItem[]
+  completed: number
+  total: number
+}
+
+export function weeklyProgress(workouts: WorkoutRow[], logs: WorkoutLogRow[], now = new Date()): WeeklyProgress {
+  const weekStart = startOfWeek(now)
+  const nextWeekStart = new Date(weekStart)
+  nextWeekStart.setDate(weekStart.getDate() + 7)
+  const thisWeek = logs.filter(item => {
+    const loggedAt = new Date(item.logged_at)
+    return loggedAt >= weekStart && loggedAt < nextWeekStart
+  })
+  const claimed = new Set<string>()
+  const items: WeeklyItem[] = workouts.map(workout => {
+    const match = thisWeek.find(item => !claimed.has(item.id) && matchesWorkout(item, workout)) ?? null
+    if (match) claimed.add(match.id)
+    return { workout, log: match }
+  })
+
+  return { items, completed: items.filter(item => item.log).length, total: items.length }
 }
