@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Activity, ArrowRight, BarChart3, Clock3, Dumbbell, Play } from 'lucide-react'
+import { Activity, ArrowRight, BarChart3, Clock3, Dumbbell, Play, Plus } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getActiveWorkout, getAssignedWorkouts, getWorkoutHistory, getWorkoutLibrary, startWorkout } from '../../activity/api'
 import { buildWeek, formatDuration, mondayIndex, splitAssigned, weeklyProgress } from '../../activity/logic'
@@ -43,7 +43,9 @@ export default function ActivityHub() {
     enabled: Boolean(userId)
   })
 
-  const assigned = assignedQuery.data ?? []
+  const allAssigned = assignedQuery.data ?? []
+  const ownWorkouts = allAssigned.filter(workout => workout.source === 'user')
+  const assigned = allAssigned.filter(workout => workout.source !== 'user')
   const library = libraryQuery.data ?? []
   const history = historyQuery.data ?? []
   const hasPlan = assigned.length > 0
@@ -84,7 +86,7 @@ export default function ActivityHub() {
 
   return (
     <ActivityPage>
-      <PageIntro eyebrow="Tréning" title="Aktivita" description="Tvoj plán, sledovanie tréningu, knižnica cvikov a pokrok na jednom mieste." />
+      <PageIntro eyebrow="Tréning" title="Aktivita" description="Tvoj plán, sledovanie tréningu, knižnica cvikov a pokrok na jednom mieste." action={<Link to="/activity/workouts/new" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-outline bg-surface px-4 text-sm font-semibold text-text-primary no-underline hover:bg-surface-elevated"><Plus size={16} /> Vlastný tréning</Link>} />
 
       {activeQuery.data && (
         <button type="button" onClick={() => navigate('/activity/session')} className="flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-accent/50 bg-accent/10 p-5 text-left text-text-primary">
@@ -218,6 +220,15 @@ export default function ActivityHub() {
           </div>
         )}
       </section>
+
+      {ownWorkouts.length > 0 && (
+        <section className="space-y-3">
+          <SectionTitle title="Moje tréningy" action={<Link to="/activity/workouts" className="text-xs font-bold uppercase tracking-wider text-text-accent no-underline">Zobraziť všetky</Link>} />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {ownWorkouts.slice(0, 3).map(workout => <WorkoutCard key={workout.id} workout={workout} compact />)}
+          </div>
+        </section>
+      )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[

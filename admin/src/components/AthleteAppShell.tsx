@@ -2,6 +2,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowRightLeft,
+  ArrowLeft,
   ClipboardCheck,
   Dumbbell,
   LogOut,
@@ -45,6 +46,16 @@ function pageTitle(pathname: string) {
   return 'Výživa'
 }
 
+export function athleteBackTarget(pathname: string): string | null {
+  if (/^\/activity\/workouts\/(new|[^/]+)$/.test(pathname)) return '/activity/workouts'
+  if (/^\/activity\/(session|workouts|exercises|history|progress|log)$/.test(pathname)) return '/activity'
+  if (/^\/activity\/(exercises|history)\/[^/]+$/.test(pathname)) return `/activity/${pathname.split('/')[2]}`
+  if (/^\/nutrition\/(recipes|history)\/[^/]+$/.test(pathname)) return `/nutrition/${pathname.split('/')[2]}`
+  if (/^\/nutrition\/(history|log)$/.test(pathname)) return '/nutrition'
+  if (pathname === '/check-ins/history') return '/check-ins'
+  return null
+}
+
 export function AthleteAppShell() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -69,6 +80,7 @@ export function AthleteAppShell() {
     || (item.feature === 'nutrition' && canAccessNutrition(profile))
     || (item.feature === 'activity' && canAccessActivity(profile))
   )
+  const backTarget = athleteBackTarget(location.pathname)
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -140,9 +152,21 @@ export function AthleteAppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-outline-subtle bg-background/95 px-4 backdrop-blur sm:px-6">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary md:hidden">Coach Foska</p>
-            <h1 className="text-base font-semibold text-text-primary">{pageTitle(location.pathname)}</h1>
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            {backTarget && (
+              <button
+                type="button"
+                onClick={() => navigate(backTarget)}
+                aria-label="Späť"
+                className="flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-xl border border-outline bg-surface text-text-primary transition-colors hover:bg-surface-elevated"
+              >
+                <ArrowLeft size={18} aria-hidden="true" />
+              </button>
+            )}
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary md:hidden">Coach Foska</p>
+              <h1 className="truncate text-base font-semibold text-text-primary">{pageTitle(location.pathname)}</h1>
+            </div>
           </div>
           {isAdmin && (
             <button type="button" onClick={() => navigate('/admin')} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-xl border border-outline bg-surface px-3 text-xs font-semibold text-text-primary hover:bg-surface-elevated md:hidden">

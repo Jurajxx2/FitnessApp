@@ -41,6 +41,22 @@ export interface WorkoutRow {
   workout_exercises: WorkoutExerciseRow[]
 }
 
+export interface UserWorkoutExerciseDraft {
+  exercise_id: string
+  name: string
+  muscle_group: string | null
+  sets: number
+  reps: string
+  rest_seconds: number
+}
+
+export interface UserWorkoutDraft {
+  name: string
+  notes: string | null
+  duration_minutes: number
+  exercises: UserWorkoutExerciseDraft[]
+}
+
 export interface SetLogRow {
   id: string
   exercise_log_id: string

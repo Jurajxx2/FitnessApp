@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Clock3, Dumbbell, TimerReset } from 'lucide-react'
+import { ArrowLeft, Clock3, Dumbbell, Plus, TimerReset } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getAssignedWorkouts, getWorkout, getWorkoutLibrary, startWorkout } from '../../activity/api'
 import { formatDuration } from '../../activity/logic'
@@ -40,14 +40,22 @@ function WorkoutList() {
       </ActivityPage>
     )
 
-  const assigned = assignedQuery.data ?? []
+  const allAssigned = assignedQuery.data ?? []
+  const own = allAssigned.filter(workout => workout.source === 'user')
+  const assigned = allAssigned.filter(workout => workout.source !== 'user')
   const library = libraryQuery.data ?? []
   const assignedIds = new Set(assigned.map(workout => workout.id))
   const additional = library.filter(workout => !assignedIds.has(workout.id))
 
   return (
     <ActivityPage>
-      <PageIntro eyebrow="Aktivita" title="Tréningové plány" description={assigned.length ? 'Sleduj plán, ktorý ti pripravila trénerka. Ďalšie dostupné tréningy sú uvedené nižšie.' : 'Vyber si dostupný tréning a začni cvičiť.'} />
+      <PageIntro eyebrow="Aktivita" title="Tréningové plány" description={assigned.length ? 'Sleduj plán, ktorý ti pripravila trénerka, alebo si vytvor vlastný tréning.' : 'Vyber si dostupný tréning alebo si vytvor vlastný.'} action={<Link to="/activity/workouts/new" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-action-primary px-4 text-sm font-bold text-on-action-primary no-underline"><Plus size={17} /> Vytvoriť vlastný</Link>} />
+      {own.length > 0 && (
+        <section className="space-y-3">
+          <div><h3 className="text-sm font-bold uppercase tracking-[0.16em] text-text-primary">Moje tréningy</h3><p className="mt-1 text-sm text-text-secondary">Vlastné tréningy, ktoré si môžeš spustiť kedykoľvek.</p></div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{own.map(workout => <WorkoutCard key={workout.id} workout={workout} />)}</div>
+        </section>
+      )}
       {assigned.length > 0 && (
         <section className="space-y-3">
           <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-text-primary">Tvoj plán</h3>
@@ -71,7 +79,7 @@ function WorkoutList() {
           </div>
         </section>
       )}
-      {!assigned.length && !additional.length && <div className="rounded-2xl border border-dashed border-outline p-8 text-center text-sm text-text-secondary">Nie sú dostupné žiadne aktívne tréningy. Požiadaj trénerku, aby ti priradila plán.</div>}
+      {!assigned.length && !additional.length && !own.length && <div className="rounded-2xl border border-dashed border-outline p-8 text-center text-sm text-text-secondary">Nie sú dostupné žiadne aktívne tréningy. Vytvor si vlastný alebo požiadaj trénerku, aby ti priradila plán.</div>}
     </ActivityPage>
   )
 }

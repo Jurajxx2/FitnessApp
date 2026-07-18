@@ -47,6 +47,7 @@ const CheckInForm = lazy(() => import('./pages/checkins/CheckInForm'))
 const CheckInHistory = lazy(() => import('./pages/checkins/CheckInHistory'))
 const ActivityHub = lazy(() => import('./pages/activity/Hub'))
 const AthleteWorkouts = lazy(() => import('./pages/activity/Workouts'))
+const CreateAthleteWorkout = lazy(() => import('./pages/activity/CreateWorkout'))
 const WorkoutSession = lazy(() => import('./pages/activity/Session'))
 const AthleteExercises = lazy(() => import('./pages/activity/Exercises'))
 const WorkoutHistory = lazy(() => import('./pages/activity/History'))
@@ -96,6 +97,7 @@ export default function App() {
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/activity" element={<ActivityHub />} />
                   <Route path="/activity/workouts" element={<AthleteWorkouts />} />
+                  <Route path="/activity/workouts/new" element={<CreateAthleteWorkout />} />
                   <Route path="/activity/workouts/:workoutId" element={<AthleteWorkouts />} />
                   <Route path="/activity/session" element={<WorkoutSession />} />
                   <Route path="/activity/exercises" element={<AthleteExercises />} />

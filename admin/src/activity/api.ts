@@ -5,6 +5,7 @@ import type {
   ExerciseSummary,
   GeneralActivityRow,
   SetLogRow,
+  UserWorkoutDraft,
   WorkoutExerciseRow,
   WorkoutLogRow,
   WorkoutRow,
@@ -197,6 +198,43 @@ export async function startWorkout(userId: string, workout: WorkoutRow): Promise
     if (cleanupError) await supabase.from('workout_logs').update({ status: 'discarded' }).eq('id', data.id)
     throw initialiseError
   }
+}
+
+export async function createUserWorkout(userId: string, draft: UserWorkoutDraft): Promise<WorkoutRow> {
+  const { data: workout, error: workoutError } = await supabase
+    .from('workouts')
+    .insert({
+      owner_user_id: userId,
+      source: 'user',
+      name: draft.name,
+      notes: draft.notes,
+      duration_minutes: draft.duration_minutes,
+      day_of_week: null,
+      is_active: true,
+    })
+    .select('id')
+    .single()
+  if (workoutError) throw workoutError
+
+  const { error: exercisesError } = await supabase.from('workout_exercises').insert(
+    draft.exercises.map((exercise, index) => ({
+      workout_id: workout.id,
+      exercise_id: exercise.exercise_id,
+      name: exercise.name,
+      muscle_group: exercise.muscle_group,
+      sets: exercise.sets,
+      reps: exercise.reps,
+      rest_seconds: exercise.rest_seconds,
+      sort_order: index,
+    }))
+  )
+  if (exercisesError) {
+    const { error: cleanupError } = await supabase.from('workouts').delete().eq('id', workout.id)
+    if (cleanupError) throw new Error(`Cviky sa nepodarilo uložiť. Vytvorený plán môžeš odstrániť neskôr: ${exercisesError.message}`)
+    throw exercisesError
+  }
+
+  return getWorkout(workout.id)
 }
 
 export async function saveSet(setId: string, values: Partial<Pick<SetLogRow,
