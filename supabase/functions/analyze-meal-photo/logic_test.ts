@@ -1,5 +1,11 @@
 import { assert, assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
-import { analysisPrompt, MAX_IMAGE_BYTES, parseAnalysisRequest, parseMealAnalysis } from './logic.ts'
+import {
+  analysisPrompt,
+  geminiGenerationConfig,
+  MAX_IMAGE_BYTES,
+  parseAnalysisRequest,
+  parseMealAnalysis,
+} from './logic.ts'
 
 function validRequest(overrides: Record<string, unknown> = {}) {
   return {
@@ -49,4 +55,11 @@ Deno.test('analysisPrompt includes Slovak description without changing the respo
   assert(prompt.includes('bez dresingu'))
   assert(prompt.includes('po slovensky'))
   assert(prompt.includes('skrytý olej, maslo alebo cukor'))
+})
+
+Deno.test('Gemini 3.5 config uses the current responseFormat JSON Schema envelope', () => {
+  const config = geminiGenerationConfig()
+  assertEquals(config.responseFormat.text.mimeType, 'application/json')
+  assertEquals(config.responseFormat.text.schema.type, 'object')
+  assertEquals(config.responseFormat.text.schema.properties.items.items.type, 'object')
 })

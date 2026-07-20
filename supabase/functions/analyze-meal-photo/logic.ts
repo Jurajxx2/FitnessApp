@@ -3,6 +3,45 @@ export const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 export const MAX_DESCRIPTION_LENGTH = 500
 export const MAX_ANALYSIS_ITEMS = 25
 
+export const mealAnalysisResponseSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    items: {
+      type: 'array',
+      maxItems: MAX_ANALYSIS_ITEMS,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          name: { type: 'string' },
+          grams: { type: 'number', minimum: 0.1, maximum: 5000 },
+          kcal: { type: 'number', minimum: 0, maximum: 10000 },
+          protein_g: { type: 'number', minimum: 0, maximum: 1000 },
+          carbs_g: { type: 'number', minimum: 0, maximum: 1000 },
+          fat_g: { type: 'number', minimum: 0, maximum: 1000 },
+          confidence: { type: 'number', minimum: 0, maximum: 1 },
+        },
+        required: ['name', 'grams', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'confidence'],
+      },
+    },
+  },
+  required: ['items'],
+} as const
+
+/** Current Gemini 3.5 generateContent structured-output envelope. */
+export function geminiGenerationConfig() {
+  return {
+    responseFormat: {
+      text: {
+        mimeType: 'application/json',
+        schema: mealAnalysisResponseSchema,
+      },
+    },
+    temperature: 0.1,
+  }
+}
+
 export type AnalysisItem = {
   name: string
   grams: number

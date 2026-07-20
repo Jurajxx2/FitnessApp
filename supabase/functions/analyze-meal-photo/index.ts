@@ -1,6 +1,12 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-import { analysisPrompt, MAX_IMAGE_BYTES, parseAnalysisRequest, parseMealAnalysis } from './logic.ts'
+import {
+  analysisPrompt,
+  geminiGenerationConfig,
+  MAX_IMAGE_BYTES,
+  parseAnalysisRequest,
+  parseMealAnalysis,
+} from './logic.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,30 +16,6 @@ const corsHeaders = {
 
 const GEMINI_MODEL = 'gemini-3.5-flash'
 const REQUEST_CHARACTER_LIMIT = Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 2048
-
-const responseSchema = {
-  type: 'OBJECT',
-  properties: {
-    items: {
-      type: 'ARRAY',
-      maxItems: 25,
-      items: {
-        type: 'OBJECT',
-        properties: {
-          name: { type: 'STRING' },
-          grams: { type: 'NUMBER', minimum: 0.1, maximum: 5000 },
-          kcal: { type: 'NUMBER', minimum: 0, maximum: 10000 },
-          protein_g: { type: 'NUMBER', minimum: 0, maximum: 1000 },
-          carbs_g: { type: 'NUMBER', minimum: 0, maximum: 1000 },
-          fat_g: { type: 'NUMBER', minimum: 0, maximum: 1000 },
-          confidence: { type: 'NUMBER', minimum: 0, maximum: 1 },
-        },
-        required: ['name', 'grams', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'confidence'],
-      },
-    },
-  },
-  required: ['items'],
-}
 
 type ErrorCode =
   | 'METHOD_NOT_ALLOWED'
@@ -146,11 +128,7 @@ serve(async (req) => {
                 { inline_data: { mime_type: request.mime_type, data: request.image_base64 } },
               ],
             }],
-            generationConfig: {
-              responseMimeType: 'application/json',
-              responseSchema,
-              temperature: 0.1,
-            },
+            generationConfig: geminiGenerationConfig(),
           }),
         },
       )
