@@ -110,6 +110,19 @@ function renderRecipeLogger() {
   )
 }
 
+function renderManualLogger() {
+  render(
+    <NoticeProvider>
+      <MemoryRouter initialEntries={['/nutrition/log']}>
+        <Routes>
+          <Route path="/nutrition/log" element={<LogMeal />} />
+          <Route path="/nutrition" element={<p>Nutrition home</p>} />
+        </Routes>
+      </MemoryRouter>
+    </NoticeProvider>,
+  )
+}
+
 describe('LogMeal', () => {
   it('uses photo analysis only to fill the draft and waits for explicit save', async () => {
     renderRecipeLogger()
@@ -156,6 +169,98 @@ describe('LogMeal', () => {
   it('rescales nutrition when an ingredient amount changes', () => {
     const draft = draftFromFood({ name: 'Rice', amount: 100, unit: 'g', calories: 130, protein_g: 3, carbs_g: 28, fat_g: 1 })
     expect(rescaleDraftAmount(draft, 250)).toMatchObject({ calories: 325, protein_g: 7.5, carbs_g: 70, fat_g: 2.5 })
+  })
+
+  it('toggles a named food item open and closed', async () => {
+    renderRecipeLogger()
+    const user = userEvent.setup()
+    const chickenToggle = await screen.findByRole('button', { name: /^Chicken\b/ })
+
+    expect(chickenToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByDisplayValue('Chicken')).not.toBeInTheDocument()
+
+    await user.click(chickenToggle)
+    expect(chickenToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByDisplayValue('Chicken')).toBeInTheDocument()
+
+    await user.click(chickenToggle)
+    expect(chickenToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByDisplayValue('Chicken')).not.toBeInTheDocument()
+  })
+
+  it('keeps the first editor expanded while its name is typed', async () => {
+    renderManualLogger()
+    const user = userEvent.setup()
+    const itemToggle = screen.getByRole('button', { name: /^Nová položka 1\b/ })
+
+    expect(itemToggle).toHaveAttribute('aria-expanded', 'true')
+    await user.type(screen.getByLabelText('Názov'), 'Ryža')
+
+    expect(itemToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('Kcal')).toBeInTheDocument()
+  })
+
+  it('always appends a manual item and preserves an incomplete unnamed row', async () => {
+    renderManualLogger()
+    const user = userEvent.setup()
+    const firstCalories = screen.getByLabelText('Kcal')
+    await user.clear(firstCalories)
+    await user.type(firstCalories, '123')
+
+    await user.click(screen.getByRole('button', { name: 'Pridať vlastnú položku' }))
+
+    expect(screen.getAllByLabelText('Názov')).toHaveLength(2)
+    expect(screen.getAllByLabelText('Kcal')[0]).toHaveValue(123)
+  })
+
+  it('quick-add replaces only a pristine placeholder', async () => {
+    vi.mocked(useFoodFavorites).mockReturnValue({
+      data: [{
+        id: 'favorite-1', user_id: 'user-1', name: 'Banán', amount: 100, unit: 'g', amount_grams: 100,
+        calories: 90, protein_g: 1, carbs_g: 23, fat_g: 0, created_at: '2026-07-20T12:00:00Z',
+      }],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useFoodFavorites>)
+    renderManualLogger()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Banán/ }))
+
+    expect(screen.getAllByLabelText('Názov')).toHaveLength(1)
+    expect(screen.getByLabelText('Názov')).toHaveValue('Banán')
+  })
+
+  it('quick-add preserves a partially edited unnamed placeholder', async () => {
+    vi.mocked(useFoodFavorites).mockReturnValue({
+      data: [{
+        id: 'favorite-1', user_id: 'user-1', name: 'Banán', amount: 100, unit: 'g', amount_grams: 100,
+        calories: 90, protein_g: 1, carbs_g: 23, fat_g: 0, created_at: '2026-07-20T12:00:00Z',
+      }],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useFoodFavorites>)
+    renderManualLogger()
+    const user = userEvent.setup()
+    const firstCalories = screen.getByLabelText('Kcal')
+    await user.clear(firstCalories)
+    await user.type(firstCalories, '12')
+
+    await user.click(screen.getByRole('button', { name: /Banán/ }))
+
+    expect(screen.getAllByLabelText('Názov')).toHaveLength(2)
+    expect(screen.getAllByLabelText('Názov')[0]).toHaveValue('')
+    expect(screen.getAllByLabelText('Názov')[1]).toHaveValue('Banán')
+    expect(screen.getAllByLabelText('Kcal')[0]).toHaveValue(12)
+  })
+
+  it('leaves one expanded blank editor after removing the final item', async () => {
+    renderManualLogger()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'Odstrániť položku 1' }))
+
+    expect(screen.getAllByLabelText('Názov')).toHaveLength(1)
+    expect(screen.getByLabelText('Názov')).toHaveValue('')
+    expect(screen.getByRole('button', { name: /^Nová položka 1\b/ })).toHaveAttribute('aria-expanded', 'true')
   })
 })
 

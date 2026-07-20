@@ -143,7 +143,11 @@ serve(async (req) => {
     }
 
     if (!geminiResponse.ok) {
-      console.error('Meal analysis provider rejected request', { status: geminiResponse.status })
+      const providerError = (await geminiResponse.text()).slice(0, 1_000)
+      console.error('Meal analysis provider rejected request', {
+        status: geminiResponse.status,
+        error: providerError,
+      })
       return jsonError('ANALYSIS_FAILED', 'Meal analysis failed', 502)
     }
 

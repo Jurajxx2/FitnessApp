@@ -98,7 +98,7 @@ export default function LogMeal() {
   const [logTime, setLogTime] = useState(localTimePart(now))
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<LogFoodDraft[]>(() => [emptyIngredient()])
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set())
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set([items[0].key]))
   const [recipeServings, setRecipeServings] = useState(1)
   const [savedMealName, setSavedMealName] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -126,9 +126,21 @@ export default function LogMeal() {
     setExpandedKeys(new Set(safe.filter(item => !item.name.trim() || (item.confidence ?? 1) < 0.7).map(item => item.key)))
   }
 
-  function addDraft(draft: LogFoodDraft) {
-    setItems(current => current.length === 1 && !current[0].name.trim() ? [draft] : [...current, draft])
-    setExpandedKeys(current => new Set(current).add(draft.key))
+  function addDraft(draft: LogFoodDraft, replacePristinePlaceholder = true) {
+    const replacedKey = replacePristinePlaceholder && items.length === 1 && isUntouchedEmptyIngredient(items[0])
+      ? items[0].key
+      : null
+    setItems(replacedKey ? [draft] : [...items, draft])
+    setExpandedKeys(current => {
+      const next = new Set(current)
+      if (replacedKey) next.delete(replacedKey)
+      next.add(draft.key)
+      return next
+    })
+  }
+
+  function appendManualDraft() {
+    addDraft(emptyIngredient(), false)
   }
 
   useEffect(() => {
@@ -180,7 +192,25 @@ export default function LogMeal() {
   }
 
   function removeItem(index: number) {
-    setItems(current => current.length === 1 ? [emptyIngredient()] : current.filter((_, itemIndex) => itemIndex !== index))
+    const removedKey = items[index]?.key
+    if (!removedKey) return
+    if (items.length === 1) {
+      const replacement = emptyIngredient()
+      setItems([replacement])
+      setExpandedKeys(current => {
+        const next = new Set(current)
+        next.delete(removedKey)
+        next.add(replacement.key)
+        return next
+      })
+      return
+    }
+    setItems(current => current.filter(item => item.key !== removedKey))
+    setExpandedKeys(current => {
+      const next = new Set(current)
+      next.delete(removedKey)
+      return next
+    })
   }
 
   async function selectPhoto(file: File) {
@@ -376,13 +406,14 @@ export default function LogMeal() {
             <section className="flex flex-col gap-3">
               <div className="flex items-end justify-between gap-3"><div><h2 className="font-bold text-text-primary">Položky jedla</h2><p className="mt-1 text-xs text-text-secondary">Rozbaľ položku a uprav gramy alebo makrá.</p></div><span className="text-xs text-text-secondary">{items.filter(item => item.name.trim()).length} položiek</span></div>
               {items.map((item, index) => {
-                const expanded = expandedKeys.has(item.key) || !item.name.trim()
+                const expanded = expandedKeys.has(item.key)
+                const editorId = `meal-item-editor-${item.key}`
                 const lowConfidence = item.source === 'ai' && (item.confidence ?? 1) < 0.7
                 const favorite = favoriteForDraft(favorites, item)
                 return (
                   <Card key={item.key} className={`p-4 sm:p-5 ${lowConfidence ? 'border-warning/40 bg-warning/5' : ''}`}>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => setExpandedKeys(current => { const next = new Set(current); if (next.has(item.key)) next.delete(item.key); else next.add(item.key); return next })} className="flex min-h-10 min-w-0 flex-1 items-center gap-3 text-left">
+                      <button type="button" aria-expanded={expanded} aria-controls={editorId} onClick={() => setExpandedKeys(current => { const next = new Set(current); if (next.has(item.key)) next.delete(item.key); else next.add(item.key); return next })} className="flex min-h-10 min-w-0 flex-1 items-center gap-3 text-left">
                         {expanded ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
                         <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-text-primary">{item.name.trim() || `Nová položka ${index + 1}`}</span><span className="block text-xs text-text-secondary">{item.amount == null ? '' : `${Math.round(item.amount * 10) / 10} ${item.unit ?? ''} · `}{Math.round(item.calories)} kcal</span></span>
                         {lowConfidence && <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-warning"><AlertTriangle size={12} /> nízka istota</span>}
@@ -390,7 +421,7 @@ export default function LogMeal() {
                       <button type="button" aria-label={favorite ? `Odstrániť ${item.name} z obľúbených` : `Pridať ${item.name || 'položku'} medzi obľúbené`} onClick={() => void toggleFavorite(item)} className={`rounded-lg p-2 hover:bg-surface-highest ${favorite ? 'text-warning' : 'text-text-secondary'}`}><Star size={17} fill={favorite ? 'currentColor' : 'none'} /></button>
                       <button type="button" aria-label={`Odstrániť položku ${index + 1}`} onClick={() => removeItem(index)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error"><X size={16} /></button>
                     </div>
-                    {expanded && <div className="mt-4">
+                    {expanded && <div id={editorId} className="mt-4">
                       {lowConfidence && <p className="mb-3 text-xs leading-5 text-warning">Táto položka je len neistý AI odhad, napríklad skrytý olej alebo cukor. Skontroluj ju alebo odstráň.</p>}
                       <div className="grid gap-3 sm:grid-cols-2"><div className="sm:col-span-2"><Input label="Názov" value={item.name} onChange={event => updateItem(index, draft => ({ ...draft, name: event.target.value }))} placeholder="napr. Ryža" /></div><Input label="Množstvo (voliteľné)" type="number" inputMode="decimal" min={0} step="any" value={item.amount ?? ''} onChange={event => updateItem(index, draft => rescaleDraftAmount(draft, event.target.value === '' ? null : Number(event.target.value)))} /><Input label="Jednotka" value={item.unit ?? ''} disabled={item.amount == null} onChange={event => updateItem(index, draft => ({ ...draft, unit: event.target.value }))} placeholder="g, ml, ks…" /></div>
                       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{([['calories', 'Kcal'], ['protein_g', 'Bielkoviny'], ['carbs_g', 'Sacharidy'], ['fat_g', 'Tuky']] as const).map(([field, label]) => <Input key={field} label={label} type="number" inputMode="decimal" min={0} step="any" value={item[field]} onChange={event => updateItem(index, draft => updateDraftMacro(draft, field as MacroField, Number(event.target.value)))} />)}</div>
@@ -398,7 +429,7 @@ export default function LogMeal() {
                   </Card>
                 )
               })}
-              <Button variant="ghost" className="w-full" onClick={() => addDraft(emptyIngredient())}><Plus size={17} aria-hidden="true" /> Pridať vlastnú položku</Button>
+              <Button variant="ghost" className="w-full" onClick={appendManualDraft}><Plus size={17} aria-hidden="true" /> Pridať vlastnú položku</Button>
             </section>
 
             {formError && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">{formError}</p>}

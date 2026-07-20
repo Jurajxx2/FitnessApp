@@ -57,9 +57,37 @@ Deno.test('analysisPrompt includes Slovak description without changing the respo
   assert(prompt.includes('skrytý olej, maslo alebo cukor'))
 })
 
-Deno.test('Gemini 3.5 config uses the current responseFormat JSON Schema envelope', () => {
+Deno.test('Gemini config uses the live-compatible legacy generateContent envelope', () => {
   const config = geminiGenerationConfig()
-  assertEquals(config.responseFormat.text.mimeType, 'application/json')
-  assertEquals(config.responseFormat.text.schema.type, 'object')
-  assertEquals(config.responseFormat.text.schema.properties.items.items.type, 'object')
+  assertEquals(config, {
+    responseMimeType: 'application/json',
+    responseSchema: {
+      type: 'OBJECT',
+      properties: {
+        items: {
+          type: 'ARRAY',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              name: { type: 'STRING' },
+              grams: { type: 'NUMBER' },
+              kcal: { type: 'NUMBER' },
+              protein_g: { type: 'NUMBER' },
+              carbs_g: { type: 'NUMBER' },
+              fat_g: { type: 'NUMBER' },
+              confidence: { type: 'NUMBER' },
+            },
+            required: ['name', 'grams', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'confidence'],
+          },
+        },
+      },
+      required: ['items'],
+    },
+    temperature: 0.1,
+  })
+
+  const serialized = JSON.stringify(config)
+  for (const unsupportedKeyword of ['minimum', 'maximum', 'maxItems', 'additionalProperties', 'responseFormat']) {
+    assert(!serialized.includes(unsupportedKeyword))
+  }
 })

@@ -4,23 +4,20 @@ export const MAX_DESCRIPTION_LENGTH = 500
 export const MAX_ANALYSIS_ITEMS = 25
 
 export const mealAnalysisResponseSchema = {
-  type: 'object',
-  additionalProperties: false,
+  type: 'OBJECT',
   properties: {
     items: {
-      type: 'array',
-      maxItems: MAX_ANALYSIS_ITEMS,
+      type: 'ARRAY',
       items: {
-        type: 'object',
-        additionalProperties: false,
+        type: 'OBJECT',
         properties: {
-          name: { type: 'string' },
-          grams: { type: 'number', minimum: 0.1, maximum: 5000 },
-          kcal: { type: 'number', minimum: 0, maximum: 10000 },
-          protein_g: { type: 'number', minimum: 0, maximum: 1000 },
-          carbs_g: { type: 'number', minimum: 0, maximum: 1000 },
-          fat_g: { type: 'number', minimum: 0, maximum: 1000 },
-          confidence: { type: 'number', minimum: 0, maximum: 1 },
+          name: { type: 'STRING' },
+          grams: { type: 'NUMBER' },
+          kcal: { type: 'NUMBER' },
+          protein_g: { type: 'NUMBER' },
+          carbs_g: { type: 'NUMBER' },
+          fat_g: { type: 'NUMBER' },
+          confidence: { type: 'NUMBER' },
         },
         required: ['name', 'grams', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'confidence'],
       },
@@ -29,15 +26,11 @@ export const mealAnalysisResponseSchema = {
   required: ['items'],
 } as const
 
-/** Current Gemini 3.5 generateContent structured-output envelope. */
+/** Live-compatible Gemini generateContent structured-output envelope. */
 export function geminiGenerationConfig() {
   return {
-    responseFormat: {
-      text: {
-        mimeType: 'application/json',
-        schema: mealAnalysisResponseSchema,
-      },
-    },
+    responseMimeType: 'application/json',
+    responseSchema: mealAnalysisResponseSchema,
     temperature: 0.1,
   }
 }
