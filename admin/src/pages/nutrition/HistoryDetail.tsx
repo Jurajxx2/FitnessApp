@@ -5,6 +5,8 @@ import { useMealHistory } from '../../nutrition/hooks'
 import { sumMacros } from '../../nutrition/calc'
 import { useDeleteMealLog } from '../../nutrition/mutations'
 import { Button, Card, ConfirmDialog, EmptyState, Shimmer, StatRow, useNotice } from '../../components/ui'
+import { MealPhoto } from '../../components/MealPhoto'
+import { MEAL_TYPE_OPTIONS } from '../../nutrition/constants'
 
 export default function HistoryDetail() {
   const { id = '' } = useParams()
@@ -32,8 +34,12 @@ export default function HistoryDetail() {
       </button>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Meal detail</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Detail jedla</p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{log.meal_name}</h1>
+          <p className="mt-2 text-sm text-text-secondary">
+            {MEAL_TYPE_OPTIONS.find(option => option.value === log.meal_type)?.label ?? 'Jedlo'} ·{' '}
+            {new Date(log.logged_at).toLocaleString('sk-SK', { dateStyle: 'medium', timeStyle: 'short' })}
+          </p>
         </div>
         <div className="flex gap-2">
           <Link to={`/nutrition/log?logId=${log.id}`} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-outline bg-surface px-4 text-sm font-semibold text-text-primary no-underline hover:bg-surface-elevated">
@@ -44,7 +50,7 @@ export default function HistoryDetail() {
           </Button>
         </div>
       </div>
-      {log.image_url && <img src={log.image_url} alt={log.meal_name} className="max-h-[520px] w-full rounded-2xl object-cover" />}
+      {log.image_url && <MealPhoto path={log.image_url} alt={log.meal_name} className="max-h-[520px] w-full rounded-2xl object-cover" />}
       <Card className="p-5">
         <StatRow
           items={[
@@ -62,7 +68,7 @@ export default function HistoryDetail() {
             <li key={food.id} className="flex justify-between gap-4 py-3 text-sm">
               <span className="text-text-primary">{food.name}</span>
               <span className="text-text-secondary">
-                {Math.round(food.amount)} {food.unit} · {Math.round(food.calories)} kcal
+                {food.amount == null ? '—' : Math.round(food.amount)} {food.unit ?? ''} · {Math.round(food.calories)} kcal
               </span>
             </li>
           ))}

@@ -197,6 +197,7 @@ export interface MealLog {
   meal_name: string
   notes: string | null
   image_url: string | null
+  meal_type: MealType | null
   logged_at: string
   created_at?: string
 }
@@ -452,8 +453,8 @@ export interface MealLogFoodRow {
   id: string
   meal_log_id: string
   name: string
-  amount: number
-  unit: string
+  amount: number | null
+  unit: string | null
   amount_grams: number | null
   calories: number
   protein_g: number
@@ -467,8 +468,47 @@ export interface MealLogRow {
   meal_name: string
   notes: string | null
   image_url: string | null
+  meal_type: MealType | null
   logged_at: string
   meal_log_foods: MealLogFoodRow[]
+}
+
+export interface FoodFavoriteRow {
+  id: string
+  user_id: string
+  name: string
+  amount: number | null
+  unit: string | null
+  amount_grams: number | null
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  created_at: string
+}
+
+export interface SavedMealItemRow {
+  id: string
+  saved_meal_id: string
+  name: string
+  amount: number | null
+  unit: string | null
+  amount_grams: number | null
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  sort_order: number
+  created_at: string
+}
+
+export interface SavedMealRow {
+  id: string
+  user_id: string
+  name: string
+  created_at: string
+  updated_at: string
+  saved_meal_items: SavedMealItemRow[]
 }
 
 export interface FoodRow {

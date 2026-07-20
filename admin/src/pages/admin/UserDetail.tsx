@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { Badge, Button, Card, ConfirmDialog, EditorPage, EmptyState, Shimmer, useNotice } from '../../components/ui'
 import { BodyFocusMap } from '../../components/BodyFocusMap'
+import { MealPhoto } from '../../components/MealPhoto'
 import { CheckInsSection } from './CheckInsSection'
 import { AthleteManagementPanel } from './AthleteManagementPanel'
 import type {
@@ -636,7 +637,7 @@ function MealLogsSection({
             <div key={log.id} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-3">
               <div className="flex items-start gap-3">
                 {log.image_url && (
-                  <img src={log.image_url} alt="" className="w-12 h-12 rounded-md object-cover flex-shrink-0" />
+                  <MealPhoto path={log.image_url} alt="" className="w-12 h-12 rounded-md object-cover flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3">

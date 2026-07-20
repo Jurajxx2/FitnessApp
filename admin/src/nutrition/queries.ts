@@ -1,5 +1,13 @@
 import { supabase } from '../lib/supabase'
-import type { MealPlanRow, RecipeRow, MealLogRow, FoodRow } from '../types/database'
+import type {
+  FoodFavoriteRow,
+  FoodRow,
+  MealLogRow,
+  MealPlanRow,
+  RecipeRow,
+  SavedMealRow,
+} from '../types/database'
+import { dedupeRecentEntries, type LogFoodDraft } from './logDraft'
 
 export const qk = {
   mealPlan: (userId: string) => ['mealPlan', userId] as const,
@@ -8,7 +16,11 @@ export const qk = {
   history: (userId: string) => ['mealHistory', userId] as const,
   dailyLogs: (userId: string, date: string) => ['dailyLogs', userId, date] as const,
   foodSearch: (q: string) => ['foodSearch', q] as const,
+  seedFoods: ['seedFoods'] as const,
   favorites: (userId: string) => ['favorites', userId] as const,
+  foodFavorites: (userId: string) => ['foodFavorites', userId] as const,
+  recentFoods: (userId: string) => ['recentFoods', userId] as const,
+  savedMeals: (userId: string) => ['savedMeals', userId] as const,
   macroTarget: (userId: string) => ['macroTarget', userId] as const,
 }
 
@@ -100,8 +112,57 @@ export async function searchFoods(query: string): Promise<FoodRow[]> {
   return (data as FoodRow[]) ?? []
 }
 
+export async function fetchSeedFoods(): Promise<FoodRow[]> {
+  const { data, error } = await supabase
+    .from('foods')
+    .select('*')
+    .eq('is_verified', true)
+    .order('name', { ascending: true })
+    .limit(20)
+  if (error) throw error
+  return (data as FoodRow[]) ?? []
+}
+
 export async function fetchFavoriteIds(userId: string): Promise<string[]> {
   const { data, error } = await supabase.from('recipe_favorites').select('recipe_id').eq('user_id', userId)
   if (error) throw error
   return (data as Array<{ recipe_id: string }>).map(r => r.recipe_id)
+}
+
+export async function fetchFoodFavorites(userId: string): Promise<FoodFavoriteRow[]> {
+  const { data, error } = await supabase
+    .from('food_favorites')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data as FoodFavoriteRow[]) ?? []
+}
+
+export async function fetchRecentFoods(userId: string, limit = 20): Promise<LogFoodDraft[]> {
+  // Bound the source logs as well as the returned deduplicated entries. This
+  // avoids loading an athlete's full history merely to populate quick-add.
+  const boundedLimit = Math.min(20, Math.max(1, Math.floor(limit)))
+  const { data, error } = await supabase
+    .from('meal_logs')
+    .select('*, meal_log_foods(*)')
+    .eq('user_id', userId)
+    .order('logged_at', { ascending: false })
+    .limit(30)
+  if (error) throw error
+  return dedupeRecentEntries((data as MealLogRow[]) ?? [], boundedLimit)
+}
+
+export async function fetchSavedMeals(userId: string): Promise<SavedMealRow[]> {
+  const { data, error } = await supabase
+    .from('saved_meals')
+    .select('*, saved_meal_items(*)')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+  if (error) throw error
+  const rows = (data as SavedMealRow[]) ?? []
+  return rows.map(row => ({
+    ...row,
+    saved_meal_items: row.saved_meal_items.slice().sort((a, b) => a.sort_order - b.sort_order),
+  }))
 }

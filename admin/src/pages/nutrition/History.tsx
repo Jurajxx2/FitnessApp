@@ -4,6 +4,8 @@ import { useMealHistory } from '../../nutrition/hooks'
 import { groupByDay } from '../../nutrition/history'
 import { sumMacros } from '../../nutrition/calc'
 import { Card, EmptyState, SectionHeader, Shimmer } from '../../components/ui'
+import { MealPhoto } from '../../components/MealPhoto'
+import { MEAL_TYPE_OPTIONS } from '../../nutrition/constants'
 
 export default function History() {
   const navigate = useNavigate()
@@ -37,7 +39,7 @@ export default function History() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Your log</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Záznamy stravy</p>
         <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">História jedál</h2>
         <p className="mt-2 text-sm text-text-secondary">Prehľad všetkého, čo si si zapísal.</p>
       </div>
@@ -52,7 +54,9 @@ export default function History() {
                 <Card key={log.id} className="group flex cursor-pointer items-center justify-between gap-4 p-5 transition-colors hover:bg-surface-highest" onClick={() => navigate(`/nutrition/history/${log.id}`)}>
                   <div className="flex min-w-0 items-center gap-3">
                     {log.image_url ? (
-                      <img src={log.image_url} alt="" className="h-12 w-12 flex-shrink-0 rounded-xl object-cover" />
+                      <span className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-surface">
+                        <MealPhoto path={log.image_url} alt="" className="h-full w-full object-cover" />
+                      </span>
                     ) : (
                       <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-surface text-text-secondary">
                         <UtensilsCrossed size={18} />
@@ -61,6 +65,7 @@ export default function History() {
                     <div className="min-w-0">
                       <p className="font-semibold text-text-primary">{log.meal_name}</p>
                       <p className="text-xs text-text-secondary">
+                        {MEAL_TYPE_OPTIONS.find(option => option.value === log.meal_type)?.label ?? 'Jedlo'} ·{' '}
                         {new Date(log.logged_at).toLocaleTimeString('sk-SK', {
                           hour: '2-digit',
                           minute: '2-digit'

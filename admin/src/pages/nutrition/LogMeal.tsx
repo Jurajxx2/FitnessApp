@@ -1,122 +1,79 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, ImagePlus, Plus, Search, Sparkles, X } from 'lucide-react'
+import { AlertTriangle, Camera, ChevronDown, ChevronUp, ImagePlus, Plus, Sparkles, Star, Trash2, X } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useActiveMealPlan, useFoodSearch, useMealHistory, useRecipe } from '../../nutrition/hooks'
-import { useLogMeal, useUpdateMealLog, type LogFoodInput } from '../../nutrition/mutations'
-import { scaleFood, sumMacros, type Macros } from '../../nutrition/calc'
-import { validateMealPhoto } from '../../lib/storage'
+import {
+  useActiveMealPlan,
+  useFoodFavorites,
+  useMealHistory,
+  useRecentFoods,
+  useRecipe,
+  useSavedMeals,
+  useSeedFoods,
+} from '../../nutrition/hooks'
+import {
+  useDeleteFoodFavorite,
+  useDeleteMealTemplate,
+  useLogMeal,
+  useSaveFoodFavorite,
+  useSaveMealTemplate,
+  useUpdateMealLog,
+} from '../../nutrition/mutations'
+import {
+  draftFromFood,
+  emptyIngredient,
+  localDateTimeToIso,
+  isUntouchedEmptyIngredient,
+  mealDraftTotals,
+  mealFoodsToDrafts,
+  persistedFood,
+  recipeIngredientsToDrafts,
+  rescaleDraftAmount,
+  snapshotToDraft,
+  updateDraftMacro,
+  validateMealDraft,
+  type LogFoodDraft,
+} from '../../nutrition/logDraft'
+import { scaleFood, type Macros } from '../../nutrition/calc'
+import { MEAL_TYPE_OPTIONS } from '../../nutrition/constants'
 import { analyzeMealPhoto, mergeAnalysis } from '../../nutrition/photoAnalysis'
-import type { FoodRow, MealRow, RecipeRow } from '../../types/database'
+import { prepareMealPhoto } from '../../nutrition/imagePreparation'
+import { signedMealPhotoUrl, validateMealPhoto } from '../../lib/storage'
+import type { FoodFavoriteRow, FoodRow, MealType, RecipeRow } from '../../types/database'
 import { Button, Card, EmptyState, Input, Shimmer, useNotice } from '../../components/ui'
 
 type MacroField = keyof Macros
 
-export type LogFoodDraft = LogFoodInput & {
-  key: string
-  baseAmount: number
-  baseUnit: string
-  baseMacros: Macros
+function localDatePart(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
-let draftSequence = 0
-
-function nextDraftKey() {
-  draftSequence += 1
-  return `ingredient-${draftSequence}`
+function localTimePart(date: Date) {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-export function draftFromFood(input: LogFoodInput): LogFoodDraft {
-  return {
-    ...input,
-    key: nextDraftKey(),
-    baseAmount: input.amount > 0 ? input.amount : 1,
-    baseUnit: input.unit,
-    baseMacros: {
-      calories: input.calories,
-      protein_g: input.protein_g,
-      carbs_g: input.carbs_g,
-      fat_g: input.fat_g,
-    },
-  }
+function defaultMealType(date = new Date()): MealType {
+  const hour = date.getHours()
+  if (hour < 10) return 'breakfast'
+  if (hour < 15) return 'lunch'
+  if (hour < 18) return 'snack'
+  return 'dinner'
 }
 
-export function emptyIngredient(): LogFoodDraft {
-  return draftFromFood({ name: '', amount: 100, unit: 'g', calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
+function favoriteForDraft(favorites: FoodFavoriteRow[], draft: LogFoodDraft) {
+  const name = draft.name.trim().toLocaleLowerCase('sk-SK')
+  return favorites.find(favorite => favorite.name.trim().toLocaleLowerCase('sk-SK') === name) ?? null
 }
 
-export function recipeIngredientsToDrafts(recipe: RecipeRow): LogFoodDraft[] {
-  const ingredients = (recipe.recipe_ingredients ?? []).slice().sort((a, b) => a.sort_order - b.sort_order)
-  if (ingredients.length === 0) {
-    return [draftFromFood({
-      name: recipe.name,
-      amount: 1,
-      unit: 'porcia',
-      calories: recipe.calories,
-      protein_g: recipe.protein_g,
-      carbs_g: recipe.carbs_g,
-      fat_g: recipe.fat_g,
-    })]
-  }
-  return ingredients.map(ingredient => draftFromFood({
-    name: ingredient.name,
-    amount: ingredient.quantity ?? 1,
-    unit: ingredient.unit?.trim() || 'ks',
-    calories: ingredient.calories,
-    protein_g: ingredient.protein_g,
-    carbs_g: ingredient.carbs_g,
-    fat_g: ingredient.fat_g,
-  }))
-}
-
-export function mealFoodsToDrafts(meal: MealRow): LogFoodDraft[] {
-  return meal.meal_foods.map(food => draftFromFood({
-    name: food.name,
-    amount: food.amount_grams,
-    unit: 'g',
-    calories: food.calories,
-    protein_g: food.protein_g,
-    carbs_g: food.carbs_g,
-    fat_g: food.fat_g,
-  }))
-}
-
-export function rescaleDraftAmount(draft: LogFoodDraft, amount: number): LogFoodDraft {
-  if (draft.unit !== draft.baseUnit || draft.baseAmount <= 0) return { ...draft, amount }
-  const factor = amount / draft.baseAmount
-  return {
-    ...draft,
-    amount,
-    calories: draft.baseMacros.calories * factor,
-    protein_g: draft.baseMacros.protein_g * factor,
-    carbs_g: draft.baseMacros.carbs_g * factor,
-    fat_g: draft.baseMacros.fat_g * factor,
-  }
-}
-
-function updateDraftMacro(draft: LogFoodDraft, field: MacroField, value: number): LogFoodDraft {
-  const factor = draft.unit === draft.baseUnit && draft.baseAmount > 0
-    ? draft.amount / draft.baseAmount
-    : 1
-  return {
-    ...draft,
-    [field]: value,
-    baseMacros: {
-      ...draft.baseMacros,
-      [field]: factor > 0 ? value / factor : value,
-    },
-  }
-}
-
-function persistedFood(draft: LogFoodDraft): LogFoodInput {
-  return {
-    name: draft.name.trim(),
-    amount: draft.amount,
-    unit: draft.unit.trim() || 'g',
-    calories: draft.calories,
-    protein_g: draft.protein_g,
-    carbs_g: draft.carbs_g,
-    fat_g: draft.fat_g,
-  }
+function QuickAddButton({ label, detail, onClick }: { label: string; detail: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-surface-highest">
+      <span className="min-w-0 truncate text-sm font-semibold text-text-primary">{label}</span>
+      <span className="flex-shrink-0 text-xs text-text-secondary">{detail}</span>
+    </button>
+  )
 }
 
 export default function LogMeal() {
@@ -126,63 +83,87 @@ export default function LogMeal() {
   const mealId = searchParams.get('mealId') ?? ''
   const logId = searchParams.get('logId') ?? ''
   const isEdit = Boolean(logId)
+  const now = useRef(new Date()).current
   const recipeQuery = useRecipe(recipeId)
   const mealPlanQuery = useActiveMealPlan(Boolean(mealId) && !recipeId)
   const historyQuery = useMealHistory()
+  const favoritesQuery = useFoodFavorites()
+  const recentsQuery = useRecentFoods()
+  const savedMealsQuery = useSavedMeals()
+  const seedFoodsQuery = useSeedFoods()
   const { notify } = useNotice()
   const [mealName, setMealName] = useState('')
+  const [mealType, setMealType] = useState<MealType>(defaultMealType(now))
+  const [logDate, setLogDate] = useState(localDatePart(now))
+  const [logTime, setLogTime] = useState(localTimePart(now))
   const [notes, setNotes] = useState('')
-  const [query, setQuery] = useState('')
   const [items, setItems] = useState<LogFoodDraft[]>(() => [emptyIngredient()])
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set())
+  const [recipeServings, setRecipeServings] = useState(1)
+  const [savedMealName, setSavedMealName] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false)
   const [photoError, setPhotoError] = useState('')
+  const [processingPhoto, setProcessingPhoto] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
+  const [aiDescription, setAiDescription] = useState('')
+  const [formError, setFormError] = useState('')
   const photoInput = useRef<HTMLInputElement>(null)
   const prefillApplied = useRef(false)
-  const { data: results, isFetching } = useFoodSearch(query)
   const logMeal = useLogMeal()
   const updateMeal = useUpdateMealLog()
+  const saveFavorite = useSaveFoodFavorite()
+  const deleteFavorite = useDeleteFoodFavorite()
+  const saveMealTemplate = useSaveMealTemplate()
+  const deleteMealTemplate = useDeleteMealTemplate()
   const existingLog = isEdit ? (historyQuery.data ?? []).find(entry => entry.id === logId) ?? null : null
+  const favorites = favoritesQuery.data ?? []
+
+  function replaceItems(next: LogFoodDraft[]) {
+    const safe = next.length ? next : [emptyIngredient()]
+    setItems(safe)
+    setExpandedKeys(new Set(safe.filter(item => !item.name.trim() || (item.confidence ?? 1) < 0.7).map(item => item.key)))
+  }
+
+  function addDraft(draft: LogFoodDraft) {
+    setItems(current => current.length === 1 && !current[0].name.trim() ? [draft] : [...current, draft])
+    setExpandedKeys(current => new Set(current).add(draft.key))
+  }
 
   useEffect(() => {
     if (prefillApplied.current) return
-
     if (isEdit) {
       if (!existingLog) return
+      const loggedAt = new Date(existingLog.logged_at)
       setMealName(existingLog.meal_name)
+      setMealType(existingLog.meal_type ?? defaultMealType(loggedAt))
+      setLogDate(localDatePart(loggedAt))
+      setLogTime(localTimePart(loggedAt))
       setNotes(existingLog.notes ?? '')
-      setItems(existingLog.meal_log_foods.map(food => draftFromFood({
-        name: food.name,
-        amount: food.amount ?? food.amount_grams ?? 1,
-        unit: food.unit ?? 'g',
-        calories: food.calories,
-        protein_g: food.protein_g,
-        carbs_g: food.carbs_g,
-        fat_g: food.fat_g,
-      })))
-      if (existingLog.image_url) setPhotoPreview(existingLog.image_url)
+      replaceItems(existingLog.meal_log_foods.map(food => snapshotToDraft(food, 'manual')))
+      if (existingLog.image_url) {
+        void signedMealPhotoUrl(existingLog.image_url).then(url => setPhotoPreview(url))
+      }
       prefillApplied.current = true
       return
     }
-
     if (recipeId && recipeQuery.data) {
       setMealName(recipeQuery.data.name)
-      setItems(recipeIngredientsToDrafts(recipeQuery.data))
+      replaceItems(recipeIngredientsToDrafts(recipeQuery.data, recipeServings))
       prefillApplied.current = true
       return
     }
-
     if (mealId && mealPlanQuery.data) {
       const meal = mealPlanQuery.data.meals.find(candidate => candidate.id === mealId)
       if (meal) {
         setMealName(meal.name)
-        setItems(mealFoodsToDrafts(meal))
+        if (meal.time_of_day) setLogTime(meal.time_of_day.slice(0, 5))
+        replaceItems(mealFoodsToDrafts(meal))
       }
       prefillApplied.current = true
     }
-  }, [existingLog, isEdit, mealId, mealPlanQuery.data, recipeId, recipeQuery.data])
+  }, [existingLog, isEdit, mealId, mealPlanQuery.data, recipeId, recipeQuery.data, recipeServings])
 
   useEffect(() => {
     if (!photoFile) {
@@ -194,12 +175,6 @@ export default function LogMeal() {
     return () => URL.revokeObjectURL(preview)
   }, [isEdit, photoFile, removeExistingPhoto])
 
-  function addFood(food: FoodRow) {
-    const scaled = scaleFood(food, food.serving_size)
-    setItems(current => [...current, draftFromFood(scaled)])
-    setQuery('')
-  }
-
   function updateItem(index: number, update: (draft: LogFoodDraft) => LogFoodDraft) {
     setItems(current => current.map((item, itemIndex) => itemIndex === index ? update(item) : item))
   }
@@ -208,25 +183,33 @@ export default function LogMeal() {
     setItems(current => current.length === 1 ? [emptyIngredient()] : current.filter((_, itemIndex) => itemIndex !== index))
   }
 
-  function selectPhoto(file: File) {
+  async function selectPhoto(file: File) {
     const validationError = validateMealPhoto(file)
     if (validationError) {
       setPhotoError(validationError)
       return
     }
-    setPhotoError('')
-    setRemoveExistingPhoto(false)
-    setPhotoFile(file)
+    setProcessingPhoto(true)
+    try {
+      const prepared = await prepareMealPhoto(file)
+      setPhotoError('')
+      setRemoveExistingPhoto(false)
+      setPhotoFile(prepared)
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : 'Fotografiu sa nepodarilo pripraviť.')
+    } finally {
+      setProcessingPhoto(false)
+    }
   }
 
   async function analyzePhoto() {
     if (!photoFile) return
     setAnalyzing(true)
     try {
-      const analysis = await analyzeMealPhoto(photoFile)
+      const analysis = await analyzeMealPhoto(photoFile, aiDescription)
       setItems(current => mergeAnalysis(current, analysis))
-      if (!mealName.trim()) setMealName(analysis.mealName)
-      notify('Ingrediencie boli doplnené z fotografie. Skontroluj porcie.', 'success')
+      if (!mealName.trim()) setMealName('Jedlo z fotografie')
+      notify('Odhad bol doplnený. Pred uložením skontroluj všetky položky.', 'success')
     } catch (error) {
       notify(error instanceof Error ? error.message : 'Analýza zlyhala.', 'error')
     } finally {
@@ -234,42 +217,93 @@ export default function LogMeal() {
     }
   }
 
-  async function save() {
-    const foods = items.filter(item => item.name.trim()).map(persistedFood)
-    if (!mealName.trim() || foods.length === 0) return
+  async function toggleFavorite(draft: LogFoodDraft) {
+    if (!draft.name.trim()) return
+    const existing = favoriteForDraft(favorites, draft)
+    try {
+      if (existing) await deleteFavorite.mutateAsync(existing.id)
+      else await saveFavorite.mutateAsync(persistedFood(draft))
+      notify(existing ? 'Položka bola odstránená z obľúbených.' : 'Položka bola pridaná medzi obľúbené.')
+    } catch {
+      notify('Obľúbenú položku sa nepodarilo upraviť.', 'error')
+    }
+  }
 
+  async function saveCurrentMealTemplate() {
+    const candidateItems = items.filter(item => !isUntouchedEmptyIngredient(item))
+    if (candidateItems.some(item => !item.name.trim())) {
+      notify('Doplň názov každej rozpracovanej položky.', 'error')
+      return
+    }
+    const foods = candidateItems.map(persistedFood)
+    if (!savedMealName.trim() || foods.length === 0) return
+    try {
+      await saveMealTemplate.mutateAsync({ name: savedMealName.trim(), foods })
+      setSavedMealName('')
+      notify('Jedlo bolo uložené medzi vlastné jedlá.')
+    } catch {
+      notify('Vlastné jedlo sa nepodarilo uložiť.', 'error')
+    }
+  }
+
+  async function deleteSavedMeal(id: string) {
+    try {
+      await deleteMealTemplate.mutateAsync(id)
+      notify('Vlastné jedlo bolo vymazané.')
+    } catch {
+      notify('Vlastné jedlo sa nepodarilo vymazať.', 'error')
+    }
+  }
+
+  async function save() {
+    const candidateItems = items.filter(item => !isUntouchedEmptyIngredient(item))
+    if (candidateItems.some(item => !item.name.trim())) {
+      setFormError('Doplň názov každej rozpracovanej položky alebo ju odstráň.')
+      return
+    }
+    const foods = candidateItems.map(persistedFood)
+    const loggedAt = localDateTimeToIso(logDate, logTime)
+    const validation = validateMealDraft({
+      mealName,
+      mealType,
+      loggedAt: loggedAt ?? '',
+      notes,
+      entries: candidateItems,
+    })
+    if (!loggedAt || !validation.valid || foods.length === 0) {
+      setFormError('Skontroluj názov, typ, dátum, čas a všetky výživové hodnoty.')
+      return
+    }
+    setFormError('')
     try {
       if (isEdit) {
         const result = await updateMeal.mutateAsync({
           logId,
           mealName: mealName.trim(),
+          mealType,
+          loggedAt,
           foods,
           notes: notes.trim() || undefined,
           photoFile,
           removePhoto: removeExistingPhoto,
           existingImageUrl: existingLog?.image_url ?? null,
         })
-        if (result.photoError) notify('Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.', 'error')
-        else notify('Zmeny boli uložené.', 'success')
+        notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Zmeny boli uložené.', result.photoError ? 'error' : 'success')
         navigate(`/nutrition/history/${logId}`)
         return
       }
-
       const result = await logMeal.mutateAsync({
-        mealName: mealName.trim(),
-        foods,
-        notes: notes.trim() || undefined,
-        photoFile,
+        mealName: mealName.trim(), mealType, loggedAt, foods,
+        notes: notes.trim() || undefined, photoFile,
       })
-      if (result.photoError) notify('Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.', 'error')
-      else notify('Jedlo bolo uložené.', 'success')
+      notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Jedlo bolo uložené.', result.photoError ? 'error' : 'success')
       navigate('/nutrition')
     } catch {
-      // Mutation state renders the actionable error without clearing the form.
+      setFormError('Jedlo sa nepodarilo uložiť. Skontroluj pripojenie a skús to znova.')
     }
   }
 
-  const totals = sumMacros(items.filter(item => item.name.trim()))
+  const totals = mealDraftTotals(items.filter(item => item.name.trim()))
   const hasIngredient = items.some(item => item.name.trim())
   const isPrefilling = (isEdit && historyQuery.isLoading) || (recipeId && recipeQuery.isLoading) || (mealId && mealPlanQuery.isLoading)
 
@@ -278,135 +312,108 @@ export default function LogMeal() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-28 sm:pb-8">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Nutrition log</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Záznam stravy</p>
         <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{isEdit ? 'Upraviť jedlo' : 'Zapísať jedlo'}</h1>
-        <p className="mt-2 text-sm text-text-secondary">Uprav ingrediencie, porcie a výživové hodnoty podľa toho, čo si skutočne zjedol.</p>
+        <p className="mt-2 text-sm text-text-secondary">Všetky spôsoby pridania vytvárajú jeden kontrolovateľný návrh. Nič sa neuloží bez potvrdenia.</p>
       </div>
 
       {isPrefilling ? <Shimmer className="h-40 w-full" /> : (
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.72fr)]">
-          <div className="flex flex-col gap-5">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)]">
+          <div className="flex min-w-0 flex-col gap-5">
             <Card className="flex flex-col gap-5 p-5 sm:p-6">
               <Input id="mealName" label="Názov jedla" placeholder="napr. Obed" value={mealName} onChange={event => setMealName(event.target.value)} />
-
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                  Typ jedla
+                  <select value={mealType} onChange={event => setMealType(event.target.value as MealType)} className="h-10 rounded-xl border border-outline bg-surface px-3 text-sm normal-case tracking-normal text-text-primary outline-none focus:border-accent">
+                    {MEAL_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+                <Input label="Dátum" type="date" value={logDate} onChange={event => setLogDate(event.target.value)} />
+                <Input label="Čas" type="time" value={logTime} onChange={event => setLogTime(event.target.value)} />
+              </div>
+              {recipeId && recipeQuery.data && (
+                <Input label="Počet zjedených porcií" type="number" inputMode="decimal" min={0.1} step={0.1} value={recipeServings} onChange={event => {
+                  const servings = Number(event.target.value)
+                  setRecipeServings(servings)
+                  replaceItems(recipeIngredientsToDrafts(recipeQuery.data as RecipeRow, servings))
+                }} />
+              )}
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <label htmlFor="mealNotes" className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Poznámka</label>
                   <span className="text-[11px] text-text-secondary">voliteľné</span>
                 </div>
-                <textarea id="mealNotes" value={notes} onChange={event => setNotes(event.target.value)} placeholder="Ako jedlo chutilo, úpravy porcie…" className="min-h-24 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />
+                <textarea id="mealNotes" value={notes} onChange={event => setNotes(event.target.value)} placeholder="Ako jedlo chutilo, úpravy porcie…" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />
               </div>
+            </Card>
 
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Fotografia jedla</p>
-                    <p className="mt-1 text-xs text-text-secondary">JPG, PNG alebo WebP · max. 10 MB</p>
-                  </div>
-                  {photoPreview && <button type="button" onClick={() => {
-                    setPhotoFile(null)
-                    if (isEdit) setRemoveExistingPhoto(true)
-                    setPhotoPreview(null)
-                  }} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error" aria-label="Odstrániť fotografiu"><X size={16} /></button>}
-                </div>
-                <button type="button" onClick={() => photoInput.current?.click()} className="flex min-h-28 w-full cursor-pointer items-center justify-center gap-3 overflow-hidden rounded-2xl border border-dashed border-outline bg-surface text-sm font-semibold text-text-secondary hover:border-accent hover:text-text-primary">
-                  {photoPreview ? <img src={photoPreview} alt="Náhľad jedla" className="h-48 w-full object-cover" /> : <><ImagePlus size={24} /><span>Pridať fotografiu</span></>}
-                </button>
-                <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) selectPhoto(file); event.target.value = '' }} />
-                {photoFile && (
-                  <Button variant="secondary" className="mt-3 w-full" loading={analyzing} onClick={analyzePhoto}>
-                    <Sparkles size={16} aria-hidden="true" /> Analyzovať fotografiu (AI)
-                  </Button>
-                )}
-                {photoError && <p role="alert" className="mt-2 text-xs text-error">{photoError}</p>}
+            <Card className="flex flex-col gap-4 p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div><h2 className="font-bold text-text-primary">Fotografia a AI odhad</h2><p className="mt-1 text-xs text-text-secondary">AI iba predvyplní návrh. Výsledok môže byť nepresný.</p></div>
+                {photoPreview && <button type="button" onClick={() => { setPhotoFile(null); if (isEdit) setRemoveExistingPhoto(true); setPhotoPreview(null) }} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error" aria-label="Odstrániť fotografiu"><X size={16} /></button>}
               </div>
+              <button type="button" onClick={() => photoInput.current?.click()} className="flex min-h-28 w-full items-center justify-center gap-3 overflow-hidden rounded-2xl border border-dashed border-outline bg-surface text-sm font-semibold text-text-secondary hover:border-accent hover:text-text-primary">
+                {photoPreview ? <img src={photoPreview} alt="Náhľad jedla" className="h-48 w-full object-cover" /> : <><ImagePlus size={24} /><span>{processingPhoto ? 'Pripravujem fotografiu…' : 'Pridať fotografiu'}</span></>}
+              </button>
+              <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void selectPhoto(file); event.target.value = '' }} />
+              {photoFile && <textarea value={aiDescription} onChange={event => setAiDescription(event.target.value)} maxLength={500} placeholder="Voliteľný opis, napr. smažené, cca 200 g ryže" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />}
+              {photoFile && <Button variant="secondary" className="w-full" loading={analyzing} onClick={analyzePhoto}><Sparkles size={16} aria-hidden="true" /> Analyzovať fotografiu</Button>}
+              {photoFile && <p className="text-xs leading-5 text-text-secondary">Použitím analýzy odošleš pripravenú fotografiu a opis službe Google Gemini. Skontroluj každý odhad pred uložením.</p>}
+              {photoError && <p role="alert" className="text-xs text-error">{photoError}</p>}
+            </Card>
 
-              <div>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">Spolu</p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {[
-                    ['Kcal', totals.calories, ''],
-                    ['Bielk.', totals.protein_g, 'g'],
-                    ['Sach.', totals.carbs_g, 'g'],
-                    ['Tuky', totals.fat_g, 'g'],
-                  ].map(([label, value, unit]) => (
-                    <div key={String(label)} className="rounded-xl bg-surface-highest p-3 text-center">
-                      <p className="text-lg font-extrabold text-text-primary">{Math.round(Number(value))}{unit}</p>
-                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">{label}</p>
-                    </div>
-                  ))}
-                </div>
+            <Card className="p-4 sm:p-5">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {([['Kcal', totals.calories, ''], ['Bielk.', totals.protein_g, 'g'], ['Sach.', totals.carbs_g, 'g'], ['Tuky', totals.fat_g, 'g']] as const).map(([label, value, unit]) => (
+                  <div key={label} className="rounded-xl bg-surface-highest p-3 text-center"><p className="text-lg font-extrabold text-text-primary">{Math.round(value)}{unit}</p><p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">{label}</p></div>
+                ))}
               </div>
             </Card>
 
             <section className="flex flex-col gap-3">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <h2 className="font-bold text-text-primary">Ingrediencie</h2>
-                  <p className="mt-1 text-xs text-text-secondary">Každá položka má vlastnú porciu aj makrá.</p>
-                </div>
-                <span className="text-xs text-text-secondary">{items.filter(item => item.name.trim()).length} položiek</span>
-              </div>
-
-              {items.map((item, index) => (
-                <Card key={item.key} className="p-4 sm:p-5">
-                  <div className="mb-4 flex items-center justify-between">
-                    <p className="text-xs font-bold uppercase tracking-wider text-text-secondary">Ingrediencia {index + 1}</p>
-                    <button type="button" aria-label={`Odstrániť ingredienciu ${index + 1}`} onClick={() => removeItem(index)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error"><X size={16} /></button>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <Input label="Názov" value={item.name} onChange={event => updateItem(index, draft => ({ ...draft, name: event.target.value }))} placeholder="napr. Ryža" />
+              <div className="flex items-end justify-between gap-3"><div><h2 className="font-bold text-text-primary">Položky jedla</h2><p className="mt-1 text-xs text-text-secondary">Rozbaľ položku a uprav gramy alebo makrá.</p></div><span className="text-xs text-text-secondary">{items.filter(item => item.name.trim()).length} položiek</span></div>
+              {items.map((item, index) => {
+                const expanded = expandedKeys.has(item.key) || !item.name.trim()
+                const lowConfidence = item.source === 'ai' && (item.confidence ?? 1) < 0.7
+                const favorite = favoriteForDraft(favorites, item)
+                return (
+                  <Card key={item.key} className={`p-4 sm:p-5 ${lowConfidence ? 'border-warning/40 bg-warning/5' : ''}`}>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => setExpandedKeys(current => { const next = new Set(current); if (next.has(item.key)) next.delete(item.key); else next.add(item.key); return next })} className="flex min-h-10 min-w-0 flex-1 items-center gap-3 text-left">
+                        {expanded ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+                        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-text-primary">{item.name.trim() || `Nová položka ${index + 1}`}</span><span className="block text-xs text-text-secondary">{item.amount == null ? '' : `${Math.round(item.amount * 10) / 10} ${item.unit ?? ''} · `}{Math.round(item.calories)} kcal</span></span>
+                        {lowConfidence && <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-warning"><AlertTriangle size={12} /> nízka istota</span>}
+                      </button>
+                      <button type="button" aria-label={favorite ? `Odstrániť ${item.name} z obľúbených` : `Pridať ${item.name || 'položku'} medzi obľúbené`} onClick={() => void toggleFavorite(item)} className={`rounded-lg p-2 hover:bg-surface-highest ${favorite ? 'text-warning' : 'text-text-secondary'}`}><Star size={17} fill={favorite ? 'currentColor' : 'none'} /></button>
+                      <button type="button" aria-label={`Odstrániť položku ${index + 1}`} onClick={() => removeItem(index)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error"><X size={16} /></button>
                     </div>
-                    <Input label="Množstvo" type="number" min={0} step="any" value={item.amount} onChange={event => updateItem(index, draft => rescaleDraftAmount(draft, Number(event.target.value)))} />
-                    <Input label="Jednotka" value={item.unit} onChange={event => updateItem(index, draft => ({ ...draft, unit: event.target.value }))} placeholder="g, ml, ks…" />
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {([
-                      ['calories', 'Kcal'],
-                      ['protein_g', 'Bielkoviny'],
-                      ['carbs_g', 'Sacharidy'],
-                      ['fat_g', 'Tuky'],
-                    ] as const).map(([field, label]) => (
-                      <Input key={field} label={label} type="number" min={0} step="any" value={item[field]} onChange={event => updateItem(index, draft => updateDraftMacro(draft, field, Number(event.target.value)))} />
-                    ))}
-                  </div>
-                </Card>
-              ))}
-
-              <Button variant="ghost" className="w-full" onClick={() => setItems(current => [...current, emptyIngredient()])}>
-                <Plus size={17} aria-hidden="true" /> Pridať vlastnú ingredienciu
-              </Button>
+                    {expanded && <div className="mt-4">
+                      {lowConfidence && <p className="mb-3 text-xs leading-5 text-warning">Táto položka je len neistý AI odhad, napríklad skrytý olej alebo cukor. Skontroluj ju alebo odstráň.</p>}
+                      <div className="grid gap-3 sm:grid-cols-2"><div className="sm:col-span-2"><Input label="Názov" value={item.name} onChange={event => updateItem(index, draft => ({ ...draft, name: event.target.value }))} placeholder="napr. Ryža" /></div><Input label="Množstvo (voliteľné)" type="number" inputMode="decimal" min={0} step="any" value={item.amount ?? ''} onChange={event => updateItem(index, draft => rescaleDraftAmount(draft, event.target.value === '' ? null : Number(event.target.value)))} /><Input label="Jednotka" value={item.unit ?? ''} disabled={item.amount == null} onChange={event => updateItem(index, draft => ({ ...draft, unit: event.target.value }))} placeholder="g, ml, ks…" /></div>
+                      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{([['calories', 'Kcal'], ['protein_g', 'Bielkoviny'], ['carbs_g', 'Sacharidy'], ['fat_g', 'Tuky']] as const).map(([field, label]) => <Input key={field} label={label} type="number" inputMode="decimal" min={0} step="any" value={item[field]} onChange={event => updateItem(index, draft => updateDraftMacro(draft, field as MacroField, Number(event.target.value)))} />)}</div>
+                    </div>}
+                  </Card>
+                )
+              })}
+              <Button variant="ghost" className="w-full" onClick={() => addDraft(emptyIngredient())}><Plus size={17} aria-hidden="true" /> Pridať vlastnú položku</Button>
             </section>
 
-            {(logMeal.isError || updateMeal.isError) && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">Jedlo sa nepodarilo uložiť. Skontroluj pripojenie a skús to znova.</p>}
-            <Button className="w-full sm:self-end sm:w-auto" loading={logMeal.isPending || updateMeal.isPending} disabled={!mealName.trim() || !hasIngredient} onClick={save}>
-              <Camera size={17} aria-hidden="true" /> {isEdit ? 'Uložiť zmeny' : 'Uložiť jedlo'}
-            </Button>
+            {formError && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">{formError}</p>}
+            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-outline bg-background/95 p-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+              <Button className="w-full sm:ml-auto sm:w-auto" loading={logMeal.isPending || updateMeal.isPending} disabled={!mealName.trim() || !hasIngredient || processingPhoto || analyzing} onClick={save}><Camera size={17} aria-hidden="true" /> {isEdit ? 'Uložiť zmeny' : 'Uložiť jedlo'}</Button>
+            </div>
           </div>
 
-          <Card className="flex flex-col gap-4 p-5 sm:p-6 lg:sticky lg:top-0">
-            <div>
-              <h2 className="font-bold text-text-primary">Vyhľadať potravinu</h2>
-              <p className="mt-1 text-xs text-text-secondary">Výsledok pridáme ako ďalšiu upraviteľnú ingredienciu.</p>
-            </div>
-            <div className="relative">
-              <Search size={17} className="pointer-events-none absolute left-3.5 top-[2.05rem] text-text-secondary" />
-              <Input id="foodSearch" label="Hľadať" placeholder="napr. kuracie prsia" value={query} onChange={event => setQuery(event.target.value)} className="pl-10" />
-            </div>
-            {isFetching && <Shimmer className="h-12 w-full" />}
-            {(results ?? []).length > 0 && (
-              <div className="flex max-h-[430px] flex-col divide-y divide-outline-subtle overflow-y-auto rounded-xl border border-outline-subtle">
-                {results!.map(food => (
-                  <button key={food.id} type="button" onClick={() => addFood(food)} className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left hover:bg-surface-highest">
-                    <span className="text-sm text-text-primary">{food.name}{food.brand ? ` · ${food.brand}` : ''}</span>
-                    <span className="flex-shrink-0 text-xs text-text-secondary">{Math.round(food.calories)} kcal / {Math.round(food.serving_size)}{food.serving_unit}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+          <Card className="flex min-w-0 flex-col gap-5 p-5 sm:p-6 lg:sticky lg:top-0">
+            <div><h2 className="font-bold text-text-primary">Rýchle pridanie</h2><p className="mt-1 text-xs text-text-secondary">Výber iba doplní návrh. Uloženie zostáva samostatný krok.</p></div>
+            {favorites.length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Obľúbené</p><div className="divide-y divide-outline-subtle">{favorites.slice(0, 8).map(favorite => <QuickAddButton key={favorite.id} label={favorite.name} detail={`${Math.round(favorite.calories)} kcal`} onClick={() => addDraft(snapshotToDraft(favorite, 'favorite'))} />)}</div></div>}
+            {(recentsQuery.data ?? []).length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Naposledy použité</p><div className="divide-y divide-outline-subtle">{recentsQuery.data!.slice(0, 8).map(recent => <QuickAddButton key={recent.key} label={recent.name} detail={`${Math.round(recent.calories)} kcal`} onClick={() => addDraft(draftFromFood(persistedFood(recent), 'recent'))} />)}</div></div>}
+            {(savedMealsQuery.data ?? []).length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Vlastné jedlá</p><div className="divide-y divide-outline-subtle">{savedMealsQuery.data!.map(saved => <div key={saved.id} className="flex items-center gap-1"><QuickAddButton label={saved.name} detail={`${saved.saved_meal_items.length} položiek`} onClick={() => { setMealName(saved.name); replaceItems(saved.saved_meal_items.map(item => snapshotToDraft(item, 'saved'))) }} /><button type="button" aria-label={`Vymazať uložené jedlo ${saved.name}`} onClick={() => void deleteSavedMeal(saved.id)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error"><Trash2 size={15} /></button></div>)}</div></div>}
+            {(seedFoodsQuery.data ?? []).length > 0 && <details><summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-text-secondary">Základné návrhy</summary><div className="mt-2 divide-y divide-outline-subtle">{seedFoodsQuery.data!.slice(0, 10).map((food: FoodRow) => <QuickAddButton key={food.id} label={food.name} detail={`${Math.round(food.calories)} kcal`} onClick={() => addDraft(draftFromFood(scaleFood(food, food.serving_size), 'manual'))} />)}</div></details>}
+            <div className="border-t border-outline-subtle pt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Uložiť aktuálnu kombináciu</p><div className="flex gap-2"><Input aria-label="Názov vlastného jedla" placeholder="napr. Moje raňajky" value={savedMealName} onChange={event => setSavedMealName(event.target.value)} /><Button variant="secondary" disabled={!savedMealName.trim() || !hasIngredient} loading={saveMealTemplate.isPending} onClick={saveCurrentMealTemplate}>Uložiť</Button></div></div>
           </Card>
         </div>
       )}

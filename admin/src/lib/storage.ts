@@ -71,24 +71,43 @@ export async function uploadMealPhoto(userId: string, mealLogId: string, file: F
 
   if (error) throw error
 
-  return supabase.storage.from(MEAL_PHOTOS_BUCKET).getPublicUrl(path).data.publicUrl
+  return path
 }
 
-export function getMealPhotoPath(imageUrl: string): string | null {
+/** Accepts both the current private object path and legacy public/signed URLs. */
+export function getMealPhotoPath(pathOrUrl: string): string | null {
+  const raw = pathOrUrl.trim()
+  if (!raw) return null
+  if (!/^https?:\/\//i.test(raw)) return raw.replace(/^\/+/, '') || null
+
   try {
-    const marker = `/storage/v1/object/public/${MEAL_PHOTOS_BUCKET}/`
-    const pathname = new URL(imageUrl).pathname
-    const markerIndex = pathname.indexOf(marker)
-    if (markerIndex === -1) return null
-    const encodedPath = pathname.slice(markerIndex + marker.length)
+    const pathname = new URL(raw).pathname
+    const markers = [
+      `/storage/v1/object/public/${MEAL_PHOTOS_BUCKET}/`,
+      `/storage/v1/object/sign/${MEAL_PHOTOS_BUCKET}/`,
+      `/storage/v1/object/authenticated/${MEAL_PHOTOS_BUCKET}/`,
+    ]
+    const marker = markers.find(candidate => pathname.includes(candidate))
+    if (!marker) return null
+    const encodedPath = pathname.slice(pathname.indexOf(marker) + marker.length)
     return encodedPath ? decodeURIComponent(encodedPath) : null
   } catch {
     return null
   }
 }
 
-export async function removeMealPhoto(imageUrl: string): Promise<void> {
-  const path = getMealPhotoPath(imageUrl)
+export async function signedMealPhotoUrl(pathOrUrl: string, expiresIn = 3600): Promise<string | null> {
+  const path = getMealPhotoPath(pathOrUrl)
+  if (!path) return null
+  const { data, error } = await supabase.storage
+    .from(MEAL_PHOTOS_BUCKET)
+    .createSignedUrl(path, expiresIn)
+  if (error) return null
+  return data.signedUrl
+}
+
+export async function removeMealPhoto(pathOrUrl: string): Promise<void> {
+  const path = getMealPhotoPath(pathOrUrl)
   if (!path) return
 
   const { error } = await supabase.storage.from(MEAL_PHOTOS_BUCKET).remove([path])

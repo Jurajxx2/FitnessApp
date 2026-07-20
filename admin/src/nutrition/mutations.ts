@@ -1,14 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import type { MealType } from '../types/database'
 import { qk } from './queries'
-import { todayIso } from './date'
+import { amountGrams, type LogFoodInput } from './logDraft'
 import { removeMealPhoto, uploadMealPhoto } from '../lib/storage'
 
-export type LogFoodInput = {
-  name: string; amount: number; unit: string
-  calories: number; protein_g: number; carbs_g: number; fat_g: number
-}
+export type { LogFoodInput } from './logDraft'
 
 export type LogMealResult = {
   id: string
@@ -16,69 +14,109 @@ export type LogMealResult = {
   photoError: string | null
 }
 
+type CreateMealInput = {
+  mealName: string
+  mealType: MealType
+  loggedAt: string
+  foods: LogFoodInput[]
+  notes?: string
+  photoFile?: File | null
+}
+
+type UpdateMealInput = {
+  logId: string
+  mealName: string
+  mealType: MealType | null
+  loggedAt: string
+  foods: LogFoodInput[]
+  notes?: string
+  photoFile?: File | null
+  removePhoto?: boolean
+  existingImageUrl: string | null
+}
+
+function rpcItems(foods: LogFoodInput[]) {
+  return foods.map(food => ({
+    name: food.name,
+    amount: food.amount,
+    unit: food.unit,
+    amount_grams: amountGrams(food.amount, food.unit),
+    calories: food.calories,
+    protein_g: food.protein_g,
+    carbs_g: food.carbs_g,
+    fat_g: food.fat_g,
+  }))
+}
+
+async function saveMealLogAtomic(input: {
+  logId: string | null
+  mealName: string
+  mealType: MealType | null
+  loggedAt: string
+  foods: LogFoodInput[]
+  notes?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('save_meal_log', {
+    p_meal_log_id: input.logId,
+    p_meal_name: input.mealName,
+    p_meal_type: input.mealType,
+    p_logged_at: input.loggedAt,
+    p_notes: input.notes ?? null,
+    p_items: rpcItems(input.foods),
+  })
+  if (error) throw error
+  if (typeof data !== 'string' || !data) throw new Error('Meal log RPC returned no id')
+  return data
+}
+
+async function attachPhoto(
+  userId: string,
+  logId: string,
+  photoFile: File,
+): Promise<{ result: LogMealResult; imagePath: string | null }> {
+  try {
+    const imagePath = await uploadMealPhoto(userId, logId, photoFile, { upsert: true })
+    const { error } = await supabase
+      .from('meal_logs')
+      .update({ image_url: imagePath })
+      .eq('id', logId)
+      .eq('user_id', userId)
+    if (error) throw error
+    return { result: { id: logId, photoAttached: true, photoError: null }, imagePath }
+  } catch (error) {
+    return {
+      result: {
+        id: logId,
+        photoAttached: false,
+        photoError: error instanceof Error ? error.message : 'Photo upload failed',
+      },
+      imagePath: null,
+    }
+  }
+}
+
+function invalidateMealQueries(queryClient: ReturnType<typeof useQueryClient>, userId: string) {
+  queryClient.invalidateQueries({ queryKey: qk.history(userId) })
+  queryClient.invalidateQueries({ queryKey: ['dailyLogs', userId] })
+  queryClient.invalidateQueries({ queryKey: qk.recentFoods(userId) })
+}
+
 export function useLogMeal() {
   const { user } = useAuth()
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ mealName, foods, notes, photoFile }: { mealName: string; foods: LogFoodInput[]; notes?: string; photoFile?: File | null }): Promise<LogMealResult> => {
-      const { data: log, error: logErr } = await supabase
-        .from('meal_logs')
-        .insert({ user_id: user!.id, meal_name: mealName, logged_at: new Date().toISOString(), notes: notes ?? null, image_url: null })
-        .select()
-        .single()
-      if (logErr) throw logErr
-      const rows = foods.map(f => ({
-        meal_log_id: (log as { id: string }).id,
-        name: f.name,
-        amount: f.amount,
-        unit: f.unit,
-        amount_grams: f.amount, // keep populated: legacy NOT NULL column
-        calories: f.calories,
-        protein_g: f.protein_g,
-        carbs_g: f.carbs_g,
-        fat_g: f.fat_g,
-      }))
-      const { error: foodErr } = await supabase.from('meal_log_foods').insert(rows)
-      if (foodErr) {
-        // No client-side transaction: compensate by deleting the just-created
-        // parent row so a failed foods insert doesn't leave an orphaned,
-        // phantom 0-kcal meal (or duplicates on retry). Do not swallow foodErr.
-        await supabase.from('meal_logs').delete().eq('id', (log as { id: string }).id)
-        throw foodErr
-      }
-
-      const logId = (log as { id: string }).id
-      if (!photoFile) return { id: logId, photoAttached: false, photoError: null }
-
-      try {
-        const imageUrl = await uploadMealPhoto(user!.id, logId, photoFile)
-        const { error: photoUpdateError } = await supabase
-          .from('meal_logs')
-          .update({ image_url: imageUrl })
-          .eq('id', logId)
-          .eq('user_id', user!.id)
-        if (photoUpdateError) throw photoUpdateError
-        return { id: logId, photoAttached: true, photoError: null }
-      } catch (error) {
-        // The meal itself is already safely logged. Return a partial-success
-        // result so the UI does not encourage a retry that would duplicate it.
-        return {
-          id: logId,
-          photoAttached: false,
-          photoError: error instanceof Error ? error.message : 'Photo upload failed',
-        }
-      }
+    mutationFn: async (input: CreateMealInput): Promise<LogMealResult> => {
+      const logId = await saveMealLogAtomic({ ...input, logId: null })
+      if (!input.photoFile) return { id: logId, photoAttached: false, photoError: null }
+      return (await attachPhoto(user!.id, logId, input.photoFile)).result
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.dailyLogs(user!.id, todayIso()) })
-      qc.invalidateQueries({ queryKey: qk.history(user!.id) })
-    },
+    onSuccess: () => invalidateMealQueries(queryClient, user!.id),
   })
 }
 
 export function useDeleteMealLog() {
   const { user } = useAuth()
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ logId, imageUrl }: { logId: string; imageUrl: string | null }) => {
       const { error } = await supabase
@@ -89,115 +127,56 @@ export function useDeleteMealLog() {
       if (error) throw error
 
       if (imageUrl) {
-        // The database row is already gone; do not make a stale object prevent
-        // the athlete from deleting their meal log.
         try {
           await removeMealPhoto(imageUrl)
         } catch {
-          // Best-effort cleanup only.
+          // The database row is already gone. Storage cleanup is best effort.
         }
       }
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.history(user!.id) })
-      qc.invalidateQueries({ queryKey: ['dailyLogs', user!.id] })
-    },
+    onSuccess: () => invalidateMealQueries(queryClient, user!.id),
   })
 }
 
 export function useUpdateMealLog() {
   const { user } = useAuth()
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ logId, mealName, foods, notes, photoFile, removePhoto, existingImageUrl }: {
-      logId: string
-      mealName: string
-      foods: LogFoodInput[]
-      notes?: string
-      photoFile?: File | null
-      removePhoto?: boolean
-      existingImageUrl: string | null
-    }): Promise<LogMealResult> => {
-      const { error: updateError } = await supabase
-        .from('meal_logs')
-        .update({ meal_name: mealName, notes: notes ?? null })
-        .eq('id', logId)
-        .eq('user_id', user!.id)
-      if (updateError) throw updateError
+    mutationFn: async (input: UpdateMealInput): Promise<LogMealResult> => {
+      const logId = await saveMealLogAtomic({ ...input, logId: input.logId })
 
-      const { error: deleteError } = await supabase
-        .from('meal_log_foods')
-        .delete()
-        .eq('meal_log_id', logId)
-      if (deleteError) throw deleteError
-
-      const rows = foods.map(food => ({
-        meal_log_id: logId,
-        name: food.name,
-        amount: food.amount,
-        unit: food.unit,
-        amount_grams: food.amount,
-        calories: food.calories,
-        protein_g: food.protein_g,
-        carbs_g: food.carbs_g,
-        fat_g: food.fat_g,
-      }))
-      const { error: insertError } = await supabase.from('meal_log_foods').insert(rows)
-      if (insertError) throw insertError
-
-      if (removePhoto && existingImageUrl && !photoFile) {
-        const { error: clearPhotoError } = await supabase
+      if (input.removePhoto && input.existingImageUrl && !input.photoFile) {
+        const { error } = await supabase
           .from('meal_logs')
           .update({ image_url: null })
           .eq('id', logId)
           .eq('user_id', user!.id)
-        if (clearPhotoError) throw clearPhotoError
+        if (error) throw error
         try {
-          await removeMealPhoto(existingImageUrl)
+          await removeMealPhoto(input.existingImageUrl)
         } catch {
-          // The database reference is already cleared; stale storage can be
-          // removed later without breaking the athlete's meal history.
+          // The durable reference is cleared; stale object cleanup can retry later.
         }
       }
 
-      if (!photoFile) return { id: logId, photoAttached: false, photoError: null }
-
-      try {
-        // Keep the current image until the replacement has uploaded and its
-        // database reference is durable, so a failed upload is non-destructive.
-        const imageUrl = await uploadMealPhoto(user!.id, logId, photoFile, { upsert: true })
-        const { error: photoUpdateError } = await supabase
-          .from('meal_logs')
-          .update({ image_url: imageUrl })
-          .eq('id', logId)
-          .eq('user_id', user!.id)
-        if (photoUpdateError) throw photoUpdateError
-        if (existingImageUrl && existingImageUrl !== imageUrl) {
-          try {
-            await removeMealPhoto(existingImageUrl)
-          } catch {
-            // The new image is already connected to the meal log.
-          }
-        }
-        return { id: logId, photoAttached: true, photoError: null }
-      } catch (error) {
-        return {
-          id: logId,
-          photoAttached: false,
-          photoError: error instanceof Error ? error.message : 'Photo upload failed',
+      if (!input.photoFile) return { id: logId, photoAttached: false, photoError: null }
+      const attached = await attachPhoto(user!.id, logId, input.photoFile)
+      if (attached.result.photoAttached && input.existingImageUrl && input.existingImageUrl !== attached.imagePath) {
+        try {
+          await removeMealPhoto(input.existingImageUrl)
+        } catch {
+          // The replacement is already durable.
         }
       }
+      return attached.result
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.history(user!.id) })
-      qc.invalidateQueries({ queryKey: ['dailyLogs', user!.id] })
-    },
+    onSuccess: () => invalidateMealQueries(queryClient, user!.id),
   })
 }
 
 export function useToggleFavorite() {
   const { user } = useAuth()
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ recipeId, isFavorite }: { recipeId: string; isFavorite: boolean }) => {
       if (isFavorite) {
@@ -210,6 +189,72 @@ export function useToggleFavorite() {
         if (error) throw error
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.favorites(user!.id) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.favorites(user!.id) }),
+  })
+}
+
+export function useSaveFoodFavorite() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (food: LogFoodInput) => {
+      const { error } = await supabase.from('food_favorites').upsert({
+        user_id: user!.id,
+        name: food.name.trim(),
+        amount: food.amount,
+        unit: food.amount == null ? null : (food.unit?.trim() || 'g'),
+        amount_grams: amountGrams(food.amount, food.unit),
+        calories: food.calories,
+        protein_g: food.protein_g,
+        carbs_g: food.carbs_g,
+        fat_g: food.fat_g,
+      }, { onConflict: 'user_id,name' })
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.foodFavorites(user!.id) }),
+  })
+}
+
+export function useDeleteFoodFavorite() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (favoriteId: string) => {
+      const { error } = await supabase.from('food_favorites').delete()
+        .eq('id', favoriteId).eq('user_id', user!.id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.foodFavorites(user!.id) }),
+  })
+}
+
+export function useSaveMealTemplate() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ name, foods }: { name: string; foods: LogFoodInput[] }) => {
+      if (!name.trim() || foods.length === 0) throw new Error('Saved meal requires a name and at least one item')
+      const { data, error } = await supabase.rpc('save_saved_meal', {
+        p_name: name.trim(),
+        p_items: rpcItems(foods),
+      })
+      if (error) throw error
+      if (typeof data !== 'string' || !data) throw new Error('Saved meal RPC returned no id')
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.savedMeals(user!.id) }),
+  })
+}
+
+export function useDeleteMealTemplate() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (savedMealId: string) => {
+      const { error } = await supabase.from('saved_meals').delete()
+        .eq('id', savedMealId).eq('user_id', user!.id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.savedMeals(user!.id) }),
   })
 }

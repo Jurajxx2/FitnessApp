@@ -4,6 +4,8 @@ import { calcMacroTargets, sumMacros, type Macros } from './calc'
 import {
   qk, fetchActiveMealPlan, fetchRecipes, fetchRecipe, fetchMealHistory,
   fetchDailyLogs, searchFoods, fetchFavoriteIds, fetchActiveNutritionTarget,
+  fetchFoodFavorites, fetchRecentFoods, fetchSavedMeals,
+  fetchSeedFoods,
 } from './queries'
 
 export function useActiveMealPlan(enabled = true) {
@@ -50,11 +52,41 @@ export function useFoodSearch(query: string) {
     enabled: query.trim().length >= 2,
   })
 }
+export function useSeedFoods() {
+  return useQuery({ queryKey: qk.seedFoods, queryFn: fetchSeedFoods })
+}
 export function useFavorites() {
   const { user } = useAuth()
   return useQuery({
     queryKey: qk.favorites(user?.id ?? ''),
     queryFn: async () => new Set(await fetchFavoriteIds(user!.id)),
+    enabled: !!user,
+  })
+}
+
+export function useFoodFavorites() {
+  const { user } = useAuth()
+  return useQuery({
+    queryKey: qk.foodFavorites(user?.id ?? ''),
+    queryFn: () => fetchFoodFavorites(user!.id),
+    enabled: !!user,
+  })
+}
+
+export function useRecentFoods() {
+  const { user } = useAuth()
+  return useQuery({
+    queryKey: qk.recentFoods(user?.id ?? ''),
+    queryFn: () => fetchRecentFoods(user!.id),
+    enabled: !!user,
+  })
+}
+
+export function useSavedMeals() {
+  const { user } = useAuth()
+  return useQuery({
+    queryKey: qk.savedMeals(user?.id ?? ''),
+    queryFn: () => fetchSavedMeals(user!.id),
     enabled: !!user,
   })
 }
