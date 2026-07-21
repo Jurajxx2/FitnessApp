@@ -151,6 +151,7 @@ fun ExerciseLogCard(
                     SetRow(
                         setDraft = setDraft,
                         logType = exercise.logType,
+                        targetDurationSeconds = exercise.targetDurationSeconds,
                         previousSetLog = previousSets.getOrNull(setIndex),
                         isNextSet = setIndex == firstIncompleteIndex,
                         onWeightChange = { weight ->

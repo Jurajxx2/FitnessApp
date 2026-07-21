@@ -127,7 +127,7 @@ function WorkoutDetail({ workoutId }: { workoutId: string }) {
         <h2 className="mt-2 text-3xl font-bold tracking-tight text-text-primary">{workout.name}</h2>
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-text-secondary">
           <span className="inline-flex items-center gap-2">
-            <Clock3 size={16} /> {formatDuration(workout.duration_minutes)}
+            <Clock3 size={16} /> ~{formatDuration(workout.duration_minutes)}
           </span>
           <span className="inline-flex items-center gap-2">
             <Dumbbell size={16} /> {workout.workout_exercises.length} cvikov
@@ -161,7 +161,9 @@ function WorkoutDetail({ workoutId }: { workoutId: string }) {
               </div>
               <div className="col-span-2 flex gap-4 text-xs text-text-secondary sm:col-span-1 sm:text-right">
                 <span>
-                  {exercise.sets} × {exercise.reps}
+                  {exercise.sets} × {exercise.log_type === 'time'
+                    ? `${exercise.target_duration_seconds ?? 0}s`
+                    : exercise.reps}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <TimerReset size={14} /> {exercise.rest_seconds}s

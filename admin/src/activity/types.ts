@@ -22,6 +22,8 @@ export interface WorkoutExerciseRow {
   muscle_group: string | null
   sets: number
   reps: string
+  log_type: 'weight_reps' | 'bodyweight_reps' | 'time' | null
+  target_duration_seconds: number | null
   rest_seconds: number
   tips: string | null
   sort_order: number
@@ -35,6 +37,7 @@ export interface WorkoutRow {
   name: string
   day_of_week: number | null
   duration_minutes: number
+  duration_mode?: 'auto' | 'manual'
   notes: string | null
   is_active: boolean
   source: 'coach' | 'user'
@@ -42,18 +45,24 @@ export interface WorkoutRow {
 }
 
 export interface UserWorkoutExerciseDraft {
+  client_id: string
   exercise_id: string
   name: string
   muscle_group: string | null
   sets: number
   reps: string
+  log_type: 'weight_reps' | 'bodyweight_reps' | 'time'
+  target_duration_seconds: number | null
   rest_seconds: number
+  image_url: string | null
+  image_url_2: string | null
 }
 
 export interface UserWorkoutDraft {
   name: string
   notes: string | null
   duration_minutes: number
+  duration_mode: 'auto' | 'manual'
   exercises: UserWorkoutExerciseDraft[]
 }
 

@@ -52,6 +52,7 @@ export interface Workout {
   name: string
   day_of_week: number | null
   duration_minutes: number
+  duration_mode?: 'auto' | 'manual'
   notes: string | null
   is_active: boolean
   created_at: string
@@ -69,6 +70,8 @@ export interface WorkoutExercise {
   muscle_group: string | null
   sets: number
   reps: string
+  log_type?: 'weight_reps' | 'bodyweight_reps' | 'time' | null
+  target_duration_seconds?: number | null
   rest_seconds: number
   tips: string | null
   sort_order: number

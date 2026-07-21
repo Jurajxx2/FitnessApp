@@ -2,6 +2,7 @@ package com.coachfoska.app.data.remote.dto
 
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
@@ -50,6 +51,8 @@ data class WorkoutExerciseDto(
     @SerialName("video_url") val videoUrl: String? = null,
     @SerialName("sort_order") val sortOrder: Int = 0,
     @SerialName("exercise_id") val exerciseId: String? = null,
+    @SerialName("log_type") val logType: String? = null,
+    @SerialName("target_duration_seconds") val targetDurationSeconds: Int? = null,
     @SerialName("substituted_from_exercise_id") val substitutedFromExerciseId: String? = null,
     @SerialName("substituted_from_name") val substitutedFromName: String? = null,
 ) {
@@ -57,6 +60,8 @@ data class WorkoutExerciseDto(
         id = id, workoutId = workoutId, name = name, muscleGroup = muscleGroup,
         sets = sets, reps = reps, restSeconds = restSeconds, tips = tips,
         videoUrl = videoUrl, sortOrder = sortOrder, exerciseId = exerciseId,
+        logType = logType?.toExerciseLogType(),
+        targetDurationSeconds = targetDurationSeconds,
         substitutedFromExerciseId = substitutedFromExerciseId,
         substitutedFromName = substitutedFromName,
     )
@@ -93,9 +98,18 @@ data class WorkoutExerciseInsertDto(
     val tips: String? = null,
     @SerialName("sort_order") val sortOrder: Int,
     @SerialName("exercise_id") val exerciseId: String? = null,
+    @SerialName("log_type") val logType: String? = null,
+    @SerialName("target_duration_seconds") val targetDurationSeconds: Int? = null,
     @SerialName("substituted_from_exercise_id") val substitutedFromExerciseId: String? = null,
     @SerialName("substituted_from_name") val substitutedFromName: String? = null,
 )
+
+private fun String.toExerciseLogType(): ExerciseLogType? = when (this) {
+    "weight_reps" -> ExerciseLogType.WEIGHT_REPS
+    "bodyweight_reps" -> ExerciseLogType.BODYWEIGHT_REPS
+    "time" -> ExerciseLogType.TIME
+    else -> null
+}
 
 @Serializable
 data class WorkoutLogDto(

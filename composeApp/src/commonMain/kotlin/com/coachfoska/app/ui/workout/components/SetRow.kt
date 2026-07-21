@@ -102,6 +102,7 @@ fun SetTableHeader(
 fun SetRow(
     setDraft: SetDraft,
     logType: ExerciseLogType,
+    targetDurationSeconds: Int? = null,
     previousSetLog: SetLog?,
     isNextSet: Boolean,
     onWeightChange: (Float?) -> Unit,
@@ -248,6 +249,7 @@ fun SetRow(
         if (logType == ExerciseLogType.TIME) {
             TimeTrackerCell(
                 elapsedSeconds = elapsedSeconds,
+                targetDurationSeconds = targetDurationSeconds,
                 isRunning = isTimerRunning,
                 enabled = !setDraft.completed,
                 onToggle = {
@@ -351,6 +353,7 @@ fun SetRow(
 @Composable
 private fun TimeTrackerCell(
     elapsedSeconds: Int,
+    targetDurationSeconds: Int?,
     isRunning: Boolean,
     enabled: Boolean,
     onToggle: () -> Unit,
@@ -373,10 +376,12 @@ private fun TimeTrackerCell(
             )
         }
         Text(
-            text = formatElapsedTime(elapsedSeconds),
+            text = targetDurationSeconds?.let { target ->
+                "${formatElapsedTime(elapsedSeconds)} / ${formatElapsedTime(target)}"
+            } ?: formatElapsedTime(elapsedSeconds),
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
             color = DsTheme.colors.textPrimary,
-            modifier = Modifier.width(64.dp),
+            modifier = Modifier.width(68.dp),
             textAlign = TextAlign.Center,
         )
     }

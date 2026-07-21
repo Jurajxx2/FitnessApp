@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.Exercise
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.WorkoutDraft
 import com.coachfoska.app.domain.model.WorkoutExerciseDraft
+import com.coachfoska.app.domain.model.inferExerciseLogType
 import com.coachfoska.app.domain.repository.ExerciseRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
@@ -26,6 +28,8 @@ data class EditorExercise(
     val sets: Int = 3,
     val reps: String = "10",
     val restSeconds: Int = 90,
+    val logType: ExerciseLogType = ExerciseLogType.WEIGHT_REPS,
+    val targetDurationSeconds: Int? = null,
     val substitutedFromExerciseId: String? = null,
     val substitutedFromName: String? = null,
 )
@@ -58,6 +62,7 @@ sealed interface WorkoutEditorIntent {
     data class MoveExercise(val index: Int, val delta: Int) : WorkoutEditorIntent
     data class UpdateSets(val index: Int, val sets: Int) : WorkoutEditorIntent
     data class UpdateReps(val index: Int, val reps: String) : WorkoutEditorIntent
+    data class UpdateDuration(val index: Int, val seconds: Int) : WorkoutEditorIntent
     data class UpdateRest(val index: Int, val seconds: Int) : WorkoutEditorIntent
     data object Save : WorkoutEditorIntent
     data object DismissError : WorkoutEditorIntent
@@ -90,6 +95,7 @@ class WorkoutEditorViewModel(
             is WorkoutEditorIntent.MoveExercise -> moveExercise(intent.index, intent.delta)
             is WorkoutEditorIntent.UpdateSets -> updateSets(intent.index, intent.sets)
             is WorkoutEditorIntent.UpdateReps -> updateReps(intent.index, intent.reps)
+            is WorkoutEditorIntent.UpdateDuration -> updateDuration(intent.index, intent.seconds)
             is WorkoutEditorIntent.UpdateRest -> updateRest(intent.index, intent.seconds)
             is WorkoutEditorIntent.Save -> save()
             is WorkoutEditorIntent.DismissError -> _state.update { it.copy(error = null) }
@@ -119,6 +125,8 @@ class WorkoutEditorViewModel(
                                         sets = ex.sets,
                                         reps = ex.reps,
                                         restSeconds = ex.restSeconds,
+                                        logType = ex.logType ?: inferExerciseLogType(ex.name, ex.muscleGroup, reps = ex.reps),
+                                        targetDurationSeconds = ex.targetDurationSeconds ?: inferLegacyDurationSeconds(ex.reps),
                                         substitutedFromExerciseId = ex.substitutedFromExerciseId,
                                         substitutedFromName = ex.substitutedFromName,
                                     )
@@ -139,6 +147,9 @@ class WorkoutEditorViewModel(
             name = exercise.name,
             // muscles is List<String>; category.name is fallback
             muscleGroup = exercise.muscles.firstOrNull() ?: exercise.category?.name,
+            logType = exercise.logType,
+            reps = if (exercise.logType == ExerciseLogType.TIME) "" else "10",
+            targetDurationSeconds = if (exercise.logType == ExerciseLogType.TIME) 30 else null,
         )
         _state.update { it.copy(exercises = it.exercises + editorExercise, exercisesError = false) }
     }
@@ -181,6 +192,15 @@ class WorkoutEditorViewModel(
         }
     }
 
+    private fun updateDuration(index: Int, seconds: Int) {
+        _state.update { s ->
+            val list = s.exercises.toMutableList()
+            if (index !in list.indices) return@update s
+            list[index] = list[index].copy(targetDurationSeconds = seconds.coerceIn(1, 3_600))
+            s.copy(exercises = list)
+        }
+    }
+
     private fun updateRest(index: Int, seconds: Int) {
         _state.update { s ->
             val list = s.exercises.toMutableList()
@@ -210,6 +230,8 @@ class WorkoutEditorViewModel(
                     sets = ex.sets,
                     reps = ex.reps,
                     restSeconds = ex.restSeconds,
+                    logType = ex.logType,
+                    targetDurationSeconds = ex.targetDurationSeconds,
                 )
             }
         )
@@ -250,5 +272,15 @@ class WorkoutEditorViewModel(
                 }
             )
         }
+    }
+}
+
+private fun inferLegacyDurationSeconds(reps: String): Int? {
+    val value = reps.trim().lowercase()
+    val amount = Regex("\\d+").find(value)?.value?.toIntOrNull() ?: return null
+    return when {
+        Regex("min|minute|minú").containsMatchIn(value) -> amount * 60
+        Regex("sec|second|sek").containsMatchIn(value) -> amount
+        else -> null
     }
 }

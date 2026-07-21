@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { exerciseHasData, findBlankNamedExerciseRows, describeInvalidExerciseRows } from './Workouts'
 
-const blank = { exercise_id: null, name: '', muscle_group: '', sets: 3, reps: '10', rest_seconds: 60, tips: '', sort_order: 0 }
+const blank = { client_id: 'draft-1', exercise_id: null, name: '', muscle_group: '', sets: 3, reps: '10', rest_seconds: 60, tips: '', sort_order: 0, image_url: null, image_url_2: null }
 
 describe('workout exercise-row validation', () => {
   it('treats a pristine default row as empty (safe to drop silently)', () => {

@@ -1,6 +1,7 @@
 package com.coachfoska.app.presentation.workout
 
 import com.coachfoska.app.domain.model.Exercise
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.SavedSetRef
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WorkoutExercise
@@ -515,6 +516,8 @@ class ActiveSessionViewModelTest {
                     tips = null,
                     sortOrder = 0,
                     exerciseId = "plank-1",
+                    logType = ExerciseLogType.TIME,
+                    targetDurationSeconds = 30,
                 ),
             ),
         )
@@ -531,6 +534,8 @@ class ActiveSessionViewModelTest {
         advanceUntilIdle()
 
         val set = vm.state.value.sessionDraft?.exercises?.single()?.sets?.first()
+        assertEquals(ExerciseLogType.TIME, vm.state.value.sessionDraft?.exercises?.single()?.logType)
+        assertEquals(30, vm.state.value.sessionDraft?.exercises?.single()?.targetDurationSeconds)
         assertEquals(45, set?.actualDurationSeconds)
         assertEquals(0, set?.actualRestSeconds)
         coVerify {

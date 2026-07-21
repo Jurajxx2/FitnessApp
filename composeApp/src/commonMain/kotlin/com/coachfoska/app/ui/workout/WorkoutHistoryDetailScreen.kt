@@ -50,6 +50,7 @@ import coachfoska.composeapp.generated.resources.workout_history_detail_title
 import coachfoska.composeapp.generated.resources.workout_history_log_not_found
 import coachfoska.composeapp.generated.resources.workout_history_rpe_header
 import coachfoska.composeapp.generated.resources.workout_history_reps_header
+import coachfoska.composeapp.generated.resources.workout_history_time_header
 import coachfoska.composeapp.generated.resources.workout_history_sets_format
 import coachfoska.composeapp.generated.resources.workout_history_weight_header
 import com.coachfoska.app.core.util.toDisplayDateTime
@@ -58,6 +59,7 @@ import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WorkoutFeedback
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.formatWeightKg
+import com.coachfoska.app.domain.model.formatDuration
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
@@ -237,8 +239,9 @@ private fun ExerciseLogDetailRow(
                 }
                 if (expanded && log.sets.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    SetTableHeader()
-                    log.sets.forEach { set -> SetTableRow(set) }
+                    val isTimed = log.isTimedExercise()
+                    SetTableHeader(isTimed)
+                    log.sets.forEach { set -> SetTableRow(set, isTimed) }
                 }
                 if (log.feedback.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
@@ -313,24 +316,36 @@ private fun FeedbackList(feedback: List<WorkoutFeedback>) {
 }
 
 @Composable
-private fun SetTableHeader() {
+private fun SetTableHeader(isTimed: Boolean) {
     Row {
         Text("#", modifier = Modifier.width(32.dp), style = MaterialTheme.typography.labelSmall)
-        Text(stringResource(Res.string.workout_history_reps_header), modifier = Modifier.width(64.dp), style = MaterialTheme.typography.labelSmall)
-        Text(stringResource(Res.string.workout_history_weight_header), modifier = Modifier.width(80.dp), style = MaterialTheme.typography.labelSmall)
-        Text(stringResource(Res.string.workout_history_rpe_header), modifier = Modifier.width(48.dp), style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(if (isTimed) Res.string.workout_history_time_header else Res.string.workout_history_reps_header), modifier = Modifier.width(64.dp), style = MaterialTheme.typography.labelSmall)
+        if (!isTimed) {
+            Text(stringResource(Res.string.workout_history_weight_header), modifier = Modifier.width(80.dp), style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(Res.string.workout_history_rpe_header), modifier = Modifier.width(48.dp), style = MaterialTheme.typography.labelSmall)
+        }
     }
 }
 
 @Composable
-private fun SetTableRow(set: SetLog) {
+private fun SetTableRow(set: SetLog, isTimed: Boolean) {
     Row {
         Text(set.sortOrder.toString(), modifier = Modifier.width(32.dp))
-        Text(set.actualReps?.toString() ?: "-", modifier = Modifier.width(64.dp))
-        Text(set.actualWeightKg?.let { "${formatWeightKg(it)} kg" } ?: "-", modifier = Modifier.width(80.dp))
-        Text(set.rpe?.toString() ?: "-", modifier = Modifier.width(48.dp))
+        Text(
+            if (isTimed) (set.actualDurationSeconds ?: set.actualRestSeconds)?.let(::formatDuration) ?: "-" else set.actualReps?.toString() ?: "-",
+            modifier = Modifier.width(64.dp),
+        )
+        if (!isTimed) {
+            Text(set.actualWeightKg?.let { "${formatWeightKg(it)} kg" } ?: "-", modifier = Modifier.width(80.dp))
+            Text(set.rpe?.toString() ?: "-", modifier = Modifier.width(48.dp))
+        }
     }
 }
+
+private fun ExerciseLog.isTimedExercise(): Boolean =
+    sets.isNotEmpty() &&
+        sets.all { it.actualReps == null && it.actualWeightKg == null } &&
+        sets.any { it.actualDurationSeconds != null || it.actualRestSeconds != null }
 
 @Preview
 @Composable

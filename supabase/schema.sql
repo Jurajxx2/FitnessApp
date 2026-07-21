@@ -112,6 +112,8 @@ CREATE TABLE workout_exercises (
     sets            INTEGER DEFAULT 3,
     reps            TEXT DEFAULT '10',
     rest_seconds    INTEGER DEFAULT 60,
+    log_type        TEXT CHECK (log_type IN ('weight_reps', 'bodyweight_reps', 'time')),
+    target_duration_seconds INTEGER,
     tips            TEXT,
     wger_exercise_id INTEGER,  -- Reference to WGER exercise API
     sort_order      INTEGER DEFAULT 0,
@@ -146,7 +148,7 @@ CREATE POLICY "Admins can manage workout exercises"
 CREATE TABLE workout_logs (
     id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id          UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    workout_id       UUID REFERENCES workouts(id),
+    workout_id       UUID REFERENCES workouts(id) ON DELETE SET NULL,
     workout_name     TEXT NOT NULL,
     duration_minutes INTEGER DEFAULT 0,
     notes            TEXT,

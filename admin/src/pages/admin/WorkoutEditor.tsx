@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Dumbbell, Users } from 'lucide-react'
+import { Dumbbell, Plus, Users } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AssignUsersDialog } from '../../components/AssignUsersDialog'
 import { ExerciseBrowserSlideOver } from '../../components/ExerciseBrowserSlideOver'
-import { ExerciseCombobox } from '../../components/ExerciseCombobox'
+import { SelectedExerciseCard } from '../../components/SelectedExerciseCard'
+import { WorkoutDurationControl } from '../../components/WorkoutDurationControl'
 import { Button, Card, EditorPage, EmptyState, FormSection, Input, Shimmer, useNotice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import { appendUserContext, getUserContextReturn } from '../../lib/adminUserContext'
 import type { Profile, Workout } from '../../types/database'
+import { estimateWorkoutDuration, inferWorkoutExerciseLogType, moveItem, type WorkoutDurationMode } from '../../workouts/builder'
 import { blankExercise, describeInvalidExerciseRows, findBlankNamedExerciseRows, type ExerciseDraft } from './Workouts'
 
 interface WorkoutFormState {
@@ -16,9 +18,11 @@ interface WorkoutFormState {
   notes: string
   is_active: boolean
   day_of_week: string
+  duration_mode: WorkoutDurationMode
+  duration_minutes: string
 }
 
-const blankForm = (): WorkoutFormState => ({ name: '', notes: '', is_active: true, day_of_week: '' })
+const blankForm = (): WorkoutFormState => ({ name: '', notes: '', is_active: true, day_of_week: '', duration_mode: 'auto', duration_minutes: '45' })
 
 function useProfiles() {
   return useQuery<Pick<Profile, 'id' | 'email' | 'full_name' | 'is_admin' | 'is_blocked'>[]>({
@@ -41,7 +45,7 @@ function useWorkoutEditorData(id: string | undefined) {
     queryFn: async () => {
       const [workoutResult, exerciseResult, assignmentResult] = await Promise.all([
         supabase.from('workouts').select('*').eq('id', id!).eq('source', 'coach').single(),
-        supabase.from('workout_exercises').select('*').eq('workout_id', id!).order('sort_order'),
+        supabase.from('workout_exercises').select('*, exercise:exercises!workout_exercises_exercise_id_fkey(id, image_url, image_url_2)').eq('workout_id', id!).order('sort_order'),
         supabase.from('user_workouts').select('user_id').eq('workout_id', id!),
       ])
       if (workoutResult.error) throw workoutResult.error
@@ -49,16 +53,24 @@ function useWorkoutEditorData(id: string | undefined) {
       if (assignmentResult.error) throw assignmentResult.error
       return {
         workout: workoutResult.data as Workout,
-        exercises: (exerciseResult.data ?? []).map(exercise => ({
-          exercise_id: exercise.exercise_id ?? null,
-          name: exercise.name,
-          muscle_group: exercise.muscle_group ?? '',
-          sets: exercise.sets,
-          reps: exercise.reps,
-          rest_seconds: exercise.rest_seconds,
-          tips: exercise.tips ?? '',
-          sort_order: exercise.sort_order,
-        })) as ExerciseDraft[],
+        exercises: (exerciseResult.data ?? []).map(exercise => {
+          const visual = exercise.exercise as { image_url: string | null; image_url_2: string | null } | null
+          return {
+            client_id: exercise.id,
+            exercise_id: exercise.exercise_id ?? null,
+            name: exercise.name,
+            muscle_group: exercise.muscle_group ?? '',
+            sets: exercise.sets,
+            reps: exercise.reps,
+            log_type: exercise.log_type ?? inferWorkoutExerciseLogType(exercise.name, exercise.reps),
+            target_duration_seconds: exercise.target_duration_seconds ?? null,
+            rest_seconds: exercise.rest_seconds,
+            tips: exercise.tips ?? '',
+            sort_order: exercise.sort_order,
+            image_url: visual?.image_url ?? null,
+            image_url_2: visual?.image_url_2 ?? null,
+          }
+        }) as ExerciseDraft[],
         assignedUserIds: (assignmentResult.data ?? []).map(row => row.user_id),
       }
     },
@@ -76,7 +88,7 @@ export default function WorkoutEditor() {
   const { data, isLoading, isError, error } = useWorkoutEditorData(id)
   const { data: profiles = [] } = useProfiles()
   const [form, setForm] = useState<WorkoutFormState>(blankForm())
-  const [exercises, setExercises] = useState<ExerciseDraft[]>([blankExercise()])
+  const [exercises, setExercises] = useState<ExerciseDraft[]>([])
   const [assignedUserIds, setAssignedUserIds] = useState<string[]>([])
   const [exerciseBrowserOpen, setExerciseBrowserOpen] = useState(false)
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
@@ -88,8 +100,10 @@ export default function WorkoutEditor() {
       notes: data.workout.notes ?? '',
       is_active: data.workout.is_active,
       day_of_week: data.workout.day_of_week == null ? '' : String(data.workout.day_of_week),
+      duration_mode: data.workout.duration_mode ?? 'auto',
+      duration_minutes: String(data.workout.duration_minutes || 45),
     })
-    setExercises(data.exercises.length > 0 ? data.exercises : [blankExercise()])
+    setExercises(data.exercises)
     setAssignedUserIds(data.assignedUserIds)
   }, [data])
 
@@ -103,13 +117,31 @@ export default function WorkoutEditor() {
       if (invalidRows.length) throw new Error(describeInvalidExerciseRows(invalidRows))
 
       const validExercises = exercises.filter(exercise => exercise.name.trim())
-      const { data: workoutId, error: saveError } = await supabase.rpc('admin_save_workout', {
+      if (!validExercises.length) throw new Error('Add at least one exercise before saving.')
+      const automaticDuration = estimateWorkoutDuration(validExercises)
+      const manualDuration = Number(form.duration_minutes)
+      const durationMinutes = form.duration_mode === 'auto' ? automaticDuration : manualDuration
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 360) throw new Error('Estimated duration must be between 5 and 360 minutes.')
+      const { data: workoutId, error: saveError } = await supabase.rpc('admin_save_workout_v3', {
         p_workout_id: id ?? null,
         p_name: form.name,
         p_day_of_week: form.day_of_week === '' ? null : Number(form.day_of_week),
         p_notes: form.notes,
         p_is_active: form.is_active,
-        p_exercises: validExercises.map((exercise, index) => ({ ...exercise, sort_order: index })),
+        p_duration_minutes: durationMinutes,
+        p_duration_mode: form.duration_mode,
+        p_exercises: validExercises.map((exercise, index) => ({
+          exercise_id: exercise.exercise_id,
+          name: exercise.name,
+          muscle_group: exercise.muscle_group,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          log_type: exercise.log_type,
+          target_duration_seconds: exercise.target_duration_seconds,
+          rest_seconds: exercise.rest_seconds,
+          tips: exercise.tips,
+          sort_order: index,
+        })),
         p_assigned_user_ids: assignedUserIds,
       })
       if (saveError) throw saveError
@@ -130,15 +162,17 @@ export default function WorkoutEditor() {
     setExercises(current => current.map((exercise, currentIndex) => currentIndex === index ? { ...exercise, [field]: value } : exercise))
   }
 
-  function updateExerciseName(index: number, name: string, muscleGroup: string, exerciseId: string) {
-    setExercises(current => current.map((exercise, currentIndex) => currentIndex === index
-      ? { ...exercise, name, exercise_id: exerciseId || null, ...(muscleGroup ? { muscle_group: muscleGroup } : {}) }
-      : exercise
-    ))
+  function moveExercise(fromIndex: number, toIndex: number) {
+    setExercises(current => moveItem(current, fromIndex, toIndex))
+  }
+
+  function dropExercise(fromClientId: string, toIndex: number) {
+    setExercises(current => moveItem(current, current.findIndex(exercise => exercise.client_id === fromClientId), toIndex))
   }
 
   const targetUser = profiles.find(profile => profile.id === initialUserId)
   const { to: returnTo, label: returnLabel } = getUserContextReturn(initialUserId, targetUser, '/admin/workouts', 'Back to workouts')
+  const summaryDuration = form.duration_mode === 'auto' ? estimateWorkoutDuration(exercises) : Number(form.duration_minutes)
 
   if (!isNew && isLoading) {
     return <EditorPage backTo={returnTo} backLabel={returnLabel} eyebrow="Workout plan" title="Loading plan…"><Shimmer className="h-96 w-full" /></EditorPage>
@@ -174,6 +208,7 @@ export default function WorkoutEditor() {
             <h2 className="mt-3 font-bold text-text-primary">Plan summary</h2>
             <div className="mt-4 divide-y divide-outline-subtle text-sm">
               <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Exercises</span><span className="font-semibold text-text-primary">{exercises.filter(exercise => exercise.name.trim()).length}</span></div>
+              <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Estimated time</span><span className="font-semibold text-text-primary">{summaryDuration > 0 ? `~${summaryDuration} min` : '—'}</span></div>
               <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Visibility</span><span className="font-semibold text-text-primary">{form.is_active ? 'Active' : 'Inactive'}</span></div>
             </div>
           </Card>
@@ -216,39 +251,56 @@ export default function WorkoutEditor() {
             <Input label="Notes" value={form.notes} onChange={event => setForm(current => ({ ...current, notes: event.target.value }))} placeholder="Optional instructions visible to the athlete" />
           </div>
         </div>
+        <div className="mt-4">
+          <WorkoutDurationControl
+            locale="en"
+            exercises={exercises}
+            mode={form.duration_mode}
+            manualMinutes={form.duration_minutes}
+            onModeChange={duration_mode => setForm(current => ({ ...current, duration_mode }))}
+            onManualMinutesChange={duration_minutes => setForm(current => ({ ...current, duration_minutes }))}
+          />
+        </div>
       </FormSection>
 
-      <FormSection title="Exercises" description="Build the plan in execution order. Empty rows are ignored; partially completed rows must be fixed before saving.">
+      <FormSection title="Exercises" description="Add exercises from the library, then drag them or use the arrow controls to set execution order.">
         <div className="space-y-4">
           {exercises.map((exercise, index) => (
-            <article key={index} className="rounded-2xl border border-outline-subtle bg-surface p-4">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-text-secondary">Exercise {index + 1}</p>
-                <button type="button" onClick={() => setExercises(current => current.filter((_, currentIndex) => currentIndex !== index))} className="min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-error hover:bg-error/10">Remove</button>
-              </div>
+            <SelectedExerciseCard
+              key={exercise.client_id}
+              clientId={exercise.client_id}
+              name={exercise.name}
+              subtitle={exercise.muscle_group}
+              imageUrl={exercise.image_url}
+              imageUrl2={exercise.image_url_2}
+              index={index}
+              total={exercises.length}
+              locale="en"
+              onMove={toIndex => moveExercise(index, toIndex)}
+              onDropExercise={dropExercise}
+              onRemove={() => setExercises(current => current.filter(item => item.client_id !== exercise.client_id))}
+            >
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">Exercise name</label>
-                  <div className="flex gap-2">
-                    <div className="min-w-0 flex-1">
-                      <ExerciseCombobox value={exercise.name} onChange={(name, muscleGroup, exerciseId) => updateExerciseName(index, name, muscleGroup, exerciseId)} />
-                    </div>
-                    <Button variant="ghost" className="px-3" onClick={() => setExerciseBrowserOpen(true)}>Browse</Button>
-                  </div>
-                </div>
+                <Input label="Exercise name" value={exercise.name} onChange={event => updateExercise(index, 'name', event.target.value)} placeholder="e.g. Bench Press" required />
                 <Input label="Muscle group" value={exercise.muscle_group ?? ''} onChange={event => updateExercise(index, 'muscle_group', event.target.value)} placeholder="e.g. Chest" />
               </div>
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Input label="Sets" type="number" min="0" value={String(exercise.sets)} onChange={event => updateExercise(index, 'sets', Number(event.target.value))} />
-                <Input label="Reps" value={exercise.reps} onChange={event => updateExercise(index, 'reps', event.target.value)} placeholder="10 or 8–12" />
+                {exercise.log_type === 'time'
+                  ? <Input label="Duration (sec)" type="number" min="1" value={String(exercise.target_duration_seconds ?? 30)} onChange={event => updateExercise(index, 'target_duration_seconds', Number(event.target.value))} />
+                  : <Input label="Reps" value={exercise.reps} onChange={event => updateExercise(index, 'reps', event.target.value)} placeholder="10 or 8–12" />}
                 <Input label="Rest (sec)" type="number" min="0" value={String(exercise.rest_seconds)} onChange={event => updateExercise(index, 'rest_seconds', Number(event.target.value))} />
               </div>
               <div className="mt-4">
                 <Input label="Coaching tips" value={exercise.tips ?? ''} onChange={event => updateExercise(index, 'tips', event.target.value)} placeholder="Optional technique cue" />
               </div>
-            </article>
+            </SelectedExerciseCard>
           ))}
-          <Button variant="ghost" onClick={() => setExercises(current => [...current, { ...blankExercise(), sort_order: current.length }])}>Add exercise</Button>
+          {!exercises.length && <p className="rounded-2xl border border-dashed border-outline p-6 text-sm text-text-secondary">No exercises selected yet.</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setExerciseBrowserOpen(true)}><Plus size={16} /> Browse exercise library</Button>
+            <Button variant="ghost" onClick={() => setExercises(current => [...current, { ...blankExercise(), sort_order: current.length }])}>Add custom exercise</Button>
+          </div>
         </div>
       </FormSection>
 
@@ -257,8 +309,18 @@ export default function WorkoutEditor() {
       <ExerciseBrowserSlideOver
         open={exerciseBrowserOpen}
         onClose={() => setExerciseBrowserOpen(false)}
-        addedNames={exercises.map(exercise => exercise.name)}
-        onAdd={(name, muscleGroup, exerciseId) => setExercises(current => [...current, { ...blankExercise(), exercise_id: exerciseId || null, name, muscle_group: muscleGroup, sort_order: current.length }])}
+        selectedIds={exercises.flatMap(exercise => exercise.exercise_id ? [exercise.exercise_id] : [])}
+        onAdd={exercise => setExercises(current => [...current, {
+          ...blankExercise(),
+          exercise_id: exercise.id,
+          name: exercise.name_en,
+          muscle_group: exercise.primary_muscles[0] ?? '',
+          sort_order: current.length,
+          image_url: exercise.image_url,
+          image_url_2: exercise.image_url_2,
+          log_type: inferWorkoutExerciseLogType(exercise.name_en),
+          target_duration_seconds: inferWorkoutExerciseLogType(exercise.name_en) === 'time' ? 30 : null,
+        }])}
       />
 
       <AssignUsersDialog

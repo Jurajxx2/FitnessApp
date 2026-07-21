@@ -390,6 +390,7 @@
     <string name="editor_day_label">Den (volitelné)</string>
     <string name="editor_sets">Série</string>
     <string name="editor_reps">Opakování</string>
+    <string name="editor_duration">Trvanie (s)</string>
     <string name="editor_rest">Pauza (s)</string>
     <string name="editor_save">Uložit trénink</string>
     <string name="editor_search_exercises">Hledat cviky…</string>
@@ -667,6 +668,7 @@
     <string name="workout_history_volume_format">%1$s kg celkový objem</string>
     <string name="workout_history_capture_video_cd">Nahrát video</string>
     <string name="workout_history_reps_header">Opak.</string>
+    <string name="workout_history_time_header">Čas</string>
     <string name="workout_history_weight_header">Váha</string>
     <string name="workout_history_rpe_header">RPE</string>
 

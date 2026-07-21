@@ -351,6 +351,8 @@ class WorkoutRepositoryImpl(
                 tips = ex.tips,
                 sortOrder = index,
                 exerciseId = ex.exerciseId,
+                logType = ex.logType?.toDatabaseValue(),
+                targetDurationSeconds = ex.targetDurationSeconds,
                 substitutedFromExerciseId = ex.substitutedFromExerciseId,
                 substitutedFromName = ex.substitutedFromName,
             )
@@ -377,6 +379,8 @@ class WorkoutRepositoryImpl(
                 tips = ex.tips,
                 sortOrder = index,
                 exerciseId = ex.exerciseId,
+                logType = ex.logType?.toDatabaseValue(),
+                targetDurationSeconds = ex.targetDurationSeconds,
                 substitutedFromExerciseId = ex.substitutedFromExerciseId,
                 substitutedFromName = ex.substitutedFromName,
             )
@@ -470,3 +474,9 @@ private fun SetLog.toInsertDto(exerciseLogId: String): SetLogInsertDto = SetLogI
     completed = completed,
     actualDurationSeconds = actualDurationSeconds,
 )
+
+private fun ExerciseLogType.toDatabaseValue(): String = when (this) {
+    ExerciseLogType.WEIGHT_REPS -> "weight_reps"
+    ExerciseLogType.BODYWEIGHT_REPS -> "bodyweight_reps"
+    ExerciseLogType.TIME -> "time"
+}

@@ -59,12 +59,14 @@ import coachfoska.composeapp.generated.resources.editor_name_error
 import coachfoska.composeapp.generated.resources.editor_name_label
 import coachfoska.composeapp.generated.resources.editor_remove_cd
 import coachfoska.composeapp.generated.resources.editor_reps
+import coachfoska.composeapp.generated.resources.editor_duration
 import coachfoska.composeapp.generated.resources.editor_rest
 import coachfoska.composeapp.generated.resources.editor_save
 import coachfoska.composeapp.generated.resources.editor_sets
 import coachfoska.composeapp.generated.resources.editor_title_edit
 import coachfoska.composeapp.generated.resources.editor_title_new
 import com.coachfoska.app.domain.model.DayOfWeek
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.presentation.workout.EditorExercise
 import com.coachfoska.app.presentation.workout.WorkoutEditorIntent
 import com.coachfoska.app.presentation.workout.WorkoutEditorState
@@ -365,14 +367,26 @@ private fun ExerciseEditorCard(
                     modifier = Modifier.weight(1f),
                     keyboardType = KeyboardType.Number,
                 )
-                // Reps (text, e.g. "8-12")
-                ExerciseParamField(
-                    value = exercise.reps,
-                    label = stringResource(Res.string.editor_reps),
-                    onValueChange = { onIntent(WorkoutEditorIntent.UpdateReps(index, it)) },
-                    modifier = Modifier.weight(1f),
-                    keyboardType = KeyboardType.Text,
-                )
+                if (exercise.logType == ExerciseLogType.TIME) {
+                    ExerciseParamField(
+                        value = (exercise.targetDurationSeconds ?: 30).toString(),
+                        label = stringResource(Res.string.editor_duration),
+                        onValueChange = { value ->
+                            value.toIntOrNull()?.let { onIntent(WorkoutEditorIntent.UpdateDuration(index, it)) }
+                        },
+                        modifier = Modifier.weight(1f),
+                        keyboardType = KeyboardType.Number,
+                    )
+                } else {
+                    // Reps (text, e.g. "8-12")
+                    ExerciseParamField(
+                        value = exercise.reps,
+                        label = stringResource(Res.string.editor_reps),
+                        onValueChange = { onIntent(WorkoutEditorIntent.UpdateReps(index, it)) },
+                        modifier = Modifier.weight(1f),
+                        keyboardType = KeyboardType.Text,
+                    )
+                }
                 // Rest seconds (numeric)
                 ExerciseParamField(
                     value = exercise.restSeconds.toString(),

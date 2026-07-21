@@ -2,6 +2,7 @@ package com.coachfoska.app.presentation.workout
 
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.Exercise
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.domain.repository.ExerciseRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
@@ -74,6 +75,19 @@ class WorkoutEditorViewModelTest {
 
         assertEquals("new-1", vm.state.value.savedWorkoutId)
         coVerify(exactly = 1) { workoutRepo.createUserWorkout("user-1", any(), any()) }
+    }
+
+    @Test
+    fun `adding a timed exercise uses a duration goal instead of reps`() {
+        val timedExercise = anExercise(name = "Plank Hold").copy(logType = ExerciseLogType.TIME)
+        val vm = viewModel()
+
+        vm.onIntent(WorkoutEditorIntent.AddExercise(timedExercise))
+
+        val added = vm.state.value.exercises.single()
+        assertEquals(ExerciseLogType.TIME, added.logType)
+        assertEquals(30, added.targetDurationSeconds)
+        assertEquals("", added.reps)
     }
 
     @Test

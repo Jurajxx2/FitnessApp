@@ -29,6 +29,10 @@ data class WorkoutExercise(
     val videoUrl: String? = null,
     val sortOrder: Int = 0,
     val exerciseId: String? = null,
+    /** Explicit tracking model for new plans. Null keeps the legacy name/reps inference. */
+    val logType: ExerciseLogType? = null,
+    /** Per-set goal for timed exercises; null for rep-based movements and legacy plans. */
+    val targetDurationSeconds: Int? = null,
     val substitutedFromExerciseId: String? = null,
     val substitutedFromName: String? = null,
 )
@@ -41,6 +45,8 @@ data class WorkoutExerciseDraft(
     val reps: String,
     val restSeconds: Int,
     val tips: String? = null,
+    val logType: ExerciseLogType? = null,
+    val targetDurationSeconds: Int? = null,
     val substitutedFromExerciseId: String? = null,
     val substitutedFromName: String? = null,
 )

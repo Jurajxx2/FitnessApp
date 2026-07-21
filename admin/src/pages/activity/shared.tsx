@@ -71,7 +71,7 @@ export function WorkoutCard({ workout, compact = false }: { workout: WorkoutRow;
       </div>
       {!compact && workout.notes && <p className="mt-3 line-clamp-2 text-sm leading-6 text-text-secondary">{workout.notes}</p>}
       <div className="mt-auto flex flex-wrap gap-2 pt-4 text-xs text-text-secondary">
-        <span>{formatDuration(workout.duration_minutes || 0)}</span>
+        <span>~{formatDuration(workout.duration_minutes || 0)}</span>
         <span aria-hidden="true">·</span>
         <span>{workout.workout_exercises.length} cvikov</span>
       </div>

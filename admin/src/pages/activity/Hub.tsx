@@ -134,7 +134,7 @@ export default function ActivityHub() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-text-primary">{workout.name}</p>
                       <p className="text-xs text-text-secondary">
-                        {formatDuration(workout.duration_minutes)} · {workout.workout_exercises.length} cvikov · ľubovoľný deň
+                        ~{formatDuration(workout.duration_minutes)} · {workout.workout_exercises.length} cvikov · ľubovoľný deň
                       </p>
                     </div>
                     {log ? (
@@ -160,7 +160,7 @@ export default function ActivityHub() {
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-accent">{todayDone ? 'Dnes dokončené' : todayPinned ? 'Dnešný tréning' : 'Odporúčaný ďalší tréning'}</p>
               <h3 className="mt-2 text-2xl font-bold text-text-primary">{todayWorkout.name}</h3>
               <p className="mt-2 text-sm text-text-secondary">
-                {formatDuration(todayWorkout.duration_minutes)} · {todayWorkout.workout_exercises.length} cvikov
+                ~{formatDuration(todayWorkout.duration_minutes)} · {todayWorkout.workout_exercises.length} cvikov
               </p>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-text-secondary">
                 {todayWorkout.workout_exercises

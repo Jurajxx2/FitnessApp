@@ -145,7 +145,7 @@ async function initialiseWorkoutLog(logId: string, exercises: WorkoutExerciseRow
     const rows = Array.from({ length: Math.max(exercise.sets, 1) }, (_, index) => ({
       exercise_log_id: exerciseLog.id,
       sort_order: index + 1,
-      target_reps: parseTargetReps(exercise.reps),
+      target_reps: exercise.log_type === 'time' ? null : parseTargetReps(exercise.reps),
       actual_reps: null,
       target_weight_kg: null,
       actual_weight_kg: null,
@@ -209,6 +209,7 @@ export async function createUserWorkout(userId: string, draft: UserWorkoutDraft)
       name: draft.name,
       notes: draft.notes,
       duration_minutes: draft.duration_minutes,
+      duration_mode: draft.duration_mode,
       day_of_week: null,
       is_active: true,
     })
@@ -224,6 +225,8 @@ export async function createUserWorkout(userId: string, draft: UserWorkoutDraft)
       muscle_group: exercise.muscle_group,
       sets: exercise.sets,
       reps: exercise.reps,
+      log_type: exercise.log_type,
+      target_duration_seconds: exercise.target_duration_seconds,
       rest_seconds: exercise.rest_seconds,
       sort_order: index,
     }))

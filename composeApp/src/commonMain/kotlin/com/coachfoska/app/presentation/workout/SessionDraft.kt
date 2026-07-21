@@ -28,6 +28,7 @@ data class ExerciseDraft(
     val exerciseId: String? = null,
     val exerciseLogId: String? = null,
     val logType: ExerciseLogType = ExerciseLogType.WEIGHT_REPS,
+    val targetDurationSeconds: Int? = null,
     val initialSetsGoal: Int = 3,
     val initialRepsGoal: String = "10",
     val substitutedFromExerciseId: String? = null,
@@ -63,30 +64,32 @@ fun Workout.toDraft(startTime: Long) = SessionDraft(
 )
 
 fun WorkoutExercise.toDraft(): ExerciseDraft {
+    val resolvedLogType = logType ?: inferExerciseLogType(
+        name = name,
+        categoryName = muscleGroup,
+        reps = reps,
+    )
     val repsGoal = reps.substringBefore('-').filter { it.isDigit() }.toIntOrNull()
     return ExerciseDraft(
         exerciseName = name,
         initialSetsGoal = sets,
-        initialRepsGoal = reps,
+        initialRepsGoal = if (resolvedLogType == ExerciseLogType.TIME) "time" else reps,
         videoUrl = videoUrl,
         muscleGroup = muscleGroup,
         tips = tips,
         exerciseId = exerciseId,
-        logType = inferExerciseLogType(
-            name = name,
-            categoryName = muscleGroup,
-            reps = reps,
-        ),
+        logType = resolvedLogType,
+        targetDurationSeconds = targetDurationSeconds,
         substitutedFromExerciseId = substitutedFromExerciseId,
         substitutedFromName = substitutedFromName,
         sets = (1..sets).map { order ->
             SetDraft(
                 sortOrder = order,
-                targetReps = repsGoal,
+                targetReps = repsGoal.takeIf { resolvedLogType != ExerciseLogType.TIME },
                 // Prefill reps with the plan target so the user rarely types — they just
                 // confirm or tweak. Weight is prefilled later from the previous session
                 // (see ActiveSessionViewModel.loadPreviousData).
-                actualReps = repsGoal,
+                actualReps = repsGoal.takeIf { resolvedLogType != ExerciseLogType.TIME },
                 targetWeightKg = null,
                 actualWeightKg = null,
                 rpe = null,

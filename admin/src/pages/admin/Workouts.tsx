@@ -5,20 +5,30 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { Button, ClickableRow, ConfirmDialog, EmptyState, PageHeader, SearchInput, Table, Td, Th, useNotice } from '../../components/ui'
 import type { Workout, WorkoutExercise } from '../../types/database'
+import { createExerciseDraftId } from '../../workouts/builder'
 
 export const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
-export type ExerciseDraft = Omit<WorkoutExercise, 'id' | 'workout_id' | 'created_at'>
+export type ExerciseDraft = Omit<WorkoutExercise, 'id' | 'workout_id' | 'created_at'> & {
+  client_id: string
+  image_url: string | null
+  image_url_2: string | null
+}
 
 export const blankExercise = (): ExerciseDraft => ({
+  client_id: createExerciseDraftId(),
   exercise_id: null,
   name: '',
   muscle_group: '',
   sets: 3,
   reps: '10',
+  log_type: 'weight_reps',
+  target_duration_seconds: null,
   rest_seconds: 60,
   tips: '',
   sort_order: 0,
+  image_url: null,
+  image_url_2: null,
 })
 
 export function exerciseHasData(exercise: ExerciseDraft): boolean {
@@ -124,6 +134,7 @@ export default function Workouts() {
               <Th>Name</Th>
               <Th>Day</Th>
               <Th>Exercises</Th>
+              <Th>Estimated time</Th>
               <Th>Status</Th>
               <Th><span className="sr-only">Actions</span></Th>
             </tr>
@@ -134,6 +145,7 @@ export default function Workouts() {
                 <Td className="font-semibold text-text-primary">{workout.name}</Td>
                 <Td>{workout.day_of_week !== null ? DAYS[workout.day_of_week] : 'Any day'}</Td>
                 <Td>{workout.exercise_count} exercises</Td>
+                <Td>{workout.duration_minutes > 0 ? `~${workout.duration_minutes} min` : '—'}</Td>
                 <Td>{workout.is_active ? <span className="text-xs text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}</Td>
                 <Td>
                   <div className="flex items-center justify-end gap-2">
