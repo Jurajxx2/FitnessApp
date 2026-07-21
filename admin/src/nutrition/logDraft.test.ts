@@ -10,6 +10,7 @@ import {
   localDateTimeToIso,
   recipeIngredientsToDrafts,
   rescaleDraftAmount,
+  suggestMealName,
   validateMealDraft,
 } from './logDraft'
 
@@ -133,5 +134,31 @@ describe('dedupeRecentEntries', () => {
     ], 1)
     expect(result).toHaveLength(1)
     expect(result[0]).toMatchObject({ amount: 250, source: 'recent' })
+  })
+})
+
+describe('suggestMealName', () => {
+  it('returns empty string for empty list', () => {
+    expect(suggestMealName([])).toBe('')
+  })
+
+  it('returns the single name for a one-item list', () => {
+    expect(suggestMealName(['Ryža'])).toBe('Ryža')
+  })
+
+  it('joins two items with " a " for two-item lists', () => {
+    expect(suggestMealName(['Kuracie mäso', 'Ryža'])).toBe('Kuracie mäso a Ryža')
+  })
+
+  it('shows first two and "ďalšie" for lists with 3+ items', () => {
+    expect(suggestMealName(['A', 'B', 'C'])).toBe('A, B a ďalšie')
+  })
+
+  it('filters out whitespace-only and empty names before counting', () => {
+    expect(suggestMealName(['   ', 'Ryža', ''])).toBe('Ryža')
+  })
+
+  it('trims leading and trailing spaces from each name', () => {
+    expect(suggestMealName(['  Kuracie ', ' Ryža '])).toBe('Kuracie a Ryža')
   })
 })

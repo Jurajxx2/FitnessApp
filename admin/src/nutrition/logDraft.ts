@@ -271,3 +271,12 @@ export function dedupeRecentEntries(logs: MealLogRow[], limit = 20): LogFoodDraf
   }
   return result
 }
+
+/** Build a friendly Slovak meal name from analysed/added item names. '' when there are none. */
+export function suggestMealName(names: string[]): string {
+  const clean = names.map(name => name.trim()).filter(Boolean)
+  if (clean.length === 0) return ''
+  if (clean.length === 1) return clean[0]
+  if (clean.length === 2) return `${clean[0]} a ${clean[1]}`
+  return `${clean[0]}, ${clean[1]} a ďalšie`
+}
