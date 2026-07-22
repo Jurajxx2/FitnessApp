@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { getWorkoutHistory, getWorkoutLog } from '../../activity/api'
 import { completedSets, formatDate, formatDuration, workoutVolume } from '../../activity/logic'
 import { useAuth } from '../../hooks/useAuth'
+import { formatSeconds } from '../../workouts/builder'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
 
 export default function WorkoutHistory() {
@@ -147,7 +148,7 @@ function HistoryDetail({ logId }: { logId: string }) {
                     <span className="font-semibold">{set.sort_order}</span>
                     <span>{set.actual_reps ?? '—'}</span>
                     <span>{set.actual_weight_kg != null ? `${set.actual_weight_kg} kg` : '—'}</span>
-                    <span>{set.actual_duration_seconds != null ? `${set.actual_duration_seconds}s` : '—'}</span>
+                    <span>{set.actual_duration_seconds != null ? formatSeconds(set.actual_duration_seconds) : '—'}</span>
                     <span>{set.rpe ?? '—'}</span>
                   </div>
                 ))}
