@@ -10,6 +10,33 @@ export interface DurationExercise {
 
 export type WorkoutExerciseLogType = NonNullable<DurationExercise['log_type']>
 
+export const DEFAULT_TIME_TARGET_SECONDS = 30
+
+export const LOG_TYPE_OPTIONS: { value: WorkoutExerciseLogType; label: { en: string; sk: string } }[] = [
+  { value: 'weight_reps', label: { en: 'Weight + Reps', sk: 'Váha + opak.' } },
+  { value: 'bodyweight_reps', label: { en: 'Bodyweight', sk: 'Vlastná váha' } },
+  { value: 'time', label: { en: 'Time', sk: 'Čas' } }
+]
+
+export function clampTargetDuration(n: number): number {
+  return Math.min(3600, Math.max(1, Math.round(n) || 1))
+}
+
+export function applyLogTypeChange<T extends DurationExercise>(exercise: T, next: WorkoutExerciseLogType): T {
+  return {
+    ...exercise,
+    log_type: next,
+    target_duration_seconds: next === 'time' ? clampTargetDuration(exercise.target_duration_seconds ?? DEFAULT_TIME_TARGET_SECONDS) : null
+  }
+}
+
+export function formatSeconds(total: number): string {
+  const safeTotal = Number.isFinite(total) && total > 0 ? Math.floor(total) : 0
+  const minutes = Math.floor(safeTotal / 60)
+  const seconds = safeTotal % 60
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
+
 export function inferWorkoutExerciseLogType(name: string, reps = ''): WorkoutExerciseLogType {
   const text = `${name} ${reps}`.toLowerCase()
   if (/\b(run|running|jog|sprint|walk|bike|cycling|rower|rowing|swim|plank|hold|carry|stretch|cardio|time|min|minute|sec|second|beh|běh|ch[uů]ze|kolo|v[yý]drž|protažen[ií])\b/.test(text)) return 'time'

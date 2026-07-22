@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estimateWorkoutDuration, moveItem } from './builder'
+import { applyLogTypeChange, clampTargetDuration, estimateWorkoutDuration, formatSeconds, moveItem } from './builder'
 
 describe('workout builder utilities', () => {
   it('returns no estimate until the workout has an exercise', () => {
@@ -26,5 +26,69 @@ describe('workout builder utilities', () => {
     const original = ['a', 'b']
     expect(moveItem(original, -1, 1)).toBe(original)
     expect(moveItem(original, 0, 4)).toBe(original)
+  })
+})
+
+describe('clampTargetDuration', () => {
+  it('clamps to the [1, 3600] range and rounds', () => {
+    expect(clampTargetDuration(0)).toBe(1)
+    expect(clampTargetDuration(-5)).toBe(1)
+    expect(clampTargetDuration(999999)).toBe(3600)
+    expect(clampTargetDuration(90)).toBe(90)
+    expect(clampTargetDuration(Number.NaN)).toBe(1)
+  })
+})
+
+describe('formatSeconds', () => {
+  it('formats total seconds as m:ss', () => {
+    expect(formatSeconds(90)).toBe('1:30')
+    expect(formatSeconds(45)).toBe('0:45')
+    expect(formatSeconds(605)).toBe('10:05')
+    expect(formatSeconds(0)).toBe('0:00')
+    expect(formatSeconds(-3)).toBe('0:00')
+  })
+})
+
+describe('applyLogTypeChange', () => {
+  const base = { sets: 3, reps: '10', rest_seconds: 60 }
+
+  it('seeds the default target when switching into time from weight_reps', () => {
+    const exercise = { ...base, log_type: 'weight_reps' as const, target_duration_seconds: null }
+    const result = applyLogTypeChange(exercise, 'time')
+    expect(result.log_type).toBe('time')
+    expect(result.target_duration_seconds).toBe(30)
+  })
+
+  it('keeps an existing target when staying on time', () => {
+    const exercise = { ...base, log_type: 'time' as const, target_duration_seconds: 45 }
+    const result = applyLogTypeChange(exercise, 'time')
+    expect(result.target_duration_seconds).toBe(45)
+  })
+
+  it('clamps an out-of-range target when staying on time', () => {
+    const exercise = { ...base, log_type: 'time' as const, target_duration_seconds: 5000 }
+    const result = applyLogTypeChange(exercise, 'time')
+    expect(result.target_duration_seconds).toBe(3600)
+  })
+
+  it('nulls the target when switching away from time', () => {
+    const exercise = { ...base, log_type: 'time' as const, target_duration_seconds: 45 }
+    const result = applyLogTypeChange(exercise, 'weight_reps')
+    expect(result.log_type).toBe('weight_reps')
+    expect(result.target_duration_seconds).toBeNull()
+  })
+
+  it('leaves the target null for bodyweight_reps', () => {
+    const exercise = { ...base, log_type: 'weight_reps' as const, target_duration_seconds: null }
+    const result = applyLogTypeChange(exercise, 'bodyweight_reps')
+    expect(result.log_type).toBe('bodyweight_reps')
+    expect(result.target_duration_seconds).toBeNull()
+  })
+
+  it('does not mutate the input exercise', () => {
+    const exercise = { ...base, log_type: 'weight_reps' as const, target_duration_seconds: null }
+    applyLogTypeChange(exercise, 'time')
+    expect(exercise.log_type).toBe('weight_reps')
+    expect(exercise.target_duration_seconds).toBeNull()
   })
 })
