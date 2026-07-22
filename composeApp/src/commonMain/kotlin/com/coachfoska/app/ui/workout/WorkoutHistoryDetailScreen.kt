@@ -60,6 +60,7 @@ import com.coachfoska.app.domain.model.WorkoutFeedback
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.domain.model.formatDuration
+import com.coachfoska.app.domain.model.isTimed
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
@@ -342,10 +343,7 @@ private fun SetTableRow(set: SetLog, isTimed: Boolean) {
     }
 }
 
-private fun ExerciseLog.isTimedExercise(): Boolean =
-    sets.isNotEmpty() &&
-        sets.all { it.actualReps == null && it.actualWeightKg == null } &&
-        sets.any { it.actualDurationSeconds != null || it.actualRestSeconds != null }
+private fun ExerciseLog.isTimedExercise(): Boolean = isTimed()
 
 @Preview
 @Composable

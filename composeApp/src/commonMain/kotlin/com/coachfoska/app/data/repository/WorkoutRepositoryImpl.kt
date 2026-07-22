@@ -11,6 +11,7 @@ import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.domain.model.ExerciseLog
 import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.ExerciseRecords
+import com.coachfoska.app.domain.model.isTimed
 import com.coachfoska.app.domain.model.PRType
 import com.coachfoska.app.domain.model.PersonalRecord
 import com.coachfoska.app.domain.model.RecordDetail
@@ -23,7 +24,6 @@ import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutDraft
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.formatWeightKg
-import com.coachfoska.app.domain.model.inferExerciseLogType
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -170,7 +170,6 @@ class WorkoutRepositoryImpl(
         var maxVolumeKg = 0f
         var longestDuration: RecordEntry? = null
         var maxDurationSeconds = 0
-        val isTimedExercise = inferExerciseLogType(exerciseName) == ExerciseLogType.TIME
 
         for ((exerciseLogDto, loggedAtStr) in history) {
             val date = try {
@@ -179,6 +178,11 @@ class WorkoutRepositoryImpl(
 
             val sets = exerciseLogDto.setLogs.filter { it.completed }
             if (sets.isEmpty()) continue
+
+            // Timed-ness is a property of the logged set shape, not the exercise name: decide it
+            // per history entry so legacy vs. current-format logs for the same exercise are each
+            // classified correctly.
+            val isTimedExercise = exerciseLogDto.toDomain().isTimed()
 
             // Session volume
             val sessionVolume = sets.sumOf { s ->
