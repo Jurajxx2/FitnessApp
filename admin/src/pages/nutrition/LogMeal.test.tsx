@@ -123,7 +123,65 @@ function renderManualLogger() {
   )
 }
 
+// Fresh logs land on the photo-first capture step; the review form (item editor, save bar)
+// only appears once the user chooses the manual path. Reused by every manual-flow assertion.
+async function enterManualReview(user: ReturnType<typeof userEvent.setup>) {
+  renderManualLogger()
+  await user.click(screen.getByRole('button', { name: 'Zapísať manuálne' }))
+}
+
 describe('LogMeal', () => {
+  it('opens on the photo-first capture step for a fresh log', () => {
+    renderManualLogger()
+
+    expect(screen.getByText('Odfotiť alebo nahrať jedlo')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Zapísať manuálne' })).toBeInTheDocument()
+    // The whole review form (item editor) stays hidden until the user chooses a path.
+    expect(screen.queryByLabelText('Kcal')).not.toBeInTheDocument()
+    // Analyse is offered up-front but disabled until a photo is present.
+    expect(screen.getByRole('button', { name: 'Analyzovať fotografiu' })).toBeDisabled()
+  })
+
+  it('reveals the review step with one expanded editor via manual entry', async () => {
+    const user = userEvent.setup()
+    await enterManualReview(user)
+
+    expect(screen.getByRole('button', { name: /^Nová položka 1\b/ })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('Kcal')).toBeInTheDocument()
+  })
+
+  it('analyses a photo from capture and lands on the pre-filled review', async () => {
+    renderManualLogger()
+    const user = userEvent.setup()
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')
+    await user.upload(input!, new File(['image'], 'lunch.png', { type: 'image/png' }))
+    // The preview appearing signals the async photo preparation finished and the button is live.
+    await screen.findByAltText('Náhľad jedla')
+    await user.click(screen.getByRole('button', { name: 'Analyzovať fotografiu' }))
+
+    expect(await screen.findByText('Kuracie mäso')).toBeInTheDocument()
+    expect(screen.getByText('nízka istota')).toBeInTheDocument()
+    expect(screen.getByLabelText('Názov jedla')).toHaveValue('Kuracie mäso')
+    expect(mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('adds a favourite from the capture quick-add and enters review', async () => {
+    vi.mocked(useFoodFavorites).mockReturnValue({
+      data: [{
+        id: 'favorite-1', user_id: 'user-1', name: 'Banán', amount: 100, unit: 'g', amount_grams: 100,
+        calories: 90, protein_g: 1, carbs_g: 23, fat_g: 0, created_at: '2026-07-20T12:00:00Z',
+      }],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useFoodFavorites>)
+    renderManualLogger()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Banán/ }))
+
+    expect(screen.getByLabelText('Názov jedla')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Banán')).toBeInTheDocument()
+  })
+
   it('uses photo analysis only to fill the draft and waits for explicit save', async () => {
     renderRecipeLogger()
     const user = userEvent.setup()
@@ -189,8 +247,8 @@ describe('LogMeal', () => {
   })
 
   it('keeps the first editor expanded while its name is typed', async () => {
-    renderManualLogger()
     const user = userEvent.setup()
+    await enterManualReview(user)
     const itemToggle = screen.getByRole('button', { name: /^Nová položka 1\b/ })
 
     expect(itemToggle).toHaveAttribute('aria-expanded', 'true')
@@ -201,8 +259,8 @@ describe('LogMeal', () => {
   })
 
   it('always appends a manual item and preserves an incomplete unnamed row', async () => {
-    renderManualLogger()
     const user = userEvent.setup()
+    await enterManualReview(user)
     const firstCalories = screen.getByLabelText('Kcal')
     await user.clear(firstCalories)
     await user.type(firstCalories, '123')
@@ -221,8 +279,8 @@ describe('LogMeal', () => {
       }],
       isLoading: false,
     } as unknown as ReturnType<typeof useFoodFavorites>)
-    renderManualLogger()
     const user = userEvent.setup()
+    await enterManualReview(user)
 
     await user.click(screen.getByRole('button', { name: /Banán/ }))
 
@@ -238,8 +296,8 @@ describe('LogMeal', () => {
       }],
       isLoading: false,
     } as unknown as ReturnType<typeof useFoodFavorites>)
-    renderManualLogger()
     const user = userEvent.setup()
+    await enterManualReview(user)
     const firstCalories = screen.getByLabelText('Kcal')
     await user.clear(firstCalories)
     await user.type(firstCalories, '12')
@@ -253,8 +311,8 @@ describe('LogMeal', () => {
   })
 
   it('leaves one expanded blank editor after removing the final item', async () => {
-    renderManualLogger()
     const user = userEvent.setup()
+    await enterManualReview(user)
 
     await user.click(screen.getByRole('button', { name: 'Odstrániť položku 1' }))
 

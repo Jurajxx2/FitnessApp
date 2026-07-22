@@ -29,6 +29,7 @@ import {
   recipeIngredientsToDrafts,
   rescaleDraftAmount,
   snapshotToDraft,
+  suggestMealName,
   updateDraftMacro,
   validateMealDraft,
   type LogFoodDraft,
@@ -42,6 +43,7 @@ import type { FoodFavoriteRow, FoodRow, MealType, RecipeRow } from '../../types/
 import { Button, Card, EmptyState, Input, Shimmer, useNotice } from '../../components/ui'
 
 type MacroField = keyof Macros
+type LogStep = 'capture' | 'review'
 
 function localDatePart(date: Date) {
   const year = date.getFullYear()
@@ -83,6 +85,10 @@ export default function LogMeal() {
   const mealId = searchParams.get('mealId') ?? ''
   const logId = searchParams.get('logId') ?? ''
   const isEdit = Boolean(logId)
+  // Edit/recipe/meal-plan prefills already have a draft, so they open straight on review;
+  // a fresh log begins on the photo-first capture step.
+  const startsInReview = isEdit || Boolean(recipeId) || Boolean(mealId)
+  const cameFromCapture = !startsInReview
   const now = useRef(new Date()).current
   const recipeQuery = useRecipe(recipeId)
   const mealPlanQuery = useActiveMealPlan(Boolean(mealId) && !recipeId)
@@ -92,6 +98,7 @@ export default function LogMeal() {
   const savedMealsQuery = useSavedMeals()
   const seedFoodsQuery = useSeedFoods()
   const { notify } = useNotice()
+  const [step, setStep] = useState<LogStep>(startsInReview ? 'review' : 'capture')
   const [mealName, setMealName] = useState('')
   const [mealType, setMealType] = useState<MealType>(defaultMealType(now))
   const [logDate, setLogDate] = useState(localDatePart(now))
@@ -232,14 +239,21 @@ export default function LogMeal() {
     }
   }
 
+  function clearPhoto() {
+    setPhotoFile(null)
+    if (isEdit) setRemoveExistingPhoto(true)
+    setPhotoPreview(null)
+  }
+
   async function analyzePhoto() {
     if (!photoFile) return
     setAnalyzing(true)
     try {
       const analysis = await analyzeMealPhoto(photoFile, aiDescription)
       setItems(current => mergeAnalysis(current, analysis))
-      if (!mealName.trim()) setMealName('Jedlo z fotografie')
+      if (!mealName.trim()) setMealName(suggestMealName(analysis.items.map(item => item.name)) || 'Jedlo z fotografie')
       notify('Odhad bol doplnený. Pred uložením skontroluj všetky položky.', 'success')
+      setStep('review')
     } catch (error) {
       notify(error instanceof Error ? error.message : 'Analýza zlyhala.', 'error')
     } finally {
@@ -335,18 +349,79 @@ export default function LogMeal() {
 
   const totals = mealDraftTotals(items.filter(item => item.name.trim()))
   const hasIngredient = items.some(item => item.name.trim())
+  const hasAiItems = items.some(item => item.source === 'ai')
   const isPrefilling = (isEdit && historyQuery.isLoading) || (recipeId && recipeQuery.isLoading) || (mealId && mealPlanQuery.isLoading)
 
   if (isEdit && !historyQuery.isLoading && !existingLog) {
     return <EmptyState title="Záznam sa nenašiel" message="Toto jedlo už bolo pravdepodobne vymazané." action={<Button onClick={() => navigate('/nutrition/history')}>Späť do histórie</Button>} />
   }
 
+  if (step === 'capture') {
+    const captureShortcuts = [
+      ...favorites.slice(0, 4).map(favorite => ({
+        key: `favorite-${favorite.id}`,
+        label: favorite.name,
+        detail: `${Math.round(favorite.calories)} kcal`,
+        onSelect: () => addDraft(snapshotToDraft(favorite, 'favorite')),
+      })),
+      ...(recentsQuery.data ?? []).slice(0, 4).map(recent => ({
+        key: `recent-${recent.key}`,
+        label: recent.name,
+        detail: `${Math.round(recent.calories)} kcal`,
+        onSelect: () => addDraft(draftFromFood(persistedFood(recent), 'recent')),
+      })),
+    ]
+    return (
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-6 pb-8">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Záznam stravy</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Zapísať jedlo</h1>
+          <p className="mt-2 text-sm text-text-secondary">Odfoť jedlo a AI ti predvyplní položky. Pred uložením ich skontroluješ.</p>
+        </div>
+
+        <Card className="flex flex-col gap-4 p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div><h2 className="font-bold text-text-primary">Fotografia jedla</h2><p className="mt-1 text-xs text-text-secondary">Najrýchlejší spôsob. AI z fotografie navrhne položky za teba.</p></div>
+            {photoPreview && <button type="button" onClick={clearPhoto} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error" aria-label="Odstrániť fotografiu"><X size={16} /></button>}
+          </div>
+          <button type="button" onClick={() => photoInput.current?.click()} className="flex min-h-40 w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-dashed border-outline bg-surface text-sm font-semibold text-text-secondary hover:border-accent hover:text-text-primary">
+            {photoPreview ? <img src={photoPreview} alt="Náhľad jedla" className="h-56 w-full object-cover" /> : <><ImagePlus size={30} aria-hidden="true" /><span>{processingPhoto ? 'Pripravujem fotografiu…' : 'Odfotiť alebo nahrať jedlo'}</span></>}
+          </button>
+          <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void selectPhoto(file); event.target.value = '' }} />
+          <textarea value={aiDescription} onChange={event => setAiDescription(event.target.value)} maxLength={500} placeholder="Voliteľný opis, napr. vyprážané, cca 200 g ryže" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />
+          <Button className="w-full" loading={analyzing} disabled={!photoFile || processingPhoto} onClick={analyzePhoto}><Sparkles size={16} aria-hidden="true" /> Analyzovať fotografiu</Button>
+          <p className="text-xs text-text-secondary">AI iba predvyplní návrh. Výsledok môže byť nepresný.</p>
+          <p className="text-xs leading-5 text-text-secondary">Použitím analýzy odošleš pripravenú fotografiu a opis službe Google Gemini. Skontroluj každý odhad pred uložením.</p>
+          {photoError && <p role="alert" className="text-xs text-error">{photoError}</p>}
+        </Card>
+
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-outline-subtle" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">alebo</span>
+          <span className="h-px flex-1 bg-outline-subtle" />
+        </div>
+
+        <Button variant="secondary" className="w-full" onClick={() => setStep('review')}>Zapísať manuálne</Button>
+
+        {captureShortcuts.length > 0 && (
+          <Card className="flex flex-col gap-2 p-4 sm:p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-text-secondary">Rýchle pridanie</p>
+            <div className="divide-y divide-outline-subtle">
+              {captureShortcuts.map(shortcut => <QuickAddButton key={shortcut.key} label={shortcut.label} detail={shortcut.detail} onClick={() => { shortcut.onSelect(); setStep('review') }} />)}
+            </div>
+          </Card>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6 pb-28 sm:pb-8">
       <div>
+        {cameFromCapture && <button type="button" onClick={() => setStep('capture')} className="mb-3 inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-text-secondary hover:text-text-primary">← Späť na fotografiu</button>}
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Záznam stravy</p>
         <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{isEdit ? 'Upraviť jedlo' : 'Zapísať jedlo'}</h1>
-        <p className="mt-2 text-sm text-text-secondary">Všetky spôsoby pridania vytvárajú jeden kontrolovateľný návrh. Nič sa neuloží bez potvrdenia.</p>
+        <p className="mt-2 text-sm text-text-secondary">Skontroluj a uprav položky. Nič sa neuloží bez potvrdenia.</p>
       </div>
 
       {isPrefilling ? <Shimmer className="h-40 w-full" /> : (
@@ -382,14 +457,14 @@ export default function LogMeal() {
 
             <Card className="flex flex-col gap-4 p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3">
-                <div><h2 className="font-bold text-text-primary">Fotografia a AI odhad</h2><p className="mt-1 text-xs text-text-secondary">AI iba predvyplní návrh. Výsledok môže byť nepresný.</p></div>
-                {photoPreview && <button type="button" onClick={() => { setPhotoFile(null); if (isEdit) setRemoveExistingPhoto(true); setPhotoPreview(null) }} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error" aria-label="Odstrániť fotografiu"><X size={16} /></button>}
+                <div><h2 className="font-bold text-text-primary">Fotografia a AI odhad</h2><p className="mt-1 text-xs text-text-secondary">{hasAiItems ? 'AI odhad — skontroluj položky' : 'AI iba predvyplní návrh. Výsledok môže byť nepresný.'}</p></div>
+                {photoPreview && <button type="button" onClick={clearPhoto} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error" aria-label="Odstrániť fotografiu"><X size={16} /></button>}
               </div>
               <button type="button" onClick={() => photoInput.current?.click()} className="flex min-h-28 w-full items-center justify-center gap-3 overflow-hidden rounded-2xl border border-dashed border-outline bg-surface text-sm font-semibold text-text-secondary hover:border-accent hover:text-text-primary">
-                {photoPreview ? <img src={photoPreview} alt="Náhľad jedla" className="h-48 w-full object-cover" /> : <><ImagePlus size={24} /><span>{processingPhoto ? 'Pripravujem fotografiu…' : 'Pridať fotografiu'}</span></>}
+                {photoPreview ? <img src={photoPreview} alt="Náhľad jedla" className="h-48 w-full object-cover" /> : <><ImagePlus size={24} aria-hidden="true" /><span>{processingPhoto ? 'Pripravujem fotografiu…' : 'Pridať fotografiu'}</span></>}
               </button>
               <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void selectPhoto(file); event.target.value = '' }} />
-              {photoFile && <textarea value={aiDescription} onChange={event => setAiDescription(event.target.value)} maxLength={500} placeholder="Voliteľný opis, napr. smažené, cca 200 g ryže" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />}
+              {photoFile && <textarea value={aiDescription} onChange={event => setAiDescription(event.target.value)} maxLength={500} placeholder="Voliteľný opis, napr. vyprážané, cca 200 g ryže" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />}
               {photoFile && <Button variant="secondary" className="w-full" loading={analyzing} onClick={analyzePhoto}><Sparkles size={16} aria-hidden="true" /> Analyzovať fotografiu</Button>}
               {photoFile && <p className="text-xs leading-5 text-text-secondary">Použitím analýzy odošleš pripravenú fotografiu a opis službe Google Gemini. Skontroluj každý odhad pred uložením.</p>}
               {photoError && <p role="alert" className="text-xs text-error">{photoError}</p>}
