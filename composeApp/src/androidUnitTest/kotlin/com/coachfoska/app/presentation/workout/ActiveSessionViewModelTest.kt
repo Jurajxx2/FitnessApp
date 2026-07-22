@@ -545,6 +545,103 @@ class ActiveSessionViewModelTest {
         }
     }
 
+    @Test
+    fun `explicit_time_logType_survives_successful_media_enrichment`() = runTest {
+        // "Wall Sit" infers WEIGHT_REPS from its name alone (no time-signal words), but the
+        // coach explicitly authored it as TIME with a 60s target. A successful exercise-library
+        // fetch must not let the name-inferred logType from the library row clobber that.
+        val exercises = listOf(
+            WorkoutExercise(
+                id = "we1",
+                workoutId = "w1",
+                name = "Wall Sit",
+                muscleGroup = "Legs",
+                sets = 2,
+                reps = "60 seconds",
+                restSeconds = 30,
+                tips = null,
+                sortOrder = 0,
+                exerciseId = "wall-sit-1",
+                logType = ExerciseLogType.TIME,
+                targetDurationSeconds = 60,
+            )
+        )
+        val workout = aWorkout(id = "w1", exercises = exercises)
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(workout)
+        coEvery { exerciseRepo.getExerciseById("wall-sit-1") } returns Result.success(
+            Exercise(
+                id = "wall-sit-1", name = "Wall Sit", description = "", category = null,
+                muscles = emptyList(), musclesSecondary = emptyList(), equipment = emptyList(),
+                imageUrl = "https://example.com/wall-sit.png", imageUrl2 = null,
+                videoUrl = null, difficulty = null,
+            )
+        )
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        val exercise = vm.state.value.sessionDraft?.exercises?.single()
+        assertNotNull(exercise)
+        assertEquals(ExerciseLogType.TIME, exercise.logType, "authored log_type must survive media enrichment")
+        assertEquals(60, exercise.targetDurationSeconds)
+        // Media enrichment itself must still run.
+        assertEquals("https://example.com/wall-sit.png", exercise.imageUrl)
+    }
+
+    @Test
+    fun `resume_resolves_timed_exercise_from_set_shape_not_name`() = runTest {
+        // "Wall Sit" infers WEIGHT_REPS by name. The exercise is not part of a base plan draft
+        // (workoutId null), so resolution must fall back to the logged sets' shape, which is
+        // timed (no reps/weight, has actualDurationSeconds) — not to name inference.
+        val log = WorkoutLog(
+            id = "resume-log-1",
+            userId = "user-1",
+            workoutId = null,
+            workoutName = "Ad Hoc",
+            durationMinutes = 0,
+            notes = null,
+            exerciseLogs = listOf(
+                com.coachfoska.app.domain.model.ExerciseLog(
+                    id = "exercise-log-1",
+                    workoutLogId = "resume-log-1",
+                    exerciseName = "Wall Sit",
+                    notes = null,
+                    exerciseId = "wall-sit-1",
+                    sets = listOf(
+                        SetLog(
+                            id = "set-log-1",
+                            exerciseLogId = "exercise-log-1",
+                            sortOrder = 1,
+                            targetReps = null,
+                            actualReps = null,
+                            targetWeightKg = null,
+                            actualWeightKg = null,
+                            rpe = null,
+                            targetRestSeconds = null,
+                            actualRestSeconds = null,
+                            completed = true,
+                            actualDurationSeconds = 45,
+                        )
+                    ),
+                )
+            ),
+            loggedAt = kotlinx.datetime.Instant.parse("2026-07-03T10:00:00Z"),
+            status = "in_progress",
+        )
+        coEvery { repo.getInProgressSession("user-1") } returns Result.success(log)
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1", resumeLogId = "resume-log-1"))
+        advanceUntilIdle()
+
+        val exercise = vm.state.value.sessionDraft?.exercises?.single()
+        assertNotNull(exercise)
+        assertEquals(ExerciseLogType.TIME, exercise.logType, "must resolve TIME from set shape, not name")
+        val set = exercise.sets.first()
+        assertEquals(45, set.actualDurationSeconds, "resumed duration must remain visible")
+    }
+
     private fun aPreviousSet(sortOrder: Int, weight: Float) = SetLog(
         id = "prev-$sortOrder", exerciseLogId = "", sortOrder = sortOrder,
         targetReps = 8, actualReps = 8, targetWeightKg = null, actualWeightKg = weight,

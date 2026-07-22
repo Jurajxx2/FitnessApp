@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.isTimed
 import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.inferExerciseLogType
@@ -841,6 +842,16 @@ class ActiveSessionViewModel(
         }
     }
 
+    /**
+     * Resolves the tracking type for an exercise reconstructed from logged data (not present in
+     * the base plan draft, which already carries its own authoritative logType via `.copy()`).
+     * Never infer from the exercise name when the logged sets already tell us the shape: a
+     * resumed timed set (no reps/weight, has a duration) must stay TIME regardless of what its
+     * name would suggest. Only fall back to name inference when the sets carry no timed shape.
+     */
+    private fun resolveResumedLogType(logged: ExerciseLog): ExerciseLogType =
+        if (logged.isTimed()) ExerciseLogType.TIME else inferExerciseLogType(logged.exerciseName)
+
     private fun rebuildDraftFromLog(log: WorkoutLog, baseDraft: SessionDraft?): SessionDraft {
         val loggedByName = log.exerciseLogs.associateBy { it.exerciseName }
         val exercises = if (baseDraft != null) {
@@ -858,7 +869,7 @@ class ActiveSessionViewModel(
                         exerciseId = logged.exerciseId,
                         exerciseLogId = logged.id,
                         videoUrl = logged.videoUrl,
-                        logType = inferExerciseLogType(logged.exerciseName),
+                        logType = resolveResumedLogType(logged),
                         substitutedFromExerciseId = logged.substitutedFromExerciseId,
                         substitutedFromName = logged.substitutedFromName,
                         sets = logged.sets.sortedBy { it.sortOrder }.map { it.toDraft() },
@@ -871,7 +882,7 @@ class ActiveSessionViewModel(
                     exerciseId = logged.exerciseId,
                     exerciseLogId = logged.id,
                     videoUrl = logged.videoUrl,
-                    logType = inferExerciseLogType(logged.exerciseName),
+                    logType = resolveResumedLogType(logged),
                     substitutedFromExerciseId = logged.substitutedFromExerciseId,
                     substitutedFromName = logged.substitutedFromName,
                     sets = logged.sets.sortedBy { it.sortOrder }.map { it.toDraft() },
@@ -903,7 +914,9 @@ class ActiveSessionViewModel(
                 animationUrl = exercise.animationUrl ?: domainExercise.animationUrl,
                 lottieAnimations = domainExercise.lottieAnimations,
                 videoUrl = exercise.videoUrl ?: domainExercise.videoUrl,
-                logType = domainExercise.logType,
+                // The exercise-library row has no log_type column of its own; Exercise.logType is
+                // always name-inferred. Enrich media only — the draft's authored/resolved logType
+                // and targetDurationSeconds (from WorkoutExercise.toDraft()) must survive untouched.
             )
         }
         return draft.copy(exercises = exercises)
