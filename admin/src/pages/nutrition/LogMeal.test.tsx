@@ -320,6 +320,46 @@ describe('LogMeal', () => {
     expect(screen.getByLabelText('Názov')).toHaveValue('')
     expect(screen.getByRole('button', { name: /^Nová položka 1\b/ })).toHaveAttribute('aria-expanded', 'true')
   })
+
+  it('returns to capture via the back affordance without discarding the draft', async () => {
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    await user.type(screen.getByLabelText('Názov jedla'), 'Ryžový obed')
+
+    await user.click(screen.getByRole('button', { name: /Späť na fotografiu/ }))
+
+    // The capture step is shown again and the review form is gone.
+    expect(screen.getByText('Odfotiť alebo nahrať jedlo')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Názov jedla')).not.toBeInTheDocument()
+
+    // Re-entering review keeps the previously typed name — nothing was discarded.
+    await user.click(screen.getByRole('button', { name: 'Zapísať manuálne' }))
+    expect(screen.getByLabelText('Názov jedla')).toHaveValue('Ryžový obed')
+  })
+
+  it('omits the back-to-photo affordance for a prefill that starts in review', async () => {
+    renderRecipeLogger()
+
+    expect(await screen.findByDisplayValue('Chicken bowl')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Späť na fotografiu/ })).not.toBeInTheDocument()
+  })
+
+  it('advances to review from a capture recents quick-add with the item present', async () => {
+    vi.mocked(useRecentFoods).mockReturnValue({
+      data: [{
+        key: 'recent-jablko', name: 'Jablko', amount: 100, unit: 'g', amount_grams: 100,
+        calories: 52, protein_g: 0.3, carbs_g: 14, fat_g: 0.2,
+      }],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useRecentFoods>)
+    renderManualLogger()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Jablko/ }))
+
+    expect(screen.getByLabelText('Názov jedla')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Jablko')).toBeInTheDocument()
+  })
 })
 
 function renderEditLogger() {

@@ -118,6 +118,9 @@ export default function LogMeal() {
   const [formError, setFormError] = useState('')
   const photoInput = useRef<HTMLInputElement>(null)
   const prefillApplied = useRef(false)
+  const captureHeadingRef = useRef<HTMLHeadingElement>(null)
+  const reviewHeadingRef = useRef<HTMLHeadingElement>(null)
+  const stepDidMount = useRef(false)
   const logMeal = useLogMeal()
   const updateMeal = useUpdateMealLog()
   const saveFavorite = useSaveFoodFavorite()
@@ -193,6 +196,18 @@ export default function LogMeal() {
     setPhotoPreview(preview)
     return () => URL.revokeObjectURL(preview)
   }, [isEdit, photoFile, removeExistingPhoto])
+
+  // Move focus to the incoming step's heading when the view swaps between capture and review,
+  // so keyboard/screen-reader focus never falls to <body>. Skip the first render so prefills
+  // (edit/recipe/meal plan) that open directly on review don't yank focus on mount.
+  useEffect(() => {
+    if (!stepDidMount.current) {
+      stepDidMount.current = true
+      return
+    }
+    const target = step === 'review' ? reviewHeadingRef.current : captureHeadingRef.current
+    target?.focus()
+  }, [step])
 
   function updateItem(index: number, update: (draft: LogFoodDraft) => LogFoodDraft) {
     setItems(current => current.map((item, itemIndex) => itemIndex === index ? update(item) : item))
@@ -375,7 +390,7 @@ export default function LogMeal() {
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6 pb-8">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Záznam stravy</p>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Zapísať jedlo</h1>
+          <h1 ref={captureHeadingRef} tabIndex={-1} className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary outline-none">Zapísať jedlo</h1>
           <p className="mt-2 text-sm text-text-secondary">Odfoť jedlo a AI ti predvyplní položky. Pred uložením ich skontroluješ.</p>
         </div>
 
@@ -388,7 +403,7 @@ export default function LogMeal() {
             {photoPreview ? <img src={photoPreview} alt="Náhľad jedla" className="h-56 w-full object-cover" /> : <><ImagePlus size={30} aria-hidden="true" /><span>{processingPhoto ? 'Pripravujem fotografiu…' : 'Odfotiť alebo nahrať jedlo'}</span></>}
           </button>
           <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void selectPhoto(file); event.target.value = '' }} />
-          <textarea value={aiDescription} onChange={event => setAiDescription(event.target.value)} maxLength={500} placeholder="Voliteľný opis, napr. vyprážané, cca 200 g ryže" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />
+          <textarea value={aiDescription} onChange={event => setAiDescription(event.target.value)} maxLength={500} aria-label="Opis jedla (voliteľné)" placeholder="Voliteľný opis, napr. vyprážané, cca 200 g ryže" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />
           <Button className="w-full" loading={analyzing} disabled={!photoFile || processingPhoto} onClick={analyzePhoto}><Sparkles size={16} aria-hidden="true" /> Analyzovať fotografiu</Button>
           <p className="text-xs text-text-secondary">AI iba predvyplní návrh. Výsledok môže byť nepresný.</p>
           <p className="text-xs leading-5 text-text-secondary">Použitím analýzy odošleš pripravenú fotografiu a opis službe Google Gemini. Skontroluj každý odhad pred uložením.</p>
@@ -420,7 +435,7 @@ export default function LogMeal() {
       <div>
         {cameFromCapture && <button type="button" onClick={() => setStep('capture')} className="mb-3 inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-text-secondary hover:text-text-primary">← Späť na fotografiu</button>}
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Záznam stravy</p>
-        <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{isEdit ? 'Upraviť jedlo' : 'Zapísať jedlo'}</h1>
+        <h1 ref={reviewHeadingRef} tabIndex={-1} className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary outline-none">{isEdit ? 'Upraviť jedlo' : 'Zapísať jedlo'}</h1>
         <p className="mt-2 text-sm text-text-secondary">Skontroluj a uprav položky. Nič sa neuloží bez potvrdenia.</p>
       </div>
 
@@ -464,7 +479,7 @@ export default function LogMeal() {
                 {photoPreview ? <img src={photoPreview} alt="Náhľad jedla" className="h-48 w-full object-cover" /> : <><ImagePlus size={24} aria-hidden="true" /><span>{processingPhoto ? 'Pripravujem fotografiu…' : 'Pridať fotografiu'}</span></>}
               </button>
               <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void selectPhoto(file); event.target.value = '' }} />
-              {photoFile && <textarea value={aiDescription} onChange={event => setAiDescription(event.target.value)} maxLength={500} placeholder="Voliteľný opis, napr. vyprážané, cca 200 g ryže" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />}
+              {photoFile && <textarea value={aiDescription} onChange={event => setAiDescription(event.target.value)} maxLength={500} aria-label="Opis jedla (voliteľné)" placeholder="Voliteľný opis, napr. vyprážané, cca 200 g ryže" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />}
               {photoFile && <Button variant="secondary" className="w-full" loading={analyzing} onClick={analyzePhoto}><Sparkles size={16} aria-hidden="true" /> Analyzovať fotografiu</Button>}
               {photoFile && <p className="text-xs leading-5 text-text-secondary">Použitím analýzy odošleš pripravenú fotografiu a opis službe Google Gemini. Skontroluj každý odhad pred uložením.</p>}
               {photoError && <p role="alert" className="text-xs text-error">{photoError}</p>}
