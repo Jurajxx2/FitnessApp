@@ -39,7 +39,7 @@ export function formatSeconds(total: number): string {
 
 export function inferWorkoutExerciseLogType(name: string, reps = ''): WorkoutExerciseLogType {
   const text = `${name} ${reps}`.toLowerCase()
-  if (/\b(run|running|jog|sprint|walk|bike|cycling|rower|rowing|swim|plank|hold|carry|stretch|cardio|time|min|minute|sec|second|beh|běh|ch[uů]ze|kolo|v[yý]drž|protažen[ií])\b/.test(text)) return 'time'
+  if (/\b(run|running|jog|sprint|walk|bike|cycling|rower|rowing|erg|swim|plank|hold|carry|stretch|cardio|time|min|mins|minute|minutes|sec|secs|second|seconds|beh|běh|ch[uů]ze|kolo|v[yý]drž|protažen[ií])\b/.test(text)) return 'time'
   if (/\b(push ?up|pull ?up|chin ?up|dip|burpee|crunch|sit ?up|bodyweight|calisthenics|no equipment|klik|shyb)\b/.test(text)) return 'bodyweight_reps'
   return 'weight_reps'
 }

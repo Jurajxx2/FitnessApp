@@ -683,6 +683,62 @@ class ActiveSessionViewModelTest {
     }
 
     @Test
+    fun `resuming a legacy timed set folds from actualRestSeconds baseline when actualDurationSeconds is null`() = runTest {
+        // Pre-20260710224911 timed logs stored their duration in actual_rest_seconds (see
+        // TimeTrackerCell's baselineSeconds fallback). A legacy in-progress set resumed with only
+        // actualRestSeconds set must keep that baseline when its stopwatch is started and paused.
+        val log = WorkoutLog(
+            id = "resume-log-1",
+            userId = "user-1",
+            workoutId = null,
+            workoutName = "Ad Hoc",
+            durationMinutes = 0,
+            notes = null,
+            exerciseLogs = listOf(
+                com.coachfoska.app.domain.model.ExerciseLog(
+                    id = "exercise-log-1",
+                    workoutLogId = "resume-log-1",
+                    exerciseName = "Plank Hold",
+                    notes = null,
+                    exerciseId = "plank-1",
+                    sets = listOf(
+                        SetLog(
+                            id = "set-log-1",
+                            exerciseLogId = "exercise-log-1",
+                            sortOrder = 1,
+                            targetReps = null,
+                            actualReps = null,
+                            targetWeightKg = null,
+                            actualWeightKg = null,
+                            rpe = null,
+                            targetRestSeconds = null,
+                            actualRestSeconds = 45,
+                            completed = false,
+                            actualDurationSeconds = null,
+                        )
+                    ),
+                )
+            ),
+            loggedAt = kotlinx.datetime.Instant.parse("2026-07-03T10:00:00Z"),
+            status = "in_progress",
+        )
+        coEvery { repo.getInProgressSession("user-1") } returns Result.success(log)
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1", resumeLogId = "resume-log-1"))
+        advanceUntilIdle()
+
+        vm.onIntent(ActiveSessionIntent.StartSetTimer(0, 0))
+        vm.onIntent(ActiveSessionIntent.PauseSetTimer(0, 0))
+
+        val set = vm.state.value.sessionDraft?.exercises?.single()?.sets?.first()
+        assertNull(set?.timerStartedAtEpochMillis, "anchor must be cleared on pause")
+        val folded = set?.actualDurationSeconds
+        assertNotNull(folded)
+        assertTrue(folded in 45..46, "fold must preserve the legacy 45s baseline, was $folded")
+    }
+
+    @Test
     fun `starting a second set timer folds the first (single-timer invariant)`() = runTest {
         coEvery { repo.getWorkoutById("w1") } returns Result.success(aTimedWorkout(sets = 2))
 

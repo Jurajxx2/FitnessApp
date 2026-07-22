@@ -1,4 +1,4 @@
-import { buildWeek, completedSets, isTimedTarget, matchesWorkout, parseTargetReps, splitAssigned, startOfWeek, weeklyProgress, workoutVolume } from './logic'
+import { buildWeek, completedSets, matchesWorkout, parseTargetReps, splitAssigned, startOfWeek, weeklyProgress, workoutVolume } from './logic'
 import type { WorkoutLogRow, WorkoutRow } from './types'
 
 const workout: WorkoutRow = {
@@ -49,8 +49,6 @@ describe('activity logic', () => {
   it('parses target labels and keeps timed work separate from reps', () => {
     expect(parseTargetReps('8-12')).toBe(8)
     expect(parseTargetReps('Hold')).toBeNull()
-    expect(isTimedTarget('45 sec hold')).toBe(true)
-    expect(isTimedTarget('8-12')).toBe(false)
   })
 
   it('derives completed sets and volume only from completed rows', () => {

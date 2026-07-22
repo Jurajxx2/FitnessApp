@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { applyLogTypeChange, clampTargetDuration, estimateWorkoutDuration, formatSeconds, moveItem } from './builder'
+import {
+  applyLogTypeChange,
+  clampTargetDuration,
+  estimateWorkoutDuration,
+  formatSeconds,
+  inferWorkoutExerciseLogType,
+  moveItem
+} from './builder'
 
 describe('workout builder utilities', () => {
   it('returns no estimate until the workout has an exercise', () => {
@@ -90,5 +97,23 @@ describe('applyLogTypeChange', () => {
     applyLogTypeChange(exercise, 'time')
     expect(exercise.log_type).toBe('weight_reps')
     expect(exercise.target_duration_seconds).toBeNull()
+  })
+})
+
+describe('inferWorkoutExerciseLogType', () => {
+  it('recognizes plural time units so legacy log_type-null rows match the mobile inference', () => {
+    expect(inferWorkoutExerciseLogType('Plank', '45 seconds')).toBe('time')
+    expect(inferWorkoutExerciseLogType('Plank', '10 minutes')).toBe('time')
+    expect(inferWorkoutExerciseLogType('Plank', '45 secs')).toBe('time')
+    expect(inferWorkoutExerciseLogType('Plank', '10 mins')).toBe('time')
+  })
+
+  it('recognizes erg as a time signal', () => {
+    expect(inferWorkoutExerciseLogType('Erg', '500m')).toBe('time')
+  })
+
+  it('still infers weight_reps and bodyweight_reps for non-timed exercises', () => {
+    expect(inferWorkoutExerciseLogType('Bench Press', '10')).toBe('weight_reps')
+    expect(inferWorkoutExerciseLogType('Push Up', '15')).toBe('bodyweight_reps')
   })
 })

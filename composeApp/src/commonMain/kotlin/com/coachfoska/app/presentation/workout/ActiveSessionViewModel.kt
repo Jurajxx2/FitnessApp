@@ -1090,7 +1090,14 @@ private fun SetDraft.foldRunningTimer(nowEpochMillis: Long): SetDraft =
         this
     } else {
         copy(
-            actualDurationSeconds = currentElapsedSeconds(actualDurationSeconds, timerStartedAtEpochMillis, nowEpochMillis),
+            // Legacy pre-20260710224911 timed logs stored their duration in actual_rest_seconds
+            // (see TimeTrackerCell's baselineSeconds). Fold from the same baseline so resuming and
+            // pausing one of those in-progress sets doesn't drop its pre-existing elapsed time.
+            actualDurationSeconds = currentElapsedSeconds(
+                actualDurationSeconds ?: actualRestSeconds,
+                timerStartedAtEpochMillis,
+                nowEpochMillis,
+            ),
             timerStartedAtEpochMillis = null,
         )
     }
