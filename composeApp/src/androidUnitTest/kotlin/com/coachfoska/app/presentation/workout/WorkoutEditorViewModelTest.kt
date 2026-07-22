@@ -118,6 +118,88 @@ class WorkoutEditorViewModelTest {
     }
 
     @Test
+    fun `load a stored weight_reps exercise whose reps mentions seconds does not infer a target duration`() = runTest {
+        // E-7 regression: stored log_type is authoritative. "30 sec" would trigger the legacy
+        // time inference if we ignored the stored WEIGHT_REPS value.
+        val exercises = listOf(
+            WorkoutExercise(
+                id = "we1", workoutId = "w1", name = "Wall Sit Hold",
+                muscleGroup = "Legs", sets = 3, reps = "30 sec", restSeconds = 60,
+                tips = null, sortOrder = 0, logType = ExerciseLogType.WEIGHT_REPS,
+            ),
+        )
+        val workout = aWorkout(id = "w1", name = "Legs", exercises = exercises)
+        coEvery { workoutRepo.getWorkoutById("w1") } returns Result.success(workout)
+
+        val vm = viewModel()
+        vm.onIntent(WorkoutEditorIntent.Load("w1"))
+        advanceUntilIdle()
+
+        val loaded = vm.state.value.exercises.single()
+        assertEquals(ExerciseLogType.WEIGHT_REPS, loaded.logType)
+        assertNull(loaded.targetDurationSeconds)
+    }
+
+    @Test
+    fun `load a legacy time exercise still infers its duration from reps text`() = runTest {
+        // Legacy plans have no stored log_type; inference stays as the fallback so old TIME
+        // exercises don't silently lose their duration goal.
+        val exercises = listOf(
+            WorkoutExercise(
+                id = "we1", workoutId = "w1", name = "Plank Hold",
+                muscleGroup = "Core", sets = 3, reps = "45 sec", restSeconds = 60,
+                tips = null, sortOrder = 0, logType = null,
+            ),
+        )
+        val workout = aWorkout(id = "w1", name = "Core", exercises = exercises)
+        coEvery { workoutRepo.getWorkoutById("w1") } returns Result.success(workout)
+
+        val vm = viewModel()
+        vm.onIntent(WorkoutEditorIntent.Load("w1"))
+        advanceUntilIdle()
+
+        val loaded = vm.state.value.exercises.single()
+        assertEquals(ExerciseLogType.TIME, loaded.logType)
+        assertEquals(45, loaded.targetDurationSeconds)
+    }
+
+    @Test
+    fun `SetExerciseLogType to TIME defaults target duration to 30 when previously null`() {
+        val vm = viewModel()
+        vm.onIntent(WorkoutEditorIntent.AddExercise(anExercise()))
+
+        vm.onIntent(WorkoutEditorIntent.SetExerciseLogType(0, ExerciseLogType.TIME))
+
+        val updated = vm.state.value.exercises.single()
+        assertEquals(ExerciseLogType.TIME, updated.logType)
+        assertEquals(30, updated.targetDurationSeconds)
+    }
+
+    @Test
+    fun `SetExerciseLogType TIME to TIME keeps the existing target duration`() {
+        val vm = viewModel()
+        vm.onIntent(WorkoutEditorIntent.AddExercise(anExercise(name = "Plank").copy(logType = ExerciseLogType.TIME)))
+        vm.onIntent(WorkoutEditorIntent.UpdateDuration(0, 90))
+
+        vm.onIntent(WorkoutEditorIntent.SetExerciseLogType(0, ExerciseLogType.TIME))
+
+        assertEquals(90, vm.state.value.exercises.single().targetDurationSeconds)
+    }
+
+    @Test
+    fun `SetExerciseLogType away from TIME nulls the target duration`() {
+        val vm = viewModel()
+        vm.onIntent(WorkoutEditorIntent.AddExercise(anExercise(name = "Plank").copy(logType = ExerciseLogType.TIME)))
+        assertEquals(30, vm.state.value.exercises.single().targetDurationSeconds)
+
+        vm.onIntent(WorkoutEditorIntent.SetExerciseLogType(0, ExerciseLogType.WEIGHT_REPS))
+
+        val updated = vm.state.value.exercises.single()
+        assertEquals(ExerciseLogType.WEIGHT_REPS, updated.logType)
+        assertNull(updated.targetDurationSeconds)
+    }
+
+    @Test
     fun `move_exercise_reorders`() = runTest {
         val vm = viewModel()
         // Add exercises A, B, C

@@ -22,6 +22,7 @@ import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.domain.model.WeeklyCount
 import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutDraft
+import com.coachfoska.app.domain.model.WorkoutExerciseDraft
 import com.coachfoska.app.domain.model.WorkoutLog
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.domain.repository.WorkoutRepository
@@ -344,23 +345,7 @@ class WorkoutRepositoryImpl(
             forkedFromWorkoutId = forkedFromWorkoutId,
         )
         val workoutDto = workoutDataSource.insertWorkout(workoutPayload)
-        val exercisePayloads = draft.exercises.mapIndexed { index, ex ->
-            WorkoutExerciseInsertDto(
-                workoutId = workoutDto.id,
-                name = ex.name,
-                muscleGroup = ex.muscleGroup,
-                sets = ex.sets,
-                reps = ex.reps,
-                restSeconds = ex.restSeconds,
-                tips = ex.tips,
-                sortOrder = index,
-                exerciseId = ex.exerciseId,
-                logType = ex.logType?.toDatabaseValue(),
-                targetDurationSeconds = ex.targetDurationSeconds,
-                substitutedFromExerciseId = ex.substitutedFromExerciseId,
-                substitutedFromName = ex.substitutedFromName,
-            )
-        }
+        val exercisePayloads = draft.exercises.mapIndexed { index, ex -> ex.toInsertDto(workoutDto.id, index) }
         workoutDataSource.replaceWorkoutExercises(workoutDto.id, exercisePayloads)
         workoutDataSource.getWorkoutById(workoutDto.id).toDomain()
     }
@@ -372,23 +357,7 @@ class WorkoutRepositoryImpl(
             notes = draft.notes,
         )
         workoutDataSource.updateWorkout(workoutId, updatePayload)
-        val exercisePayloads = draft.exercises.mapIndexed { index, ex ->
-            WorkoutExerciseInsertDto(
-                workoutId = workoutId,
-                name = ex.name,
-                muscleGroup = ex.muscleGroup,
-                sets = ex.sets,
-                reps = ex.reps,
-                restSeconds = ex.restSeconds,
-                tips = ex.tips,
-                sortOrder = index,
-                exerciseId = ex.exerciseId,
-                logType = ex.logType?.toDatabaseValue(),
-                targetDurationSeconds = ex.targetDurationSeconds,
-                substitutedFromExerciseId = ex.substitutedFromExerciseId,
-                substitutedFromName = ex.substitutedFromName,
-            )
-        }
+        val exercisePayloads = draft.exercises.mapIndexed { index, ex -> ex.toInsertDto(workoutId, index) }
         workoutDataSource.replaceWorkoutExercises(workoutId, exercisePayloads)
         workoutDataSource.getWorkoutById(workoutId).toDomain()
     }
@@ -484,3 +453,35 @@ private fun ExerciseLogType.toDatabaseValue(): String = when (this) {
     ExerciseLogType.BODYWEIGHT_REPS -> "bodyweight_reps"
     ExerciseLogType.TIME -> "time"
 }
+
+/**
+ * Write-time guard for `workout_exercises_target_duration_check` (E-3): `log_type='time'`
+ * requires a non-null duration in [1,3600]; every other log_type requires null. Own-plan writes
+ * (createUserWorkout/updateUserWorkout) go straight to Postgrest and bypass the validating RPC
+ * coach-authored plans go through, so this is the last line of defense before the DB CHECK — the
+ * editor's own state already keeps this invariant, but a stray/stale value must never reach the
+ * network call. Defaults a null TIME duration to 30s, matching the editor's default.
+ */
+internal fun normalizedTargetDurationSeconds(logType: ExerciseLogType?, targetDurationSeconds: Int?): Int? =
+    if (logType == ExerciseLogType.TIME) {
+        (targetDurationSeconds ?: 30).coerceIn(1, 3_600)
+    } else {
+        null
+    }
+
+/** Single mapping point shared by createUserWorkout and updateUserWorkout so the write-time guard applies uniformly. */
+private fun WorkoutExerciseDraft.toInsertDto(workoutId: String, sortOrder: Int): WorkoutExerciseInsertDto = WorkoutExerciseInsertDto(
+    workoutId = workoutId,
+    name = name,
+    muscleGroup = muscleGroup,
+    sets = sets,
+    reps = reps,
+    restSeconds = restSeconds,
+    tips = tips,
+    sortOrder = sortOrder,
+    exerciseId = exerciseId,
+    logType = logType?.toDatabaseValue(),
+    targetDurationSeconds = normalizedTargetDurationSeconds(logType, targetDurationSeconds),
+    substitutedFromExerciseId = substitutedFromExerciseId,
+    substitutedFromName = substitutedFromName,
+)
