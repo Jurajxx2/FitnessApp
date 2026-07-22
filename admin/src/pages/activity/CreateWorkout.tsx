@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import { createUserWorkout } from '../../activity/api'
 import type { UserWorkoutExerciseDraft } from '../../activity/types'
 import { ExercisePicker, type ExercisePickerItem } from '../../components/ExercisePicker'
+import { LogTypeToggle } from '../../components/LogTypeToggle'
 import { SelectedExerciseCard } from '../../components/SelectedExerciseCard'
 import { WorkoutDurationControl } from '../../components/WorkoutDurationControl'
 import { useNotice } from '../../components/ui'
 import { useAuth } from '../../hooks/useAuth'
-import { createExerciseDraftId, estimateWorkoutDuration, inferWorkoutExerciseLogType, moveItem, type WorkoutDurationMode } from '../../workouts/builder'
+import { applyLogTypeChange, createExerciseDraftId, estimateWorkoutDuration, inferWorkoutExerciseLogType, moveItem, type WorkoutDurationMode } from '../../workouts/builder'
 import { ActivityPage, PageIntro } from './shared'
 
 const DEFAULT_EXERCISE = { sets: 3, reps: '10', rest_seconds: 60 }
@@ -127,6 +128,14 @@ export default function CreateWorkout() {
                     onDropExercise={dropExercise}
                     onRemove={() => setSelected(current => current.filter(item => item.client_id !== exercise.client_id))}
                   >
+                    <fieldset className="mb-3 rounded-xl border border-outline-subtle bg-surface p-3">
+                      <legend className="px-1 text-xs font-bold uppercase tracking-wider text-text-secondary">Sledovanie</legend>
+                      <LogTypeToggle
+                        locale="sk"
+                        value={exercise.log_type ?? 'weight_reps'}
+                        onChange={next => setSelected(current => current.map((item, currentIndex) => currentIndex === index ? applyLogTypeChange(item, next) : item))}
+                      />
+                    </fieldset>
                     <div className="grid grid-cols-3 gap-2">
                       <Field label="Série" value={String(exercise.sets)} onChange={value => updateExercise(index, 'sets', value)} type="number" min="1" max="20" />
                       {exercise.log_type === 'time'
