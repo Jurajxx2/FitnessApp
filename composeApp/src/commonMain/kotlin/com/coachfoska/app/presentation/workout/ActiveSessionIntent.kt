@@ -21,6 +21,16 @@ sealed interface ActiveSessionIntent {
         val setIndex: Int,
         val completed: Boolean,
     ) : ActiveSessionIntent
+    /** Start (or resume) the durable wall-clock stopwatch for a timed set. */
+    data class StartSetTimer(
+        val exerciseIndex: Int,
+        val setIndex: Int,
+    ) : ActiveSessionIntent
+    /** Pause a timed set's stopwatch, folding the elapsed wall-clock time into its duration. */
+    data class PauseSetTimer(
+        val exerciseIndex: Int,
+        val setIndex: Int,
+    ) : ActiveSessionIntent
     data class AddExtraSet(val exerciseIndex: Int) : ActiveSessionIntent
     data class RemoveSet(val exerciseIndex: Int, val setIndex: Int) : ActiveSessionIntent
     data class SkipToNextExercise(val exerciseIndex: Int) : ActiveSessionIntent

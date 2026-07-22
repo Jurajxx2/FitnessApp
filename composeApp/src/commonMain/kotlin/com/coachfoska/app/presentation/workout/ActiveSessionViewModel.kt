@@ -55,6 +55,8 @@ class ActiveSessionViewModel(
             is ActiveSessionIntent.UpdateSetActual -> updateSet(intent)
             is ActiveSessionIntent.UpdateSetDuration -> updateSetDuration(intent)
             is ActiveSessionIntent.MarkSetComplete -> markSetComplete(intent)
+            is ActiveSessionIntent.StartSetTimer -> startSetTimer(intent.exerciseIndex, intent.setIndex)
+            is ActiveSessionIntent.PauseSetTimer -> pauseSetTimer(intent.exerciseIndex, intent.setIndex)
             is ActiveSessionIntent.AddExtraSet -> addExtraSet(intent.exerciseIndex)
             is ActiveSessionIntent.RemoveSet -> removeSet(intent.exerciseIndex, intent.setIndex)
             is ActiveSessionIntent.SkipToNextExercise -> skipToNextExercise(intent.exerciseIndex)
@@ -284,15 +286,20 @@ class ActiveSessionViewModel(
             ?.getOrNull(intent.setIndex)
             ?: return
 
+        val now = currentInstant().toEpochMilliseconds()
         _state.update { s ->
             val draft = s.sessionDraft ?: return@update s
             val updatedEx = draft.exercises.toMutableList()
             val ex = updatedEx.getOrNull(intent.exerciseIndex) ?: return@update s
             val updatedSets = ex.sets.toMutableList()
             val set = updatedSets.getOrNull(intent.setIndex) ?: return@update s
-            updatedSets[intent.setIndex] = set.copy(
+            // Fold a running stopwatch into the persisted duration before completing, so the final
+            // ~1s is captured no matter which completion affordance (check-box or whole-row tap)
+            // was tapped.
+            val folded = if (intent.completed) set.foldRunningTimer(now) else set
+            updatedSets[intent.setIndex] = folded.copy(
                 completed = intent.completed,
-                actualRestSeconds = if (intent.completed) set.actualRestSeconds else null,
+                actualRestSeconds = if (intent.completed) folded.actualRestSeconds else null,
             )
             updatedEx[intent.exerciseIndex] = ex.copy(sets = updatedSets)
             s.copy(sessionDraft = draft.copy(exercises = updatedEx))
@@ -351,6 +358,62 @@ class ActiveSessionViewModel(
                 cancelRestTimer(recordElapsedRest = false)
             }
             if (originalSet.setLogId != null) persistSet(intent.exerciseIndex, intent.setIndex)
+        }
+    }
+
+    /**
+     * Starts (or resumes) the durable stopwatch on a timed set by stamping a wall-clock anchor.
+     * Enforces the single-timer invariant: any other running set-timer is folded into its own
+     * duration first, so at most one anchor is ever non-null.
+     */
+    private fun startSetTimer(exerciseIndex: Int, setIndex: Int) {
+        val now = currentInstant().toEpochMilliseconds()
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            // Fold every currently-running stopwatch (this clears all anchors), then start ours.
+            val exercises = draft.exercises.map { ex ->
+                ex.copy(sets = ex.sets.map { it.foldRunningTimer(now) })
+            }.toMutableList()
+            val ex = exercises.getOrNull(exerciseIndex) ?: return@update s
+            val sets = ex.sets.toMutableList()
+            val set = sets.getOrNull(setIndex) ?: return@update s
+            if (set.completed) return@update s
+            sets[setIndex] = set.copy(timerStartedAtEpochMillis = now)
+            exercises[exerciseIndex] = ex.copy(sets = sets)
+            s.copy(sessionDraft = draft.copy(exercises = exercises))
+        }
+    }
+
+    /** Pauses a timed set's stopwatch, folding the elapsed wall-clock time into its duration. */
+    private fun pauseSetTimer(exerciseIndex: Int, setIndex: Int) {
+        val now = currentInstant().toEpochMilliseconds()
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            val exercises = draft.exercises.toMutableList()
+            val ex = exercises.getOrNull(exerciseIndex) ?: return@update s
+            val sets = ex.sets.toMutableList()
+            val set = sets.getOrNull(setIndex) ?: return@update s
+            sets[setIndex] = set.foldRunningTimer(now)
+            exercises[exerciseIndex] = ex.copy(sets = sets)
+            s.copy(sessionDraft = draft.copy(exercises = exercises))
+        }
+    }
+
+    /**
+     * Folds any running set-timer across the whole session into its duration and clears the anchor,
+     * so leaving the session (finish/discard) never loses in-flight elapsed time.
+     */
+    private fun foldAllRunningTimers() {
+        val now = currentInstant().toEpochMilliseconds()
+        _state.update { s ->
+            val draft = s.sessionDraft ?: return@update s
+            if (draft.exercises.none { ex -> ex.sets.any { it.timerStartedAtEpochMillis != null } }) {
+                return@update s
+            }
+            val exercises = draft.exercises.map { ex ->
+                ex.copy(sets = ex.sets.map { it.foldRunningTimer(now) })
+            }
+            s.copy(sessionDraft = draft.copy(exercises = exercises))
         }
     }
 
@@ -761,6 +824,8 @@ class ActiveSessionViewModel(
         // Keep a partial final rest interval when the user finishes a workout mid-countdown.
         // This is still useful history and avoids leaving an active timer behind a completed log.
         cancelRestTimer(recordElapsedRest = true)
+        // Fold any exercise stopwatch still running so its elapsed time is captured on the draft.
+        foldAllRunningTimers()
         val draft = _state.value.sessionDraft ?: return
 
         val exerciseLogs = draft.exercises
@@ -821,6 +886,8 @@ class ActiveSessionViewModel(
         if (discardRequested || _state.value.sessionDiscarded) return
 
         cancelRestTimer(recordElapsedRest = false)
+        // Fold any running stopwatch so it is not left ticking behind a discarded session.
+        foldAllRunningTimers()
         discardRequested = true
         val workoutLogId = _state.value.sessionDraft?.workoutLogId
         viewModelScope.launch {
@@ -1013,6 +1080,20 @@ private fun SessionDraft.locateSet(exerciseName: String, sortOrder: Int): Pair<I
     if (setIndex < 0) return null
     return exerciseIndex to setIndex
 }
+
+/**
+ * Folds a running stopwatch's wall-clock elapsed time into [SetDraft.actualDurationSeconds] and
+ * clears the transient anchor. A no-op when the timer is already paused (anchor null).
+ */
+private fun SetDraft.foldRunningTimer(nowEpochMillis: Long): SetDraft =
+    if (timerStartedAtEpochMillis == null) {
+        this
+    } else {
+        copy(
+            actualDurationSeconds = currentElapsedSeconds(actualDurationSeconds, timerStartedAtEpochMillis, nowEpochMillis),
+            timerStartedAtEpochMillis = null,
+        )
+    }
 
 private fun SetDraft.hasSamePersistedValuesAs(other: SetDraft): Boolean =
     sortOrder == other.sortOrder &&

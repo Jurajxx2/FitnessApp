@@ -48,12 +48,16 @@ import coachfoska.composeapp.generated.resources.set_row_min_header
 import coachfoska.composeapp.generated.resources.set_row_prev_header
 import coachfoska.composeapp.generated.resources.set_row_reps_header
 import coachfoska.composeapp.generated.resources.set_row_set_header
+import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.SetLog
+import com.coachfoska.app.domain.model.formatDuration
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.presentation.workout.SetDraft
 import com.coachfoska.app.presentation.workout.SetSaveState
 import com.coachfoska.app.presentation.workout.SetType
+import com.coachfoska.app.presentation.workout.canComplete
+import com.coachfoska.app.presentation.workout.currentElapsedSeconds
 import com.coachfoska.designsystem.components.DsTextField
 import com.coachfoska.designsystem.theme.LocalReduceMotion
 import kotlinx.coroutines.delay
@@ -107,7 +111,8 @@ fun SetRow(
     isNextSet: Boolean,
     onWeightChange: (Float?) -> Unit,
     onRepsChange: (Int?) -> Unit,
-    onDurationChange: (Int?) -> Unit = {},
+    onStartTimer: () -> Unit = {},
+    onPauseTimer: () -> Unit = {},
     onCompleted: () -> Unit,
     onSetTypeChange: (SetType) -> Unit = {},
     onRemove: (() -> Unit)? = null,
@@ -120,35 +125,16 @@ fun SetRow(
     val reduceMotion = LocalReduceMotion.current
     val haptics = LocalHapticFeedback.current
     val pulse = remember { Animatable(1f) }
-    var elapsedSeconds by remember(setDraft.setLogId, setDraft.sortOrder) {
-        mutableStateOf(setDraft.actualDurationSeconds ?: setDraft.actualRestSeconds ?: 0)
-    }
-    var isTimerRunning by remember(setDraft.setLogId, setDraft.sortOrder) {
-        mutableStateOf(false)
-    }
+    // The stopwatch is fully driven by the hoisted draft: a non-null anchor means it is running,
+    // and the displayed value is recomputed from the wall clock each frame (see TimeTrackerCell),
+    // so scrolling the row off-screen or backgrounding the app never loses or freezes elapsed time.
+    val isTimerRunning = setDraft.timerStartedAtEpochMillis != null
     LaunchedEffect(setDraft.completed) {
-        if (setDraft.completed) {
-            isTimerRunning = false
-        }
         if (setDraft.completed && !reduceMotion) {
             pulse.snapTo(1.15f)
             pulse.animateTo(1f, animationSpec = tween(180))
         } else {
             pulse.snapTo(1f)
-        }
-    }
-    LaunchedEffect(setDraft.actualDurationSeconds, setDraft.actualRestSeconds, isTimerRunning) {
-        // Older timed logs used actual_rest_seconds before duration was given its own column.
-        val savedSeconds = setDraft.actualDurationSeconds ?: setDraft.actualRestSeconds
-        if (!isTimerRunning && savedSeconds != null && savedSeconds != elapsedSeconds) {
-            elapsedSeconds = savedSeconds
-        }
-    }
-    LaunchedEffect(isTimerRunning, setDraft.completed) {
-        while (isTimerRunning && !setDraft.completed) {
-            delay(1000)
-            elapsedSeconds += 1
-            onDurationChange(elapsedSeconds)
         }
     }
     val completedBg by animateColorAsState(
@@ -248,16 +234,15 @@ fun SetRow(
 
         if (logType == ExerciseLogType.TIME) {
             TimeTrackerCell(
-                elapsedSeconds = elapsedSeconds,
+                // Older timed logs stored their duration in actual_rest_seconds before duration got
+                // its own column; fall back to it for the paused display of resumed legacy sets.
+                baselineSeconds = setDraft.actualDurationSeconds ?: setDraft.actualRestSeconds,
+                startedAtEpochMillis = setDraft.timerStartedAtEpochMillis,
                 targetDurationSeconds = targetDurationSeconds,
                 isRunning = isTimerRunning,
                 enabled = !setDraft.completed,
-                onToggle = {
-                    isTimerRunning = !isTimerRunning
-                    if (!isTimerRunning) {
-                        onDurationChange(elapsedSeconds.takeIf { it > 0 })
-                    }
-                },
+                onStart = onStartTimer,
+                onPause = onPauseTimer,
             )
         } else {
             DsTextField(
@@ -288,10 +273,9 @@ fun SetRow(
                     if (saveFailed) {
                         onRetrySave()
                     } else if (setDraft.completed || setDraft.canComplete(logType)) {
-                        if (logType == ExerciseLogType.TIME) {
-                            isTimerRunning = false
-                            onDurationChange(elapsedSeconds.takeIf { it > 0 })
-                        }
+                        // A running stopwatch is folded into the duration by the ViewModel on
+                        // completion (MarkSetComplete), so both this check-box and the whole-row
+                        // tap capture the full elapsed time without any UI-side bookkeeping.
                         if (!setDraft.completed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onCompleted()
                     }
@@ -352,20 +336,33 @@ fun SetRow(
 
 @Composable
 private fun TimeTrackerCell(
-    elapsedSeconds: Int,
+    baselineSeconds: Int?,
+    startedAtEpochMillis: Long?,
     targetDurationSeconds: Int?,
     isRunning: Boolean,
     enabled: Boolean,
-    onToggle: () -> Unit,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Re-read the wall clock every second while running purely to trigger recomposition; the value
+    // shown is always derived from the anchor, so it self-corrects after a scroll or a long
+    // background gap instead of drifting by the number of frames the row was disposed for.
+    var nowEpochMillis by remember { mutableStateOf(currentInstant().toEpochMilliseconds()) }
+    LaunchedEffect(isRunning, startedAtEpochMillis) {
+        while (isRunning) {
+            nowEpochMillis = currentInstant().toEpochMilliseconds()
+            delay(1000)
+        }
+    }
+    val displaySeconds = currentElapsedSeconds(baselineSeconds, startedAtEpochMillis, nowEpochMillis)
     Row(
         modifier = modifier.width(112.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         IconButton(
-            onClick = onToggle,
+            onClick = { if (isRunning) onPause() else onStart() },
             enabled = enabled,
             modifier = Modifier.size(40.dp),
         ) {
@@ -377,20 +374,14 @@ private fun TimeTrackerCell(
         }
         Text(
             text = targetDurationSeconds?.let { target ->
-                "${formatElapsedTime(elapsedSeconds)} / ${formatElapsedTime(target)}"
-            } ?: formatElapsedTime(elapsedSeconds),
+                "${formatDuration(displaySeconds)} / ${formatDuration(target)}"
+            } ?: formatDuration(displaySeconds),
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
             color = DsTheme.colors.textPrimary,
             modifier = Modifier.width(68.dp),
             textAlign = TextAlign.Center,
         )
     }
-}
-
-private fun SetDraft.canComplete(logType: ExerciseLogType): Boolean = when (logType) {
-    ExerciseLogType.WEIGHT_REPS -> actualWeightKg != null && actualReps != null
-    ExerciseLogType.BODYWEIGHT_REPS -> actualReps != null
-    ExerciseLogType.TIME -> actualDurationSeconds != null || actualRestSeconds != null
 }
 
 private fun SetLog.formatFor(logType: ExerciseLogType): String = when (logType) {
@@ -400,11 +391,5 @@ private fun SetLog.formatFor(logType: ExerciseLogType): String = when (logType) 
         "$weight x $reps"
     }
     ExerciseLogType.BODYWEIGHT_REPS -> actualReps?.let { "$it reps" } ?: "-"
-    ExerciseLogType.TIME -> (actualDurationSeconds ?: actualRestSeconds)?.let { formatElapsedTime(it) } ?: "-"
-}
-
-private fun formatElapsedTime(seconds: Int): String {
-    val minutes = seconds / 60
-    val remainingSeconds = seconds % 60
-    return "${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}"
+    ExerciseLogType.TIME -> (actualDurationSeconds ?: actualRestSeconds)?.let { formatDuration(it) } ?: "-"
 }
