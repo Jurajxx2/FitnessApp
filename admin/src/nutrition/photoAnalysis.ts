@@ -13,9 +13,10 @@ export interface AnalyzedMealItem {
 
 export interface MealAnalysis {
   items: AnalyzedMealItem[]
+  mealName?: string
 }
 
-const TOP_LEVEL_KEYS = ['items']
+const TOP_LEVEL_KEYS = new Set(['items', 'meal_name'])
 const ITEM_KEYS = ['name', 'grams', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'confidence']
 
 function exactKeys(value: Record<string, unknown>, keys: string[]) {
@@ -30,7 +31,8 @@ function finiteInRange(value: unknown, min: number, max: number): value is numbe
 export function parseMealAnalysis(value: unknown): MealAnalysis | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
   const object = value as Record<string, unknown>
-  if (!exactKeys(object, TOP_LEVEL_KEYS) || !Array.isArray(object.items) || object.items.length > 25) return null
+  if (!Object.keys(object).every(key => TOP_LEVEL_KEYS.has(key))) return null
+  if (!Array.isArray(object.items) || object.items.length > 25) return null
 
   const items: AnalyzedMealItem[] = []
   for (const valueItem of object.items) {
@@ -54,7 +56,16 @@ export function parseMealAnalysis(value: unknown): MealAnalysis | null {
       confidence: item.confidence,
     })
   }
-  return { items }
+
+  let mealName: string | undefined
+  const rawName = object.meal_name
+  if (rawName !== undefined) {
+    if (typeof rawName !== 'string') return null
+    const trimmed = rawName.trim()
+    if (trimmed.length > 120) return null
+    mealName = trimmed || undefined
+  }
+  return mealName ? { items, mealName } : { items }
 }
 
 function fileToBase64(file: File): Promise<string> {

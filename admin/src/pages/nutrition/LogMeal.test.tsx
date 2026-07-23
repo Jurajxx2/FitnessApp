@@ -165,6 +165,22 @@ describe('LogMeal', () => {
     expect(mutateAsync).not.toHaveBeenCalled()
   })
 
+  it('prefers the AI meal_name over the client-side name suggestion', async () => {
+    vi.mocked(analyzeMealPhoto).mockResolvedValue({
+      items: [{ name: 'Kuracie mäso', grams: 180, kcal: 300, protein_g: 45, carbs_g: 0, fat_g: 8, confidence: 0.5 }],
+      mealName: 'Kuracie halušky',
+    })
+    renderManualLogger()
+    const user = userEvent.setup()
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')
+    await user.upload(input!, new File(['image'], 'lunch.png', { type: 'image/png' }))
+    await screen.findByAltText('Náhľad jedla')
+    await user.click(screen.getByRole('button', { name: 'Analyzovať fotografiu' }))
+
+    expect(await screen.findByText('Kuracie mäso')).toBeInTheDocument()
+    expect(screen.getByLabelText('Názov jedla')).toHaveValue('Kuracie halušky')
+  })
+
   it('adds a favourite from the capture quick-add and enters review', async () => {
     vi.mocked(useFoodFavorites).mockReturnValue({
       data: [{

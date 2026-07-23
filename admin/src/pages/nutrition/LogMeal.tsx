@@ -266,7 +266,7 @@ export default function LogMeal() {
     try {
       const analysis = await analyzeMealPhoto(photoFile, aiDescription)
       setItems(current => mergeAnalysis(current, analysis))
-      if (!mealName.trim()) setMealName(suggestMealName(analysis.items.map(item => item.name)) || 'Jedlo z fotografie')
+      if (!mealName.trim()) setMealName(analysis.mealName?.trim() || suggestMealName(analysis.items.map(item => item.name)) || 'Jedlo z fotografie')
       notify('Odhad bol doplnený. Pred uložením skontroluj všetky položky.', 'success')
       setStep('review')
     } catch (error) {

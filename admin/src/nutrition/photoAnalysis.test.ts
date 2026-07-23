@@ -24,6 +24,22 @@ describe('parseMealAnalysis', () => {
     const { confidence: _, ...withoutConfidence } = chicken
     expect(parseMealAnalysis({ items: [withoutConfidence] })).toBeNull()
   })
+
+  it('accepts and trims a valid meal_name into mealName', () => {
+    expect(parseMealAnalysis({ items: [chicken], meal_name: '  Kuracie prsia s ryžou ' }))
+      .toEqual({ items: [chicken], mealName: 'Kuracie prsia s ryžou' })
+  })
+
+  it('omits mealName when meal_name is absent, empty, or whitespace-only', () => {
+    expect(parseMealAnalysis({ items: [chicken] })).toEqual({ items: [chicken] })
+    expect(parseMealAnalysis({ items: [chicken], meal_name: '' })).toEqual({ items: [chicken] })
+    expect(parseMealAnalysis({ items: [chicken], meal_name: '   ' })).toEqual({ items: [chicken] })
+  })
+
+  it('rejects a non-string or overlong meal_name', () => {
+    expect(parseMealAnalysis({ items: [chicken], meal_name: 42 })).toBeNull()
+    expect(parseMealAnalysis({ items: [chicken], meal_name: 'x'.repeat(121) })).toBeNull()
+  })
 })
 
 describe('analyzeMealPhoto', () => {
@@ -40,6 +56,13 @@ describe('analyzeMealPhoto', () => {
         description: 'bez oleja',
       },
     })
+  })
+
+  it('passes through the AI meal_name as mealName', async () => {
+    invoke.mockResolvedValue({ data: { items: [chicken], meal_name: 'Kuracie prsia s ryžou' }, error: null })
+    const file = new File(['photo'], 'meal.jpg', { type: 'image/jpeg' })
+
+    await expect(analyzeMealPhoto(file)).resolves.toEqual({ items: [chicken], mealName: 'Kuracie prsia s ryžou' })
   })
 
   it('rejects invalid function data instead of partially applying it', async () => {
