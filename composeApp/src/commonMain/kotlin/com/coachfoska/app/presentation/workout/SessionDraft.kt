@@ -76,6 +76,17 @@ fun currentElapsedSeconds(baselineSeconds: Int?, startedAtEpochMillis: Long?, no
     return baseline + elapsedSinceAnchor
 }
 
+/**
+ * Persist-time duration when a stopwatch is paused/completed: the same wall-clock math as
+ * [currentElapsedSeconds], but a same-second fold with no prior baseline yields null instead of a
+ * 0-second set. A literal 0 would persist a meaningless timed set (and is an odd thing to show in
+ * history); a real recorded baseline — even 0 — is never dropped.
+ */
+fun foldedDurationSeconds(baselineSeconds: Int?, startedAtEpochMillis: Long?, nowEpochMillis: Long): Int? {
+    val elapsed = currentElapsedSeconds(baselineSeconds, startedAtEpochMillis, nowEpochMillis)
+    return elapsed.takeUnless { it == 0 && baselineSeconds == null }
+}
+
 /** Whether a set has the inputs required to be marked complete for its tracking type. */
 fun SetDraft.canComplete(logType: ExerciseLogType): Boolean = when (logType) {
     ExerciseLogType.WEIGHT_REPS -> actualWeightKg != null && actualReps != null

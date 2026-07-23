@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { normalizedTargetDurationSeconds } from '../workouts/builder'
 import { parseTargetReps } from './logic'
 import type {
   ActivityDraft,
@@ -226,7 +227,9 @@ export async function createUserWorkout(userId: string, draft: UserWorkoutDraft)
       sets: exercise.sets,
       reps: exercise.reps,
       log_type: exercise.log_type,
-      target_duration_seconds: exercise.target_duration_seconds,
+      // Direct Postgrest insert bypasses the validating RPC, so normalise here (mirrors mobile's
+      // WorkoutRepositoryImpl.normalizedTargetDurationSeconds) before the DB CHECK sees it.
+      target_duration_seconds: normalizedTargetDurationSeconds(exercise.log_type, exercise.target_duration_seconds),
       rest_seconds: exercise.rest_seconds,
       sort_order: index,
     }))

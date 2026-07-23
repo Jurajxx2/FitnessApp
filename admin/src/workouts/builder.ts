@@ -22,6 +22,19 @@ export function clampTargetDuration(n: number): number {
   return Math.min(3600, Math.max(1, Math.round(n) || 1))
 }
 
+/**
+ * Write-time guard mirroring the mobile WorkoutRepositoryImpl.normalizedTargetDurationSeconds:
+ * `time` requires a non-null target in [1,3600] (default 30); every other log_type requires null.
+ * The editor's own state already keeps this invariant, but this is the last line of defense before
+ * a stray/stale value reaches a direct Postgrest insert that bypasses the validating RPC.
+ */
+export function normalizedTargetDurationSeconds(
+  logType: WorkoutExerciseLogType | null | undefined,
+  target: number | null | undefined
+): number | null {
+  return logType === 'time' ? clampTargetDuration(target ?? DEFAULT_TIME_TARGET_SECONDS) : null
+}
+
 export function applyLogTypeChange<T extends DurationExercise>(exercise: T, next: WorkoutExerciseLogType): T {
   return {
     ...exercise,

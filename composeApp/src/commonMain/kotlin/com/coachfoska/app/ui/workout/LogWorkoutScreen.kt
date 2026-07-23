@@ -48,9 +48,6 @@ import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.add_exercise
 import coachfoska.composeapp.generated.resources.add_set
 import coachfoska.composeapp.generated.resources.add_video_cd
-import coachfoska.composeapp.generated.resources.editor_log_type_bodyweight
-import coachfoska.composeapp.generated.resources.editor_log_type_time
-import coachfoska.composeapp.generated.resources.editor_log_type_weight_reps
 import coachfoska.composeapp.generated.resources.exercise_label
 import coachfoska.composeapp.generated.resources.exercises_section
 import coachfoska.composeapp.generated.resources.log_session_duration_mins
@@ -371,19 +368,6 @@ internal data class LocalDraftSet(
     val completed: Boolean = false,
     val actualDurationSeconds: Int? = null,
 )
-
-/** Reusable log-type toggle options, mirrored from the workout editor's tracking-type selector. */
-private val LOG_TYPE_OPTIONS = listOf(
-    ExerciseLogType.WEIGHT_REPS,
-    ExerciseLogType.BODYWEIGHT_REPS,
-    ExerciseLogType.TIME,
-)
-
-private fun ExerciseLogType.labelRes() = when (this) {
-    ExerciseLogType.WEIGHT_REPS -> Res.string.editor_log_type_weight_reps
-    ExerciseLogType.BODYWEIGHT_REPS -> Res.string.editor_log_type_bodyweight
-    ExerciseLogType.TIME -> Res.string.editor_log_type_time
-}
 
 /** Updates the typed name and, unless the user already made an explicit toggle choice
  *  ([LocalDraftExercise.logTypeExplicit]), re-infers [LocalDraftExercise.logType] from it. */

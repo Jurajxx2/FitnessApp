@@ -5,7 +5,8 @@ import {
   estimateWorkoutDuration,
   formatSeconds,
   inferWorkoutExerciseLogType,
-  moveItem
+  moveItem,
+  normalizedTargetDurationSeconds
 } from './builder'
 
 describe('workout builder utilities', () => {
@@ -43,6 +44,26 @@ describe('clampTargetDuration', () => {
     expect(clampTargetDuration(999999)).toBe(3600)
     expect(clampTargetDuration(90)).toBe(90)
     expect(clampTargetDuration(Number.NaN)).toBe(1)
+  })
+})
+
+describe('normalizedTargetDurationSeconds', () => {
+  // Write-time guard mirroring the mobile WorkoutRepositoryImpl.normalizedTargetDurationSeconds:
+  // time => a non-null target in [1,3600] (default 30); every other log_type => null.
+  it('defaults, clamps, and rounds a TIME target', () => {
+    expect(normalizedTargetDurationSeconds('time', null)).toBe(30)
+    expect(normalizedTargetDurationSeconds('time', undefined)).toBe(30)
+    expect(normalizedTargetDurationSeconds('time', 90)).toBe(90)
+    expect(normalizedTargetDurationSeconds('time', 0)).toBe(1)
+    expect(normalizedTargetDurationSeconds('time', -5)).toBe(1)
+    expect(normalizedTargetDurationSeconds('time', 999999)).toBe(3600)
+  })
+
+  it('nulls the target for every non-time log_type', () => {
+    expect(normalizedTargetDurationSeconds('weight_reps', 45)).toBeNull()
+    expect(normalizedTargetDurationSeconds('bodyweight_reps', 45)).toBeNull()
+    expect(normalizedTargetDurationSeconds(null, 45)).toBeNull()
+    expect(normalizedTargetDurationSeconds(undefined, 45)).toBeNull()
   })
 })
 

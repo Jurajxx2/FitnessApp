@@ -746,6 +746,9 @@ class ActiveSessionViewModelTest {
         vm.onIntent(ActiveSessionIntent.InitSession("w1"))
         advanceUntilIdle()
 
+        // Seed a baseline on set 0 so the fold captures a real (non-degenerate) value: without one, a
+        // same-instant start→start would correctly fold to null (see the 0-second guard) rather than 0.
+        vm.onIntent(ActiveSessionIntent.UpdateSetDuration(0, 0, 12))
         vm.onIntent(ActiveSessionIntent.StartSetTimer(0, 0))
         vm.onIntent(ActiveSessionIntent.StartSetTimer(0, 1))
 
@@ -753,7 +756,9 @@ class ActiveSessionViewModelTest {
         assertNotNull(sets)
         assertNull(sets[0].timerStartedAtEpochMillis, "first timer must be folded when the second starts")
         assertNotNull(sets[1].timerStartedAtEpochMillis, "the newly started timer must be running")
-        assertNotNull(sets[0].actualDurationSeconds, "the folded first set must have captured its elapsed time")
+        val foldedFirst = sets[0].actualDurationSeconds
+        assertNotNull(foldedFirst, "the folded first set must have captured its elapsed time")
+        assertTrue(foldedFirst in 12..13, "fold must preserve the 12s baseline plus wall-clock delta, was $foldedFirst")
         assertEquals(
             1,
             sets.count { it.timerStartedAtEpochMillis != null },
@@ -784,6 +789,31 @@ class ActiveSessionViewModelTest {
         assertTrue(folded in 30..31, "completion must capture the full elapsed on top of the baseline")
         coVerify {
             repo.saveSetLog(any(), any(), any(), any(), any(), any(), match { it.actualDurationSeconds in 30..31 })
+        }
+    }
+
+    @Test
+    fun `completing a just-started timed set with no baseline persists null, not a 0-second duration`() = runTest {
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aTimedWorkout(sets = 1))
+        coEvery { repo.saveSetLog(any(), any(), any(), any(), any(), any(), any()) } returns
+            Result.success(SavedSetRef("exercise-log-1", "set-log-1"))
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        // No UpdateSetDuration → null baseline. Start then immediately complete within the same
+        // wall-clock second: the fold must not persist a meaningless 0-second timed set.
+        vm.onIntent(ActiveSessionIntent.StartSetTimer(0, 0))
+        vm.onIntent(ActiveSessionIntent.MarkSetComplete(0, 0, completed = true))
+        advanceUntilIdle()
+
+        val set = vm.state.value.sessionDraft?.exercises?.single()?.sets?.first()
+        assertEquals(true, set?.completed)
+        assertNull(set?.timerStartedAtEpochMillis, "completing must clear the running anchor")
+        assertNull(set?.actualDurationSeconds, "a same-second, no-baseline completion must stay null, not 0")
+        coVerify {
+            repo.saveSetLog(any(), any(), any(), any(), any(), any(), match { it.actualDurationSeconds == null })
         }
     }
 

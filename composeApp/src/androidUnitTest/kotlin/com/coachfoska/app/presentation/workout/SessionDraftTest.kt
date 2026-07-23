@@ -2,6 +2,7 @@ package com.coachfoska.app.presentation.workout
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * Pure timing math for the durable exercise stopwatch. These assertions carry the precision the
@@ -52,5 +53,27 @@ class SessionDraftTest {
         val start = 2_000_000L
         assertEquals(0, currentElapsedSeconds(baselineSeconds = 0, startedAtEpochMillis = start, nowEpochMillis = start + 999))
         assertEquals(1, currentElapsedSeconds(baselineSeconds = 0, startedAtEpochMillis = start, nowEpochMillis = start + 1_000))
+    }
+
+    @Test
+    fun `folding a same-second run with no baseline yields null, not a 0-second set`() {
+        val start = 3_000_000L
+        // Start then complete/pause within the same wall-clock second, with nothing recorded yet:
+        // persisting a literal 0 would create a meaningless timed set, so it must drop back to null.
+        assertNull(foldedDurationSeconds(baselineSeconds = null, startedAtEpochMillis = start, nowEpochMillis = start + 400))
+    }
+
+    @Test
+    fun `folding real elapsed with no baseline keeps the counted seconds`() {
+        val start = 3_000_000L
+        assertEquals(30, foldedDurationSeconds(baselineSeconds = null, startedAtEpochMillis = start, nowEpochMillis = start + 30_000))
+    }
+
+    @Test
+    fun `folding a same-second run onto a non-null baseline preserves that baseline`() {
+        val start = 3_000_000L
+        // A prior baseline (even 0) is a real recorded value, so it is never dropped to null.
+        assertEquals(30, foldedDurationSeconds(baselineSeconds = 30, startedAtEpochMillis = start, nowEpochMillis = start + 400))
+        assertEquals(0, foldedDurationSeconds(baselineSeconds = 0, startedAtEpochMillis = start, nowEpochMillis = start + 400))
     }
 }

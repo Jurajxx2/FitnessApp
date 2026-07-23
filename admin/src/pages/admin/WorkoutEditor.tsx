@@ -11,7 +11,7 @@ import { Button, Card, EditorPage, EmptyState, FormSection, Input, Shimmer, useN
 import { supabase } from '../../lib/supabase'
 import { appendUserContext, getUserContextReturn } from '../../lib/adminUserContext'
 import type { Profile, Workout } from '../../types/database'
-import { applyLogTypeChange, estimateWorkoutDuration, inferWorkoutExerciseLogType, moveItem, type WorkoutDurationMode } from '../../workouts/builder'
+import { applyLogTypeChange, clampTargetDuration, DEFAULT_TIME_TARGET_SECONDS, estimateWorkoutDuration, inferWorkoutExerciseLogType, moveItem, type WorkoutDurationMode } from '../../workouts/builder'
 import { blankExercise, describeInvalidExerciseRows, findBlankNamedExerciseRows, type ExerciseDraft } from './Workouts'
 
 interface WorkoutFormState {
@@ -296,7 +296,12 @@ export default function WorkoutEditor() {
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Input label="Sets" type="number" min="0" value={String(exercise.sets)} onChange={event => updateExercise(index, 'sets', Number(event.target.value))} />
                 {exercise.log_type === 'time'
-                  ? <Input label="Duration (sec)" type="number" min="1" value={String(exercise.target_duration_seconds ?? 30)} onChange={event => updateExercise(index, 'target_duration_seconds', Number(event.target.value))} />
+                  ? <Input label="Duration (sec)" type="number" min="1" max="3600" value={String(exercise.target_duration_seconds ?? DEFAULT_TIME_TARGET_SECONDS)} onChange={event => {
+                      // Clamp to [1,3600]; keep the last valid value on empty/invalid input so
+                      // clearing the field never persists a 0-second time target (fails the DB CHECK).
+                      const parsed = Number(event.target.value)
+                      updateExercise(index, 'target_duration_seconds', parsed >= 1 ? clampTargetDuration(parsed) : (exercise.target_duration_seconds ?? DEFAULT_TIME_TARGET_SECONDS))
+                    }} />
                   : <Input label="Reps" value={exercise.reps} onChange={event => updateExercise(index, 'reps', event.target.value)} placeholder="10 or 8–12" />}
                 <Input label="Rest (sec)" type="number" min="0" value={String(exercise.rest_seconds)} onChange={event => updateExercise(index, 'rest_seconds', Number(event.target.value))} />
               </div>

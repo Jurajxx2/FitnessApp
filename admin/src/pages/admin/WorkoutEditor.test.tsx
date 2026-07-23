@@ -69,6 +69,21 @@ describe('WorkoutEditor log_type selector', () => {
     expect(screen.queryByLabelText('Duration (sec)')).not.toBeInTheDocument()
   })
 
+  it('keeps the last valid duration instead of collapsing to 0 when the field is cleared', async () => {
+    renderPage()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'Add custom exercise' }))
+    await user.click(screen.getByRole('button', { name: 'Time' }))
+
+    const durationInput = screen.getByLabelText('Duration (sec)')
+    expect(durationInput).toHaveValue(30)
+
+    // Clearing must not persist a 0-second time target — that fails the DB duration CHECK on save.
+    await user.clear(durationInput)
+    expect(durationInput).toHaveValue(30)
+  })
+
   it('defaults the toggle to weight_reps as active for a freshly added exercise', async () => {
     renderPage()
     const user = userEvent.setup()
