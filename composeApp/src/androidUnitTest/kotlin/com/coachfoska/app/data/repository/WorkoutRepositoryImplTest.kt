@@ -6,13 +6,17 @@ import com.coachfoska.app.data.remote.dto.ExerciseLogInsertDto
 import com.coachfoska.app.data.remote.dto.SetLogDto
 import com.coachfoska.app.data.remote.dto.SetLogInsertDto
 import com.coachfoska.app.data.remote.dto.WorkoutDto
+import com.coachfoska.app.data.remote.dto.WorkoutExerciseInsertDto
 import com.coachfoska.app.data.remote.dto.WorkoutFeedbackDto
 import com.coachfoska.app.data.remote.dto.WorkoutLogDto
 import com.coachfoska.app.domain.model.DayOfWeek
 import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.RecordDetail
 import com.coachfoska.app.domain.model.RecordValue
 import com.coachfoska.app.domain.model.SetLog
+import com.coachfoska.app.domain.model.WorkoutDraft
+import com.coachfoska.app.domain.model.WorkoutExerciseDraft
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -21,6 +25,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class WorkoutRepositoryImplTest {
@@ -196,5 +201,101 @@ class WorkoutRepositoryImplTest {
         assertTrue(result.isSuccess)
         assertEquals(RecordValue.Duration(95), result.getOrThrow().longestDuration?.value)
         assertEquals(RecordDetail.LongestTimedSet, result.getOrThrow().longestDuration?.detail)
+    }
+
+    // ── Write-time duration invariant guard (E-3) ────────────────────────────────
+    // `workout_exercises_target_duration_check` requires: log_type='time' => target_duration_seconds
+    // in [1,3600]; anything else => null. Own-plan writes bypass the validating RPC, so
+    // normalizedTargetDurationSeconds() is the last guard before the DB CHECK.
+
+    @Test
+    fun `normalizedTargetDurationSeconds defaults and clamps TIME durations, nulls everything else`() {
+        assertEquals(30, normalizedTargetDurationSeconds(ExerciseLogType.TIME, null))
+        assertEquals(90, normalizedTargetDurationSeconds(ExerciseLogType.TIME, 90))
+        assertEquals(1, normalizedTargetDurationSeconds(ExerciseLogType.TIME, 0))
+        assertEquals(1, normalizedTargetDurationSeconds(ExerciseLogType.TIME, -5))
+        assertEquals(3_600, normalizedTargetDurationSeconds(ExerciseLogType.TIME, 999_999))
+        assertNull(normalizedTargetDurationSeconds(ExerciseLogType.WEIGHT_REPS, 45))
+        assertNull(normalizedTargetDurationSeconds(ExerciseLogType.BODYWEIGHT_REPS, 45))
+        assertNull(normalizedTargetDurationSeconds(null, 45))
+    }
+
+    @Test
+    fun `createUserWorkout normalizes a null TIME duration to the 30s default before insert`() = runTest {
+        val workoutDto = WorkoutDto(id = "w-new", name = "Core")
+        coEvery { dataSource.insertWorkout(any()) } returns workoutDto
+        val capturedPayloads = slot<List<WorkoutExerciseInsertDto>>()
+        coEvery { dataSource.replaceWorkoutExercises("w-new", capture(capturedPayloads)) } returns Unit
+        coEvery { dataSource.getWorkoutById("w-new") } returns workoutDto
+
+        val draft = WorkoutDraft(
+            name = "Core", dayOfWeek = null, notes = null,
+            exercises = listOf(
+                WorkoutExerciseDraft(
+                    exerciseId = null, name = "Plank Hold", muscleGroup = "Core",
+                    sets = 3, reps = "", restSeconds = 60,
+                    logType = ExerciseLogType.TIME, targetDurationSeconds = null,
+                )
+            )
+        )
+
+        val result = repository.createUserWorkout("user-1", draft)
+
+        assertTrue(result.isSuccess)
+        val payload = capturedPayloads.captured.single()
+        assertEquals("time", payload.logType)
+        assertEquals(30, payload.targetDurationSeconds)
+    }
+
+    @Test
+    fun `createUserWorkout nulls a stray target duration on a non-TIME exercise`() = runTest {
+        val workoutDto = WorkoutDto(id = "w-new", name = "Push")
+        coEvery { dataSource.insertWorkout(any()) } returns workoutDto
+        val capturedPayloads = slot<List<WorkoutExerciseInsertDto>>()
+        coEvery { dataSource.replaceWorkoutExercises("w-new", capture(capturedPayloads)) } returns Unit
+        coEvery { dataSource.getWorkoutById("w-new") } returns workoutDto
+
+        val draft = WorkoutDraft(
+            name = "Push", dayOfWeek = null, notes = null,
+            exercises = listOf(
+                WorkoutExerciseDraft(
+                    exerciseId = null, name = "Bench Press", muscleGroup = "Chest",
+                    sets = 3, reps = "10", restSeconds = 90,
+                    logType = ExerciseLogType.WEIGHT_REPS, targetDurationSeconds = 45, // stray value
+                )
+            )
+        )
+
+        repository.createUserWorkout("user-1", draft)
+
+        val payload = capturedPayloads.captured.single()
+        assertEquals("weight_reps", payload.logType)
+        assertNull(payload.targetDurationSeconds)
+    }
+
+    @Test
+    fun `updateUserWorkout applies the same write-time duration guard as create`() = runTest {
+        val workoutDto = WorkoutDto(id = "w-1", name = "Core")
+        coEvery { dataSource.updateWorkout("w-1", any()) } returns Unit
+        val capturedPayloads = slot<List<WorkoutExerciseInsertDto>>()
+        coEvery { dataSource.replaceWorkoutExercises("w-1", capture(capturedPayloads)) } returns Unit
+        coEvery { dataSource.getWorkoutById("w-1") } returns workoutDto
+
+        val draft = WorkoutDraft(
+            name = "Core", dayOfWeek = null, notes = null,
+            exercises = listOf(
+                WorkoutExerciseDraft(
+                    exerciseId = null, name = "Plank Hold", muscleGroup = "Core",
+                    sets = 3, reps = "", restSeconds = 60,
+                    logType = ExerciseLogType.TIME, targetDurationSeconds = null,
+                )
+            )
+        )
+
+        repository.updateUserWorkout("w-1", draft)
+
+        val payload = capturedPayloads.captured.single()
+        assertEquals("time", payload.logType)
+        assertEquals(30, payload.targetDurationSeconds)
     }
 }

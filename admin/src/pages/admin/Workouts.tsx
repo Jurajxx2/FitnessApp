@@ -39,6 +39,8 @@ export function exerciseHasData(exercise: ExerciseDraft): boolean {
     || exercise.sets !== blank.sets
     || exercise.reps !== blank.reps
     || exercise.rest_seconds !== blank.rest_seconds
+    || (exercise.log_type ?? 'weight_reps') !== 'weight_reps'
+    || exercise.target_duration_seconds != null
 }
 
 export function findBlankNamedExerciseRows(exercises: ExerciseDraft[]): number[] {

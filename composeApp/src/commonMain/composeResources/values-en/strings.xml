@@ -392,6 +392,9 @@
     <string name="editor_reps">Reps</string>
     <string name="editor_duration">Duration (s)</string>
     <string name="editor_rest">Rest (s)</string>
+    <string name="editor_log_type_weight_reps">Weight + reps</string>
+    <string name="editor_log_type_bodyweight">Bodyweight</string>
+    <string name="editor_log_type_time">Time</string>
     <string name="editor_save">Save workout</string>
     <string name="editor_search_exercises">Search exercises…</string>
     <string name="editor_picker_done">Done</string>

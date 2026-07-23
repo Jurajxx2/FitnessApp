@@ -53,6 +53,9 @@ import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.editor_add_exercise
 import coachfoska.composeapp.generated.resources.editor_day_label
 import coachfoska.composeapp.generated.resources.editor_exercises_error
+import coachfoska.composeapp.generated.resources.editor_log_type_bodyweight
+import coachfoska.composeapp.generated.resources.editor_log_type_time
+import coachfoska.composeapp.generated.resources.editor_log_type_weight_reps
 import coachfoska.composeapp.generated.resources.editor_move_down_cd
 import coachfoska.composeapp.generated.resources.editor_move_up_cd
 import coachfoska.composeapp.generated.resources.editor_name_error
@@ -81,6 +84,18 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 private val DAY_ORDER = DayOfWeek.entries.sortedBy { it.index }
+
+private val LOG_TYPE_OPTIONS = listOf(
+    ExerciseLogType.WEIGHT_REPS,
+    ExerciseLogType.BODYWEIGHT_REPS,
+    ExerciseLogType.TIME,
+)
+
+private fun ExerciseLogType.labelRes() = when (this) {
+    ExerciseLogType.WEIGHT_REPS -> Res.string.editor_log_type_weight_reps
+    ExerciseLogType.BODYWEIGHT_REPS -> Res.string.editor_log_type_bodyweight
+    ExerciseLogType.TIME -> Res.string.editor_log_type_time
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -345,6 +360,22 @@ private fun ExerciseEditorCard(
                         Icons.Default.Delete,
                         contentDescription = stringResource(Res.string.editor_remove_cd),
                         tint = DsTheme.colors.error.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(DsTheme.spacing.sm))
+
+            // Tracking type selector — sets the exercise's log_type; the fields below adapt
+            // (duration replaces reps when TIME is selected).
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm),
+            ) {
+                LOG_TYPE_OPTIONS.forEach { logType ->
+                    DsChip(
+                        selected = exercise.logType == logType,
+                        label = stringResource(logType.labelRes()),
+                        onClick = { onIntent(WorkoutEditorIntent.SetExerciseLogType(index, logType)) },
                     )
                 }
             }

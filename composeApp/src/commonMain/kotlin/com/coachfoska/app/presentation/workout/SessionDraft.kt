@@ -4,7 +4,7 @@ import com.coachfoska.app.domain.model.Workout
 import com.coachfoska.app.domain.model.WorkoutExercise
 import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.ExerciseLottieAnimation
-import com.coachfoska.app.domain.model.inferExerciseLogType
+import com.coachfoska.app.domain.model.resolvedLogType
 
 data class SessionDraft(
     val workoutId: String?,
@@ -52,9 +52,39 @@ data class SetDraft(
     val saveState: SetSaveState = SetSaveState.Idle,
     /** Duration of a timed exercise; independent of the between-set rest countdown. */
     val actualDurationSeconds: Int? = null,
+    /**
+     * Wall-clock anchor (epoch millis) of a currently-running exercise stopwatch, or null when the
+     * stopwatch is paused. Transient session state only — never persisted. [actualDurationSeconds]
+     * stays the folded baseline; the live elapsed value is derived via [currentElapsedSeconds].
+     */
+    val timerStartedAtEpochMillis: Long? = null,
 )
 
 enum class SetSaveState { Idle, Saving, Saved, Failed }
+
+/**
+ * Live elapsed seconds for a timed set, anchored to the wall clock so it self-corrects after the
+ * row is scrolled off-screen, recomposed, or the app is backgrounded. When [startedAtEpochMillis]
+ * is null the stopwatch is paused and only the [baselineSeconds] baseline is returned. While
+ * running, the real time since the anchor is added on top of the baseline; the delta is clamped at
+ * zero so clock skew or a future anchor can never subtract from the baseline.
+ */
+fun currentElapsedSeconds(baselineSeconds: Int?, startedAtEpochMillis: Long?, nowEpochMillis: Long): Int {
+    val baseline = baselineSeconds ?: 0
+    if (startedAtEpochMillis == null) return baseline
+    val elapsedSinceAnchor = ((nowEpochMillis - startedAtEpochMillis) / 1000).coerceAtLeast(0L).toInt()
+    return baseline + elapsedSinceAnchor
+}
+
+/** Whether a set has the inputs required to be marked complete for its tracking type. */
+fun SetDraft.canComplete(logType: ExerciseLogType): Boolean = when (logType) {
+    ExerciseLogType.WEIGHT_REPS -> actualWeightKg != null && actualReps != null
+    ExerciseLogType.BODYWEIGHT_REPS -> actualReps != null
+    // A running stopwatch still counts: completing it folds the live elapsed time into a duration,
+    // so the set is completable even before the first pause has written actualDurationSeconds.
+    ExerciseLogType.TIME ->
+        actualDurationSeconds != null || actualRestSeconds != null || timerStartedAtEpochMillis != null
+}
 
 fun Workout.toDraft(startTime: Long) = SessionDraft(
     workoutId = id,
@@ -64,11 +94,7 @@ fun Workout.toDraft(startTime: Long) = SessionDraft(
 )
 
 fun WorkoutExercise.toDraft(): ExerciseDraft {
-    val resolvedLogType = logType ?: inferExerciseLogType(
-        name = name,
-        categoryName = muscleGroup,
-        reps = reps,
-    )
+    val resolvedLogType = resolvedLogType()
     val repsGoal = reps.substringBefore('-').filter { it.isDigit() }.toIntOrNull()
     return ExerciseDraft(
         exerciseName = name,

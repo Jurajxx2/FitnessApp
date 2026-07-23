@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, ChevronDown, ChevronUp, CircleStop, Plus, Save, TimerReset, Trash2, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, CircleStop, Pause, Play, Plus, Save, TimerReset, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { addSet, discardWorkout, finishWorkout, getActiveWorkout, getWorkout, removeSet, saveSet } from '../../activity/api'
-import { isTimedTarget } from '../../activity/logic'
-import type { ExerciseLogRow, SetLogRow, WorkoutLogRow } from '../../activity/types'
+import type { ExerciseLogRow, SetLogRow, WorkoutExerciseRow, WorkoutLogRow } from '../../activity/types'
 import { useAuth } from '../../hooks/useAuth'
+import { formatSeconds } from '../../workouts/builder'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
 
 interface SetDraft {
@@ -145,6 +145,8 @@ export default function WorkoutSession() {
               exercise={exercise}
               index={index}
               targetLabel={target?.reps ?? null}
+              logType={target?.log_type ?? null}
+              targetSeconds={target?.target_duration_seconds ?? null}
               restSeconds={target?.rest_seconds ?? exercise.set_logs[0]?.target_rest_seconds ?? 0}
               onChanged={refresh}
               onRest={seconds => {
@@ -183,9 +185,11 @@ export default function WorkoutSession() {
   )
 }
 
-function ExerciseSessionCard({ exercise, index, targetLabel, restSeconds, onChanged, onRest }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; restSeconds: number; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void }) {
+function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeconds, restSeconds, onChanged, onRest }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; logType: WorkoutExerciseRow['log_type']; targetSeconds: number | null; restSeconds: number; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void }) {
   const [open, setOpen] = useState(true)
-  const timed = targetLabel ? isTimedTarget(targetLabel) : exercise.set_logs.some(set => set.actual_duration_seconds != null)
+  // Authoritative: a plan's log_type decides timed vs. reps. Only fall back to the
+  // legacy set-shape heuristic (existing duration values) when there is no plan at all.
+  const timed = logType === 'time' || (logType == null && exercise.set_logs.some(set => set.actual_duration_seconds != null))
   const addMutation = useMutation({
     mutationFn: () => {
       const last = exercise.set_logs[exercise.set_logs.length - 1]
@@ -226,6 +230,7 @@ function ExerciseSessionCard({ exercise, index, targetLabel, restSeconds, onChan
                 key={set.id}
                 set={set}
                 timed={timed}
+                targetSeconds={targetSeconds}
                 canDelete={exercise.set_logs.length > 1}
                 deleting={deleteMutation.isPending}
                 onDelete={() => deleteMutation.mutate(set.id)}
@@ -250,8 +255,9 @@ function ExerciseSessionCard({ exercise, index, targetLabel, restSeconds, onChan
   )
 }
 
-function SessionSetRow({ set, timed, canDelete, deleting, onDelete, onSaved }: { set: SetLogRow; timed: boolean; canDelete: boolean; deleting: boolean; onDelete: () => void; onSaved: (completedNow: boolean) => Promise<unknown> }) {
+function SessionSetRow({ set, timed, targetSeconds, canDelete, deleting, onDelete, onSaved }: { set: SetLogRow; timed: boolean; targetSeconds: number | null; canDelete: boolean; deleting: boolean; onDelete: () => void; onSaved: (completedNow: boolean) => Promise<unknown> }) {
   const [draft, setDraft] = useState(() => draftFromSet(set))
+  const [stopwatch, setStopwatch] = useState<{ startedAt: number; baseline: number } | null>(null)
   const payload = useMemo(
     () => ({
       actual_reps: timed ? null : nullableNumber(draft.reps),
@@ -266,23 +272,67 @@ function SessionSetRow({ set, timed, canDelete, deleting, onDelete, onSaved }: {
     onSuccess: (_data, completed) => onSaved(completed && !set.completed)
   })
 
+  // Wall-clock anchored count-up: each tick (and the pause itself) recomputes the
+  // elapsed seconds from Date.now(), so backgrounding the tab self-corrects instead
+  // of drifting like a plain incrementing counter would.
+  useEffect(() => {
+    if (!stopwatch) return
+    const tick = () => {
+      setDraft(value => ({ ...value, duration: String(stopwatch.baseline + Math.floor((Date.now() - stopwatch.startedAt) / 1000)) }))
+    }
+    const timer = window.setInterval(tick, 1000)
+    return () => window.clearInterval(timer)
+  }, [stopwatch])
+
+  // Stop ticking once the set is saved as completed so the field freezes.
+  useEffect(() => {
+    if (set.completed) setStopwatch(null)
+  }, [set.completed])
+
+  const toggleStopwatch = () => {
+    if (stopwatch) {
+      setDraft(value => ({ ...value, duration: String(stopwatch.baseline + Math.floor((Date.now() - stopwatch.startedAt) / 1000)) }))
+      setStopwatch(null)
+    } else {
+      setStopwatch({ startedAt: Date.now(), baseline: nullableNumber(draft.duration) ?? 0 })
+    }
+  }
+
   return (
     <div className={`grid grid-cols-[2.5rem_1fr_1fr_3rem] gap-2 rounded-xl border p-2 sm:grid-cols-[2.5rem_1fr_1fr_5rem_3rem] ${set.completed ? 'border-success/50 bg-success/10' : 'border-outline-subtle bg-surface'}`}>
       <span className="flex items-center justify-center text-sm font-bold text-text-secondary">{set.sort_order}</span>
-      <input
-        aria-label={timed ? `Séria ${set.sort_order} trvanie v sekundách` : `Séria ${set.sort_order} opakovania`}
-        type="number"
-        min="0"
-        inputMode="decimal"
-        value={timed ? draft.duration : draft.reps}
-        onChange={event =>
-          setDraft(value => ({
-            ...value,
-            [timed ? 'duration' : 'reps']: event.target.value
-          }))
-        }
-        className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
-      />
+      {timed ? (
+        <div className="flex min-w-0 items-center gap-1">
+          <input
+            aria-label={`Séria ${set.sort_order} trvanie v sekundách`}
+            type="number"
+            min="0"
+            inputMode="decimal"
+            value={draft.duration}
+            placeholder={targetSeconds ? formatSeconds(targetSeconds) : undefined}
+            onChange={event => setDraft(value => ({ ...value, duration: event.target.value }))}
+            className="min-w-0 flex-1 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
+          />
+          <button
+            type="button"
+            aria-label={stopwatch ? `Zastaviť časovač série ${set.sort_order}` : `Spustiť časovač série ${set.sort_order}`}
+            onClick={toggleStopwatch}
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-outline bg-surface-highest text-text-primary"
+          >
+            {stopwatch ? <Pause size={15} /> : <Play size={15} />}
+          </button>
+        </div>
+      ) : (
+        <input
+          aria-label={`Séria ${set.sort_order} opakovania`}
+          type="number"
+          min="0"
+          inputMode="decimal"
+          value={draft.reps}
+          onChange={event => setDraft(value => ({ ...value, reps: event.target.value }))}
+          className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
+        />
+      )}
       {timed ? (
         <>
           <input aria-label={`Séria ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent sm:hidden" />

@@ -17,13 +17,21 @@ describe('workout exercise-row validation', () => {
     expect(exerciseHasData({ ...blank, rest_seconds: 90 })).toBe(true)
   })
 
+  it('treats a row configured as timed (log_type or target_duration_seconds set) as having data, even with an otherwise-blank name', () => {
+    expect(exerciseHasData({ ...blank, log_type: 'time' })).toBe(true)
+    expect(exerciseHasData({ ...blank, log_type: 'bodyweight_reps' })).toBe(true)
+    expect(exerciseHasData({ ...blank, target_duration_seconds: 45 })).toBe(true)
+    expect(exerciseHasData({ ...blank, log_type: 'weight_reps', target_duration_seconds: null })).toBe(false)
+  })
+
   it('flags rows that carry data but have no name, so the save is blocked instead of dropping them', () => {
     const exercises = [
       { ...blank, name: 'Bench Press', muscle_group: 'Chest' }, // valid
       { ...blank, muscle_group: 'Back' },                       // data, no name -> invalid
       { ...blank },                                             // pristine empty -> ignored
+      { ...blank, log_type: 'time' as const, target_duration_seconds: 30 }, // configured-but-unnamed timed row -> invalid
     ]
-    expect(findBlankNamedExerciseRows(exercises)).toEqual([1])
+    expect(findBlankNamedExerciseRows(exercises)).toEqual([1, 3])
   })
 
   it('does not flag entirely empty rows or fully named rows', () => {

@@ -4,13 +4,14 @@ import { Dumbbell, Plus, Users } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AssignUsersDialog } from '../../components/AssignUsersDialog'
 import { ExerciseBrowserSlideOver } from '../../components/ExerciseBrowserSlideOver'
+import { LogTypeToggle } from '../../components/LogTypeToggle'
 import { SelectedExerciseCard } from '../../components/SelectedExerciseCard'
 import { WorkoutDurationControl } from '../../components/WorkoutDurationControl'
 import { Button, Card, EditorPage, EmptyState, FormSection, Input, Shimmer, useNotice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import { appendUserContext, getUserContextReturn } from '../../lib/adminUserContext'
 import type { Profile, Workout } from '../../types/database'
-import { estimateWorkoutDuration, inferWorkoutExerciseLogType, moveItem, type WorkoutDurationMode } from '../../workouts/builder'
+import { applyLogTypeChange, estimateWorkoutDuration, inferWorkoutExerciseLogType, moveItem, type WorkoutDurationMode } from '../../workouts/builder'
 import { blankExercise, describeInvalidExerciseRows, findBlankNamedExerciseRows, type ExerciseDraft } from './Workouts'
 
 interface WorkoutFormState {
@@ -284,6 +285,14 @@ export default function WorkoutEditor() {
                 <Input label="Exercise name" value={exercise.name} onChange={event => updateExercise(index, 'name', event.target.value)} placeholder="e.g. Bench Press" required />
                 <Input label="Muscle group" value={exercise.muscle_group ?? ''} onChange={event => updateExercise(index, 'muscle_group', event.target.value)} placeholder="e.g. Chest" />
               </div>
+              <fieldset className="mt-4 rounded-2xl border border-outline-subtle bg-surface p-3">
+                <legend className="px-1 text-xs font-bold uppercase tracking-wider text-text-secondary">Tracking</legend>
+                <LogTypeToggle
+                  locale="en"
+                  value={exercise.log_type ?? 'weight_reps'}
+                  onChange={next => setExercises(prev => prev.map((e, i) => i === index ? applyLogTypeChange(e, next) : e))}
+                />
+              </fieldset>
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Input label="Sets" type="number" min="0" value={String(exercise.sets)} onChange={event => updateExercise(index, 'sets', Number(event.target.value))} />
                 {exercise.log_type === 'time'

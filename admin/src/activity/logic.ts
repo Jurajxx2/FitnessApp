@@ -59,10 +59,6 @@ export function parseTargetReps(value: string): number | null {
   return match ? Number(match[0]) : null
 }
 
-export function isTimedTarget(value: string) {
-  return /(?:sec|second|min|minute|hold|time)/i.test(value)
-}
-
 export function completedSets(log: WorkoutLogRow) {
   return log.exercise_logs.reduce((total, exercise) => {
     if (exercise.set_logs.length) return total + exercise.set_logs.filter(set => set.completed).length

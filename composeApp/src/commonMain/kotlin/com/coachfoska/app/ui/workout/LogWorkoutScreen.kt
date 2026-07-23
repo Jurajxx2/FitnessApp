@@ -48,6 +48,9 @@ import coachfoska.composeapp.generated.resources.back_cd
 import coachfoska.composeapp.generated.resources.add_exercise
 import coachfoska.composeapp.generated.resources.add_set
 import coachfoska.composeapp.generated.resources.add_video_cd
+import coachfoska.composeapp.generated.resources.editor_log_type_bodyweight
+import coachfoska.composeapp.generated.resources.editor_log_type_time
+import coachfoska.composeapp.generated.resources.editor_log_type_weight_reps
 import coachfoska.composeapp.generated.resources.exercise_label
 import coachfoska.composeapp.generated.resources.exercises_section
 import coachfoska.composeapp.generated.resources.log_session_duration_mins
@@ -60,12 +63,15 @@ import coachfoska.composeapp.generated.resources.log_session_workout_name
 import coachfoska.composeapp.generated.resources.remove_cd
 import com.coachfoska.app.core.util.MediaCaptureMode
 import com.coachfoska.app.domain.model.ExerciseLog
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.SetLog
+import com.coachfoska.app.domain.model.inferExerciseLogType
 import com.coachfoska.app.presentation.workout.SetDraft
 import com.coachfoska.app.presentation.workout.WorkoutIntent
 import com.coachfoska.app.presentation.workout.WorkoutState
 import com.coachfoska.app.presentation.workout.WorkoutViewModel
 import com.coachfoska.designsystem.components.DsButton
+import com.coachfoska.designsystem.components.DsChip
 import com.coachfoska.designsystem.components.DsSectionLabel
 import com.coachfoska.designsystem.components.DsTextField
 import com.coachfoska.designsystem.components.DsTopBar
@@ -302,18 +308,32 @@ private fun ManualExerciseCard(
 
             DsTextField(
                 value = exercise.name,
-                onValueChange = { onUpdate(exercise.copy(name = it)) },
+                onValueChange = { onUpdate(exercise.withNameUpdate(it)) },
                 label = stringResource(Res.string.log_session_exercise_name),
             )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LOG_TYPE_OPTIONS.forEach { logType ->
+                    DsChip(
+                        selected = exercise.logType == logType,
+                        label = stringResource(logType.labelRes()),
+                        onClick = { onUpdate(exercise.copy(logType = logType, logTypeExplicit = true)) },
+                    )
+                }
+            }
 
             exercise.sets.forEachIndexed { setIndex, set ->
                 SetInputRow(
                     setDraft = set.toSetDraft(),
+                    logType = exercise.logType,
                     onActualReps = { reps ->
                         onUpdate(exercise.updateSet(setIndex) { it.copy(actualReps = reps) })
                     },
                     onActualWeight = { weight ->
                         onUpdate(exercise.updateSet(setIndex) { it.copy(actualWeightKg = weight) })
+                    },
+                    onActualDuration = { duration ->
+                        onUpdate(exercise.updateSet(setIndex) { it.copy(actualDurationSeconds = duration) })
                     },
                     onRpe = { rpe ->
                         onUpdate(exercise.updateSet(setIndex) { it.copy(rpe = rpe) })
@@ -331,19 +351,48 @@ private fun ManualExerciseCard(
     }
 }
 
-private data class LocalDraftExercise(
+/** The manual log path has no stored exercise catalog entry, so name-based inference (see
+ *  [inferExerciseLogType]) is the only signal for tracking type — [logTypeExplicit] tracks
+ *  whether the user has overridden that inference via the toggle, so later name edits don't
+ *  clobber an explicit choice. */
+internal data class LocalDraftExercise(
     val name: String = "",
     val sets: List<LocalDraftSet> = listOf(LocalDraftSet(sortOrder = 1)),
     val videoUrl: String? = null,
+    val logType: ExerciseLogType = ExerciseLogType.WEIGHT_REPS,
+    val logTypeExplicit: Boolean = false,
 )
 
-private data class LocalDraftSet(
+internal data class LocalDraftSet(
     val sortOrder: Int,
     val actualReps: Int? = null,
     val actualWeightKg: Float? = null,
     val rpe: Int? = null,
     val completed: Boolean = false,
+    val actualDurationSeconds: Int? = null,
 )
+
+/** Reusable log-type toggle options, mirrored from the workout editor's tracking-type selector. */
+private val LOG_TYPE_OPTIONS = listOf(
+    ExerciseLogType.WEIGHT_REPS,
+    ExerciseLogType.BODYWEIGHT_REPS,
+    ExerciseLogType.TIME,
+)
+
+private fun ExerciseLogType.labelRes() = when (this) {
+    ExerciseLogType.WEIGHT_REPS -> Res.string.editor_log_type_weight_reps
+    ExerciseLogType.BODYWEIGHT_REPS -> Res.string.editor_log_type_bodyweight
+    ExerciseLogType.TIME -> Res.string.editor_log_type_time
+}
+
+/** Updates the typed name and, unless the user already made an explicit toggle choice
+ *  ([LocalDraftExercise.logTypeExplicit]), re-infers [LocalDraftExercise.logType] from it. */
+internal fun LocalDraftExercise.withNameUpdate(newName: String): LocalDraftExercise =
+    if (logTypeExplicit) {
+        copy(name = newName)
+    } else {
+        copy(name = newName, logType = inferExerciseLogType(newName))
+    }
 
 private fun LocalDraftExercise.updateSet(
     setIndex: Int,
@@ -373,9 +422,28 @@ private fun LocalDraftSet.toSetDraft(): SetDraft = SetDraft(
     targetRestSeconds = null,
     actualRestSeconds = null,
     completed = completed,
+    actualDurationSeconds = actualDurationSeconds,
 )
 
-private fun List<LocalDraftExercise>.toExerciseLogs(): List<ExerciseLog> =
+private fun LocalDraftSet.toSetLog(logType: ExerciseLogType): SetLog {
+    val isTimed = logType == ExerciseLogType.TIME
+    return SetLog(
+        id = "",
+        exerciseLogId = "",
+        sortOrder = sortOrder,
+        targetReps = null,
+        actualReps = if (isTimed) null else actualReps,
+        targetWeightKg = null,
+        actualWeightKg = if (isTimed) null else actualWeightKg,
+        rpe = rpe,
+        targetRestSeconds = null,
+        actualRestSeconds = null,
+        completed = true,
+        actualDurationSeconds = if (isTimed) actualDurationSeconds else null,
+    )
+}
+
+internal fun List<LocalDraftExercise>.toExerciseLogs(): List<ExerciseLog> =
     filter { it.name.isNotBlank() }
         .map { exercise ->
             ExerciseLog(
@@ -384,21 +452,7 @@ private fun List<LocalDraftExercise>.toExerciseLogs(): List<ExerciseLog> =
                 exerciseName = exercise.name,
                 notes = null,
                 videoUrl = exercise.videoUrl,
-                sets = exercise.sets.filter { it.completed }.map { set ->
-                    SetLog(
-                        id = "",
-                        exerciseLogId = "",
-                        sortOrder = set.sortOrder,
-                        targetReps = null,
-                        actualReps = set.actualReps,
-                        targetWeightKg = null,
-                        actualWeightKg = set.actualWeightKg,
-                        rpe = set.rpe,
-                        targetRestSeconds = null,
-                        actualRestSeconds = null,
-                        completed = true,
-                    )
-                },
+                sets = exercise.sets.filter { it.completed }.map { set -> set.toSetLog(exercise.logType) },
             )
         }
         .filter { it.sets.isNotEmpty() }

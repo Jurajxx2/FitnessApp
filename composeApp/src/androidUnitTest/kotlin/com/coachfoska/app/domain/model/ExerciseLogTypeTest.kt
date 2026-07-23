@@ -40,4 +40,30 @@ class ExerciseLogTypeTest {
             ),
         )
     }
+
+    private fun workoutExercise(name: String, logType: ExerciseLogType?, muscleGroup: String? = null, reps: String = "10") =
+        WorkoutExercise(
+            id = "we1", workoutId = "w1", name = name, muscleGroup = muscleGroup,
+            sets = 3, reps = reps, restSeconds = 60, tips = null,
+            logType = logType,
+        )
+
+    @Test
+    fun `resolvedLogType returns explicit type when set, ignoring inference`() {
+        // Name screams TIME, but the stored logType is authoritative.
+        val exercise = workoutExercise(name = "Plank", logType = ExerciseLogType.WEIGHT_REPS)
+        assertEquals(ExerciseLogType.WEIGHT_REPS, exercise.resolvedLogType())
+    }
+
+    @Test
+    fun `resolvedLogType infers from name and reps when logType is null`() {
+        val exercise = workoutExercise(name = "Plank", logType = null, muscleGroup = "Core")
+        assertEquals(ExerciseLogType.TIME, exercise.resolvedLogType())
+    }
+
+    @Test
+    fun `resolvedLogType falls back to weight_reps default when nothing matches`() {
+        val exercise = workoutExercise(name = "Some Custom Move", logType = null)
+        assertEquals(ExerciseLogType.WEIGHT_REPS, exercise.resolvedLogType())
+    }
 }
