@@ -129,4 +129,32 @@ class ExerciseLogTest {
         val sets = listOf(set(1, null, null, duration = 45, restSeconds = 60))
         assertTrue(log(sets).isTimed())
     }
+
+    // resolveLoggedLogType: the exercise-detail charts/records must read timed-ness from the logged
+    // data, not the exercise's name-inferred logType (the bug where a "Wall Sit" the coach marked
+    // Time, but whose name infers WEIGHT_REPS, never surfaced its duration metrics).
+
+    @Test fun `resolveLoggedLogType returns TIME when history is timed despite a reps fallback`() {
+        val timed = log(listOf(set(1, null, null, duration = 45)))
+        assertEquals(ExerciseLogType.TIME, resolveLoggedLogType(listOf(timed), ExerciseLogType.WEIGHT_REPS))
+        assertEquals(ExerciseLogType.TIME, resolveLoggedLogType(listOf(timed), ExerciseLogType.BODYWEIGHT_REPS))
+    }
+
+    @Test fun `resolveLoggedLogType keeps a non-timed reps fallback when nothing logged is timed`() {
+        val weighted = log(listOf(set(1, 10, 60f)))
+        assertEquals(ExerciseLogType.WEIGHT_REPS, resolveLoggedLogType(listOf(weighted), ExerciseLogType.WEIGHT_REPS))
+        assertEquals(ExerciseLogType.BODYWEIGHT_REPS, resolveLoggedLogType(listOf(weighted), ExerciseLogType.BODYWEIGHT_REPS))
+    }
+
+    @Test fun `resolveLoggedLogType drops a name-inferred TIME to the reps view the data supports`() {
+        val bodyweight = log(listOf(set(1, 12, null)))
+        assertEquals(ExerciseLogType.BODYWEIGHT_REPS, resolveLoggedLogType(listOf(bodyweight), ExerciseLogType.TIME))
+        val weighted = log(listOf(set(1, 8, 40f)))
+        assertEquals(ExerciseLogType.WEIGHT_REPS, resolveLoggedLogType(listOf(weighted), ExerciseLogType.TIME))
+    }
+
+    @Test fun `resolveLoggedLogType keeps the fallback for empty or undecided history`() {
+        assertEquals(ExerciseLogType.TIME, resolveLoggedLogType(emptyList(), ExerciseLogType.TIME))
+        assertEquals(ExerciseLogType.WEIGHT_REPS, resolveLoggedLogType(emptyList(), ExerciseLogType.WEIGHT_REPS))
+    }
 }

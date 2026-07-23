@@ -60,6 +60,7 @@ import com.coachfoska.app.domain.model.ExerciseRecords
 import com.coachfoska.app.domain.model.RecordDetail
 import com.coachfoska.app.domain.model.RecordEntry
 import com.coachfoska.app.domain.model.RecordValue
+import com.coachfoska.app.domain.model.resolveLoggedLogType
 import com.coachfoska.app.domain.model.formatDuration
 import com.coachfoska.app.domain.model.formatWeightKg
 import com.coachfoska.app.core.util.currentInstant
@@ -317,14 +318,17 @@ private fun ChartsTab(userId: String, exerciseName: String, logType: ExerciseLog
     val getExerciseHistoryUseCase = koinInject<GetExerciseHistoryUseCase>()
     var history by remember(exerciseName) { mutableStateOf<List<ExerciseLog>>(emptyList()) }
     var isLoading by remember(exerciseName) { mutableStateOf(true) }
-    val metrics = when (logType) {
+    // Timed-ness comes from the logged sets, not the name-inferred logType, so an exercise the coach
+    // marked "Time" (e.g. "Wall Sit") still charts its duration metrics once timed data is recorded.
+    val effectiveLogType = resolveLoggedLogType(history, logType)
+    val metrics = when (effectiveLogType) {
         ExerciseLogType.WEIGHT_REPS -> listOf(
             ChartMetric.HeaviestWeight, ChartMetric.Est1Rm, ChartMetric.BestVolume, ChartMetric.NumReps,
         )
         ExerciseLogType.BODYWEIGHT_REPS -> listOf(ChartMetric.MostReps, ChartMetric.TotalReps)
         ExerciseLogType.TIME -> listOf(ChartMetric.LongestDuration, ChartMetric.TotalDuration)
     }
-    var selectedMetric by remember(exerciseName, logType) { mutableStateOf(metrics.first()) }
+    var selectedMetric by remember(exerciseName, effectiveLogType) { mutableStateOf(metrics.first()) }
     var selectedPeriod by remember { mutableStateOf("3M") }
 
     LaunchedEffect(exerciseName) {
@@ -523,11 +527,16 @@ private fun ExerciseLog.isWithinPeriod(period: String): Boolean {
 @Composable
 private fun RecordsTab(userId: String, exerciseName: String, logType: ExerciseLogType) {
     val getExerciseRecordsUseCase = koinInject<GetExerciseRecordsUseCase>()
+    val getExerciseHistoryUseCase = koinInject<GetExerciseHistoryUseCase>()
     var records by remember { mutableStateOf<ExerciseRecords?>(null) }
+    // History decides which record sections show: timed-ness is read from the logged sets, not the
+    // exercise's name-inferred logType, matching the charts tab.
+    var history by remember { mutableStateOf<List<ExerciseLog>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(exerciseName) {
         isLoading = true
+        getExerciseHistoryUseCase(userId, exerciseName).onSuccess { history = it }
         getExerciseRecordsUseCase(userId, exerciseName).onSuccess { records = it }
         isLoading = false
     }
@@ -558,12 +567,13 @@ private fun RecordsTab(userId: String, exerciseName: String, logType: ExerciseLo
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (logType == ExerciseLogType.WEIGHT_REPS) {
+        val effectiveLogType = resolveLoggedLogType(history, logType)
+        if (effectiveLogType == ExerciseLogType.WEIGHT_REPS) {
             r.heaviestWeight?.let { RecordCard(stringResource(Res.string.exercise_records_heaviest), it) }
             r.highestEstimated1RM?.let { RecordCard(stringResource(Res.string.exercise_records_est_1rm), it) }
             r.highestVolume?.let { RecordCard(stringResource(Res.string.exercise_records_highest_volume), it) }
         }
-        if (logType != ExerciseLogType.TIME) {
+        if (effectiveLogType != ExerciseLogType.TIME) {
             r.mostRepsAtWeight?.let { RecordCard(stringResource(Res.string.exercise_records_most_reps), it) }
         }
         r.longestDuration?.let { RecordCard(stringResource(Res.string.exercise_records_longest_duration), it) }

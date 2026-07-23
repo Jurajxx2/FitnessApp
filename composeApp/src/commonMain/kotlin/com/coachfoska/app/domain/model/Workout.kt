@@ -112,6 +112,25 @@ fun ExerciseLog.isTimed(): Boolean {
     return sets.any { it.actualRestSeconds != null }
 }
 
+/**
+ * Which tracking metrics the exercise-detail charts/records should surface, decided from the
+ * *logged history* rather than the exercise's name-inferred [ExerciseLogType]. Timed-ness is
+ * authoritative from the data ([isTimed]); this is what lets an exercise the coach marked "Time"
+ * whose name infers weight/reps (e.g. "Wall Sit") still expose its duration metrics. When nothing
+ * logged is timed we keep the [fallback], except a name-inferred [ExerciseLogType.TIME] with no
+ * timed data drops to the reps view the recorded sets actually support.
+ */
+fun resolveLoggedLogType(history: List<ExerciseLog>, fallback: ExerciseLogType): ExerciseLogType {
+    if (history.any { it.isTimed() }) return ExerciseLogType.TIME
+    if (fallback != ExerciseLogType.TIME) return fallback
+    val completedSets = history.flatMap { it.sets }.filter { it.completed }
+    return when {
+        completedSets.any { it.actualWeightKg != null } -> ExerciseLogType.WEIGHT_REPS
+        completedSets.any { it.actualReps != null } -> ExerciseLogType.BODYWEIGHT_REPS
+        else -> fallback
+    }
+}
+
 data class WorkoutFeedback(
     val id: String,
     val userId: String,
