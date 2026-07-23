@@ -1,3 +1,5 @@
+export { ActionMenu } from './ActionMenu'
+export type { ActionMenuItem } from './ActionMenu'
 export { Button } from './Button'
 export { Badge } from './Badge'
 export { Card } from './Card'
