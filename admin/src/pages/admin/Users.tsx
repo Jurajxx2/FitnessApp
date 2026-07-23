@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Badge, Button, Chip, ClickableRow, EmptyState, PageHeader, SearchInput, Table, Th, Td } from '../../components/ui'
+import { Badge, Button, Chip, DataTable, EmptyState, PageHeader, SearchInput } from '../../components/ui'
+import type { DataColumn, ActionMenuItem } from '../../components/ui'
 import type { Profile } from '../../types/database'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -59,6 +60,46 @@ export default function Users() {
     navigate(`/admin/users/${userId}`)
   }
 
+  const columns: DataColumn<Profile>[] = [
+    {
+      key: 'user',
+      header: 'User',
+      className: 'text-text-primary',
+      render: (user) => (
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-surface-highest text-xs font-bold uppercase text-text-secondary">
+            {(user.full_name ?? user.email).slice(0, 2)}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-text-primary">{user.full_name ?? '—'}</p>
+            <p className="text-xs text-text-secondary">{user.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'role',
+      header: 'Role',
+      render: (user) => (
+        <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${user.is_admin ? 'bg-accent/15 text-accent' : 'bg-surface-highest text-text-secondary'}`}>
+          {user.id === currentUser?.id ? (user.is_admin ? 'Admin · You' : 'You') : (user.is_admin ? 'Admin' : 'Athlete')}
+        </span>
+      ),
+    },
+    { key: 'goal', header: 'Goal', render: (user) => (user.goal ? (GOAL_LABELS[user.goal] ?? user.goal) : '—') },
+    {
+      key: 'access',
+      header: 'Access',
+      render: (user) => <span className="whitespace-nowrap text-xs font-semibold text-text-primary">{ACCESS_LABELS[user.access_mode ?? 'both']}</span>,
+    },
+    { key: 'status', header: 'Status', render: (user) => <Badge status={deriveStatus(user)} /> },
+    { key: 'joined', header: 'Joined', render: (user) => new Date(user.created_at).toLocaleDateString() },
+  ]
+
+  const rowActions = (user: Profile): ActionMenuItem[] => [
+    { key: 'open', label: 'Open', onSelect: () => openUser(user.id) },
+  ]
+
   return (
     <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
       <PageHeader
@@ -84,62 +125,26 @@ export default function Users() {
         </div>
       </div>
 
-      {isLoading ? (
-        <p className="text-sm text-text-secondary">Loading…</p>
-      ) : isError ? (
+      {isError ? (
         <EmptyState title="Users couldn’t be loaded" description="Refresh the page to retry the request." />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          title={search || statusFilter !== 'all' ? 'No users match these filters' : 'No users yet'}
-          description={search || statusFilter !== 'all' ? 'Try a different name, email, or status filter.' : 'New accounts will appear here once they join.'}
-        />
       ) : (
         <>
           <p className="mb-3 text-sm text-text-secondary">Showing {filtered.length} of {users.length} users</p>
-          <Table>
-            <thead>
-              <tr>
-                <Th>User</Th>
-                <Th>Role</Th>
-                <Th>Goal</Th>
-                <Th>Access</Th>
-                <Th>Status</Th>
-                <Th>Joined</Th>
-                <Th>{''}</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(user => (
-                <ClickableRow
-                  key={user.id}
-                  label={`Open ${user.full_name ?? user.email}`}
-                  onActivate={() => openUser(user.id)}
-                >
-                  <Td className="text-text-primary">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-surface-highest text-xs font-bold uppercase text-text-secondary">
-                        {(user.full_name ?? user.email).slice(0, 2)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-text-primary">{user.full_name ?? '—'}</p>
-                        <p className="text-xs text-text-secondary">{user.email}</p>
-                      </div>
-                    </div>
-                  </Td>
-                  <Td>
-                    <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${user.is_admin ? 'bg-accent/15 text-accent' : 'bg-surface-highest text-text-secondary'}`}>
-                      {user.id === currentUser?.id ? (user.is_admin ? 'Admin · You' : 'You') : (user.is_admin ? 'Admin' : 'Athlete')}
-                    </span>
-                  </Td>
-                  <Td>{user.goal ? (GOAL_LABELS[user.goal] ?? user.goal) : '—'}</Td>
-                  <Td><span className="whitespace-nowrap text-xs font-semibold text-text-primary">{ACCESS_LABELS[user.access_mode ?? 'both']}</span></Td>
-                  <Td><Badge status={deriveStatus(user)} /></Td>
-                  <Td>{new Date(user.created_at).toLocaleDateString()}</Td>
-                  <Td><Button variant="ghost" className="min-h-9 px-3" onClick={() => openUser(user.id)}>Open</Button></Td>
-                </ClickableRow>
-              ))}
-            </tbody>
-          </Table>
+          <DataTable<Profile>
+            rows={filtered}
+            getRowId={(user) => user.id}
+            columns={columns}
+            rowLabel={(user) => `Open ${user.full_name ?? user.email}`}
+            onRowActivate={(user) => openUser(user.id)}
+            rowActions={rowActions}
+            loading={isLoading}
+            empty={
+              <EmptyState
+                title={search || statusFilter !== 'all' ? 'No users match these filters' : 'No users yet'}
+                description={search || statusFilter !== 'all' ? 'Try a different name, email, or status filter.' : 'New accounts will appear here once they join.'}
+              />
+            }
+          />
         </>
       )}
     </div>
