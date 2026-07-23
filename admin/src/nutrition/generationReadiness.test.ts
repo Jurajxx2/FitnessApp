@@ -6,6 +6,7 @@ import {
   getGenerationReadiness,
   getPublishReadiness,
   isGeneratorGuardrailsApproved,
+  requiredRecipesPerSlot,
 } from './generationReadiness'
 
 const options: GeneratorOptions = {
@@ -137,6 +138,25 @@ describe('generation readiness', () => {
 
   it('does not require snack coverage when snack is disabled', () => {
     const readiness = getGenerationReadiness(pool({ breakfast: 4, lunch: 4, dinner: 4 }), options, true)
+    expect(readiness).toEqual({ ready: true, blockers: [] })
+  })
+
+  it('derives the per-slot minimum from the weekly repeat cap', () => {
+    expect(requiredRecipesPerSlot(1)).toBe(7)
+    expect(requiredRecipesPerSlot(2)).toBe(4)
+    expect(requiredRecipesPerSlot(3)).toBe(4)
+    expect(requiredRecipesPerSlot(7)).toBe(4)
+    expect(requiredRecipesPerSlot(0)).toBe(4)
+  })
+
+  it('blocks generation when a slot cannot fill 7 days at a strict repeat cap', () => {
+    const readiness = getGenerationReadiness(pool({ breakfast: 4, lunch: 4, dinner: 4 }), { ...options, maxRecipeRepeatsPerWeek: 1 }, true)
+    expect(readiness.ready).toBe(false)
+    expect(readiness.blockers).toContain('Breakfast needs at least 7 preference-compatible recipes to fill 7 days at a weekly repeat limit of 1; found 4. Add or retag recipes, relax the athlete filters, or raise the repeat limit.')
+  })
+
+  it('is satisfied when each slot has enough recipes for a strict repeat cap', () => {
+    const readiness = getGenerationReadiness(pool({ breakfast: 7, lunch: 7, dinner: 7 }), { ...options, maxRecipeRepeatsPerWeek: 1 }, true)
     expect(readiness).toEqual({ ready: true, blockers: [] })
   })
 })

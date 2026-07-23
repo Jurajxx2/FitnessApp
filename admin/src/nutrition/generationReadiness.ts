@@ -40,6 +40,15 @@ export function requiredSlots(includeSnack: boolean): SlotType[] {
     : ['breakfast', 'lunch', 'dinner']
 }
 
+// Filling 7 days at a repeat cap of C needs at least ceil(7 / C) distinct recipes per
+// slot, or the plan can never satisfy the repeat cap and stays permanently unpublishable.
+// A cap of 0 means unlimited repeats, so only the variety floor applies.
+export function requiredRecipesPerSlot(maxRecipeRepeatsPerWeek: number): number {
+  const DAYS_PER_WEEK = 7
+  const capDriven = maxRecipeRepeatsPerWeek > 0 ? Math.ceil(DAYS_PER_WEEK / maxRecipeRepeatsPerWeek) : 1
+  return Math.max(MIN_COMPATIBLE_RECIPES_PER_SLOT, capDriven)
+}
+
 export function combineReadiness(...checks: Readiness[]): Readiness {
   const blockers = checks.flatMap(check => check.blockers)
   return { ready: checks.every(check => check.ready), blockers }
@@ -87,10 +96,13 @@ export function getGenerationReadiness(
   if (!guardrailsApproved) {
     blockers.push('Set VITE_MEAL_PLAN_GENERATOR_GUARDRAILS_APPROVED=true after the Phase 0 launch guardrails are approved.')
   }
+  const required = requiredRecipesPerSlot(options.maxRecipeRepeatsPerWeek)
   for (const slot of requiredSlots(options.includeSnack)) {
     const compatibleCount = filterPool(recipes, slot, options).length
-    if (compatibleCount < MIN_COMPATIBLE_RECIPES_PER_SLOT) {
-      blockers.push(`${SLOT_LABELS[slot]} needs at least ${MIN_COMPATIBLE_RECIPES_PER_SLOT} preference-compatible recipes; found ${compatibleCount}. Add or retag recipes, or relax the athlete filters.`)
+    if (compatibleCount < required) {
+      blockers.push(required > MIN_COMPATIBLE_RECIPES_PER_SLOT
+        ? `${SLOT_LABELS[slot]} needs at least ${required} preference-compatible recipes to fill 7 days at a weekly repeat limit of ${options.maxRecipeRepeatsPerWeek}; found ${compatibleCount}. Add or retag recipes, relax the athlete filters, or raise the repeat limit.`
+        : `${SLOT_LABELS[slot]} needs at least ${required} preference-compatible recipes; found ${compatibleCount}. Add or retag recipes, or relax the athlete filters.`)
     }
   }
   return { ready: blockers.length === 0, blockers }

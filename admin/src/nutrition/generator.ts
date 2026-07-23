@@ -50,11 +50,17 @@ export function slotBudgets(target: GeneratorTarget, options: GeneratorOptions) 
     slot: item.slot,
     pct: options.mealDistribution?.[item.slot] ?? item.pct,
   }))
-  const totalPct = withOverrides.reduce((sum, item) => sum + item.pct, 0)
-  return withOverrides.map(item => ({
+  // A stored distribution that sums to zero (or negative) is malformed; ignore the
+  // overrides and fall back to the built-in layout so every budget stays finite.
+  const overrideTotal = withOverrides.reduce((sum, item) => sum + item.pct, 0)
+  const effective = overrideTotal > 0 ? withOverrides : layout
+  const totalPct = effective.reduce((sum, item) => sum + item.pct, 0)
+  return effective.map(item => ({
     slot: item.slot,
     calories: (target.calories * item.pct) / totalPct,
     protein_g: (target.protein_g * item.pct) / totalPct,
+    carbs_g: (target.carbs_g * item.pct) / totalPct,
+    fat_g: (target.fat_g * item.pct) / totalPct,
   }))
 }
 
@@ -93,20 +99,26 @@ export function bestPortion(recipe: GeneratorRecipe, kcalBudget: number): number
 export interface ScoreContext { usedCount: number; maxRepeats: number; isFavourite: boolean }
 
 const PROTEIN_WEIGHT = 2      // kcal-equivalent weight per gram of protein deviation
+const CARB_WEIGHT = 1         // kcal-equivalent weight per gram of carb deviation
+const FAT_WEIGHT = 2          // kcal-equivalent weight per gram of fat deviation
 const REPEAT_PENALTY = 120    // kcal-equivalent per prior use this week
 const FAVOURITE_BONUS = 60    // kcal-equivalent
 
 export function scoreCandidate(
   recipe: GeneratorRecipe,
   multiplier: number,
-  budget: { calories: number; protein_g: number },
+  budget: { calories: number; protein_g: number; carbs_g: number; fat_g: number },
   context: ScoreContext,
 ): number {
   if (context.maxRepeats > 0 && context.usedCount >= context.maxRepeats) return Infinity
   const kcalDeviation = Math.abs(recipe.calories * multiplier - budget.calories)
   const proteinDeviation = Math.abs(recipe.protein_g * multiplier - budget.protein_g)
+  const carbDeviation = Math.abs(recipe.carbs_g * multiplier - budget.carbs_g)
+  const fatDeviation = Math.abs(recipe.fat_g * multiplier - budget.fat_g)
   return kcalDeviation
     + proteinDeviation * PROTEIN_WEIGHT
+    + carbDeviation * CARB_WEIGHT
+    + fatDeviation * FAT_WEIGHT
     + context.usedCount * REPEAT_PENALTY
     - (context.isFavourite ? FAVOURITE_BONUS : 0)
 }
@@ -186,25 +198,33 @@ export function isWithinTargetTolerances(totals: MacroValues, target: GeneratorT
     && isWithinPercentTolerance(totals.fat_g, target.fat_g, target.fat_tol_pct)
 }
 
-// Nudge the most scalable un-locked slot so the day lands inside tolerance.
-function adjustDay(slots: GeneratedSlot[], recipesById: Map<string, GeneratorRecipe>, target: GeneratorTarget): GeneratedSlot[] {
-  const totals = dayTotals(slots)
-  if (isWithinTargetTolerances(totals, target)) return slots
-  const gap = target.calories - totals.calories
-  let bestIndex = -1
-  let bestKcalPerStep = 0
-  slots.forEach((item, index) => {
-    const source = recipesById.get(item.recipeId)
-    if (!source || item.locked || !source.is_scalable || source.allowed_portions?.length) return
-    if (source.calories > bestKcalPerStep) { bestKcalPerStep = source.calories; bestIndex = index }
-  })
-  if (bestIndex === -1) return slots
-  const source = recipesById.get(slots[bestIndex].recipeId)!
-  const current = slots[bestIndex].portionMultiplier
-  const desired = current + gap / source.calories
-  const snapped = Math.min(PORTION_MAX, Math.max(PORTION_MIN, Math.round(desired / PORTION_STEP) * PORTION_STEP))
-  if (snapped === current) return slots
-  return slots.map((item, index) => index === bestIndex ? scaledSlot(item.slot, source, snapped) : item)
+const MAX_ADJUST_PASSES = 4
+
+// Nudge scalable, un-locked slots toward the day's calorie target. Each pass applies the single
+// re-portion that lands the day's calories closest to target — so a finer-grained slot is picked
+// over a coarse high-calorie one — and passes repeat until the day is within tolerance or no move
+// shrinks the gap. Continuous (0.25-step) slots only; fixed allowed_portions and locks are left alone.
+export function adjustDay(slots: GeneratedSlot[], recipesById: Map<string, GeneratorRecipe>, target: GeneratorTarget): GeneratedSlot[] {
+  let current = slots
+  for (let pass = 0; pass < MAX_ADJUST_PASSES; pass += 1) {
+    const totals = dayTotals(current)
+    if (isWithinTargetTolerances(totals, target)) return current
+    const gap = target.calories - totals.calories
+    if (gap === 0) return current
+    const moves = current.flatMap((item, index) => {
+      const source = recipesById.get(item.recipeId)
+      if (!source || item.locked || !source.is_scalable || source.allowed_portions?.length || source.calories <= 0) return []
+      const desired = item.portionMultiplier + gap / source.calories
+      const snapped = Math.min(PORTION_MAX, Math.max(PORTION_MIN, Math.round(desired / PORTION_STEP) * PORTION_STEP))
+      if (snapped === item.portionMultiplier) return []
+      const resultingGap = Math.abs(totals.calories - item.calories + source.calories * snapped - target.calories)
+      return [{ index, source, portion: snapped, resultingGap }]
+    })
+    const best = moves.reduce<(typeof moves)[number] | null>((acc, move) => (!acc || move.resultingGap < acc.resultingGap ? move : acc), null)
+    if (!best || best.resultingGap >= Math.abs(gap)) return current
+    current = current.map((item, index) => index === best.index ? scaledSlot(item.slot, best.source, best.portion) : item)
+  }
+  return current
 }
 
 export function generateWeek(
@@ -283,7 +303,12 @@ export function generateWeek(
   }
 
   const score = days.length
-    ? days.reduce((sum, day) => sum + Math.abs(day.totals.calories - target.calories) / target.calories, 0) / days.length
+    ? days.reduce((sum, day) => {
+        const deviation = target.calories > 0
+          ? Math.abs(day.totals.calories - target.calories) / target.calories
+          : (day.totals.calories === 0 ? 0 : 1)
+        return sum + deviation
+      }, 0) / days.length
     : 1
   return { days, score, diagnostics }
 }

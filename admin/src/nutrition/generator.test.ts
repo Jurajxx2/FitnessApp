@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  bestPortion, filterPool, generateWeek, isWithinTargetTolerances, KCAL_TOLERANCE, mulberry32, PROTEIN_FLOOR, scoreCandidate, slotBudgets,
-  restorePinnedSlotLockState, type GeneratedSlot, type GeneratorOptions, type GeneratorRecipe,
+  adjustDay, bestPortion, filterPool, generateWeek, isWithinTargetTolerances, KCAL_TOLERANCE, mulberry32, PROTEIN_FLOOR, scoreCandidate, slotBudgets,
+  restorePinnedSlotLockState, type GeneratedSlot, type GeneratorOptions, type GeneratorRecipe, type SlotType,
 } from './generator'
 
 export const baseOptions: GeneratorOptions = {
@@ -46,6 +46,16 @@ describe('slotBudgets', () => {
   it('honours a custom distribution', () => {
     const budgets = slotBudgets(target, { ...baseOptions, mealDistribution: { breakfast: 20, lunch: 50, dinner: 30 } })
     expect(budgets.map(item => Math.round(item.calories))).toEqual([400, 1000, 600])
+  })
+  it('exposes carb and fat budgets per slot', () => {
+    const budgets = slotBudgets(target, baseOptions)
+    expect(budgets.map(item => Math.round(item.carbs_g))).toEqual([60, 80, 60])
+    expect(budgets.map(item => Math.round(item.fat_g))).toEqual([18, 24, 18])
+  })
+  it('falls back to defaults for a distribution that sums to zero', () => {
+    const budgets = slotBudgets(target, { ...baseOptions, mealDistribution: { breakfast: 0, lunch: 0, dinner: 0 } })
+    expect(budgets.every(item => [item.calories, item.protein_g, item.carbs_g, item.fat_g].every(Number.isFinite))).toBe(true)
+    expect(budgets.map(item => Math.round(item.calories))).toEqual([600, 800, 600])
   })
 })
 
@@ -100,7 +110,7 @@ describe('bestPortion', () => {
 })
 
 describe('scoreCandidate', () => {
-  const budget = { calories: 600, protein_g: 45 }
+  const budget = { calories: 600, protein_g: 45, carbs_g: 60, fat_g: 20 }
   it('prefers closer kcal fit', () => {
     const close = scoreCandidate(recipe({ id: 'a', calories: 600, protein_g: 45 }), 1, budget, { usedCount: 0, maxRepeats: 2, isFavourite: false })
     const far = scoreCandidate(recipe({ id: 'b', calories: 300, protein_g: 45 }), 1, budget, { usedCount: 0, maxRepeats: 2, isFavourite: false })
@@ -116,6 +126,16 @@ describe('scoreCandidate', () => {
     expect(favourite).toBeLessThan(plain)
     expect(repeated).toBeGreaterThan(plain)
   })
+  it('prefers candidates closer to the carb budget when calories and protein tie', () => {
+    const onTarget = scoreCandidate(recipe({ id: 'balanced', calories: 600, protein_g: 45, carbs_g: 60, fat_g: 20 }), 1, budget, { usedCount: 0, maxRepeats: 2, isFavourite: false })
+    const carbHeavy = scoreCandidate(recipe({ id: 'carby', calories: 600, protein_g: 45, carbs_g: 120, fat_g: 20 }), 1, budget, { usedCount: 0, maxRepeats: 2, isFavourite: false })
+    expect(onTarget).toBeLessThan(carbHeavy)
+  })
+  it('prefers candidates closer to the fat budget when calories and protein tie', () => {
+    const onTarget = scoreCandidate(recipe({ id: 'balanced', calories: 600, protein_g: 45, carbs_g: 60, fat_g: 20 }), 1, budget, { usedCount: 0, maxRepeats: 2, isFavourite: false })
+    const fatty = scoreCandidate(recipe({ id: 'fatty', calories: 600, protein_g: 45, carbs_g: 60, fat_g: 60 }), 1, budget, { usedCount: 0, maxRepeats: 2, isFavourite: false })
+    expect(onTarget).toBeLessThan(fatty)
+  })
 })
 
 function richPool(): GeneratorRecipe[] {
@@ -123,10 +143,13 @@ function richPool(): GeneratorRecipe[] {
   const slots: Array<[string, number, number]> = [['breakfast', 450, 30], ['lunch', 700, 45], ['dinner', 550, 40]]
   for (const [slot, kcal, protein] of slots) {
     for (let index = 0; index < 6; index += 1) {
+      const calories = kcal + index * 40
+      // Carb/fat density matches the 2000 kcal / 200 C / 60 F target (0.1 g C, 0.03 g F per kcal),
+      // so a portioned-to-kcal day lands on the carb/fat target rather than hugging the tolerance floor.
       pool.push(recipe({
         id: `${slot}-${index}`, meal_types: [slot],
-        calories: kcal + index * 40, protein_g: protein + index * 4,
-        carbs_g: 50, fat_g: 15, is_scalable: true, allowed_portions: null,
+        calories, protein_g: protein + index * 4,
+        carbs_g: calories * 0.1, fat_g: calories * 0.03, is_scalable: true, allowed_portions: null,
       }))
     }
   }
@@ -151,6 +174,37 @@ describe('generateWeek', () => {
       expect(day.totals.protein_g).toBeGreaterThanOrEqual(target.protein_g * PROTEIN_FLOOR - 1e-9)
     }
     expect(plan.diagnostics.daysOutOfTolerance).toHaveLength(0)
+  })
+
+  it('steers days within carb and fat tolerance when the pool mixes balanced and skewed recipes', () => {
+    const strictTarget = {
+      calories: 2000, protein_g: 140, carbs_g: 200, fat_g: 60,
+      calorie_tol_pct: KCAL_TOLERANCE * 100, protein_tol_pct: 25, carbs_tol_pct: 15, fat_tol_pct: 15,
+    }
+    // Every candidate in a slot ties on kcal + protein, so only carbs/fat separate them.
+    // "good" recipes hit the slot carb/fat budget exactly; "skew" recipes blow it far past tolerance.
+    const slots: Array<[SlotType, number, number, number, number]> = [
+      ['breakfast', 600, 42, 60, 18],
+      ['lunch', 800, 56, 80, 24],
+      ['dinner', 600, 42, 60, 18],
+    ]
+    const pool: GeneratorRecipe[] = []
+    for (const [slot, kcal, protein, carb, fat] of slots) {
+      for (let i = 0; i < 6; i += 1) {
+        pool.push(recipe({ id: `${slot}-good-${i}`, meal_types: [slot], calories: kcal, protein_g: protein, carbs_g: carb, fat_g: fat, is_scalable: false }))
+        pool.push(recipe({ id: `${slot}-skew-${i}`, meal_types: [slot], calories: kcal, protein_g: protein, carbs_g: carb + 150, fat_g: fat + 50, is_scalable: false }))
+      }
+    }
+    const plan = generateWeek(pool, strictTarget, { ...baseOptions, maxRecipeRepeatsPerWeek: 2 })
+    for (const day of plan.days) {
+      expect(isWithinTargetTolerances(day.totals, strictTarget)).toBe(true)
+    }
+    expect(plan.diagnostics.daysOutOfTolerance).toHaveLength(0)
+  })
+
+  it('produces a finite score when the calorie target is zero', () => {
+    const plan = generateWeek(richPool(), { ...target, calories: 0 }, baseOptions)
+    expect(Number.isFinite(plan.score)).toBe(true)
   })
 
   it('is deterministic for the same seed and differs for another', () => {
@@ -247,6 +301,43 @@ describe('generateWeek', () => {
 
     expect(lockedKeys).toEqual(['0:lunch'])
     expect(restored.days[0].slots.find(slot => slot.slot === 'breakfast')?.locked).toBe(false)
+  })
+})
+
+describe('adjustDay', () => {
+  const looseTarget = { calories: 1000, protein_g: 50, carbs_g: 100, fat_g: 30, calorie_tol_pct: 5, protein_tol_pct: 500, carbs_tol_pct: 500, fat_tol_pct: 500 }
+  function builtSlot(r: GeneratorRecipe, slotType: SlotType, portion: number): GeneratedSlot {
+    return {
+      slot: slotType, recipeId: r.id, recipeName: r.name, portionMultiplier: portion,
+      calories: r.calories * portion, protein_g: r.protein_g * portion, carbs_g: r.carbs_g * portion, fat_g: r.fat_g * portion,
+      fiber_g: null, locked: false,
+    }
+  }
+  const sumCal = (slots: GeneratedSlot[]) => slots.reduce((sum, item) => sum + item.calories, 0)
+
+  it('re-portions the slot that lands the day closest to target, not merely the largest', () => {
+    const big = recipe({ id: 'big', calories: 800, is_scalable: true, allowed_portions: null })
+    const small = recipe({ id: 'small', calories: 100, is_scalable: true, allowed_portions: null })
+    const slots = [builtSlot(big, 'lunch', 1), builtSlot(small, 'snack', 1)] // 900 kcal, gap 100
+    const adjusted = adjustDay(slots, new Map([[big.id, big], [small.id, small]]), looseTarget)
+    expect(sumCal(adjusted)).toBe(1000)
+    expect(adjusted.find(item => item.slot === 'snack')?.portionMultiplier).toBe(2)
+    expect(adjusted.find(item => item.slot === 'lunch')?.portionMultiplier).toBe(1)
+  })
+
+  it('iterates across passes to close a gap a single nudge cannot', () => {
+    const a = recipe({ id: 'a', calories: 300, is_scalable: true, allowed_portions: null })
+    const b = recipe({ id: 'b', calories: 300, is_scalable: true, allowed_portions: null })
+    const slots = [builtSlot(a, 'lunch', 1), builtSlot(b, 'dinner', 1)] // 600 kcal, gap 400
+    const adjusted = adjustDay(slots, new Map([[a.id, a], [b.id, b]]), looseTarget)
+    expect(Math.abs(sumCal(adjusted) - looseTarget.calories) / looseTarget.calories).toBeLessThanOrEqual(looseTarget.calorie_tol_pct / 100 + 1e-9)
+  })
+
+  it('leaves a day already within tolerance untouched', () => {
+    const only = recipe({ id: 'only', calories: 1000, is_scalable: true, allowed_portions: null })
+    const slots = [builtSlot(only, 'lunch', 1)]
+    const adjusted = adjustDay(slots, new Map([[only.id, only]]), looseTarget)
+    expect(adjusted[0].portionMultiplier).toBe(1)
   })
 })
 

@@ -168,6 +168,28 @@ describe('generated plan preview actions', () => {
   })
 })
 
+describe('day tolerance chip', () => {
+  it('flags a day that meets calories but misses carbs as outside tolerance', async () => {
+    const plan = generatedPlan('draft')
+    // Calories on target (600), but carbs 100 vs 60 ±15% → the day is out of tolerance overall.
+    plan.days[0].totals = { calories: 600, protein_g: 45, carbs_g: 100, fat_g: 18 }
+    plan.days[0].withinTolerance = true // optimistic/stale persisted flag must not fool the chip
+    vi.mocked(fetchGeneratedPlan).mockResolvedValue(plan)
+
+    renderPreview()
+
+    expect(await screen.findByTitle(/outside target tolerances/i)).toBeInTheDocument()
+  })
+
+  it('marks a fully in-tolerance day as within target', async () => {
+    vi.mocked(fetchGeneratedPlan).mockResolvedValue(generatedPlan('draft'))
+
+    renderPreview()
+
+    expect(await screen.findByTitle(/within all target tolerances/i)).toBeInTheDocument()
+  })
+})
+
 describe('generation preferences', () => {
   it('uses persisted athlete preferences without exposing run-only overrides', async () => {
     renderCreate()

@@ -5,7 +5,7 @@ import { Lock, LockOpen, RefreshCw } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { Button, Card, ConfirmDialog, EditorPage, Input, useNotice, Shimmer, EmptyState } from '../../components/ui'
 import { useNutritionPreferences } from '../../nutrition/preferences'
-import { generateWeek, restorePinnedSlotLockState, type GeneratedPlan, type GeneratedSlot, type GeneratorOptions, type GeneratorTarget } from '../../nutrition/generator'
+import { generateWeek, isWithinTargetTolerances, restorePinnedSlotLockState, type GeneratedPlan, type GeneratedSlot, type GeneratorOptions, type GeneratorTarget } from '../../nutrition/generator'
 import { deletePlan, fetchGeneratedPlan, fetchGeneratorPool, fetchNutritionTargetVersion, persistCurrentPlanThenPublish, publishPlan, saveGeneratedPlan } from '../../nutrition/generationApi'
 import { combineReadiness, getGeneratedPlanActionState, getGenerationReadiness, getPublishReadiness, isGeneratorGuardrailsApproved } from '../../nutrition/generationReadiness'
 import type { NutritionTarget, UserNutritionPreferences } from '../../types/database'
@@ -28,11 +28,16 @@ function optionsFromPreferences(preferences: UserNutritionPreferences, seed: num
   }
 }
 
-function deltaChip(value: number, target: number, tolerancePct: number) {
+// Shows the day's calorie delta, but colours by whether the WHOLE day (calories, protein, carbs,
+// fat) is within tolerance — a day that hits calories yet misses carbs/fat is publish-blocked, so
+// it must not read as green here.
+function deltaChip(value: number, target: number, withinDayTolerance: boolean) {
   const pct = target > 0 ? (value - target) / target : 0
-  const ok = Math.abs(pct) <= tolerancePct / 100 + Number.EPSILON
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${ok ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
+    <span
+      title={withinDayTolerance ? 'Day is within all target tolerances' : 'Day is outside target tolerances (calories, protein, carbs, or fat)'}
+      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${withinDayTolerance ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}
+    >
       {pct >= 0 ? '+' : ''}{Math.round(pct * 100)}%
     </span>
   )
@@ -336,12 +341,12 @@ export default function GeneratePlan() {
       )}
 
       {plan && (
-        <div className="grid gap-3 overflow-x-auto pb-2 lg:grid-cols-7">
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]">
           {plan.days.map(day => (
-            <Card key={day.dayOfWeek} className="min-w-44 p-3">
+            <Card key={day.dayOfWeek} className="p-3">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-wider text-text-secondary">{DAY_SHORTS[day.dayOfWeek]}</p>
-                {deltaChip(day.totals.calories, target.calories, target.calorie_tol_pct)}
+                {deltaChip(day.totals.calories, target.calories, isWithinTargetTolerances(day.totals, target))}
               </div>
               <div className="space-y-2">
                 {day.slots.map(slot => (
