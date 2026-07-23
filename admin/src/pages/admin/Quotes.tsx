@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Check, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Button, ClickableRow, ConfirmDialog, EmptyState, PageHeader, Table, Td, Th, useNotice } from '../../components/ui'
+import { Button, ConfirmDialog, DataTable, EmptyState, PageHeader, useNotice } from '../../components/ui'
+import type { ActionMenuItem, BulkAction, DataColumn } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { DailyQuote } from '../../types/database'
 
@@ -25,7 +27,8 @@ export default function Quotes() {
   const queryClient = useQueryClient()
   const { notify } = useNotice()
   const { data: quotes = [], isLoading, isError } = useQuotes()
-  const [deleteTarget, setDeleteTarget] = useState<DailyQuote | null>(null)
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const setActive = useMutation({
     mutationFn: async (id: string) => {
@@ -47,11 +50,49 @@ export default function Quotes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotes-admin'] })
-      setDeleteTarget(null)
-      notify('Quote deleted.')
     },
-    onError: error => notify(`Couldn’t delete quote: ${error.message}`, 'error'),
   })
+
+  const deleteTargets = deleteIds ? quotes.filter(quote => deleteIds.includes(quote.id)) : []
+
+  async function confirmDelete() {
+    if (!deleteIds) return
+    setDeleting(true)
+    try {
+      await Promise.all(deleteIds.map(id => deleteQuote.mutateAsync(id)))
+      notify(deleteIds.length > 1 ? `${deleteIds.length} quotes deleted.` : 'Quote deleted.')
+      setDeleteIds(null)
+    } catch (error) {
+      notify(`Couldn’t delete quote${deleteIds.length > 1 ? 's' : ''}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const columns: DataColumn<DailyQuote>[] = [
+    {
+      key: 'text',
+      header: 'Quote',
+      className: 'max-w-xl',
+      render: quote => <p className="line-clamp-2 text-sm font-medium text-text-primary">“{quote.text}”</p>,
+    },
+    { key: 'author', header: 'Author', render: quote => quote.author ?? '—' },
+    {
+      key: 'status',
+      header: 'Status',
+      render: quote => (quote.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>),
+    },
+  ]
+
+  const rowActions = (quote: DailyQuote): ActionMenuItem[] => [
+    ...(!quote.is_active ? [{ key: 'activate', label: 'Set active', icon: <Check size={16} />, onSelect: () => setActive.mutate(quote.id) }] : []),
+    { key: 'open', label: 'Open', onSelect: () => navigate(`/admin/quotes/${quote.id}`) },
+    { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onSelect: () => setDeleteIds([quote.id]) },
+  ]
+
+  const bulkActions = (selected: DailyQuote[]): BulkAction[] => [
+    { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onClick: () => setDeleteIds(selected.map(quote => quote.id)) },
+  ]
 
   return (
     <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
@@ -61,41 +102,44 @@ export default function Quotes() {
         actions={<Button onClick={() => navigate('/admin/quotes/new')}>Add quote</Button>}
       />
 
-      {isLoading ? (
-        <p className="text-sm text-text-secondary">Loading…</p>
-      ) : isError ? (
+      {isError ? (
         <EmptyState title="Quotes couldn’t be loaded" description="Refresh the page to retry." />
-      ) : quotes.length === 0 ? (
-        <EmptyState title="No quotes yet" description="Add a quote to set the tone in Coach Foska." action={<Button onClick={() => navigate('/admin/quotes/new')}>Add quote</Button>} />
       ) : (
-        <Table>
-          <thead><tr><Th>Quote</Th><Th>Author</Th><Th>Status</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
-          <tbody>
-            {quotes.map(quote => (
-              <ClickableRow key={quote.id} label={`Open quote by ${quote.author ?? 'unknown author'}`} onActivate={() => navigate(`/admin/quotes/${quote.id}`)}>
-                <Td className="max-w-xl"><p className="line-clamp-2 text-sm font-medium text-text-primary">“{quote.text}”</p></Td>
-                <Td>{quote.author ?? '—'}</Td>
-                <Td>{quote.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}</Td>
-                <Td>
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    {!quote.is_active && <Button variant="secondary" className="min-h-9 px-3" onClick={() => setActive.mutate(quote.id)} loading={setActive.isPending}>Set active</Button>}
-                    <Button variant="ghost" className="min-h-9 px-3" onClick={() => navigate(`/admin/quotes/${quote.id}`)}>Open</Button>
-                    <Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(quote)}>Delete</Button>
-                  </div>
-                </Td>
-              </ClickableRow>
-            ))}
-          </tbody>
-        </Table>
+        <DataTable<DailyQuote>
+          rows={quotes}
+          getRowId={quote => quote.id}
+          columns={columns}
+          rowLabel={quote => `Open quote by ${quote.author ?? 'unknown author'}`}
+          onRowActivate={quote => navigate(`/admin/quotes/${quote.id}`)}
+          rowActions={rowActions}
+          selectable
+          bulkActions={bulkActions}
+          loading={isLoading}
+          empty={
+            <EmptyState
+              title="No quotes yet"
+              description="Add a quote to set the tone in Coach Foska."
+              action={<Button onClick={() => navigate('/admin/quotes/new')}>Add quote</Button>}
+            />
+          }
+        />
       )}
 
       <ConfirmDialog
-        open={deleteTarget !== null}
-        title="Delete quote?"
-        description={<>“{deleteTarget?.text}” will be permanently removed.</>}
-        pending={deleteQuote.isPending}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteTarget && deleteQuote.mutate(deleteTarget.id)}
+        open={deleteIds !== null}
+        title={deleteIds && deleteIds.length > 1 ? `Delete ${deleteIds.length} quotes?` : 'Delete quote?'}
+        description={
+          deleteIds && deleteIds.length > 1 ? (
+            <>{deleteIds.length} quotes will be permanently removed.</>
+          ) : deleteTargets[0] ? (
+            <>“{deleteTargets[0].text}” will be permanently removed.</>
+          ) : (
+            <>This quote will be permanently removed.</>
+          )
+        }
+        pending={deleting}
+        onClose={() => setDeleteIds(null)}
+        onConfirm={confirmDelete}
       />
     </div>
   )
