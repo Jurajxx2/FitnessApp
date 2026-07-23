@@ -129,7 +129,9 @@ export default function Users() {
         <EmptyState title="Users couldn’t be loaded" description="Refresh the page to retry the request." />
       ) : (
         <>
-          <p className="mb-3 text-sm text-text-secondary">Showing {filtered.length} of {users.length} users</p>
+          {!isLoading && filtered.length > 0 && (
+            <p className="mb-3 text-sm text-text-secondary">Showing {filtered.length} of {users.length} users</p>
+          )}
           <DataTable<Profile>
             rows={filtered}
             getRowId={(user) => user.id}
