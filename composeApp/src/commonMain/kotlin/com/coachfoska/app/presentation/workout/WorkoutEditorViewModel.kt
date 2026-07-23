@@ -7,7 +7,7 @@ import com.coachfoska.app.domain.model.Exercise
 import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.domain.model.WorkoutDraft
 import com.coachfoska.app.domain.model.WorkoutExerciseDraft
-import com.coachfoska.app.domain.model.inferExerciseLogType
+import com.coachfoska.app.domain.model.resolvedLogType
 import com.coachfoska.app.domain.repository.ExerciseRepository
 import com.coachfoska.app.domain.repository.WorkoutRepository
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
@@ -63,6 +63,7 @@ sealed interface WorkoutEditorIntent {
     data class UpdateSets(val index: Int, val sets: Int) : WorkoutEditorIntent
     data class UpdateReps(val index: Int, val reps: String) : WorkoutEditorIntent
     data class UpdateDuration(val index: Int, val seconds: Int) : WorkoutEditorIntent
+    data class SetExerciseLogType(val index: Int, val logType: ExerciseLogType) : WorkoutEditorIntent
     data class UpdateRest(val index: Int, val seconds: Int) : WorkoutEditorIntent
     data object Save : WorkoutEditorIntent
     data object DismissError : WorkoutEditorIntent
@@ -96,6 +97,7 @@ class WorkoutEditorViewModel(
             is WorkoutEditorIntent.UpdateSets -> updateSets(intent.index, intent.sets)
             is WorkoutEditorIntent.UpdateReps -> updateReps(intent.index, intent.reps)
             is WorkoutEditorIntent.UpdateDuration -> updateDuration(intent.index, intent.seconds)
+            is WorkoutEditorIntent.SetExerciseLogType -> setExerciseLogType(intent.index, intent.logType)
             is WorkoutEditorIntent.UpdateRest -> updateRest(intent.index, intent.seconds)
             is WorkoutEditorIntent.Save -> save()
             is WorkoutEditorIntent.DismissError -> _state.update { it.copy(error = null) }
@@ -118,6 +120,11 @@ class WorkoutEditorViewModel(
                             exercises = workout.exercises
                                 .sortedBy { ex -> ex.sortOrder }
                                 .map { ex ->
+                                    // Stored log_type is authoritative; inference is fallback-only
+                                    // (legacy plans with no stored value). E-7: only legacy TIME
+                                    // exercises get an inferred duration — never non-time ones,
+                                    // even if their reps text happens to mention "sec"/"min".
+                                    val logType = ex.resolvedLogType()
                                     EditorExercise(
                                         exerciseId = ex.exerciseId,
                                         name = ex.name,
@@ -125,8 +132,12 @@ class WorkoutEditorViewModel(
                                         sets = ex.sets,
                                         reps = ex.reps,
                                         restSeconds = ex.restSeconds,
-                                        logType = ex.logType ?: inferExerciseLogType(ex.name, ex.muscleGroup, reps = ex.reps),
-                                        targetDurationSeconds = ex.targetDurationSeconds ?: inferLegacyDurationSeconds(ex.reps),
+                                        logType = logType,
+                                        targetDurationSeconds = if (logType == ExerciseLogType.TIME) {
+                                            ex.targetDurationSeconds ?: inferLegacyDurationSeconds(ex.reps)
+                                        } else {
+                                            null
+                                        },
                                         substitutedFromExerciseId = ex.substitutedFromExerciseId,
                                         substitutedFromName = ex.substitutedFromName,
                                     )
@@ -197,6 +208,24 @@ class WorkoutEditorViewModel(
             val list = s.exercises.toMutableList()
             if (index !in list.indices) return@update s
             list[index] = list[index].copy(targetDurationSeconds = seconds.coerceIn(1, 3_600))
+            s.copy(exercises = list)
+        }
+    }
+
+    private fun setExerciseLogType(index: Int, logType: ExerciseLogType) {
+        _state.update { s ->
+            val list = s.exercises.toMutableList()
+            if (index !in list.indices) return@update s
+            val current = list[index]
+            // Switching to TIME needs a non-null duration goal (default 30s, clamped to the DB
+            // CHECK's [1,3600] range); switching away must clear it so the invariant
+            // (log_type='time' <=> target_duration_seconds non-null) never breaks in state.
+            val newTargetDurationSeconds = if (logType == ExerciseLogType.TIME) {
+                (current.targetDurationSeconds ?: 30).coerceIn(1, 3_600)
+            } else {
+                null
+            }
+            list[index] = current.copy(logType = logType, targetDurationSeconds = newTargetDurationSeconds)
             s.copy(exercises = list)
         }
     }

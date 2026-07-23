@@ -19,8 +19,10 @@ import androidx.compose.ui.unit.dp
 import coachfoska.composeapp.generated.resources.Res
 import coachfoska.composeapp.generated.resources.actual_reps_label
 import coachfoska.composeapp.generated.resources.actual_weight_label
+import coachfoska.composeapp.generated.resources.editor_duration
 import coachfoska.composeapp.generated.resources.set_input_rpe_format
 import coachfoska.composeapp.generated.resources.set_number_format
+import com.coachfoska.app.domain.model.ExerciseLogType
 import com.coachfoska.app.presentation.workout.SetDraft
 import com.coachfoska.designsystem.components.DsTextField
 import org.jetbrains.compose.resources.stringResource
@@ -28,8 +30,10 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun SetInputRow(
     setDraft: SetDraft,
+    logType: ExerciseLogType = ExerciseLogType.WEIGHT_REPS,
     onActualReps: (Int?) -> Unit,
     onActualWeight: (Float?) -> Unit,
+    onActualDuration: (Int?) -> Unit = {},
     onRpe: (Int?) -> Unit,
     onCompleted: () -> Unit,
 ) {
@@ -42,22 +46,33 @@ internal fun SetInputRow(
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.width(56.dp),
         )
-        DsTextField(
-            value = setDraft.actualReps?.toString() ?: "",
-            onValueChange = { onActualReps(it.toIntOrNull()) },
-            label = stringResource(Res.string.actual_reps_label),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.width(72.dp),
-        )
-        Spacer(Modifier.width(8.dp))
-        DsTextField(
-            value = setDraft.actualWeightKg?.toString() ?: "",
-            onValueChange = { onActualWeight(it.toFloatOrNull()) },
-            label = stringResource(Res.string.actual_weight_label),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.width(80.dp),
-        )
-        Spacer(Modifier.width(8.dp))
+        if (logType == ExerciseLogType.TIME) {
+            DsTextField(
+                value = setDraft.actualDurationSeconds?.toString() ?: "",
+                onValueChange = { onActualDuration(it.toIntOrNull()) },
+                label = stringResource(Res.string.editor_duration),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.width(96.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+        } else {
+            DsTextField(
+                value = setDraft.actualReps?.toString() ?: "",
+                onValueChange = { onActualReps(it.toIntOrNull()) },
+                label = stringResource(Res.string.actual_reps_label),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.width(72.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            DsTextField(
+                value = setDraft.actualWeightKg?.toString() ?: "",
+                onValueChange = { onActualWeight(it.toFloatOrNull()) },
+                label = stringResource(Res.string.actual_weight_label),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.width(80.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         Column(modifier = Modifier.weight(1f)) {
             Slider(
                 value = (setDraft.rpe ?: 5).toFloat(),

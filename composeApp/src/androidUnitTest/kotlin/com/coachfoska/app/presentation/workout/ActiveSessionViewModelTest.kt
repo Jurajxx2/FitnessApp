@@ -32,6 +32,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActiveSessionViewModelTest {
@@ -544,6 +545,262 @@ class ActiveSessionViewModelTest {
             })
         }
     }
+
+    @Test
+    fun `explicit_time_logType_survives_successful_media_enrichment`() = runTest {
+        // "Wall Sit" infers WEIGHT_REPS from its name alone (no time-signal words), but the
+        // coach explicitly authored it as TIME with a 60s target. A successful exercise-library
+        // fetch must not let the name-inferred logType from the library row clobber that.
+        val exercises = listOf(
+            WorkoutExercise(
+                id = "we1",
+                workoutId = "w1",
+                name = "Wall Sit",
+                muscleGroup = "Legs",
+                sets = 2,
+                reps = "60 seconds",
+                restSeconds = 30,
+                tips = null,
+                sortOrder = 0,
+                exerciseId = "wall-sit-1",
+                logType = ExerciseLogType.TIME,
+                targetDurationSeconds = 60,
+            )
+        )
+        val workout = aWorkout(id = "w1", exercises = exercises)
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(workout)
+        coEvery { exerciseRepo.getExerciseById("wall-sit-1") } returns Result.success(
+            Exercise(
+                id = "wall-sit-1", name = "Wall Sit", description = "", category = null,
+                muscles = emptyList(), musclesSecondary = emptyList(), equipment = emptyList(),
+                imageUrl = "https://example.com/wall-sit.png", imageUrl2 = null,
+                videoUrl = null, difficulty = null,
+            )
+        )
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        val exercise = vm.state.value.sessionDraft?.exercises?.single()
+        assertNotNull(exercise)
+        assertEquals(ExerciseLogType.TIME, exercise.logType, "authored log_type must survive media enrichment")
+        assertEquals(60, exercise.targetDurationSeconds)
+        // Media enrichment itself must still run.
+        assertEquals("https://example.com/wall-sit.png", exercise.imageUrl)
+    }
+
+    @Test
+    fun `resume_resolves_timed_exercise_from_set_shape_not_name`() = runTest {
+        // "Wall Sit" infers WEIGHT_REPS by name. The exercise is not part of a base plan draft
+        // (workoutId null), so resolution must fall back to the logged sets' shape, which is
+        // timed (no reps/weight, has actualDurationSeconds) — not to name inference.
+        val log = WorkoutLog(
+            id = "resume-log-1",
+            userId = "user-1",
+            workoutId = null,
+            workoutName = "Ad Hoc",
+            durationMinutes = 0,
+            notes = null,
+            exerciseLogs = listOf(
+                com.coachfoska.app.domain.model.ExerciseLog(
+                    id = "exercise-log-1",
+                    workoutLogId = "resume-log-1",
+                    exerciseName = "Wall Sit",
+                    notes = null,
+                    exerciseId = "wall-sit-1",
+                    sets = listOf(
+                        SetLog(
+                            id = "set-log-1",
+                            exerciseLogId = "exercise-log-1",
+                            sortOrder = 1,
+                            targetReps = null,
+                            actualReps = null,
+                            targetWeightKg = null,
+                            actualWeightKg = null,
+                            rpe = null,
+                            targetRestSeconds = null,
+                            actualRestSeconds = null,
+                            completed = true,
+                            actualDurationSeconds = 45,
+                        )
+                    ),
+                )
+            ),
+            loggedAt = kotlinx.datetime.Instant.parse("2026-07-03T10:00:00Z"),
+            status = "in_progress",
+        )
+        coEvery { repo.getInProgressSession("user-1") } returns Result.success(log)
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1", resumeLogId = "resume-log-1"))
+        advanceUntilIdle()
+
+        val exercise = vm.state.value.sessionDraft?.exercises?.single()
+        assertNotNull(exercise)
+        assertEquals(ExerciseLogType.TIME, exercise.logType, "must resolve TIME from set shape, not name")
+        val set = exercise.sets.first()
+        assertEquals(45, set.actualDurationSeconds, "resumed duration must remain visible")
+    }
+
+    @Test
+    fun `StartSetTimer sets a wall-clock anchor on the target set only`() = runTest {
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aTimedWorkout(sets = 2))
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        vm.onIntent(ActiveSessionIntent.StartSetTimer(0, 0))
+
+        val sets = vm.state.value.sessionDraft?.exercises?.single()?.sets
+        assertNotNull(sets)
+        assertNotNull(sets[0].timerStartedAtEpochMillis, "target set must carry a running anchor")
+        assertNull(sets[1].timerStartedAtEpochMillis, "other sets must stay paused")
+    }
+
+    @Test
+    fun `PauseSetTimer folds elapsed into actualDurationSeconds and clears the anchor`() = runTest {
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aTimedWorkout(sets = 1))
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        // Seed a 30s baseline, then run and pause. The wall clock advances only microseconds inside
+        // a test, so the fold must preserve the baseline and add at most one whole second.
+        vm.onIntent(ActiveSessionIntent.UpdateSetDuration(0, 0, 30))
+        vm.onIntent(ActiveSessionIntent.StartSetTimer(0, 0))
+        assertNotNull(vm.state.value.sessionDraft?.exercises?.single()?.sets?.first()?.timerStartedAtEpochMillis)
+
+        vm.onIntent(ActiveSessionIntent.PauseSetTimer(0, 0))
+
+        val set = vm.state.value.sessionDraft?.exercises?.single()?.sets?.first()
+        assertNull(set?.timerStartedAtEpochMillis, "anchor must be cleared on pause")
+        val folded = set?.actualDurationSeconds
+        assertNotNull(folded)
+        assertTrue(folded in 30..31, "fold must preserve the 30s baseline plus wall-clock delta, was $folded")
+    }
+
+    @Test
+    fun `resuming a legacy timed set folds from actualRestSeconds baseline when actualDurationSeconds is null`() = runTest {
+        // Pre-20260710224911 timed logs stored their duration in actual_rest_seconds (see
+        // TimeTrackerCell's baselineSeconds fallback). A legacy in-progress set resumed with only
+        // actualRestSeconds set must keep that baseline when its stopwatch is started and paused.
+        val log = WorkoutLog(
+            id = "resume-log-1",
+            userId = "user-1",
+            workoutId = null,
+            workoutName = "Ad Hoc",
+            durationMinutes = 0,
+            notes = null,
+            exerciseLogs = listOf(
+                com.coachfoska.app.domain.model.ExerciseLog(
+                    id = "exercise-log-1",
+                    workoutLogId = "resume-log-1",
+                    exerciseName = "Plank Hold",
+                    notes = null,
+                    exerciseId = "plank-1",
+                    sets = listOf(
+                        SetLog(
+                            id = "set-log-1",
+                            exerciseLogId = "exercise-log-1",
+                            sortOrder = 1,
+                            targetReps = null,
+                            actualReps = null,
+                            targetWeightKg = null,
+                            actualWeightKg = null,
+                            rpe = null,
+                            targetRestSeconds = null,
+                            actualRestSeconds = 45,
+                            completed = false,
+                            actualDurationSeconds = null,
+                        )
+                    ),
+                )
+            ),
+            loggedAt = kotlinx.datetime.Instant.parse("2026-07-03T10:00:00Z"),
+            status = "in_progress",
+        )
+        coEvery { repo.getInProgressSession("user-1") } returns Result.success(log)
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1", resumeLogId = "resume-log-1"))
+        advanceUntilIdle()
+
+        vm.onIntent(ActiveSessionIntent.StartSetTimer(0, 0))
+        vm.onIntent(ActiveSessionIntent.PauseSetTimer(0, 0))
+
+        val set = vm.state.value.sessionDraft?.exercises?.single()?.sets?.first()
+        assertNull(set?.timerStartedAtEpochMillis, "anchor must be cleared on pause")
+        val folded = set?.actualDurationSeconds
+        assertNotNull(folded)
+        assertTrue(folded in 45..46, "fold must preserve the legacy 45s baseline, was $folded")
+    }
+
+    @Test
+    fun `starting a second set timer folds the first (single-timer invariant)`() = runTest {
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aTimedWorkout(sets = 2))
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        vm.onIntent(ActiveSessionIntent.StartSetTimer(0, 0))
+        vm.onIntent(ActiveSessionIntent.StartSetTimer(0, 1))
+
+        val sets = vm.state.value.sessionDraft?.exercises?.single()?.sets
+        assertNotNull(sets)
+        assertNull(sets[0].timerStartedAtEpochMillis, "first timer must be folded when the second starts")
+        assertNotNull(sets[1].timerStartedAtEpochMillis, "the newly started timer must be running")
+        assertNotNull(sets[0].actualDurationSeconds, "the folded first set must have captured its elapsed time")
+        assertEquals(
+            1,
+            sets.count { it.timerStartedAtEpochMillis != null },
+            "at most one set-timer may run at a time",
+        )
+    }
+
+    @Test
+    fun `completing a running timed set folds its elapsed and persists the duration`() = runTest {
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aTimedWorkout(sets = 1))
+        coEvery { repo.saveSetLog(any(), any(), any(), any(), any(), any(), any()) } returns
+            Result.success(SavedSetRef("exercise-log-1", "set-log-1"))
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1"))
+        advanceUntilIdle()
+
+        vm.onIntent(ActiveSessionIntent.UpdateSetDuration(0, 0, 30))
+        vm.onIntent(ActiveSessionIntent.StartSetTimer(0, 0))
+        vm.onIntent(ActiveSessionIntent.MarkSetComplete(0, 0, completed = true))
+        advanceUntilIdle()
+
+        val set = vm.state.value.sessionDraft?.exercises?.single()?.sets?.first()
+        assertEquals(true, set?.completed)
+        assertNull(set?.timerStartedAtEpochMillis, "completing must clear the running anchor")
+        val folded = set?.actualDurationSeconds
+        assertNotNull(folded)
+        assertTrue(folded in 30..31, "completion must capture the full elapsed on top of the baseline")
+        coVerify {
+            repo.saveSetLog(any(), any(), any(), any(), any(), any(), match { it.actualDurationSeconds in 30..31 })
+        }
+    }
+
+    private fun aTimedWorkout(sets: Int = 2, restSeconds: Int = 60) = aWorkout(
+        id = "w1",
+        exercises = listOf(
+            WorkoutExercise(
+                id = "we1", workoutId = "w1",
+                name = "Plank Hold", muscleGroup = "Core",
+                sets = sets, reps = "30 seconds", restSeconds = restSeconds,
+                tips = null, sortOrder = 0,
+                exerciseId = "plank-1",
+                logType = ExerciseLogType.TIME,
+                targetDurationSeconds = 30,
+            )
+        ),
+    )
 
     private fun aPreviousSet(sortOrder: Int, weight: Float) = SetLog(
         id = "prev-$sortOrder", exerciseLogId = "", sortOrder = sortOrder,

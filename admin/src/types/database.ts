@@ -109,6 +109,7 @@ export interface SetLog {
   actual_reps: number | null
   target_weight_kg: number | null
   actual_weight_kg: number | null
+  actual_duration_seconds?: number | null
   rpe: number | null
   completed: boolean
   created_at?: string

@@ -89,6 +89,29 @@ data class ExerciseLog(
     val summaryLine: String get() = buildSummaryLine(sets)
 }
 
+/**
+ * The single plan-level resolver for tracking type: an explicit stored [WorkoutExercise.logType]
+ * is always authoritative; only fall back to name/reps inference when it is null (legacy plans).
+ */
+fun WorkoutExercise.resolvedLogType(): ExerciseLogType =
+    logType ?: inferExerciseLogType(name = name, categoryName = muscleGroup, reps = reps)
+
+/**
+ * Whether this logged exercise is timed, decided purely from the *shape* of its sets — never
+ * from the exercise name. True iff there is at least one set, none of the sets carry reps or
+ * weight, and either (a) some set has a recorded [SetLog.actualDurationSeconds], or (b) as a
+ * narrow legacy fallback for data recorded before actual_duration_seconds existed
+ * (pre-20260710224911), no set has a duration but some set has [SetLog.actualRestSeconds]. This
+ * is the only place the legacy actual_rest_seconds fallback is allowed to live.
+ */
+fun ExerciseLog.isTimed(): Boolean {
+    if (sets.isEmpty()) return false
+    if (sets.any { it.actualReps != null || it.actualWeightKg != null }) return false
+    val hasDuration = sets.any { it.actualDurationSeconds != null }
+    if (hasDuration) return true
+    return sets.any { it.actualRestSeconds != null }
+}
+
 data class WorkoutFeedback(
     val id: String,
     val userId: String,
@@ -124,22 +147,37 @@ data class SavedSetRef(
 private fun buildSummaryLine(sets: List<SetLog>): String {
     val done = sets.filter { it.completed }
     if (done.isEmpty()) return ""
-    val reps = done.map { it.actualReps }
+
+    // Duration part: only over sets that actually recorded a duration, so a completed set
+    // missing its duration never inflates the printed count.
     val durations = done.mapNotNull { it.actualDurationSeconds }
-    if (reps.all { it == null } && durations.isNotEmpty()) {
-        val durationPart = when {
-            durations.all { it == durations.first() } -> "${done.size} × ${formatDuration(durations.first())}"
+    val durationPart = if (durations.isNotEmpty()) {
+        when {
+            durations.all { it == durations.first() } -> "${durations.size} × ${formatDuration(durations.first())}"
             else -> durations.joinToString(", ", transform = ::formatDuration)
         }
-        return durationPart
+    } else null
+
+    // Reps part: when there are timed sets in the mix, restrict to sets that actually carry
+    // reps so a duration-only set never shows up as a stray "?" in the reps list. When nothing
+    // is timed, fall back to the full completed-set list (preserves the weight-only "N sets" case).
+    val repsSource = if (durations.isNotEmpty()) done.filter { it.actualReps != null } else done
+    val reps = repsSource.map { it.actualReps }
+
+    if (reps.isEmpty()) {
+        // Purely timed: no completed set carries reps at all.
+        return durationPart.orEmpty()
     }
+
     val repsPart = when {
-        reps.all { it == null } -> "${done.size} sets"
-        reps.all { it == reps.first() } -> "${done.size} × ${reps.first()}"
+        reps.all { it == null } -> "${repsSource.size} sets"
+        reps.all { it == reps.first() } -> "${repsSource.size} × ${reps.first()}"
         else -> reps.map { it?.toString() ?: "?" }.joinToString(", ")
     }
-    val maxWeight = done.mapNotNull { it.actualWeightKg }.maxOrNull()
-    return if (maxWeight != null) "$repsPart @ ${formatWeightKg(maxWeight)} kg" else repsPart
+    val maxWeight = repsSource.mapNotNull { it.actualWeightKg }.maxOrNull()
+    val repsWithWeight = if (maxWeight != null) "$repsPart @ ${formatWeightKg(maxWeight)} kg" else repsPart
+
+    return if (durationPart != null) "$repsWithWeight · $durationPart" else repsWithWeight
 }
 
 fun formatDuration(totalSeconds: Int): String =

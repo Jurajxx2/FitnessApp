@@ -24,6 +24,7 @@ import com.coachfoska.app.domain.model.SetLog
 import com.coachfoska.app.presentation.workout.ActiveSessionIntent
 import com.coachfoska.app.presentation.workout.ExerciseDraft
 import com.coachfoska.app.presentation.workout.RestTimerState
+import com.coachfoska.app.presentation.workout.canComplete
 import com.coachfoska.designsystem.components.DsButton
 import com.coachfoska.designsystem.components.DsButtonVariant
 import com.coachfoska.app.ui.workout.AnimatedImageMode
@@ -160,8 +161,11 @@ fun ExerciseLogCard(
                         onRepsChange = { reps ->
                             onIntent(ActiveSessionIntent.UpdateSetActual(exerciseIndex, setIndex, reps, setDraft.actualWeightKg))
                         },
-                        onDurationChange = { durationSeconds ->
-                            onIntent(ActiveSessionIntent.UpdateSetDuration(exerciseIndex, setIndex, durationSeconds))
+                        onStartTimer = {
+                            onIntent(ActiveSessionIntent.StartSetTimer(exerciseIndex, setIndex))
+                        },
+                        onPauseTimer = {
+                            onIntent(ActiveSessionIntent.PauseSetTimer(exerciseIndex, setIndex))
                         },
                         onCompleted = {
                             onIntent(ActiveSessionIntent.MarkSetComplete(exerciseIndex, setIndex, !setDraft.completed))
@@ -217,12 +221,4 @@ fun ExerciseLogCard(
             )
         }
     }
-}
-
-private fun com.coachfoska.app.presentation.workout.SetDraft.canComplete(
-    logType: ExerciseLogType,
-): Boolean = when (logType) {
-    ExerciseLogType.WEIGHT_REPS -> actualWeightKg != null && actualReps != null
-    ExerciseLogType.BODYWEIGHT_REPS -> actualReps != null
-    ExerciseLogType.TIME -> actualDurationSeconds != null || actualRestSeconds != null
 }
