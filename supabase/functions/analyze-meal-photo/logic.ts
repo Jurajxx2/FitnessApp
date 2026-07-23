@@ -22,8 +22,9 @@ export const mealAnalysisResponseSchema = {
         required: ['name', 'grams', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'confidence'],
       },
     },
+    meal_name: { type: 'STRING' },
   },
-  required: ['items'],
+  required: ['items', 'meal_name'],
 } as const
 
 /** Live-compatible Gemini generateContent structured-output envelope. */
@@ -45,7 +46,7 @@ export type AnalysisItem = {
   confidence: number
 }
 
-export type MealAnalysis = { items: AnalysisItem[] }
+export type MealAnalysis = { items: AnalysisItem[]; meal_name?: string }
 
 export type AnalysisRequest = {
   image_base64: string
@@ -55,7 +56,8 @@ export type AnalysisRequest = {
 }
 
 const REQUEST_KEYS = new Set(['image_base64', 'mime_type', 'description', 'locale'])
-const ANALYSIS_KEYS = new Set(['items'])
+const ANALYSIS_KEYS = new Set(['items', 'meal_name'])
+const ANALYSIS_OPTIONAL = new Set(['meal_name'])
 const ITEM_KEYS = new Set(['name', 'grams', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'confidence'])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -98,7 +100,7 @@ function finiteInRange(value: unknown, min: number, max: number): value is numbe
 }
 
 export function parseMealAnalysis(value: unknown): MealAnalysis | null {
-  if (!isRecord(value) || !hasExactKeys(value, ANALYSIS_KEYS) || !Array.isArray(value.items)) return null
+  if (!isRecord(value) || !hasExactKeys(value, ANALYSIS_KEYS, ANALYSIS_OPTIONAL) || !Array.isArray(value.items)) return null
   if (value.items.length > MAX_ANALYSIS_ITEMS) return null
 
   const items: AnalysisItem[] = []
@@ -121,7 +123,16 @@ export function parseMealAnalysis(value: unknown): MealAnalysis | null {
       confidence: rawItem.confidence,
     })
   }
-  return { items }
+
+  let mealName: string | undefined
+  const rawName = value.meal_name
+  if (rawName !== undefined) {
+    if (typeof rawName !== 'string') return null
+    const trimmed = rawName.trim()
+    if (trimmed.length > 120) return null
+    mealName = trimmed || undefined
+  }
+  return mealName ? { items, meal_name: mealName } : { items }
 }
 
 export function analysisPrompt(description?: string): string {
@@ -132,5 +143,6 @@ export function analysisPrompt(description?: string): string {
 Názvy položiek píš po slovensky. Pre každú položku odhadni skonzumovanú hmotnosť v gramoch, energiu a makroživiny pre túto hmotnosť.
 Confidence je číslo od 0 do 1 vyjadrujúce istotu identifikácie a odhadu porcie. Ak príprava jedla pravdepodobne obsahuje skrytý olej, maslo alebo cukor, pridaj ich ako samostatné položky s nízkou confidence. Nepridávaj iné položky, ktoré nemožno rozumne rozpoznať alebo odvodiť zo spôsobu prípravy.
 Ak na fotografii nie je jedlo alebo nič nemožno rozpoznať, vráť prázdne pole items.
+Navyše do poľa meal_name vráť krátky, výstižný slovenský názov celého jedla (2 až 4 slová, napr. „Kuracie s ryžou"); ak nič nemožno rozpoznať, meal_name môže byť prázdny reťazec.
 ${context}`
 }
