@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Button, ClickableRow, ConfirmDialog, EmptyState, PageHeader, SearchInput, Table, Td, Th, useNotice } from '../../components/ui'
+import { Button, ConfirmDialog, DataTable, EmptyState, PageHeader, SearchInput, useNotice } from '../../components/ui'
+import type { ActionMenuItem, BulkAction, DataColumn } from '../../components/ui'
 import type { Workout, WorkoutExercise } from '../../types/database'
 import { createExerciseDraftId } from '../../workouts/builder'
 
@@ -81,7 +82,8 @@ export default function Workouts() {
   const { notify } = useNotice()
   const { data: workouts = [], isLoading, isError } = useWorkouts()
   const [search, setSearch] = useState('')
-  const [deleteTarget, setDeleteTarget] = useState<Workout | null>(null)
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const visibleWorkouts = workouts.filter(workout => workout.name.toLowerCase().includes(search.trim().toLowerCase()))
 
@@ -92,11 +94,45 @@ export default function Workouts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workouts-admin'] })
-      setDeleteTarget(null)
-      notify('Workout plan deleted.')
     },
-    onError: error => notify(`Couldn’t delete workout plan: ${error.message}`, 'error'),
   })
+
+  const deleteTargets = deleteIds ? workouts.filter(workout => deleteIds.includes(workout.id)) : []
+
+  async function confirmDelete() {
+    if (!deleteIds) return
+    setDeleting(true)
+    try {
+      await Promise.all(deleteIds.map(id => deleteWorkout.mutateAsync(id)))
+      notify(deleteIds.length > 1 ? `${deleteIds.length} workout plans deleted.` : 'Workout plan deleted.')
+      setDeleteIds(null)
+    } catch (error) {
+      notify(`Couldn’t delete workout plan${deleteIds.length > 1 ? 's' : ''}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const columns: DataColumn<WorkoutWithCount>[] = [
+    { key: 'name', header: 'Name', className: 'font-semibold text-text-primary', render: workout => workout.name },
+    { key: 'day', header: 'Day', render: workout => (workout.day_of_week !== null ? DAYS[workout.day_of_week] : 'Any day') },
+    { key: 'exercises', header: 'Exercises', render: workout => `${workout.exercise_count} exercises` },
+    { key: 'time', header: 'Estimated time', render: workout => (workout.duration_minutes > 0 ? `~${workout.duration_minutes} min` : '—') },
+    {
+      key: 'status',
+      header: 'Status',
+      render: workout => (workout.is_active ? <span className="text-xs text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>),
+    },
+  ]
+
+  const rowActions = (workout: WorkoutWithCount): ActionMenuItem[] => [
+    { key: 'open', label: 'Open', onSelect: () => navigate(`/admin/workouts/${workout.id}`) },
+    { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onSelect: () => setDeleteIds([workout.id]) },
+  ]
+
+  const bulkActions = (selected: WorkoutWithCount[]): BulkAction[] => [
+    { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onClick: () => setDeleteIds(selected.map(workout => workout.id)) },
+  ]
 
   return (
     <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
@@ -117,57 +153,42 @@ export default function Workouts() {
         {!isLoading && <p className="text-sm text-text-secondary">{visibleWorkouts.length} of {workouts.length} plans</p>}
       </div>
 
-      {isLoading ? (
-        <p className="text-sm text-text-secondary">Loading…</p>
-      ) : isError ? (
+      {isError ? (
         <EmptyState title="Workout plans couldn’t be loaded" description="Refresh the page to retry." />
-      ) : visibleWorkouts.length === 0 ? (
-        <EmptyState
-          title={search ? 'No workout plans match this search' : 'No workout plans yet'}
-          description={search ? 'Try a different plan name.' : 'Create a plan to start assigning training to athletes.'}
-          action={!search ? <Button onClick={() => navigate('/admin/workouts/new')}>Create workout plan</Button> : undefined}
-        />
       ) : (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Name</Th>
-              <Th>Day</Th>
-              <Th>Exercises</Th>
-              <Th>Estimated time</Th>
-              <Th>Status</Th>
-              <Th><span className="sr-only">Actions</span></Th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleWorkouts.map(workout => (
-              <ClickableRow key={workout.id} label={`Open ${workout.name}`} onActivate={() => navigate(`/admin/workouts/${workout.id}`)}>
-                <Td className="font-semibold text-text-primary">{workout.name}</Td>
-                <Td>{workout.day_of_week !== null ? DAYS[workout.day_of_week] : 'Any day'}</Td>
-                <Td>{workout.exercise_count} exercises</Td>
-                <Td>{workout.duration_minutes > 0 ? `~${workout.duration_minutes} min` : '—'}</Td>
-                <Td>{workout.is_active ? <span className="text-xs text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}</Td>
-                <Td>
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" className="min-h-9 px-3" onClick={() => navigate(`/admin/workouts/${workout.id}`)}>
-                      Open <ChevronRight size={15} aria-hidden="true" />
-                    </Button>
-                    <Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(workout)}>Delete</Button>
-                  </div>
-                </Td>
-              </ClickableRow>
-            ))}
-          </tbody>
-        </Table>
+        <DataTable<WorkoutWithCount>
+          rows={visibleWorkouts}
+          getRowId={workout => workout.id}
+          columns={columns}
+          rowLabel={workout => `Open ${workout.name}`}
+          onRowActivate={workout => navigate(`/admin/workouts/${workout.id}`)}
+          rowActions={rowActions}
+          selectable
+          bulkActions={bulkActions}
+          loading={isLoading}
+          empty={
+            <EmptyState
+              title={search ? 'No workout plans match this search' : 'No workout plans yet'}
+              description={search ? 'Try a different plan name.' : 'Create a plan to start assigning training to athletes.'}
+              action={!search ? <Button onClick={() => navigate('/admin/workouts/new')}>Create workout plan</Button> : undefined}
+            />
+          }
+        />
       )}
 
       <ConfirmDialog
-        open={deleteTarget !== null}
-        title="Delete workout plan?"
-        description={<>“{deleteTarget?.name}” will be permanently removed. Athletes will no longer see this plan.</>}
-        pending={deleteWorkout.isPending}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteTarget && deleteWorkout.mutate(deleteTarget.id)}
+        open={deleteIds !== null}
+        title={deleteIds && deleteIds.length > 1 ? `Delete ${deleteIds.length} workout plans?` : 'Delete workout plan?'}
+        description={
+          deleteIds && deleteIds.length > 1 ? (
+            <>{deleteIds.length} workout plans will be permanently removed. Athletes will no longer see these plans.</>
+          ) : (
+            <>“{deleteTargets[0]?.name}” will be permanently removed. Athletes will no longer see this plan.</>
+          )
+        }
+        pending={deleting}
+        onClose={() => setDeleteIds(null)}
+        onConfirm={confirmDelete}
       />
     </div>
   )
