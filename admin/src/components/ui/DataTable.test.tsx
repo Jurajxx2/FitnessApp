@@ -59,6 +59,23 @@ describe('DataTable', () => {
     expect(bulk).toHaveBeenCalledWith(['1', '2', '3', '4', '5', '6', '7'])
   })
 
+  it('select-all spans every page of the filtered set, including off-screen rows', async () => {
+    const bulk = vi.fn()
+    setup({
+      pageSize: 5,
+      selectable: true,
+      bulkActions: (selected: Row[]) => [{ key: 'del', label: 'Delete', variant: 'danger', onClick: () => bulk(selected.map((r) => r.id)) }],
+    })
+    // Page 2 rows are not rendered, so select-all must reach beyond the visible page.
+    expect(screen.getByText('Item 5')).toBeInTheDocument()
+    expect(screen.queryByText('Item 6')).toBeNull()
+    expect(screen.queryByText('Item 7')).toBeNull()
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select all' }))
+    expect(screen.getByText('7 selected')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(bulk).toHaveBeenCalledWith(['1', '2', '3', '4', '5', '6', '7'])
+  })
+
   it('shows the empty node when there are no rows', () => {
     render(
       <DataTable<Row> rows={[]} getRowId={(r) => r.id} columns={columns} empty={<div>Nothing here</div>} />,

@@ -49,20 +49,21 @@ export default function Exercises() {
   const [activeOnly, setActiveOnly] = useState<boolean | null>(null)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(25)
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   const { data: { data: exercises = [], count: totalCount = 0 } = {}, isLoading, isError } = useExercises(deferredSearch, filterCategory, activeOnly, page, pageSize)
   const { data: categories = [] } = useCategories()
 
   const toggleActive = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean; silent?: boolean }) => {
       const { error } = await supabase.from('exercises').update({ is_active: isActive }).eq('id', id)
       if (error) throw error
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['exercises-admin'] })
-      notify(variables.isActive ? 'Exercise is now active.' : 'Exercise hidden from athletes.')
+      if (!variables.silent) notify(variables.isActive ? 'Exercise is now active.' : 'Exercise hidden from athletes.')
     },
-    onError: error => notify(`Couldn’t update exercise: ${error.message}`, 'error'),
+    onError: (error, variables) => { if (!variables.silent) notify(`Couldn’t update exercise: ${error.message}`, 'error') },
   })
 
   function updateSearch(value: string) {
@@ -122,8 +123,17 @@ export default function Exercises() {
         key: 'toggle',
         label: anyHidden ? 'Show' : 'Hide',
         icon: anyHidden ? <Eye size={16} /> : <EyeOff size={16} />,
+        disabled: bulkBusy,
         onClick: async () => {
-          await Promise.all(selected.map(exercise => toggleActive.mutateAsync({ id: exercise.id, isActive: anyHidden })))
+          setBulkBusy(true)
+          try {
+            await Promise.all(selected.map(exercise => toggleActive.mutateAsync({ id: exercise.id, isActive: anyHidden, silent: true })))
+            notify(anyHidden ? 'Exercises shown.' : 'Exercises hidden.')
+          } catch (error) {
+            notify(`Couldn’t update exercises: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
+          } finally {
+            setBulkBusy(false)
+          }
         },
       },
     ]

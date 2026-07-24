@@ -182,8 +182,10 @@ export default function Workouts() {
         description={
           deleteIds && deleteIds.length > 1 ? (
             <>{deleteIds.length} workout plans will be permanently removed. Athletes will no longer see these plans.</>
+          ) : deleteTargets[0] ? (
+            <>“{deleteTargets[0].name}” will be permanently removed. Athletes will no longer see this plan.</>
           ) : (
-            <>“{deleteTargets[0]?.name}” will be permanently removed. Athletes will no longer see this plan.</>
+            <>This plan will be permanently removed. Athletes will no longer see this plan.</>
           )
         }
         pending={deleting}

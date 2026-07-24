@@ -160,6 +160,7 @@ function RecipesTab() {
   const [photoUploadOpen, setPhotoUploadOpen] = useState(false)
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
   const [generatorOnly, setGeneratorOnly] = useState(false)
   const deferredSearch = useDeferredValue(search)
   const { data: recipes = [], isLoading, isError } = useRecipes(deferredSearch)
@@ -169,16 +170,16 @@ function RecipesTab() {
     : recipes
 
   const updateRecipe = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<Recipe, 'featured' | 'is_active'>> }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<Recipe, 'featured' | 'is_active'>>; silent?: boolean }) => {
       const { data, error } = await supabase.from('recipes').update(patch).eq('id', id).select('id').maybeSingle()
       if (error) throw error
       if (!data) throw new Error('No recipe was updated')
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['recipes-admin'] })
-      notify('is_active' in variables.patch ? (variables.patch.is_active ? 'Recipe restored.' : 'Recipe archived.') : 'Featured recipe updated.')
+      if (!variables.silent) notify('is_active' in variables.patch ? (variables.patch.is_active ? 'Recipe restored.' : 'Recipe archived.') : 'Featured recipe updated.')
     },
-    onError: error => notify(`Couldn’t update recipe: ${error.message}`, 'error'),
+    onError: (error, variables) => { if (!variables.silent) notify(`Couldn’t update recipe: ${error.message}`, 'error') },
   })
 
   const deleteRecipe = useMutation({
@@ -262,8 +263,17 @@ function RecipesTab() {
       key: 'archive',
       label: 'Archive',
       icon: <Archive size={16} />,
+      disabled: bulkBusy,
       onClick: async () => {
-        await Promise.all(selected.map(recipe => updateRecipe.mutateAsync({ id: recipe.id, patch: { is_active: false } })))
+        setBulkBusy(true)
+        try {
+          await Promise.all(selected.map(recipe => updateRecipe.mutateAsync({ id: recipe.id, patch: { is_active: false }, silent: true })))
+          notify('Recipes archived.')
+        } catch (error) {
+          notify(`Couldn’t archive recipes: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
+        } finally {
+          setBulkBusy(false)
+        }
       },
     },
     { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onClick: () => setDeleteIds(selected.map(recipe => recipe.id)) },
@@ -297,11 +307,18 @@ function RecipesTab() {
           bulkActions={bulkActions}
           loading={isLoading}
           empty={
-            <EmptyState
-              title={search ? 'No recipes match this search' : 'No recipes in the library yet'}
-              description={search ? 'Try a different recipe name.' : 'Add your first reusable recipe or import a recipe file.'}
-              action={!search ? <Button onClick={() => navigate('/admin/nutrition/recipes/new')}>Add recipe</Button> : undefined}
-            />
+            search || generatorOnly ? (
+              <EmptyState
+                title="No recipes match the current filter"
+                description={generatorOnly ? 'Try a different search or turn off the generator-ready filter.' : 'Try a different recipe name.'}
+              />
+            ) : (
+              <EmptyState
+                title="No recipes in the library yet"
+                description="Add your first reusable recipe or import a recipe file."
+                action={<Button onClick={() => navigate('/admin/nutrition/recipes/new')}>Add recipe</Button>}
+              />
+            )
           }
         />
       )}
@@ -465,7 +482,11 @@ function MealPlansTab() {
           bulkActions={bulkActions}
           loading={isLoading}
           empty={
-            <EmptyState title="No meal plans yet" description="Create a weekly plan and assign it when it is ready." action={<Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>Create meal plan</Button>} />
+            originFilter !== 'all' ? (
+              <EmptyState title="No meal plans match this filter" description="Try a different origin filter." />
+            ) : (
+              <EmptyState title="No meal plans yet" description="Create a weekly plan and assign it when it is ready." action={<Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>Create meal plan</Button>} />
+            )
           }
         />
       )}
