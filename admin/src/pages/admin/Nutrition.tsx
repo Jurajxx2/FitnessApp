@@ -1,8 +1,9 @@
 import { useDeferredValue, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Star } from 'lucide-react'
+import { Archive, ArchiveRestore, Star, Trash2 } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Button, Chip, ClickableRow, ConfirmDialog, EmptyState, PageHeader, SearchInput, Table, Td, Th, useNotice } from '../../components/ui'
+import { Button, Chip, ConfirmDialog, DataTable, EmptyState, PageHeader, SearchInput, useNotice } from '../../components/ui'
+import type { ActionMenuItem, BulkAction, DataColumn } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { Food, MealPlan, Recipe } from '../../types/database'
 import RecipeImportModal from './RecipeImportModal'
@@ -26,7 +27,8 @@ function FoodsTab() {
   const queryClient = useQueryClient()
   const { notify } = useNotice()
   const [search, setSearch] = useState('')
-  const [deleteTarget, setDeleteTarget] = useState<Food | null>(null)
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const deferredSearch = useDeferredValue(search)
   const { data: foods = [], isLoading, isError } = useFoods(deferredSearch)
 
@@ -37,11 +39,54 @@ function FoodsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['foods-admin'] })
-      setDeleteTarget(null)
-      notify('Food deleted.')
     },
-    onError: error => notify(`Couldn’t delete food: ${error.message}`, 'error'),
   })
+
+  const deleteTargets = deleteIds ? foods.filter(food => deleteIds.includes(food.id)) : []
+
+  async function confirmDelete() {
+    if (!deleteIds) return
+    setDeleting(true)
+    try {
+      await Promise.all(deleteIds.map(id => deleteFood.mutateAsync(id)))
+      notify(deleteIds.length > 1 ? `${deleteIds.length} foods deleted.` : 'Food deleted.')
+      setDeleteIds(null)
+    } catch (error) {
+      notify(`Couldn’t delete food${deleteIds.length > 1 ? 's' : ''}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const columns: DataColumn<Food>[] = [
+    {
+      key: 'food',
+      header: 'Food',
+      render: food => (
+        <>
+          <p className="font-semibold text-text-primary">{food.name}</p>
+          <p className="text-xs text-text-secondary">{food.brand ?? 'No brand'}</p>
+        </>
+      ),
+    },
+    { key: 'serving', header: 'Serving', render: food => <>{food.serving_size}{food.serving_unit}</> },
+    { key: 'calories', header: 'Calories', render: food => <>{Math.round(food.calories)} kcal</> },
+    { key: 'macros', header: 'Macros', render: food => <span className="whitespace-nowrap">P {food.protein_g}g · C {food.carbs_g}g · F {food.fat_g}g</span> },
+    {
+      key: 'quality',
+      header: 'Quality',
+      render: food => (food.is_verified ? <span className="text-xs font-semibold text-success">Verified</span> : <span className="text-xs text-text-secondary">Unverified</span>),
+    },
+  ]
+
+  const rowActions = (food: Food): ActionMenuItem[] => [
+    { key: 'open', label: 'Open', onSelect: () => navigate(`/admin/nutrition/foods/${food.id}`) },
+    { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onSelect: () => setDeleteIds([food.id]) },
+  ]
+
+  const bulkActions = (selected: Food[]): BulkAction[] => [
+    { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onClick: () => setDeleteIds(selected.map(food => food.id)) },
+  ]
 
   return (
     <>
@@ -50,46 +95,44 @@ function FoodsTab() {
         <Button onClick={() => navigate('/admin/nutrition/foods/new')}>Add food</Button>
       </div>
 
-      {isLoading ? (
-        <p className="text-sm text-text-secondary">Loading…</p>
-      ) : isError ? (
+      {isError ? (
         <EmptyState title="Foods couldn’t be loaded" description="Refresh the page to retry." />
-      ) : foods.length === 0 ? (
-        <EmptyState
-          title={search ? 'No foods match this search' : 'No foods in the library yet'}
-          description={search ? 'Try a different food or brand.' : 'Add a verified food to make it available to athletes.'}
-          action={!search ? <Button onClick={() => navigate('/admin/nutrition/foods/new')}>Add food</Button> : undefined}
-        />
       ) : (
-        <Table>
-          <thead><tr><Th>Food</Th><Th>Serving</Th><Th>Calories</Th><Th>Macros</Th><Th>Quality</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
-          <tbody>
-            {foods.map(food => (
-              <ClickableRow key={food.id} label={`Open ${food.name}`} onActivate={() => navigate(`/admin/nutrition/foods/${food.id}`)}>
-                <Td><p className="font-semibold text-text-primary">{food.name}</p><p className="text-xs text-text-secondary">{food.brand ?? 'No brand'}</p></Td>
-                <Td>{food.serving_size}{food.serving_unit}</Td>
-                <Td>{Math.round(food.calories)} kcal</Td>
-                <Td><span className="whitespace-nowrap">P {food.protein_g}g · C {food.carbs_g}g · F {food.fat_g}g</span></Td>
-                <Td>{food.is_verified ? <span className="text-xs font-semibold text-success">Verified</span> : <span className="text-xs text-text-secondary">Unverified</span>}</Td>
-                <Td>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" className="min-h-9 px-3" onClick={() => navigate(`/admin/nutrition/foods/${food.id}`)}>Open</Button>
-                    <Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(food)}>Delete</Button>
-                  </div>
-                </Td>
-              </ClickableRow>
-            ))}
-          </tbody>
-        </Table>
+        <DataTable<Food>
+          rows={foods}
+          getRowId={food => food.id}
+          columns={columns}
+          rowLabel={food => `Open ${food.name}`}
+          onRowActivate={food => navigate(`/admin/nutrition/foods/${food.id}`)}
+          rowActions={rowActions}
+          selectable
+          bulkActions={bulkActions}
+          loading={isLoading}
+          empty={
+            <EmptyState
+              title={search ? 'No foods match this search' : 'No foods in the library yet'}
+              description={search ? 'Try a different food or brand.' : 'Add a verified food to make it available to athletes.'}
+              action={!search ? <Button onClick={() => navigate('/admin/nutrition/foods/new')}>Add food</Button> : undefined}
+            />
+          }
+        />
       )}
 
       <ConfirmDialog
-        open={deleteTarget !== null}
-        title="Delete food?"
-        description={<>“{deleteTarget?.name}” will be permanently removed from the food library.</>}
-        pending={deleteFood.isPending}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteTarget && deleteFood.mutate(deleteTarget.id)}
+        open={deleteIds !== null}
+        title={deleteIds && deleteIds.length > 1 ? `Delete ${deleteIds.length} foods?` : 'Delete food?'}
+        description={
+          deleteIds && deleteIds.length > 1 ? (
+            <>{deleteIds.length} foods will be permanently removed from the food library.</>
+          ) : deleteTargets[0] ? (
+            <>“{deleteTargets[0].name}” will be permanently removed from the food library.</>
+          ) : (
+            <>This food will be permanently removed from the food library.</>
+          )
+        }
+        pending={deleting}
+        onClose={() => setDeleteIds(null)}
+        onConfirm={confirmDelete}
       />
     </>
   )
@@ -115,7 +158,8 @@ function RecipesTab() {
   const [search, setSearch] = useState('')
   const [importOpen, setImportOpen] = useState(false)
   const [photoUploadOpen, setPhotoUploadOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [generatorOnly, setGeneratorOnly] = useState(false)
   const deferredSearch = useDeferredValue(search)
   const { data: recipes = [], isLoading, isError } = useRecipes(deferredSearch)
@@ -145,11 +189,85 @@ function RecipesTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes-admin'] })
-      setDeleteTarget(null)
-      notify('Recipe deleted.')
     },
-    onError: error => notify(`Couldn’t delete recipe: ${error.message}`, 'error'),
   })
+
+  const deleteTargets = deleteIds ? recipes.filter(recipe => deleteIds.includes(recipe.id)) : []
+
+  async function confirmDelete() {
+    if (!deleteIds) return
+    setDeleting(true)
+    try {
+      await Promise.all(deleteIds.map(id => deleteRecipe.mutateAsync(id)))
+      notify(deleteIds.length > 1 ? `${deleteIds.length} recipes deleted.` : 'Recipe deleted.')
+      setDeleteIds(null)
+    } catch (error) {
+      notify(`Couldn’t delete recipe${deleteIds.length > 1 ? 's' : ''}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const columns: DataColumn<Recipe>[] = [
+    {
+      key: 'recipe',
+      header: 'Recipe',
+      render: recipe => (
+        <div className="flex min-w-64 items-center gap-3">
+          {recipe.photo_url ? <img src={recipe.photo_url} alt="" className="h-12 w-16 flex-shrink-0 rounded-xl object-cover" /> : <div className="h-12 w-16 flex-shrink-0 rounded-xl bg-surface-highest" />}
+          <div className="min-w-0"><p className="truncate font-semibold text-text-primary">{recipe.name}</p><p className="truncate text-xs text-text-secondary">{recipe.tags?.slice(0, 3).join(' · ') || 'No tags'}</p></div>
+        </div>
+      ),
+    },
+    { key: 'difficulty', header: 'Difficulty', className: 'capitalize', render: recipe => recipe.difficulty ?? '—' },
+    { key: 'macros', header: 'Macros', render: recipe => <span className="whitespace-nowrap">{Math.round(recipe.calories)} kcal · P {recipe.protein_g.toFixed(0)}g</span> },
+    {
+      key: 'status',
+      header: 'Status',
+      render: recipe => (
+        <>
+          {recipe.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Archived</span>}
+          {recipe.eligible_for_generator && recipe.macros_verified && (
+            <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">Generator</span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'featured',
+      header: 'Featured',
+      render: recipe => (
+        <button
+          type="button"
+          aria-label={recipe.featured ? `Remove ${recipe.name} from featured recipes` : `Feature ${recipe.name}`}
+          onClick={() => updateRecipe.mutate({ id: recipe.id, patch: { featured: !recipe.featured } })}
+          className={`flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-xl border-0 bg-transparent ${recipe.featured ? 'text-warning' : 'text-text-secondary hover:bg-surface'}`}
+        >
+          <Star size={17} fill={recipe.featured ? 'currentColor' : 'none'} aria-hidden="true" />
+        </button>
+      ),
+    },
+  ]
+
+  const rowActions = (recipe: Recipe): ActionMenuItem[] => [
+    { key: 'open', label: 'Open', onSelect: () => navigate(`/admin/nutrition/recipes/${recipe.id}`) },
+    recipe.is_active
+      ? { key: 'archive', label: 'Archive', icon: <Archive size={16} />, onSelect: () => updateRecipe.mutate({ id: recipe.id, patch: { is_active: false } }) }
+      : { key: 'restore', label: 'Restore', icon: <ArchiveRestore size={16} />, onSelect: () => updateRecipe.mutate({ id: recipe.id, patch: { is_active: true } }) },
+    { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onSelect: () => setDeleteIds([recipe.id]) },
+  ]
+
+  const bulkActions = (selected: Recipe[]): BulkAction[] => [
+    {
+      key: 'archive',
+      label: 'Archive',
+      icon: <Archive size={16} />,
+      onClick: async () => {
+        await Promise.all(selected.map(recipe => updateRecipe.mutateAsync({ id: recipe.id, patch: { is_active: false } })))
+      },
+    },
+    { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onClick: () => setDeleteIds(selected.map(recipe => recipe.id)) },
+  ]
 
   return (
     <>
@@ -165,70 +283,46 @@ function RecipesTab() {
         </div>
       </div>
 
-      {isLoading ? (
-        <p className="text-sm text-text-secondary">Loading…</p>
-      ) : isError ? (
+      {isError ? (
         <EmptyState title="Recipes couldn’t be loaded" description="Refresh the page to retry." />
-      ) : recipes.length === 0 ? (
-        <EmptyState
-          title={search ? 'No recipes match this search' : 'No recipes in the library yet'}
-          description={search ? 'Try a different recipe name.' : 'Add your first reusable recipe or import a recipe file.'}
-          action={!search ? <Button onClick={() => navigate('/admin/nutrition/recipes/new')}>Add recipe</Button> : undefined}
-        />
       ) : (
-        <Table>
-          <thead><tr><Th>Recipe</Th><Th>Difficulty</Th><Th>Macros</Th><Th>Status</Th><Th>Featured</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
-          <tbody>
-            {visibleRecipes.map(recipe => (
-              <ClickableRow key={recipe.id} label={`Open ${recipe.name}`} onActivate={() => navigate(`/admin/nutrition/recipes/${recipe.id}`)}>
-                <Td>
-                  <div className="flex min-w-64 items-center gap-3">
-                    {recipe.photo_url ? <img src={recipe.photo_url} alt="" className="h-12 w-16 flex-shrink-0 rounded-xl object-cover" /> : <div className="h-12 w-16 flex-shrink-0 rounded-xl bg-surface-highest" />}
-                    <div className="min-w-0"><p className="truncate font-semibold text-text-primary">{recipe.name}</p><p className="truncate text-xs text-text-secondary">{recipe.tags?.slice(0, 3).join(' · ') || 'No tags'}</p></div>
-                  </div>
-                </Td>
-                <Td className="capitalize">{recipe.difficulty ?? '—'}</Td>
-                <Td><span className="whitespace-nowrap">{Math.round(recipe.calories)} kcal · P {recipe.protein_g.toFixed(0)}g</span></Td>
-                <Td>
-                  {recipe.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Archived</span>}
-                  {recipe.eligible_for_generator && recipe.macros_verified && (
-                    <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">Generator</span>
-                  )}
-                </Td>
-                <Td>
-                  <button
-                    type="button"
-                    aria-label={recipe.featured ? `Remove ${recipe.name} from featured recipes` : `Feature ${recipe.name}`}
-                    onClick={() => updateRecipe.mutate({ id: recipe.id, patch: { featured: !recipe.featured } })}
-                    className={`flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-xl border-0 bg-transparent ${recipe.featured ? 'text-warning' : 'text-text-secondary hover:bg-surface'}`}
-                  >
-                    <Star size={17} fill={recipe.featured ? 'currentColor' : 'none'} aria-hidden="true" />
-                  </button>
-                </Td>
-                <Td>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" className="min-h-9 px-3" onClick={() => navigate(`/admin/nutrition/recipes/${recipe.id}`)}>Open</Button>
-                    <Button variant={recipe.is_active ? 'danger' : 'secondary'} className="min-h-9 px-3" onClick={() => updateRecipe.mutate({ id: recipe.id, patch: { is_active: !recipe.is_active } })}>
-                      {recipe.is_active ? 'Archive' : 'Restore'}
-                    </Button>
-                    <Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(recipe)}>Delete</Button>
-                  </div>
-                </Td>
-              </ClickableRow>
-            ))}
-          </tbody>
-        </Table>
+        <DataTable<Recipe>
+          rows={visibleRecipes}
+          getRowId={recipe => recipe.id}
+          columns={columns}
+          rowLabel={recipe => `Open ${recipe.name}`}
+          onRowActivate={recipe => navigate(`/admin/nutrition/recipes/${recipe.id}`)}
+          rowActions={rowActions}
+          selectable
+          bulkActions={bulkActions}
+          loading={isLoading}
+          empty={
+            <EmptyState
+              title={search ? 'No recipes match this search' : 'No recipes in the library yet'}
+              description={search ? 'Try a different recipe name.' : 'Add your first reusable recipe or import a recipe file.'}
+              action={!search ? <Button onClick={() => navigate('/admin/nutrition/recipes/new')}>Add recipe</Button> : undefined}
+            />
+          }
+        />
       )}
 
       <RecipeImportModal open={importOpen} onClose={() => setImportOpen(false)} />
       <RecipePhotoUploadModal open={photoUploadOpen} onClose={() => setPhotoUploadOpen(false)} />
       <ConfirmDialog
-        open={deleteTarget !== null}
-        title="Delete recipe permanently?"
-        description={<>“{deleteTarget?.name}” will be removed from the library. Historical meal-plan entries keep their saved nutrition snapshot.</>}
-        pending={deleteRecipe.isPending}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteTarget && deleteRecipe.mutate(deleteTarget.id)}
+        open={deleteIds !== null}
+        title={deleteIds && deleteIds.length > 1 ? `Delete ${deleteIds.length} recipes permanently?` : 'Delete recipe permanently?'}
+        description={
+          deleteIds && deleteIds.length > 1 ? (
+            <>{deleteIds.length} recipes will be removed from the library. Historical meal-plan entries keep their saved nutrition snapshot.</>
+          ) : deleteTargets[0] ? (
+            <>“{deleteTargets[0].name}” will be removed from the library. Historical meal-plan entries keep their saved nutrition snapshot.</>
+          ) : (
+            <>This recipe will be removed from the library. Historical meal-plan entries keep their saved nutrition snapshot.</>
+          )
+        }
+        pending={deleting}
+        onClose={() => setDeleteIds(null)}
+        onConfirm={confirmDelete}
       />
     </>
   )
@@ -265,7 +359,8 @@ function MealPlansTab() {
   const { notify } = useNotice()
   const { data: mealPlans = [], isLoading, isError } = useMealPlans()
   const { data: assignmentCounts = {} } = usePlanAssignmentCounts()
-  const [deleteTarget, setDeleteTarget] = useState<MealPlan | null>(null)
+  const [deleteTargets, setDeleteTargets] = useState<MealPlan[] | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [originFilter, setOriginFilter] = useState<'all' | 'manual' | 'generated'>('all')
   const visiblePlans = mealPlans.filter(plan => originFilter === 'all' || (plan.origin ?? 'manual') === originFilter)
 
@@ -288,11 +383,59 @@ function MealPlansTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans-admin'] })
       queryClient.invalidateQueries({ queryKey: ['meal-plan-assignment-counts'] })
-      setDeleteTarget(null)
-      notify('Meal plan deleted.')
     },
-    onError: error => notify(`Couldn’t delete meal plan: ${error.message}`, 'error'),
   })
+
+  async function confirmDelete() {
+    if (!deleteTargets) return
+    setDeleting(true)
+    try {
+      await Promise.all(deleteTargets.map(plan => deletePlan.mutateAsync(plan)))
+      notify(deleteTargets.length > 1 ? `${deleteTargets.length} meal plans deleted.` : 'Meal plan deleted.')
+      setDeleteTargets(null)
+    } catch (error) {
+      notify(`Couldn’t delete meal plan${deleteTargets.length > 1 ? 's' : ''}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const columns: DataColumn<MealPlan>[] = [
+    {
+      key: 'plan',
+      header: 'Plan',
+      render: plan => (
+        <>
+          <p className="font-semibold text-text-primary">{plan.name}</p>
+          <p className="max-w-xl truncate text-xs text-text-secondary">{plan.description ?? 'No description'}</p>
+        </>
+      ),
+    },
+    { key: 'assigned', header: 'Assigned to', render: plan => <>{assignmentCounts[plan.id] ?? 0} current</> },
+    {
+      key: 'status',
+      header: 'Status',
+      render: plan => (
+        <>
+          {plan.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}
+          {plan.origin === 'generated' && (
+            <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
+              Generated{plan.generation_status === 'draft' ? ' · draft' : ''}
+            </span>
+          )}
+        </>
+      ),
+    },
+  ]
+
+  const rowActions = (plan: MealPlan): ActionMenuItem[] => [
+    { key: 'open', label: 'Open', onSelect: () => navigate(planRoute(plan)) },
+    { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onSelect: () => setDeleteTargets([plan]) },
+  ]
+
+  const bulkActions = (selected: MealPlan[]): BulkAction[] => [
+    { key: 'delete', label: 'Delete', variant: 'danger', icon: <Trash2 size={16} />, onClick: () => setDeleteTargets(selected) },
+  ]
 
   return (
     <>
@@ -307,42 +450,41 @@ function MealPlansTab() {
         </div>
         <Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>Create meal plan</Button>
       </div>
-      {isLoading ? (
-        <p className="text-sm text-text-secondary">Loading…</p>
-      ) : isError ? (
+
+      {isError ? (
         <EmptyState title="Meal plans couldn’t be loaded" description="Refresh the page to retry." />
-      ) : mealPlans.length === 0 ? (
-        <EmptyState title="No meal plans yet" description="Create a weekly plan and assign it when it is ready." action={<Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>Create meal plan</Button>} />
       ) : (
-        <Table>
-          <thead><tr><Th>Plan</Th><Th>Assigned to</Th><Th>Status</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
-          <tbody>
-            {visiblePlans.map(plan => (
-              <ClickableRow key={plan.id} label={`Open ${plan.name}`} onActivate={() => navigate(planRoute(plan))}>
-                <Td><p className="font-semibold text-text-primary">{plan.name}</p><p className="max-w-xl truncate text-xs text-text-secondary">{plan.description ?? 'No description'}</p></Td>
-                <Td>{assignmentCounts[plan.id] ?? 0} current</Td>
-                <Td>
-                  {plan.is_active ? <span className="text-xs font-semibold text-success">Active</span> : <span className="text-xs text-text-secondary">Inactive</span>}
-                  {plan.origin === 'generated' && (
-                    <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
-                      Generated{plan.generation_status === 'draft' ? ' · draft' : ''}
-                    </span>
-                  )}
-                </Td>
-                <Td><div className="flex justify-end gap-2"><Button variant="ghost" className="min-h-9 px-3" onClick={() => navigate(planRoute(plan))}>Open</Button><Button variant="danger" className="min-h-9 px-3" onClick={() => setDeleteTarget(plan)}>Delete</Button></div></Td>
-              </ClickableRow>
-            ))}
-          </tbody>
-        </Table>
+        <DataTable<MealPlan>
+          rows={visiblePlans}
+          getRowId={plan => plan.id}
+          columns={columns}
+          rowLabel={plan => `Open ${plan.name}`}
+          onRowActivate={plan => navigate(planRoute(plan))}
+          rowActions={rowActions}
+          selectable
+          bulkActions={bulkActions}
+          loading={isLoading}
+          empty={
+            <EmptyState title="No meal plans yet" description="Create a weekly plan and assign it when it is ready." action={<Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>Create meal plan</Button>} />
+          }
+        />
       )}
 
       <ConfirmDialog
-        open={deleteTarget !== null}
-        title="Delete meal plan?"
-        description={<>“{deleteTarget?.name}” will be permanently removed.</>}
-        pending={deletePlan.isPending}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteTarget && deletePlan.mutate(deleteTarget)}
+        open={deleteTargets !== null}
+        title={deleteTargets && deleteTargets.length > 1 ? `Delete ${deleteTargets.length} meal plans?` : 'Delete meal plan?'}
+        description={
+          deleteTargets && deleteTargets.length > 1 ? (
+            <>{deleteTargets.length} meal plans will be permanently removed.</>
+          ) : deleteTargets?.[0] ? (
+            <>“{deleteTargets[0].name}” will be permanently removed.</>
+          ) : (
+            <>This meal plan will be permanently removed.</>
+          )
+        }
+        pending={deleting}
+        onClose={() => setDeleteTargets(null)}
+        onConfirm={confirmDelete}
       />
     </>
   )
