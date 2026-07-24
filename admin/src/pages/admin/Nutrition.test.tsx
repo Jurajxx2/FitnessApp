@@ -272,7 +272,9 @@ describe('Nutrition meal-plan deletion', () => {
     const user = userEvent.setup()
 
     expect(await screen.findByText(plan.name)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    const row = screen.getByText(plan.name).closest('tr')!
+    await user.click(within(row).getByRole('button', { name: 'Actions' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('admin_delete_generated_meal_plan', { p_plan_id: plan.id }))
@@ -289,7 +291,9 @@ describe('Nutrition meal-plan deletion', () => {
     const user = userEvent.setup()
 
     expect(await screen.findByText(plan.name)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    const row = screen.getByText(plan.name).closest('tr')!
+    await user.click(within(row).getByRole('button', { name: 'Actions' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(rpc).toHaveBeenCalled())
@@ -306,7 +310,9 @@ describe('Nutrition meal-plan deletion', () => {
     const user = userEvent.setup()
 
     expect(await screen.findByText(plan.name)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    const row = screen.getByText(plan.name).closest('tr')!
+    await user.click(within(row).getByRole('button', { name: 'Actions' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(maybeSingle).toHaveBeenCalled())
@@ -315,5 +321,23 @@ describe('Nutrition meal-plan deletion', () => {
     expect(rpc).not.toHaveBeenCalled()
     expect(await screen.findByText('Couldn’t delete meal plan: No meal plan was deleted')).toBeInTheDocument()
     expect(screen.queryByText('Meal plan deleted.')).not.toBeInTheDocument()
+  })
+
+  it('bulk-deletes a selected meal plan through the shared confirm dialog', async () => {
+    const plan = mealPlan({ id: 'manual-plan', name: 'Manual plan', origin: 'manual' })
+    const { matchDeletedPlan, maybeSingle, rpc } = setupMealPlansSupabase([plan])
+    renderNutritionMealPlans()
+    const user = userEvent.setup()
+
+    expect(await screen.findByText(plan.name)).toBeInTheDocument()
+    const row = screen.getByText(plan.name).closest('tr')!
+    await user.click(within(row).getByRole('checkbox'))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(maybeSingle).toHaveBeenCalled())
+    expect(matchDeletedPlan).toHaveBeenCalledWith('id', plan.id)
+    expect(rpc).not.toHaveBeenCalled()
+    expect(await screen.findByText('Meal plan deleted.')).toBeInTheDocument()
   })
 })
