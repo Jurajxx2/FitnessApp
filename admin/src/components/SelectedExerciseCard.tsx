@@ -1,5 +1,5 @@
 import type { DragEvent, ReactNode } from 'react'
-import { ArrowDown, ArrowUp, GripVertical, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ExternalLink, GripVertical, Trash2 } from 'lucide-react'
 import { ExerciseThumbnail } from './ExerciseThumbnail'
 
 interface SelectedExerciseCardProps {
@@ -11,16 +11,17 @@ interface SelectedExerciseCardProps {
   index: number
   total: number
   locale: 'en' | 'sk'
+  detailHref?: string | null
   onMove: (toIndex: number) => void
   onDropExercise: (fromClientId: string, toIndex: number) => void
   onRemove: () => void
   children: ReactNode
 }
 
-export function SelectedExerciseCard({ clientId, name, subtitle, imageUrl, imageUrl2, index, total, locale, onMove, onDropExercise, onRemove, children }: SelectedExerciseCardProps) {
+export function SelectedExerciseCard({ clientId, name, subtitle, imageUrl, imageUrl2, index, total, locale, detailHref, onMove, onDropExercise, onRemove, children }: SelectedExerciseCardProps) {
   const copy = locale === 'sk'
-    ? { position: 'Pozícia', up: `Posunúť ${name} vyššie`, down: `Posunúť ${name} nižšie`, remove: `Odstrániť ${name}` }
-    : { position: 'Position', up: `Move ${name} up`, down: `Move ${name} down`, remove: `Remove ${name}` }
+    ? { position: 'Pozícia', detail: `Otvoriť detail cviku ${name}`, up: `Posunúť ${name} vyššie`, down: `Posunúť ${name} nižšie`, remove: `Odstrániť ${name}` }
+    : { position: 'Position', detail: `Open ${name} exercise details`, up: `Move ${name} up`, down: `Move ${name} down`, remove: `Remove ${name}` }
 
   function handleDragStart(event: DragEvent<HTMLElement>) {
     event.dataTransfer.effectAllowed = 'move'
@@ -41,6 +42,11 @@ export function SelectedExerciseCard({ clientId, name, subtitle, imageUrl, image
         <div className="min-w-0 flex-1 pt-1">
           <p className="truncate font-bold text-text-primary">{index + 1}. {name || (locale === 'sk' ? 'Nový cvik' : 'New exercise')}</p>
           {subtitle && <p className="mt-1 truncate text-xs text-text-secondary">{subtitle}</p>}
+          {detailHref && (
+            <a href={detailHref} target="_blank" rel="noreferrer" aria-label={copy.detail} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-text-accent no-underline hover:underline">
+              <ExternalLink size={13} /> {locale === 'sk' ? 'Detail cviku' : 'Exercise details'}
+            </a>
+          )}
         </div>
         <div className="flex flex-shrink-0 items-center gap-1">
           <button type="button" aria-label={copy.up} onClick={() => onMove(index - 1)} disabled={index === 0} className="cursor-pointer rounded-lg border-0 bg-transparent p-2 text-text-secondary hover:bg-surface-highest hover:text-text-primary disabled:cursor-default disabled:opacity-30"><ArrowUp size={16} /></button>

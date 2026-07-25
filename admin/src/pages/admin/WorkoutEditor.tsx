@@ -277,6 +277,7 @@ export default function WorkoutEditor() {
               index={index}
               total={exercises.length}
               locale="en"
+              detailHref={exercise.exercise_id ? `/admin/exercises/${exercise.exercise_id}` : null}
               onMove={toIndex => moveExercise(index, toIndex)}
               onDropExercise={dropExercise}
               onRemove={() => setExercises(current => current.filter(item => item.client_id !== exercise.client_id))}

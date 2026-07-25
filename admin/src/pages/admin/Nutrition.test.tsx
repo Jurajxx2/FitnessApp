@@ -282,6 +282,14 @@ describe('Nutrition meal-plan deletion', () => {
     expect(await screen.findByText('Meal plan deleted.')).toBeInTheDocument()
   })
 
+  it('exposes macro-based generation directly from the meal-plan tab', async () => {
+    setupMealPlansSupabase([mealPlan()])
+    renderNutritionMealPlans()
+
+    expect(await screen.findByRole('button', { name: 'Generate from macro goals' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create meal plan' })).toBeInTheDocument()
+  })
+
   it('does not report generated deletion success when the RPC returns no id', async () => {
     const plan = mealPlan({ id: 'generated-plan', name: 'Generated draft', origin: 'generated', generation_status: 'draft' })
     const { rpc } = setupMealPlansSupabase([plan], {

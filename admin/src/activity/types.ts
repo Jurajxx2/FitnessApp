@@ -106,6 +106,14 @@ export interface WorkoutLogRow {
   exercise_logs: ExerciseLogRow[]
 }
 
+export interface LastExercisePerformance {
+  logged_at: string
+  actual_reps: number | null
+  actual_weight_kg: number | null
+  actual_duration_seconds: number | null
+  rpe: number | null
+}
+
 export type ActivityType = 'WALKING' | 'RUNNING' | 'CYCLING' | 'YOGA' | 'SWIMMING' | 'OTHER'
 
 export interface GeneralActivityRow {

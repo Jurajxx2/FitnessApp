@@ -61,7 +61,18 @@ describe('ExerciseBrowserSlideOver', () => {
     render(<ExerciseBrowserSlideOver open={true} onClose={vi.fn()} selectedIds={['1']} onAdd={vi.fn()} />)
     await waitFor(() => screen.getByText('Bench Press'))
     expect(screen.getByText('Added')).toBeDefined()
-    expect(screen.getByText('Bench Press').closest('button')).toBeDisabled()
+    expect(screen.getByLabelText('Added Bench Press')).toBeDisabled()
+  })
+
+  it('keeps exercise details separate from the add action', async () => {
+    const onAdd = vi.fn()
+    render(<ExerciseBrowserSlideOver open={true} onClose={vi.fn()} selectedIds={[]} onAdd={onAdd} />)
+    await waitFor(() => screen.getByText('Bench Press'))
+
+    const detail = screen.getByRole('link', { name: 'Details: Bench Press' })
+    expect(detail).toHaveAttribute('href', '/admin/exercises/1')
+    expect(detail).toHaveAttribute('target', '_blank')
+    expect(onAdd).not.toHaveBeenCalled()
   })
 
   it('calls onClose when Done is clicked', async () => {
@@ -81,12 +92,15 @@ describe('ExerciseBrowserSlideOver', () => {
   it('updates the server query when filters and paging change', async () => {
     render(<ExerciseBrowserSlideOver open={true} onClose={vi.fn()} selectedIds={[]} onAdd={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Chest' }))
-    expect(useQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['exercise-picker', '', 1, '', '', 0] }))
+    expect(useQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['exercise-picker', '', 1, [], [], 0] }))
 
-    fireEvent.change(screen.getByLabelText('All equipment'), { target: { value: 'Barbell' } })
-    expect(useQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['exercise-picker', '', 1, 'Barbell', '', 0] }))
+    fireEvent.click(screen.getByRole('button', { name: 'Barbell' }))
+    expect(useQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['exercise-picker', '', 1, ['Barbell'], [], 0] }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Intermediate' }))
+    expect(useQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['exercise-picker', '', 1, ['Barbell'], ['intermediate'], 0] }))
 
     fireEvent.click(screen.getByLabelText('Next page'))
-    expect(useQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['exercise-picker', '', 1, 'Barbell', '', 1] }))
+    expect(useQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['exercise-picker', '', 1, ['Barbell'], ['intermediate'], 1] }))
   })
 })

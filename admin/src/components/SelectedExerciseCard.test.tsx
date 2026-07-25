@@ -30,4 +30,16 @@ describe('SelectedExerciseCard', () => {
     expect(screen.getByLabelText('Move Squat up')).toBeDisabled()
     expect(screen.getByLabelText('Move Squat down')).toBeDisabled()
   })
+
+  it('opens linked exercise details in a new tab so editor state is preserved', () => {
+    render(
+      <SelectedExerciseCard clientId="one" name="Squat" detailHref="/activity/exercises/ex-1" index={0} total={1} locale="sk" onMove={vi.fn()} onDropExercise={vi.fn()} onRemove={vi.fn()}>
+        <span>Fields</span>
+      </SelectedExerciseCard>
+    )
+
+    const link = screen.getByRole('link', { name: 'Otvoriť detail cviku Squat' })
+    expect(link).toHaveAttribute('href', '/activity/exercises/ex-1')
+    expect(link).toHaveAttribute('target', '_blank')
+  })
 })
