@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getActiveWorkout, getAssignedWorkouts, getWorkoutHistory, getWorkoutLibrary, startWorkout } from '../../activity/api'
 import { buildWeek, formatDuration, mondayIndex, splitAssigned, weeklyProgress } from '../../activity/logic'
 import type { WorkoutRow } from '../../activity/types'
+import { useNotice } from '../../components/ui'
 import { useAuth } from '../../hooks/useAuth'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro, SectionTitle, StartButton, WorkoutCard } from './shared'
 
@@ -22,6 +23,7 @@ export default function ActivityHub() {
   const userId = user?.id ?? ''
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { notify } = useNotice()
   const assignedQuery = useQuery({
     queryKey: ['activity', 'assigned', userId],
     queryFn: () => getAssignedWorkouts(userId),
@@ -61,10 +63,13 @@ export default function ActivityHub() {
 
   const startMutation = useMutation({
     mutationFn: (workout: WorkoutRow) => startWorkout(userId, workout),
-    onSuccess: async () => {
+    onSuccess: async (activeLog, requestedWorkout) => {
       await queryClient.invalidateQueries({
         queryKey: ['activity', 'active', userId]
       })
+      if (activeLog.workout_id !== requestedWorkout.id) {
+        notify(`Už prebieha tréning „${activeLog.workout_name}“. Najprv ho dokonči alebo zahoď.`, 'error')
+      }
       navigate('/activity/session')
     }
   })

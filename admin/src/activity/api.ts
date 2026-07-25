@@ -5,6 +5,7 @@ import type {
   ActivityDraft,
   ExerciseSummary,
   GeneralActivityRow,
+  LastExercisePerformance,
   SetLogRow,
   UserWorkoutDraft,
   WorkoutExerciseRow,
@@ -108,6 +109,54 @@ export async function getWorkoutLog(userId: string, logId: string): Promise<Work
     .single()
   if (error) throw error
   return sortLog(data as WorkoutLogRow)
+}
+
+interface RecentPerformanceWorkout {
+  logged_at: string
+  exercise_logs: Array<{
+    exercise_id: string | null
+    set_logs: Array<Pick<SetLogRow, 'actual_reps' | 'actual_weight_kg' | 'actual_duration_seconds' | 'rpe' | 'completed' | 'sort_order'>>
+  }>
+}
+
+export async function getLastExercisePerformances(userId: string, exerciseIds: string[]): Promise<Record<string, LastExercisePerformance>> {
+  const uniqueExerciseIds = [...new Set(exerciseIds.filter(Boolean))]
+  if (!uniqueExerciseIds.length) return {}
+
+  const { data, error } = await supabase
+    .from('workout_logs')
+    .select(`
+      logged_at,
+      exercise_logs!inner(
+        exercise_id,
+        set_logs(actual_reps, actual_weight_kg, actual_duration_seconds, rpe, completed, sort_order)
+      )
+    `)
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .in('exercise_logs.exercise_id', uniqueExerciseIds)
+    .order('logged_at', { ascending: false })
+    .limit(50)
+  if (error) throw error
+
+  const latest: Record<string, LastExercisePerformance> = {}
+  for (const workout of (data ?? []) as unknown as RecentPerformanceWorkout[]) {
+    for (const exercise of workout.exercise_logs ?? []) {
+      if (!exercise.exercise_id || latest[exercise.exercise_id]) continue
+      const lastCompletedSet = [...(exercise.set_logs ?? [])]
+        .filter(set => set.completed)
+        .sort((a, b) => b.sort_order - a.sort_order)[0]
+      if (!lastCompletedSet) continue
+      latest[exercise.exercise_id] = {
+        logged_at: workout.logged_at,
+        actual_reps: lastCompletedSet.actual_reps,
+        actual_weight_kg: lastCompletedSet.actual_weight_kg,
+        actual_duration_seconds: lastCompletedSet.actual_duration_seconds,
+        rpe: lastCompletedSet.rpe,
+      }
+    }
+  }
+  return latest
 }
 
 export async function getActiveWorkout(userId: string): Promise<WorkoutLogRow | null> {

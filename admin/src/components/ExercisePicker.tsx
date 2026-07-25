@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Check, Plus, Search } from 'lucide-react'
+import { Check, ExternalLink, Plus, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { Difficulty, ExerciseCategory } from '../types/database'
 import { Chip } from './ui'
@@ -22,20 +22,23 @@ interface ExercisePickerProps {
   locale: 'en' | 'sk'
   selectedIds: string[]
   onAdd: (exercise: ExercisePickerItem) => void
+  detailBasePath?: string
 }
 
 const PAGE_SIZE = 24
 
 const COPY = {
   en: {
-    search: 'Search exercises…', all: 'All', equipment: 'All equipment', difficulty: 'All levels',
+    search: 'Search exercises…', all: 'All', equipment: 'Equipment', difficulty: 'Levels',
     beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced', empty: 'No exercises match these filters.',
-    error: 'Exercises could not be loaded.', added: 'Added', add: 'Add', previous: 'Previous page', next: 'Next page', of: 'of',
+    error: 'Exercises could not be loaded.', added: 'Added', add: 'Add', details: 'Details',
+    anyEquipment: 'Any equipment', anyDifficulty: 'Any level', previous: 'Previous page', next: 'Next page', of: 'of',
   },
   sk: {
-    search: 'Hľadať cviky…', all: 'Všetky', equipment: 'Všetko vybavenie', difficulty: 'Všetky úrovne',
+    search: 'Hľadať cviky…', all: 'Všetky', equipment: 'Vybavenie', difficulty: 'Úrovne',
     beginner: 'Začiatočník', intermediate: 'Stredne pokročilý', advanced: 'Pokročilý', empty: 'Žiadne cviky nezodpovedajú filtrom.',
-    error: 'Cviky sa nepodarilo načítať.', added: 'Pridané', add: 'Pridať', previous: 'Predchádzajúca strana', next: 'Ďalšia strana', of: 'z',
+    error: 'Cviky sa nepodarilo načítať.', added: 'Pridané', add: 'Pridať', details: 'Detail',
+    anyEquipment: 'Akékoľvek vybavenie', anyDifficulty: 'Akákoľvek úroveň', previous: 'Predchádzajúca strana', next: 'Ďalšia strana', of: 'z',
   },
 } as const
 
@@ -61,9 +64,9 @@ function useEquipmentOptions() {
   })
 }
 
-function usePickerExercises(search: string, categoryId: number | null, equipment: string, difficulty: string, page: number) {
+function usePickerExercises(search: string, categoryId: number | null, equipment: string[], difficulties: Difficulty[], page: number) {
   return useQuery<{ data: ExercisePickerItem[]; count: number }>({
-    queryKey: ['exercise-picker', search, categoryId, equipment, difficulty, page],
+    queryKey: ['exercise-picker', search, categoryId, equipment, difficulties, page],
     queryFn: async () => {
       let query = supabase
         .from('exercises')
@@ -73,8 +76,8 @@ function usePickerExercises(search: string, categoryId: number | null, equipment
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
       if (search) query = query.textSearch('search_vector', search, { type: 'websearch', config: 'simple' })
       if (categoryId !== null) query = query.eq('category_id', categoryId)
-      if (equipment) query = query.contains('equipment_names', [equipment])
-      if (difficulty) query = query.eq('difficulty', difficulty)
+      if (equipment.length) query = query.overlaps('equipment_names', equipment)
+      if (difficulties.length) query = query.in('difficulty', difficulties)
       const { data, count, error } = await query
       if (error) throw error
       return { data: (data ?? []) as ExercisePickerItem[], count: count ?? 0 }
@@ -82,17 +85,17 @@ function usePickerExercises(search: string, categoryId: number | null, equipment
   })
 }
 
-export function ExercisePicker({ locale, selectedIds, onAdd }: ExercisePickerProps) {
+export function ExercisePicker({ locale, selectedIds, onAdd, detailBasePath = locale === 'sk' ? '/activity/exercises' : '/admin/exercises' }: ExercisePickerProps) {
   const copy = COPY[locale]
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
-  const [equipment, setEquipment] = useState('')
-  const [difficulty, setDifficulty] = useState('')
+  const [equipment, setEquipment] = useState<string[]>([])
+  const [difficulties, setDifficulties] = useState<Difficulty[]>([])
   const [page, setPage] = useState(0)
   const categoriesQuery = useCategories()
   const equipmentQuery = useEquipmentOptions()
-  const exercisesQuery = usePickerExercises(debouncedSearch, categoryId, equipment, difficulty, page)
+  const exercisesQuery = usePickerExercises(debouncedSearch, categoryId, equipment, difficulties, page)
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -112,6 +115,14 @@ export function ExercisePicker({ locale, selectedIds, onAdd }: ExercisePickerPro
     setPage(0)
   }
 
+  function toggleEquipment(value: string) {
+    resetPage(setEquipment, equipment.includes(value) ? equipment.filter(item => item !== value) : [...equipment, value])
+  }
+
+  function toggleDifficulty(value: Difficulty) {
+    resetPage(setDifficulties, difficulties.includes(value) ? difficulties.filter(item => item !== value) : [...difficulties, value])
+  }
+
   return (
     <div>
       <label className="relative block">
@@ -129,21 +140,25 @@ export function ExercisePicker({ locale, selectedIds, onAdd }: ExercisePickerPro
         ))}
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <label>
-          <span className="sr-only">{copy.equipment}</span>
-          <select value={equipment} onChange={event => resetPage(setEquipment, event.target.value)} className="h-10 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary">
-            <option value="">{copy.equipment}</option>
-            {(equipmentQuery.data ?? []).map(option => <option key={option} value={option}>{option}</option>)}
-          </select>
-        </label>
-        <label>
-          <span className="sr-only">{copy.difficulty}</span>
-          <select value={difficulty} onChange={event => resetPage(setDifficulty, event.target.value)} className="h-10 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary">
-            <option value="">{copy.difficulty}</option>
-            {(['beginner', 'intermediate', 'advanced'] as Difficulty[]).map(option => <option key={option} value={option}>{copy[option]}</option>)}
-          </select>
-        </label>
+      <div className="mt-3 grid gap-3 rounded-xl border border-outline-subtle bg-surface p-3 sm:grid-cols-2">
+        <fieldset>
+          <legend className="mb-2 text-[10px] font-bold uppercase tracking-wider text-text-secondary">{copy.equipment}</legend>
+          <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
+            <Chip size="sm" variant="accent" selected={equipment.length === 0} onClick={() => resetPage(setEquipment, [])}>{copy.anyEquipment}</Chip>
+            {(equipmentQuery.data ?? []).map(option => (
+              <Chip key={option} size="sm" variant="accent" selected={equipment.includes(option)} onClick={() => toggleEquipment(option)}>{option}</Chip>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend className="mb-2 text-[10px] font-bold uppercase tracking-wider text-text-secondary">{copy.difficulty}</legend>
+          <div className="flex flex-wrap gap-1.5">
+            <Chip size="sm" variant="accent" selected={difficulties.length === 0} onClick={() => resetPage(setDifficulties, [])}>{copy.anyDifficulty}</Chip>
+            {(['beginner', 'intermediate', 'advanced'] as Difficulty[]).map(option => (
+              <Chip key={option} size="sm" variant="accent" selected={difficulties.includes(option)} onClick={() => toggleDifficulty(option)}>{copy[option]}</Chip>
+            ))}
+          </div>
+        </fieldset>
       </div>
 
       <div className="mt-4 flex min-h-32 flex-col gap-2" aria-live="polite">
@@ -158,16 +173,33 @@ export function ExercisePicker({ locale, selectedIds, onAdd }: ExercisePickerPro
           const name = locale === 'sk' ? exercise.name_cs || exercise.name_en : exercise.name_en
           const meta = [exercise.primary_muscles[0], exercise.equipment_names[0]].filter(Boolean).join(' · ')
           return (
-            <button key={exercise.id} type="button" aria-label={`${isAdded ? copy.added : copy.add} ${name}`} onClick={() => !isAdded && onAdd(exercise)} disabled={isAdded} className="flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-xl border border-outline-subtle bg-surface p-2.5 text-left transition-colors hover:bg-surface-highest disabled:cursor-default disabled:opacity-65">
+            <div key={exercise.id} className="flex min-h-16 w-full items-center gap-3 rounded-xl border border-outline-subtle bg-surface p-2.5">
               <ExerciseThumbnail imageUrl={exercise.image_url} imageUrl2={exercise.image_url_2} name={name} className="h-11 w-11 flex-shrink-0 rounded-lg" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-text-primary">{name}</span>
                 {meta && <span className="mt-0.5 block truncate text-xs text-text-secondary">{meta}</span>}
               </span>
-              <span className={`inline-flex flex-shrink-0 items-center gap-1 text-xs font-semibold ${isAdded ? 'text-success' : 'text-accent'}`}>
-                {isAdded ? <Check size={15} /> : <Plus size={15} />} {isAdded ? copy.added : copy.add}
-              </span>
-            </button>
+              <div className="flex flex-shrink-0 flex-col gap-1 sm:flex-row">
+                <a
+                  href={`${detailBasePath}/${exercise.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`${copy.details}: ${name}`}
+                  className="inline-flex min-h-9 items-center justify-center gap-1 rounded-lg border border-outline px-2 text-xs font-semibold text-text-secondary no-underline hover:bg-surface-highest hover:text-text-primary"
+                >
+                  <ExternalLink size={14} /> {copy.details}
+                </a>
+                <button
+                  type="button"
+                  aria-label={`${isAdded ? copy.added : copy.add} ${name}`}
+                  onClick={() => !isAdded && onAdd(exercise)}
+                  disabled={isAdded}
+                  className={`inline-flex min-h-9 cursor-pointer items-center justify-center gap-1 rounded-lg border px-2 text-xs font-semibold disabled:cursor-default ${isAdded ? 'border-success/30 bg-success/10 text-success' : 'border-accent/40 bg-accent/10 text-text-accent hover:bg-accent/20'}`}
+                >
+                  {isAdded ? <Check size={14} /> : <Plus size={14} />} {isAdded ? copy.added : copy.add}
+                </button>
+              </div>
+            </div>
           )
         })}
       </div>

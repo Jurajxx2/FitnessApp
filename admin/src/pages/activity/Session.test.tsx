@@ -122,6 +122,10 @@ vi.mock('../../hooks/useAuth', () => ({
 
 vi.mock('../../activity/api', () => ({
   getActiveWorkout: vi.fn().mockResolvedValue(ACTIVE_LOG),
+  getLastExercisePerformances: vi.fn().mockResolvedValue({
+    'ex-1': { logged_at: '2026-07-20T10:00:00Z', actual_reps: null, actual_weight_kg: null, actual_duration_seconds: 42, rpe: 7 },
+    'ex-2': { logged_at: '2026-07-20T10:00:00Z', actual_reps: 8, actual_weight_kg: 80, actual_duration_seconds: null, rpe: 8 },
+  }),
   getWorkout: vi.fn().mockResolvedValue(WORKOUT_ROW),
   saveSet: (...args: unknown[]) => saveSet(...args),
   addSet: vi.fn(),
@@ -163,6 +167,16 @@ describe('WorkoutSession authoritative timed detection', () => {
     expect(screen.getByLabelText('Séria 2 váha v kilogramoch')).toBeInTheDocument()
     expect(screen.queryByLabelText('Séria 2 trvanie v sekundách')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Spustiť časovač série 2')).not.toBeInTheDocument()
+  })
+
+  it('labels the target and last performance clearly and renders only one timed RPE column', async () => {
+    renderPage()
+
+    expect(await screen.findByText('0/1 sérií dokončených · Cieľ: 45 s na sériu')).toBeInTheDocument()
+    expect(await screen.findByText('Posledný výkon: 42 s · RPE 7')).toBeInTheDocument()
+    expect(screen.getAllByText('RPE')).toHaveLength(2)
+    expect(screen.getByLabelText('Séria 1 RPE')).toHaveAttribute('placeholder', '7')
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
   })
 })
 

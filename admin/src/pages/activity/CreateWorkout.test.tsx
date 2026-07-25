@@ -31,6 +31,8 @@ function createEmptyQueryBuilder() {
     limit: () => builder,
     range: () => builder,
     contains: () => builder,
+    overlaps: () => builder,
+    in: () => builder,
     textSearch: () => builder,
     single: () => Promise.resolve(result),
     then: (resolve: (value: typeof result) => unknown, reject?: (reason: unknown) => unknown) =>
@@ -54,6 +56,8 @@ function createExercisesQueryBuilder() {
       return builder
     },
     contains: () => builder,
+    overlaps: () => builder,
+    in: () => builder,
     textSearch: () => builder,
     then: (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) =>
       Promise.resolve(paginated ? { data: [EXERCISE_ROW], count: 1, error: null } : { data: [], count: 0, error: null }).then(resolve, reject),
@@ -115,5 +119,19 @@ describe('CreateWorkout log_type selector', () => {
     expect(screen.getByRole('button', { name: 'Váha + opak.' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Vlastná váha' })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByRole('button', { name: 'Čas' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('exposes exercise details from both the library and selected card without replacing the builder', async () => {
+    renderPage()
+    const user = userEvent.setup()
+
+    const libraryDetail = await screen.findByRole('link', { name: 'Detail: Bench Press' })
+    expect(libraryDetail).toHaveAttribute('href', '/activity/exercises/ex-1')
+    expect(libraryDetail).toHaveAttribute('target', '_blank')
+
+    await user.click(screen.getByRole('button', { name: 'Pridať Bench Press' }))
+    const selectedDetail = screen.getByRole('link', { name: 'Otvoriť detail cviku Bench Press' })
+    expect(selectedDetail).toHaveAttribute('href', '/activity/exercises/ex-1')
+    expect(selectedDetail).toHaveAttribute('target', '_blank')
   })
 })

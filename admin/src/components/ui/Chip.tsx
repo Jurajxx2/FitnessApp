@@ -19,6 +19,7 @@ export function Chip({ selected = false, size = 'md', variant = 'primary', class
   return (
     <button
       type="button"
+      aria-pressed={selected}
       className={`${SIZE[size]} rounded-full border font-medium transition-colors cursor-pointer ${selected ? selectedCls : 'border-outline bg-surface text-text-secondary hover:bg-surface-elevated'} ${className}`}
       {...props}
     >

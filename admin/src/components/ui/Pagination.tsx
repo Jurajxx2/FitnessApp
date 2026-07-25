@@ -1,5 +1,4 @@
 import { useId } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from './Button'
 
 interface PaginationProps {
@@ -25,7 +24,7 @@ export function Pagination({
   const end = Math.min(totalItems, (page + 1) * pageSize)
 
   return (
-    <div className="flex flex-col gap-3 border-t border-outline px-4 py-3 text-sm text-text-secondary sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-t border-outline bg-surface-elevated px-4 py-3 text-sm text-text-secondary sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-2">
         <label htmlFor={selectId}>Rows per page</label>
         <select
@@ -44,21 +43,23 @@ export function Pagination({
         <div className="flex gap-1">
           <Button
             variant="ghost"
-            className="min-h-9 w-9 px-0"
+            className="min-h-9 px-3"
             aria-label="Previous page"
             disabled={page <= 0}
             onClick={() => onPageChange(page - 1)}
           >
-            <ChevronLeft size={18} aria-hidden="true" />
+            <span aria-hidden="true" className="text-base leading-none">←</span>
+            <span>Previous</span>
           </Button>
           <Button
             variant="ghost"
-            className="min-h-9 w-9 px-0"
+            className="min-h-9 px-3"
             aria-label="Next page"
             disabled={page >= totalPages - 1}
             onClick={() => onPageChange(page + 1)}
           >
-            <ChevronRight size={18} aria-hidden="true" />
+            <span>Next</span>
+            <span aria-hidden="true" className="text-base leading-none">→</span>
           </Button>
         </div>
       </div>

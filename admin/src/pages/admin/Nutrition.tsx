@@ -465,7 +465,10 @@ function MealPlansTab() {
             ))}
           </div>
         </div>
-        <Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>Create meal plan</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => navigate('/admin/nutrition/meal-plans/generate')}>Generate from macro goals</Button>
+          <Button onClick={() => navigate('/admin/nutrition/meal-plans/new')}>Create meal plan</Button>
+        </div>
       </div>
 
       {isError ? (
