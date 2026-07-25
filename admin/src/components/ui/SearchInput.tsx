@@ -14,7 +14,7 @@ export function SearchInput({ value, onClear, className = '', ...props }: Search
       <input
         type="search"
         value={value}
-        className="h-10 w-full rounded-xl border border-outline bg-surface py-2 pl-9 pr-9 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent"
+        className="h-10 w-full rounded-xl border border-outline bg-surface py-2 pl-9 pr-9 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent-strong"
         {...props}
       />
       {hasValue && onClear && (

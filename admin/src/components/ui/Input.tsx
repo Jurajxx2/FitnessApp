@@ -13,7 +13,7 @@ export function Input({ label, error, id, className = '', ...props }: InputProps
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        <label htmlFor={inputId} className="ledger-label text-text-secondary">
           {label}
         </label>
       )}
@@ -21,7 +21,7 @@ export function Input({ label, error, id, className = '', ...props }: InputProps
         id={inputId}
         aria-invalid={error ? true : undefined}
         aria-describedby={errorId}
-        className={`h-10 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent ${error ? 'border-error focus:border-error' : ''} ${className}`}
+        className={`h-10 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent-strong ${error ? 'border-error focus:border-error' : ''} ${className}`}
         {...props}
       />
       {error && <p id={errorId} className="text-xs text-error">{error}</p>}

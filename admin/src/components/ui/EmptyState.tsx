@@ -15,11 +15,15 @@ export function EmptyState({
 }) {
   const supportingText = description ?? message
   return (
-    <div className="rounded-2xl border border-dashed border-outline bg-surface p-8 text-center">
-      {icon && <div className="mb-3 flex justify-center text-text-secondary">{icon}</div>}
-      <p className="text-sm font-semibold text-text-primary">{title}</p>
-      {supportingText && <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-text-secondary">{supportingText}</p>}
-      {action && <div className="mt-4 flex justify-center">{action}</div>}
+    <div className="rounded-2xl border border-dashed border-outline bg-surface p-10 text-center">
+      {icon && (
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-outline-subtle bg-surface-elevated text-text-secondary">
+          {icon}
+        </div>
+      )}
+      <p className="font-display text-base font-bold text-text-primary">{title}</p>
+      {supportingText && <p className="mx-auto mt-1.5 max-w-md text-sm leading-6 text-text-secondary">{supportingText}</p>}
+      {action && <div className="mt-5 flex justify-center">{action}</div>}
     </div>
   )
 }

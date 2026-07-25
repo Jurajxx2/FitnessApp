@@ -20,7 +20,7 @@ export function Checkbox({ checked, indeterminate = false, onChange, label, clas
       checked={checked}
       aria-label={label}
       onChange={(event) => onChange(event.target.checked)}
-      className={`h-4 w-4 shrink-0 cursor-pointer rounded border-outline bg-surface accent-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${className}`}
+      className={`h-4 w-4 shrink-0 cursor-pointer rounded border-outline bg-surface accent-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong ${className}`}
       {...props}
     />
   )

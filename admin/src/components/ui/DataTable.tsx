@@ -126,7 +126,7 @@ export function DataTable<T>({
               <th
                 key={col.key}
                 scope="col"
-                className={`border-b border-outline px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-secondary first:pl-4 ${col.headerClassName ?? ''}`}
+                className={`ledger-label border-b border-outline px-4 py-3 text-left text-text-secondary first:pl-4 ${col.headerClassName ?? ''}`}
               >
                 {col.header}
               </th>

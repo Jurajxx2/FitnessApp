@@ -14,7 +14,7 @@ export function MacroRing({ label, value, target, unit, size = 96 }: {
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--outline-subtle)" strokeWidth={stroke} />
           {target && target > 0 && (
             <circle
-              cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--accent)" strokeWidth={stroke}
+              cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--accent-strong)" strokeWidth={stroke}
               strokeLinecap="round" strokeDasharray={c} strokeDashoffset={dashOffset(fraction, c)}
             />
           )}
@@ -25,7 +25,7 @@ export function MacroRing({ label, value, target, unit, size = 96 }: {
                   : <span className="text-[10px] leading-3 text-text-secondary">{unit}</span>}
         </div>
       </div>
-      <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">{label}</span>
+      <span className="ledger-label text-text-secondary">{label}</span>
     </div>
   )
 }

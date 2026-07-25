@@ -32,7 +32,7 @@ export function Pagination({
           id={selectId}
           value={pageSize}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
-          className="rounded-lg border border-outline bg-surface px-2 py-1 text-text-primary outline-none focus:border-accent"
+          className="rounded-lg border border-outline bg-surface px-2 py-1 text-text-primary outline-none focus:border-accent-strong"
         >
           {pageSizeOptions.map((size) => (
             <option key={size} value={size}>{size}</option>

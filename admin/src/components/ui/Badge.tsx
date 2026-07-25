@@ -11,7 +11,7 @@ const config = {
 export function Badge({ status }: BadgeProps) {
   const { label, cls } = config[status]
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}>
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${cls}`}>
       {label}
     </span>
   )

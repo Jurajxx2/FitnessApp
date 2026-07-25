@@ -43,8 +43,11 @@ export function EditorPage({
 
       <header className="mb-7 flex flex-col gap-5 border-b border-outline-subtle pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-accent">{eyebrow}</p>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{title}</h1>
+          <p className="flex items-center gap-2 ledger-label text-text-secondary">
+            <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            {eyebrow}
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text-primary">{title}</h1>
           {description && <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">{description}</p>}
         </div>
         {actions && (
@@ -80,7 +83,7 @@ export function FormSection({
   return (
     <section className={`rounded-2xl border border-outline bg-surface-elevated p-5 sm:p-6 ${className}`}>
       <div className="mb-5">
-        <h2 className="text-base font-bold text-text-primary">{title}</h2>
+        <h2 className="font-display text-base font-bold text-text-primary">{title}</h2>
         {description && <p className="mt-1 text-sm leading-5 text-text-secondary">{description}</p>}
       </div>
       {children}

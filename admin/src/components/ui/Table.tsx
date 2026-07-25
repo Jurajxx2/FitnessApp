@@ -10,7 +10,7 @@ export function Table({ children }: { children: ReactNode }) {
 
 export function Th({ children }: { children: ReactNode }) {
   return (
-    <th scope="col" className="border-b border-outline px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-secondary first:pl-4">
+    <th scope="col" className="ledger-label border-b border-outline px-4 py-3 text-left text-text-secondary first:pl-4">
       {children}
     </th>
   )
