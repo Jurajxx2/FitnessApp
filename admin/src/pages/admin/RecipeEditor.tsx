@@ -390,8 +390,11 @@ export default function RecipeEditor() {
               <div className="flex aspect-video items-center justify-center bg-surface"><ImageIcon size={30} className="text-text-secondary" aria-hidden="true" /></div>
             )}
             <div className="p-5">
-              <p className="text-xs font-extrabold uppercase tracking-wider text-accent">Recipe preview</p>
-              <h2 className="mt-1 text-lg font-bold text-text-primary">{form.name || 'Untitled recipe'}</h2>
+              <p className="flex items-center gap-2 ledger-label text-text-secondary">
+                <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+                Recipe preview
+              </p>
+              <h2 className="mt-1.5 font-display text-lg font-bold tracking-tight text-text-primary">{form.name || 'Untitled recipe'}</h2>
               <p className="mt-2 text-xs leading-5 text-text-secondary">{form.description || 'Add a short description that helps athletes understand the meal.'}</p>
             </div>
           </Card>

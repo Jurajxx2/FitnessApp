@@ -94,7 +94,10 @@ export default function ActivityHub() {
             <Play size={18} fill="currentColor" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-xs font-bold uppercase tracking-wider text-text-accent">Prebiehajúci tréning</span>
+            <span className="flex items-center gap-2 ledger-label text-text-secondary">
+              <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+              Prebiehajúci tréning
+            </span>
             <span className="mt-1 block truncate text-lg font-bold">{activeQuery.data.workout_name}</span>
           </span>
           <span className="text-sm font-semibold">
@@ -117,7 +120,7 @@ export default function ActivityHub() {
             <div className="grid grid-cols-7 gap-1.5 sm:gap-3">
               {week.map((day, index) => (
                 <div key={day.date.toISOString()} className="min-w-0 text-center">
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-text-secondary">{DAY_SHORT_SK[index]}</p>
+                  <p className="mb-2 ledger-label text-text-secondary">{DAY_SHORT_SK[index]}</p>
                   <div className={`mx-auto flex aspect-square max-w-12 items-center justify-center rounded-full border text-xs font-bold ${statusClass[day.status]}`}>{day.status === 'completed' ? '✓' : day.date.getDate()}</div>
                   <p className="mt-2 truncate text-[10px] text-text-secondary">{day.workout?.name ?? ''}</p>
                 </div>
@@ -157,8 +160,11 @@ export default function ActivityHub() {
         {todayWorkout ? (
           <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-end md:p-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-accent">{todayDone ? 'Dnes dokončené' : todayPinned ? 'Dnešný tréning' : 'Odporúčaný ďalší tréning'}</p>
-              <h3 className="mt-2 text-2xl font-bold text-text-primary">{todayWorkout.name}</h3>
+              <p className="flex items-center gap-2 ledger-label text-text-secondary">
+                <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+                {todayDone ? 'Dnes dokončené' : todayPinned ? 'Dnešný tréning' : 'Odporúčaný ďalší tréning'}
+              </p>
+              <h3 className="mt-2 text-2xl font-display font-bold tracking-tight text-text-primary">{todayWorkout.name}</h3>
               <p className="mt-2 text-sm text-text-secondary">
                 ~{formatDuration(todayWorkout.duration_minutes)} · {todayWorkout.workout_exercises.length} cvikov
               </p>
@@ -180,8 +186,11 @@ export default function ActivityHub() {
         ) : (
           <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-end md:p-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-accent">{hasPlan ? (progress.completed >= progress.total ? 'Tento týždeň hotovo' : 'Deň oddychu') : 'Začni trénovať'}</p>
-              <h3 className="mt-2 text-2xl font-bold text-text-primary">{hasPlan ? (progress.completed >= progress.total ? 'Plán je hotový. Oddýchni si a priprav sa na ďalší týždeň.' : 'Dnes si oddýchni. V pláne pokračuj zajtra.') : 'Vyber si tréning a pusť sa do toho.'}</h3>
+              <p className="flex items-center gap-2 ledger-label text-text-secondary">
+                <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+                {hasPlan ? (progress.completed >= progress.total ? 'Tento týždeň hotovo' : 'Deň oddychu') : 'Začni trénovať'}
+              </p>
+              <h3 className="mt-2 text-2xl font-display font-bold tracking-tight text-text-primary">{hasPlan ? (progress.completed >= progress.total ? 'Plán je hotový. Oddýchni si a priprav sa na ďalší týždeň.' : 'Dnes si oddýchni. V pláne pokračuj zajtra.') : 'Vyber si tréning a pusť sa do toho.'}</h3>
               <p className="mt-3 text-sm text-text-secondary">{hasPlan ? 'Ak pôjdeš na prechádzku, beh, bicykel alebo plávať, môžeš si zapísať ďalšiu aktivitu.' : 'Pozri si dostupné plány alebo požiadaj trénerku, aby ti jeden priradila.'}</p>
             </div>
             <Link to={hasPlan ? '/activity/log' : '/activity/workouts'} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-action-primary px-5 text-sm font-bold text-on-action-primary no-underline">

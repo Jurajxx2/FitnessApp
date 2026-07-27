@@ -21,7 +21,13 @@ export default function CheckInHistory() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
         <button type="button" aria-label="Späť na check-in" onClick={() => navigate('/check-ins')}><ArrowLeft size={22} /></button>
-        <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Týždenný pokrok</p><h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em]">História check-inov</h1></div>
+        <div>
+          <p className="flex items-center gap-2 ledger-label text-text-secondary">
+            <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            Týždenný pokrok
+          </p>
+          <h1 className="mt-1 text-3xl font-display font-bold tracking-tight">História check-inov</h1>
+        </div>
       </div>
 
       {isLoading && <Shimmer className="h-48 w-full" />}

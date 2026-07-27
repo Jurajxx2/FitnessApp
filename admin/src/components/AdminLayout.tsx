@@ -52,7 +52,10 @@ export function AdminLayout() {
               >
                 <Menu size={22} />
               </button>
-              <span className="text-base font-semibold text-text-primary">{title}</span>
+              <span className="flex items-center gap-2.5 font-display text-lg font-bold tracking-tight text-text-primary">
+                <span className="h-4 w-1 shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+                {title}
+              </span>
             </div>
             {actions && <div className="flex gap-2">{actions}</div>}
           </header>

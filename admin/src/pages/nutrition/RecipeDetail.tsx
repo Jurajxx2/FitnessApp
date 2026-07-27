@@ -23,8 +23,11 @@ export default function RecipeDetail() {
         <div className="flex flex-col gap-6">
           {recipe.photo_url && <img src={recipe.photo_url} alt={recipe.name} className="aspect-[16/9] w-full rounded-2xl object-cover" />}
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Recipe</p>
-            <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{recipe.name}</h1>
+            <p className="flex items-center gap-2 ledger-label text-text-secondary">
+              <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+              Recipe
+            </p>
+            <h1 className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary">{recipe.name}</h1>
             {recipe.description && <p className="mt-3 max-w-3xl text-sm leading-6 text-text-secondary">{recipe.description}</p>}
           </div>
           {steps.length > 0 && (

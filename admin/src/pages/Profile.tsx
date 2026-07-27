@@ -144,7 +144,10 @@ export default function Profile() {
         </Card>
 
         <Card>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-accent">Účet</p>
+          <p className="flex items-center gap-2 ledger-label text-text-secondary">
+            <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            Účet
+          </p>
           <h2 className="mt-2 text-lg font-bold text-text-primary">{profile.full_name || 'Tvoj profil'}</h2>
           <p className="mt-1 break-all text-xs text-text-secondary">{user?.email ?? profile.email}</p>
           <div className="mt-5 divide-y divide-outline-subtle text-sm">

@@ -125,8 +125,11 @@ export default function WorkoutSession() {
             <TimerReset size={20} />
           </span>
           <div className="flex-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-text-accent">Časovač odpočinku</p>
-            <p className="text-xl font-bold tabular-nums text-text-primary">
+            <p className="flex items-center gap-2 ledger-label text-text-secondary">
+              <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+              Časovač odpočinku
+            </p>
+            <p className="text-xl font-display font-bold tabular-nums text-text-primary">
               {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
             </p>
           </div>
@@ -158,7 +161,7 @@ export default function WorkoutSession() {
       </div>
 
       <div className="rounded-2xl border border-outline bg-surface-elevated p-5">
-        <label htmlFor="session-notes" className="text-xs font-bold uppercase tracking-wider text-text-secondary">
+        <label htmlFor="session-notes" className="ledger-label text-text-secondary">
           Poznámky k tréningu
         </label>
         <textarea id="session-notes" value={notes} onChange={event => setNotes(event.target.value)} rows={3} placeholder="Ako si sa pri tréningu cítil?" className="mt-2 w-full resize-y rounded-xl border border-outline bg-surface p-3 text-sm text-text-primary outline-none focus:border-accent" />
@@ -217,7 +220,7 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
       </button>
       {open && (
         <div className="border-t border-outline-subtle px-3 pb-4 sm:px-5">
-          <div className="hidden grid-cols-[2.5rem_1fr_1fr_5rem_3rem] gap-2 py-3 text-[10px] font-bold uppercase tracking-wider text-text-secondary sm:grid">
+          <div className="hidden grid-cols-[2.5rem_1fr_1fr_5rem_3rem] gap-2 py-3 ledger-label text-text-secondary sm:grid">
             <span>Séria</span>
             <span>{timed ? 'Čas (s)' : 'Opakovania'}</span>
             <span>{timed ? 'RPE' : 'Váha (kg)'}</span>

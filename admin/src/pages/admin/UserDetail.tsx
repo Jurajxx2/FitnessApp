@@ -794,16 +794,16 @@ export default function UserDetail() {
             <h2 className="mb-4 text-sm font-bold text-text-primary">Last 7 days</h2>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
-                <p className="text-2xl font-extrabold text-text-primary">{compliance?.workoutsCompleted ?? 0}</p>
-                <p className="mt-1 text-[10px] uppercase tracking-wider text-text-secondary">Workouts</p>
+                <p className="font-display text-2xl font-extrabold tabular-nums text-text-primary">{compliance?.workoutsCompleted ?? 0}</p>
+                <p className="mt-1 ledger-label text-text-secondary">Workouts</p>
               </div>
               <div className="border-x border-outline-subtle px-2">
-                <p className="text-2xl font-extrabold text-text-primary">{compliance?.avgCalories ?? 0}</p>
-                <p className="mt-1 text-[10px] uppercase tracking-wider text-text-secondary">Avg kcal</p>
+                <p className="font-display text-2xl font-extrabold tabular-nums text-text-primary">{compliance?.avgCalories ?? 0}</p>
+                <p className="mt-1 ledger-label text-text-secondary">Avg kcal</p>
               </div>
               <div>
-                <p className="text-2xl font-extrabold text-text-primary">{compliance?.avgProtein ?? 0}g</p>
-                <p className="mt-1 text-[10px] uppercase tracking-wider text-text-secondary">Avg protein</p>
+                <p className="font-display text-2xl font-extrabold tabular-nums text-text-primary">{compliance?.avgProtein ?? 0}g</p>
+                <p className="mt-1 ledger-label text-text-secondary">Avg protein</p>
               </div>
             </div>
           </Card>

@@ -97,8 +97,8 @@ export default function CreateWorkout() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.9fr)]">
         <section className="space-y-5 rounded-2xl border border-outline bg-surface-elevated p-5 sm:p-6">
           <Field label="Názov tréningu" value={name} onChange={setName} placeholder="Napr. Môj push tréning" required />
-          <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary">
-            Poznámka (voliteľné)
+          <label className="block">
+            <span className="ledger-label text-text-secondary">Poznámka (voliteľné)</span>
             <textarea value={notes} onChange={event => setNotes(event.target.value)} rows={3} placeholder="Čo chceš dnes odcvičiť?" className="mt-2 w-full resize-y rounded-xl border border-outline bg-surface p-3 text-sm font-normal normal-case tracking-normal text-text-primary outline-none focus:border-accent" />
           </label>
           <WorkoutDurationControl
@@ -110,7 +110,10 @@ export default function CreateWorkout() {
             onManualMinutesChange={setManualDuration}
           />
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-text-primary">Vybrané cviky</h3>
+            <h3 className="flex items-center gap-2.5 font-display text-lg font-bold text-text-primary">
+              <span className="h-4 w-1 shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+              Vybrané cviky
+            </h3>
             {selected.length ? (
               <div className="mt-3 space-y-3">
                 {selected.map((exercise, index) => (
@@ -129,7 +132,7 @@ export default function CreateWorkout() {
                     onRemove={() => setSelected(current => current.filter(item => item.client_id !== exercise.client_id))}
                   >
                     <fieldset className="mb-3 rounded-xl border border-outline-subtle bg-surface p-3">
-                      <legend className="px-1 text-xs font-bold uppercase tracking-wider text-text-secondary">Sledovanie</legend>
+                      <legend className="px-1 ledger-label text-text-secondary">Sledovanie</legend>
                       <LogTypeToggle
                         locale="sk"
                         value={exercise.log_type ?? 'weight_reps'}
@@ -154,7 +157,10 @@ export default function CreateWorkout() {
           </button>
         </section>
         <section className="rounded-2xl border border-outline bg-surface-elevated p-5 sm:p-6">
-          <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-text-primary">Pridať cvik</h3>
+          <h3 className="flex items-center gap-2.5 font-display text-lg font-bold text-text-primary">
+            <span className="h-4 w-1 shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            Pridať cvik
+          </h3>
           <p className="mt-1 text-sm text-text-secondary">Filtruj knižnicu a pridaj cviky do tréningu.</p>
           <div className="mt-4">
             <ExercisePicker locale="sk" selectedIds={selected.map(exercise => exercise.exercise_id)} onAdd={addExercise} />
@@ -166,5 +172,10 @@ export default function CreateWorkout() {
 }
 
 function Field({ label, value, onChange, ...props }: { label: string; value: string; onChange: (value: string) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>) {
-  return <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary">{label}<input {...props} value={value} onChange={event => onChange(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-outline bg-surface px-3 text-sm font-normal normal-case tracking-normal text-text-primary outline-none focus:border-accent" /></label>
+  return (
+    <label className="block">
+      <span className="ledger-label text-text-secondary">{label}</span>
+      <input {...props} value={value} onChange={event => onChange(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-outline bg-surface px-3 text-sm font-normal normal-case tracking-normal text-text-primary outline-none focus:border-accent" />
+    </label>
+  )
 }

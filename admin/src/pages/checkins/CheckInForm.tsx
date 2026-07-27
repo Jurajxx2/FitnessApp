@@ -107,8 +107,11 @@ export default function CheckInForm() {
     <form className="grid items-start gap-5 lg:grid-cols-2" onSubmit={submit}>
       <div className="flex flex-col justify-between gap-4 lg:col-span-2 sm:flex-row sm:items-end">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Týždenný pokrok</p>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Týždenný check-in</h1>
+          <p className="flex items-center gap-2 ledger-label text-text-secondary">
+            <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            Týždenný pokrok
+          </p>
+          <h1 className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary">Týždenný check-in</h1>
           <p className="mt-2 text-sm text-text-secondary">Krátky prehľad pomôže trénerke upraviť ďalší týždeň.</p>
         </div>
         <Button type="button" variant="secondary" onClick={() => navigate('/check-ins/history')}><History size={17} /> História</Button>

@@ -140,7 +140,7 @@ export default function Verify() {
       <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-action-secondary text-text-primary">
         <MailCheck size={22} />
       </div>
-        <h1 className="mb-2 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{t.title}</h1>
+        <h1 className="mb-2 text-3xl font-display font-bold tracking-tight text-text-primary">{t.title}</h1>
         <p className="mb-8 text-sm leading-6 text-text-secondary">
           {t.introBefore} <span className="text-text-primary">{email}</span>.
         </p>

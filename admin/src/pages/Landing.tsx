@@ -144,8 +144,9 @@ export default function Landing() {
     <div className="min-h-dvh bg-background text-text-primary selection:bg-accent">
       <header className="sticky top-0 z-50 border-b border-outline-subtle bg-background/90 backdrop-blur-xl">
         <nav aria-label={t.navLabel} className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
-          <a href="#top" className="shrink-0 text-xs font-extrabold uppercase tracking-[0.24em] text-text-primary">
-            Coach Foska
+          <a href="#top" className="flex shrink-0 items-center gap-2.5">
+            <span className="h-5 w-1.5 rounded-full bg-accent-strong" aria-hidden="true" />
+            <span className="font-display text-sm font-extrabold uppercase tracking-[0.13em] text-text-primary">Coach Foska</span>
           </a>
 
           <div className="hidden items-center gap-7 lg:flex">
@@ -172,16 +173,23 @@ export default function Landing() {
 
       <main id="top">
         <section className="relative overflow-hidden border-b border-outline-subtle">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(169,7,7,0.18),transparent_34%)]" />
+          <div
+            className="pointer-events-none absolute inset-0 opacity-60"
+            style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 39px, var(--outline-subtle) 39px, var(--outline-subtle) 40px)' }}
+            aria-hidden="true"
+          />
           <div className="relative mx-auto grid max-w-7xl gap-14 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-32">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-              <p className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-accent">{t.eyebrow}</p>
-              <h1 className="max-w-3xl text-5xl font-extrabold leading-[0.98] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
+              <p className="mb-5 flex items-center gap-2 ledger-label text-text-secondary">
+                <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+                {t.eyebrow}
+              </p>
+              <h1 className="max-w-3xl font-display text-5xl font-extrabold leading-[0.96] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
                 {t.title}
               </h1>
               <p className="mt-7 max-w-2xl text-base leading-7 text-text-secondary sm:text-lg sm:leading-8">{t.intro}</p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link to={session ? appPath : '/login'} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-action-primary px-6 text-sm font-bold text-on-action-primary transition-opacity hover:opacity-85">
+                <Link to={session ? appPath : '/login'} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-action-primary px-6 text-sm font-bold text-on-action-primary transition-opacity hover:opacity-90">
                   {session ? t.openApp : t.heroPrimary} <ArrowRight size={17} aria-hidden="true" />
                 </Link>
                 <a href="#how-it-works" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-outline bg-surface px-6 text-sm font-bold text-text-primary transition-colors hover:bg-surface-elevated">
@@ -197,35 +205,41 @@ export default function Landing() {
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.15, duration: 0.55 }}
-              className="mx-auto w-full max-w-lg rounded-[2rem] border border-outline bg-surface p-3 shadow-2xl shadow-black/40"
+              className="relative mx-auto w-full max-w-lg rounded-2xl border border-outline bg-surface-elevated p-2 shadow-2xl shadow-black/30"
               aria-label={t.previewTitle}
             >
-              <div className="rounded-[1.45rem] border border-outline-subtle bg-background p-5 sm:p-7">
-                <div className="mb-7 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-text-secondary">{t.previewTitle}</p>
-                    <p className="mt-1 text-lg font-extrabold">{profile?.full_name || 'Coach Foska'}</p>
+              <div className="rounded-xl border border-outline-subtle bg-background p-5 sm:p-7">
+                <div className="mb-6 flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 ledger-label text-text-secondary">
+                      <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+                      {t.previewTitle}
+                    </p>
+                    <p className="mt-1.5 truncate font-display text-lg font-bold tracking-tight">{profile?.full_name || 'Coach Foska'}</p>
                   </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-strong/12 text-accent-strong">
                     <ClipboardCheck size={19} aria-hidden="true" />
                   </div>
                 </div>
 
-                {[
-                  { Icon: Dumbbell, title: t.previewWorkout, meta: t.previewWorkoutMeta },
-                  { Icon: Utensils, title: t.previewNutrition, meta: t.previewNutritionMeta },
-                  { Icon: MessageCircle, title: t.previewCheckIn, meta: t.previewCheckInMeta },
-                ].map(({ Icon, title, meta }, index) => (
-                  <div key={String(title)} className={`flex items-center gap-4 py-4 ${index > 0 ? 'border-t border-outline-subtle' : ''}`}>
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-action-secondary text-text-primary">
-                      <Icon size={20} aria-hidden="true" />
+                <div className="border-t border-outline-subtle">
+                  {[
+                    { Icon: Dumbbell, title: t.previewWorkout, meta: t.previewWorkoutMeta },
+                    { Icon: Utensils, title: t.previewNutrition, meta: t.previewNutritionMeta },
+                    { Icon: MessageCircle, title: t.previewCheckIn, meta: t.previewCheckInMeta },
+                  ].map(({ Icon, title, meta }, index) => (
+                    <div key={String(title)} className="flex items-center gap-4 border-b border-outline-subtle py-3.5">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-action-secondary text-text-primary">
+                        <Icon size={19} aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{title}</p>
+                        <p className="mt-0.5 truncate font-mono text-[11px] text-text-secondary">{meta}</p>
+                      </div>
+                      <span className="font-mono text-[10px] tracking-wider text-text-secondary" aria-hidden="true">0{index + 1}</span>
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold">{title}</p>
-                      <p className="mt-1 truncate text-xs text-text-secondary">{meta}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </motion.div>
           </div>
@@ -233,9 +247,12 @@ export default function Landing() {
 
         <section id="features" className="scroll-mt-24 border-b border-outline-subtle px-5 py-20 sm:px-8 sm:py-28">
           <motion.div {...reveal} className="mx-auto max-w-7xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">{t.featuresEyebrow}</p>
+            <p className="flex items-center gap-2 ledger-label text-text-secondary">
+              <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+              {t.featuresEyebrow}
+            </p>
             <div className="mt-4 grid gap-5 lg:grid-cols-2 lg:items-end">
-              <h2 className="max-w-2xl text-4xl font-extrabold tracking-[-0.045em] sm:text-5xl">{t.featuresTitle}</h2>
+              <h2 className="max-w-2xl font-display text-4xl font-bold tracking-tight sm:text-5xl">{t.featuresTitle}</h2>
               <p className="max-w-xl text-sm leading-7 text-text-secondary lg:justify-self-end sm:text-base">{t.featuresIntro}</p>
             </div>
 
@@ -243,9 +260,11 @@ export default function Landing() {
               {t.features.map(([title, body], index) => {
                 const Icon = featureIcons[index]
                 return (
-                  <article key={title} className="rounded-2xl border border-outline-subtle bg-surface p-6 sm:p-7">
-                    <Icon size={22} className="text-accent" aria-hidden="true" />
-                    <h3 className="mt-6 text-lg font-extrabold">{title}</h3>
+                  <article key={title} className="rounded-2xl border border-outline-subtle bg-surface p-6 transition-colors hover:border-outline sm:p-7">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-action-secondary text-accent-strong">
+                      <Icon size={21} aria-hidden="true" />
+                    </div>
+                    <h3 className="mt-6 font-display text-lg font-bold tracking-tight">{title}</h3>
                     <p className="mt-2 text-sm leading-6 text-text-secondary">{body}</p>
                   </article>
                 )
@@ -256,13 +275,16 @@ export default function Landing() {
 
         <section id="how-it-works" className="scroll-mt-24 border-b border-outline-subtle bg-surface px-5 py-20 sm:px-8 sm:py-28">
           <motion.div {...reveal} className="mx-auto max-w-7xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">{t.howEyebrow}</p>
-            <h2 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-[-0.045em] sm:text-5xl">{t.howTitle}</h2>
+            <p className="flex items-center gap-2 ledger-label text-text-secondary">
+              <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+              {t.howEyebrow}
+            </p>
+            <h2 className="mt-4 max-w-3xl font-display text-4xl font-bold tracking-tight sm:text-5xl">{t.howTitle}</h2>
             <ol className="mt-12 grid gap-8 lg:grid-cols-3">
               {t.steps.map(([title, body], index) => (
-                <li key={title} className="border-t border-outline pt-6">
-                  <span className="text-xs font-extrabold text-accent">0{index + 1}</span>
-                  <h3 className="mt-5 text-lg font-extrabold">{title}</h3>
+                <li key={title} className="border-t-2 border-outline pt-6">
+                  <span className="font-mono text-sm font-bold tracking-widest text-accent-strong">0{index + 1}</span>
+                  <h3 className="mt-4 font-display text-lg font-bold tracking-tight">{title}</h3>
                   <p className="mt-3 text-sm leading-6 text-text-secondary">{body}</p>
                 </li>
               ))}
@@ -273,16 +295,19 @@ export default function Landing() {
         <section id="mobile-apps" className="scroll-mt-24 border-b border-outline-subtle px-5 py-20 sm:px-8 sm:py-28">
           <motion.div {...reveal} className="mx-auto grid max-w-7xl gap-10 rounded-3xl border border-outline-subtle bg-surface p-7 sm:p-10 lg:grid-cols-[1fr_0.8fr] lg:items-center lg:p-14">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">{t.mobileEyebrow}</p>
-              <h2 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-[-0.045em] sm:text-5xl">{t.mobileTitle}</h2>
+              <p className="flex items-center gap-2 ledger-label text-text-secondary">
+                <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+                {t.mobileEyebrow}
+              </p>
+              <h2 className="mt-4 max-w-3xl font-display text-4xl font-bold tracking-tight sm:text-5xl">{t.mobileTitle}</h2>
               <p className="mt-6 max-w-2xl text-sm leading-7 text-text-secondary sm:text-base">{t.mobileBody}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               {['iOS', 'Android'].map(platform => (
                 <div key={platform} className="rounded-2xl border border-outline bg-background p-5">
                   <Smartphone size={21} className="text-text-secondary" aria-hidden="true" />
-                  <p className="mt-5 text-base font-extrabold">{platform}</p>
-                  <p className="mt-1 text-xs font-semibold text-text-secondary">{t.preparing}</p>
+                  <p className="mt-5 font-display text-base font-bold tracking-tight">{platform}</p>
+                  <p className="mt-1.5 ledger-label text-text-secondary">{t.preparing}</p>
                 </div>
               ))}
             </div>
@@ -292,7 +317,7 @@ export default function Landing() {
         <section className="px-5 py-16 sm:px-8 sm:py-20">
           <div className="mx-auto flex max-w-7xl flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-2xl font-extrabold tracking-[-0.03em]">{t.webAvailable}</h2>
+              <h2 className="font-display text-2xl font-bold tracking-tight">{t.webAvailable}</h2>
               <p className="mt-2 text-sm leading-6 text-text-secondary">{t.webBody}</p>
             </div>
             <Link to={session ? appPath : '/login'} className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-action-primary px-6 text-sm font-bold text-on-action-primary transition-opacity hover:opacity-85">
@@ -305,7 +330,10 @@ export default function Landing() {
       <footer className="border-t border-outline-subtle bg-surface px-5 py-10 sm:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em]">Coach Foska</p>
+            <div className="flex items-center gap-2.5">
+              <span className="h-4 w-1.5 rounded-full bg-accent-strong" aria-hidden="true" />
+              <p className="font-display text-sm font-extrabold uppercase tracking-[0.13em]">Coach Foska</p>
+            </div>
             <p className="mt-2 text-xs text-text-secondary">© 2026 · {t.footerNote}</p>
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-medium text-text-secondary">

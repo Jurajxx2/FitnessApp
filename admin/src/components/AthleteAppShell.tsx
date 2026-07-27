@@ -93,28 +93,39 @@ export function AthleteAppShell() {
     <div className="flex h-dvh overflow-hidden bg-background">
       <aside className="hidden h-full w-64 flex-shrink-0 flex-col border-r border-outline-subtle bg-background md:flex">
         <div className="flex h-16 items-center border-b border-outline-subtle px-5">
-          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-text-primary">Coach Foska</p>
+          <div className="flex items-center gap-2.5">
+            <span className="h-5 w-1.5 rounded-full bg-accent-strong" aria-hidden="true" />
+            <p className="font-display text-sm font-extrabold uppercase tracking-[0.13em] text-text-primary">Coach Foska</p>
+          </div>
         </div>
 
         <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
-          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">Tvoj koučing</p>
+          <p className="mb-2 px-3 ledger-label text-text-secondary">Tvoj koučing</p>
           {visibleNav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
-              className={({ isActive }) => `flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm transition-colors ${
+              className={({ isActive }) => `relative flex min-h-11 items-center gap-3 rounded-xl pl-4 pr-3 text-sm transition-colors ${
                 isActive
                   ? 'bg-surface-elevated font-semibold text-text-primary'
                   : 'text-text-secondary hover:bg-surface hover:text-text-primary'
               }`}
             >
-              <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
-              {label}
-              {to === '/messages' && unread > 0 && (
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-on-accent">
-                  {unread > 9 ? '9+' : unread}
-                </span>
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={`absolute left-1 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent-strong transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`}
+                    aria-hidden="true"
+                  />
+                  <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
+                  {label}
+                  {to === '/messages' && unread > 0 && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-strong px-1 font-mono text-[10px] font-bold text-on-accent">
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
+                </>
               )}
             </NavLink>
           ))}
@@ -164,8 +175,8 @@ export function AthleteAppShell() {
               </button>
             )}
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary md:hidden">Coach Foska</p>
-              <h1 className="truncate text-base font-semibold text-text-primary">{pageTitle(location.pathname)}</h1>
+              <p className="ledger-label text-text-secondary md:hidden">Coach Foska</p>
+              <h1 className="truncate font-display text-lg font-bold tracking-tight text-text-primary">{pageTitle(location.pathname)}</h1>
             </div>
           </div>
           {isAdmin && (
@@ -187,17 +198,25 @@ export function AthleteAppShell() {
               key={to}
               to={to}
               end={end}
-              className={({ isActive }) => `flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-2 text-[10px] font-medium ${isActive ? 'text-text-primary' : 'text-text-secondary'}`}
+              className={({ isActive }) => `relative flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-2 text-[10px] font-medium ${isActive ? 'text-text-primary' : 'text-text-secondary'}`}
             >
-              <span className="relative">
-                <Icon size={20} strokeWidth={1.9} />
-                {to === '/messages' && unread > 0 && (
-                  <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-on-accent">
-                    {unread > 9 ? '9+' : unread}
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={`absolute top-0 h-[3px] w-8 rounded-full bg-accent-strong transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`}
+                    aria-hidden="true"
+                  />
+                  <span className="relative">
+                    <Icon size={20} strokeWidth={1.9} />
+                    {to === '/messages' && unread > 0 && (
+                      <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-strong px-1 font-mono text-[9px] font-bold text-on-accent">
+                        {unread > 9 ? '9+' : unread}
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-              <span className="truncate">{label}</span>
+                  <span className="truncate">{label}</span>
+                </>
+              )}
             </NavLink>
           ))}
         </nav>

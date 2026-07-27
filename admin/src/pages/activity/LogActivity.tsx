@@ -75,7 +75,7 @@ export default function LogActivity() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.75fr)]">
         <form onSubmit={submit} className="space-y-5 rounded-2xl border border-outline bg-surface-elevated p-5 sm:p-6">
           <fieldset>
-            <legend className="text-xs font-bold uppercase tracking-wider text-text-secondary">Typ aktivity</legend>
+            <legend className="ledger-label text-text-secondary">Typ aktivity</legend>
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {types.map(item => (
                 <button key={item.value} type="button" onClick={() => setType(item.value)} className={`min-h-10 cursor-pointer rounded-xl border px-3 text-sm font-semibold ${type === item.value ? 'border-accent bg-accent/10 text-text-accent' : 'border-outline bg-surface text-text-primary'}`}>
@@ -90,8 +90,8 @@ export default function LogActivity() {
             <Field label="Náročnosť / RPE (voliteľné)" value={rpe} onChange={setRpe} type="number" min="1" max="10" />
             <Field label="Dátum a čas" value={loggedAt} onChange={setLoggedAt} type="datetime-local" required />
           </div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary">
-            Poznámka (voliteľné)
+          <label className="block">
+            <span className="ledger-label text-text-secondary">Poznámka (voliteľné)</span>
             <textarea value={notes} onChange={event => setNotes(event.target.value)} rows={3} className="mt-2 w-full resize-y rounded-xl border border-outline bg-surface p-3 text-sm font-normal normal-case tracking-normal text-text-primary outline-none focus:border-accent" />
           </label>
           <button type="submit" disabled={mutation.isPending} className="min-h-11 w-full cursor-pointer rounded-xl border-0 bg-action-primary px-5 text-sm font-bold text-on-action-primary disabled:opacity-40">
@@ -104,7 +104,10 @@ export default function LogActivity() {
           )}
         </form>
         <section>
-          <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-text-primary">Posledné aktivity</h3>
+          <h3 className="flex items-center gap-2.5 font-display text-lg font-bold text-text-primary">
+            <span className="h-4 w-1 shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            Posledné aktivity
+          </h3>
           {activityQuery.isLoading ? (
             <div className="mt-3">
               <LoadingBlock label="Načítavajú sa aktivity…" />
@@ -139,8 +142,8 @@ export default function LogActivity() {
 
 function Field({ label, value, onChange, ...props }: { label: string; value: string; onChange: (value: string) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>) {
   return (
-    <label className="text-xs font-bold uppercase tracking-wider text-text-secondary">
-      {label}
+    <label>
+      <span className="ledger-label text-text-secondary">{label}</span>
       <input {...props} value={value} onChange={event => onChange(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-outline bg-surface px-3 text-sm font-normal normal-case tracking-normal text-text-primary outline-none focus:border-accent" />
     </label>
   )

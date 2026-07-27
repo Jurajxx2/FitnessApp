@@ -102,7 +102,7 @@ function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; 
     <div className="rounded-2xl border border-outline bg-surface-elevated p-4 sm:p-5">
       <span className="text-text-accent">{icon}</span>
       <p className="mt-4 text-xs font-semibold text-text-secondary">{label}</p>
-      <p className="mt-1 text-xl font-bold text-text-primary sm:text-2xl">{value}</p>
+      <p className="mt-1 text-xl font-display font-bold tabular-nums text-text-primary sm:text-2xl">{value}</p>
     </div>
   )
 }

@@ -32,8 +32,13 @@ export default function Plan({ embedded = false }: { embedded?: boolean }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        {!embedded && <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Your nutrition</p>}
-        <h2 className={`${embedded ? 'text-2xl' : 'mt-1 text-3xl'} font-extrabold tracking-[-0.035em] text-text-primary`}>{plan.name}</h2>
+        {!embedded && (
+          <p className="flex items-center gap-2 ledger-label text-text-secondary">
+            <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            Your nutrition
+          </p>
+        )}
+        <h2 className={`${embedded ? 'text-2xl' : 'mt-1 text-3xl'} font-display font-bold tracking-tight text-text-primary`}>{plan.name}</h2>
         <p className="mt-2 text-sm text-text-secondary">Vyber deň a pozri si jedlá pripravené trénerom.</p>
       </div>
       <div className="flex gap-2 overflow-x-auto rounded-2xl border border-outline-subtle bg-surface-elevated p-2">

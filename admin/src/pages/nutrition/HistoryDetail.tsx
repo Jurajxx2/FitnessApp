@@ -34,8 +34,11 @@ export default function HistoryDetail() {
       </button>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Detail jedla</p>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">{log.meal_name}</h1>
+          <p className="flex items-center gap-2 ledger-label text-text-secondary">
+            <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            Detail jedla
+          </p>
+          <h1 className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary">{log.meal_name}</h1>
           <p className="mt-2 text-sm text-text-secondary">
             {MEAL_TYPE_OPTIONS.find(option => option.value === log.meal_type)?.label ?? 'Jedlo'} ·{' '}
             {new Date(log.logged_at).toLocaleString('sk-SK', { dateStyle: 'medium', timeStyle: 'short' })}

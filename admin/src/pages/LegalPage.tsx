@@ -306,8 +306,11 @@ export default function LegalPage({ kind }: { kind: LegalDocumentKind }) {
       </header>
 
       <main className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
-        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-accent">Coach Foska</p>
-        <h1 className="mt-4 text-4xl font-extrabold tracking-[-0.045em] sm:text-5xl">{document.title}</h1>
+        <p className="flex items-center gap-2 ledger-label text-text-secondary">
+          <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+          Coach Foska
+        </p>
+        <h1 className="mt-4 text-4xl font-display font-bold tracking-tight sm:text-5xl">{document.title}</h1>
         <p className="mt-4 text-sm font-medium text-text-secondary">{document.updated}</p>
         <p className="mt-7 text-base leading-8 text-text-secondary">{document.intro}</p>
 
@@ -326,7 +329,7 @@ export default function LegalPage({ kind }: { kind: LegalDocumentKind }) {
         <div className="mt-12 space-y-10">
           {document.sections.map(section => (
             <section key={section.title}>
-              <h2 className="text-xl font-extrabold tracking-[-0.02em]">{section.title}</h2>
+              <h2 className="text-xl font-display font-bold tracking-tight">{section.title}</h2>
               <p className="mt-3 text-sm leading-7 text-text-secondary sm:text-base sm:leading-8">{section.body}</p>
             </section>
           ))}

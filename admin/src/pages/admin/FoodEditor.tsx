@@ -128,7 +128,10 @@ export default function FoodEditor() {
       aside={
         <>
           <Card>
-            <p className="text-xs font-extrabold uppercase tracking-wider text-accent">Per serving</p>
+            <p className="flex items-center gap-2 ledger-label text-text-secondary">
+              <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+              Per serving
+            </p>
             <p className="mt-1 text-sm text-text-secondary">{form.serving_size || '0'} {form.serving_unit || 'units'}</p>
             <div className="mt-4"><StatRow items={[
               { label: 'Kcal', value: String(Math.round(Number(form.calories) || 0)) },

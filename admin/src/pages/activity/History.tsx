@@ -116,8 +116,8 @@ function HistoryDetail({ logId }: { logId: string }) {
         <ArrowLeft size={16} /> História tréningov
       </Link>
       <div className="rounded-3xl border border-outline bg-surface-elevated p-6 sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-success">Tréning dokončený</p>
-        <h2 className="mt-2 text-3xl font-bold tracking-tight text-text-primary">{log.workout_name}</h2>
+        <p className="ledger-label text-success">Tréning dokončený</p>
+        <h2 className="mt-2 text-3xl font-display font-bold tracking-tight text-text-primary">{log.workout_name}</h2>
         <p className="mt-2 text-sm text-text-secondary">{formatDate(log.logged_at, { dateStyle: 'full', timeStyle: 'short' })}</p>
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Metric label="Trvanie" value={formatDuration(log.duration_minutes)} icon={<Clock3 size={17} />} />
@@ -136,7 +136,7 @@ function HistoryDetail({ logId }: { logId: string }) {
             </div>
             {exercise.set_logs.length > 0 ? (
               <div className="border-t border-outline-subtle px-5 pb-4">
-                <div className="grid grid-cols-5 gap-2 py-3 text-[10px] font-bold uppercase tracking-wider text-text-secondary">
+                <div className="grid grid-cols-5 gap-2 py-3 ledger-label text-text-secondary">
                   <span>Séria</span>
                   <span>Opakovania</span>
                   <span>Váha</span>
@@ -172,7 +172,7 @@ function Metric({ label, value, icon }: { label: string; value: string; icon?: R
         {icon}
         {label}
       </p>
-      <p className="mt-2 text-xl font-bold text-text-primary">{value}</p>
+      <p className="mt-2 text-xl font-display font-bold tabular-nums text-text-primary">{value}</p>
     </div>
   )
 }

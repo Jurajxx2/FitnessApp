@@ -39,8 +39,11 @@ export default function History() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Záznamy stravy</p>
-        <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">História jedál</h2>
+        <p className="flex items-center gap-2 ledger-label text-text-secondary">
+          <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+          Záznamy stravy
+        </p>
+        <h2 className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary">História jedál</h2>
         <p className="mt-2 text-sm text-text-secondary">Prehľad všetkého, čo si si zapísal.</p>
       </div>
       {groups.map(group => (

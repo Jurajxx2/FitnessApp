@@ -165,8 +165,11 @@ export default function ExerciseEditor() {
               </div>
             )}
             <div className="p-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-accent">Preview</p>
-              <h2 className="mt-1 font-bold text-text-primary">{form.name_en || 'Untitled exercise'}</h2>
+              <p className="flex items-center gap-2 ledger-label text-text-secondary">
+                <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+                Preview
+              </p>
+              <h2 className="mt-1.5 font-display font-bold tracking-tight text-text-primary">{form.name_en || 'Untitled exercise'}</h2>
               <p className="mt-2 text-xs leading-5 text-text-secondary">{form.description_en || 'Add a concise description so athletes know what this movement is for.'}</p>
             </div>
           </Card>

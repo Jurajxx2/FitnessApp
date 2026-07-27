@@ -14,8 +14,13 @@ export function PageIntro({ eyebrow, title, description, action }: { eyebrow?: s
   return (
     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div>
-        {eyebrow && <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-accent">{eyebrow}</p>}
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">{title}</h2>
+        {eyebrow && (
+          <p className="flex items-center gap-2 ledger-label text-text-secondary">
+            <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            {eyebrow}
+          </p>
+        )}
+        <h2 className="mt-1 text-2xl font-display font-bold tracking-tight text-text-primary sm:text-3xl">{title}</h2>
         {description && <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">{description}</p>}
       </div>
       {action}
@@ -39,7 +44,10 @@ export function SectionTitle({ title, action, description }: { title: string; ac
   return (
     <div className="flex items-end justify-between gap-3">
       <div>
-        <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-text-primary">{title}</h3>
+        <h3 className="flex items-center gap-2.5 font-display text-lg font-bold text-text-primary">
+          <span className="h-4 w-1 shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+          {title}
+        </h3>
         {description && <p className="mt-1 text-sm text-text-secondary">{description}</p>}
       </div>
       {action}
@@ -75,7 +83,7 @@ export function WorkoutCard({ workout, compact = false }: { workout: WorkoutRow;
         <span aria-hidden="true">·</span>
         <span>{workout.workout_exercises.length} cvikov</span>
       </div>
-      {muscles.length > 0 && <p className="mt-2 truncate text-[11px] uppercase tracking-wider text-text-secondary">{muscles.join(' · ')}</p>}
+      {muscles.length > 0 && <p className="mt-2 truncate ledger-label text-text-secondary">{muscles.join(' · ')}</p>}
     </Link>
   )
 }

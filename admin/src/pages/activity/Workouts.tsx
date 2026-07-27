@@ -52,13 +52,22 @@ function WorkoutList() {
       <PageIntro eyebrow="Aktivita" title="Tréningové plány" description={assigned.length ? 'Sleduj plán, ktorý ti pripravila trénerka, alebo si vytvor vlastný tréning.' : 'Vyber si dostupný tréning alebo si vytvor vlastný.'} action={<Link to="/activity/workouts/new" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-action-primary px-4 text-sm font-bold text-on-action-primary no-underline"><Plus size={17} /> Vytvoriť vlastný</Link>} />
       {own.length > 0 && (
         <section className="space-y-3">
-          <div><h3 className="text-sm font-bold uppercase tracking-[0.16em] text-text-primary">Moje tréningy</h3><p className="mt-1 text-sm text-text-secondary">Vlastné tréningy, ktoré si môžeš spustiť kedykoľvek.</p></div>
+          <div>
+            <h3 className="flex items-center gap-2.5 font-display text-lg font-bold text-text-primary">
+              <span className="h-4 w-1 shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+              Moje tréningy
+            </h3>
+            <p className="mt-1 text-sm text-text-secondary">Vlastné tréningy, ktoré si môžeš spustiť kedykoľvek.</p>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{own.map(workout => <WorkoutCard key={workout.id} workout={workout} />)}</div>
         </section>
       )}
       {assigned.length > 0 && (
         <section className="space-y-3">
-          <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-text-primary">Tvoj plán</h3>
+          <h3 className="flex items-center gap-2.5 font-display text-lg font-bold text-text-primary">
+            <span className="h-4 w-1 shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            Tvoj plán
+          </h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {assigned.map(workout => (
               <WorkoutCard key={workout.id} workout={workout} />
@@ -69,7 +78,10 @@ function WorkoutList() {
       {additional.length > 0 && (
         <section className="space-y-3">
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-text-primary">{assigned.length ? 'Ďalšie tréningy' : 'Dostupné tréningy'}</h3>
+            <h3 className="flex items-center gap-2.5 font-display text-lg font-bold text-text-primary">
+              <span className="h-4 w-1 shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+              {assigned.length ? 'Ďalšie tréningy' : 'Dostupné tréningy'}
+            </h3>
             {assigned.length > 0 && <p className="mt-1 text-sm text-text-secondary">Voliteľné tréningy mimo prideleného plánu.</p>}
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -123,8 +135,11 @@ function WorkoutDetail({ workoutId }: { workoutId: string }) {
         <ArrowLeft size={16} /> Všetky tréningy
       </Link>
       <div className="rounded-3xl border border-outline bg-surface-elevated p-6 sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-accent">{workout.day_of_week == null ? 'Ľubovoľný deň' : DAY_NAMES_SK[workout.day_of_week]}</p>
-        <h2 className="mt-2 text-3xl font-bold tracking-tight text-text-primary">{workout.name}</h2>
+        <p className="flex items-center gap-2 ledger-label text-text-secondary">
+          <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+          {workout.day_of_week == null ? 'Ľubovoľný deň' : DAY_NAMES_SK[workout.day_of_week]}
+        </p>
+        <h2 className="mt-2 text-3xl font-display font-bold tracking-tight text-text-primary">{workout.name}</h2>
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-text-secondary">
           <span className="inline-flex items-center gap-2">
             <Clock3 size={16} /> ~{formatDuration(workout.duration_minutes)}
@@ -145,7 +160,10 @@ function WorkoutDetail({ workoutId }: { workoutId: string }) {
       </div>
 
       <section className="space-y-3">
-        <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-text-primary">Prehľad tréningu</h3>
+        <h3 className="flex items-center gap-2.5 font-display text-lg font-bold text-text-primary">
+          <span className="h-4 w-1 shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+          Prehľad tréningu
+        </h3>
         <div className="space-y-3">
           {workout.workout_exercises.map((exercise, index) => (
             <div key={exercise.id} className="grid grid-cols-[3rem_1fr] gap-4 rounded-2xl border border-outline bg-surface p-4 sm:grid-cols-[4rem_1fr_auto] sm:items-center">

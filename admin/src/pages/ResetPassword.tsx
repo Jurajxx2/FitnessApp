@@ -93,8 +93,11 @@ export default function ResetPassword() {
       <div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-action-secondary text-text-primary">
         <KeyRound size={22} />
       </div>
-      <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-accent">{t.eyebrow}</p>
-      <h1 className="text-3xl font-extrabold tracking-[-0.035em] text-text-primary">
+      <p className="mb-2 flex items-center gap-2 ledger-label text-text-secondary">
+        <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+        {t.eyebrow}
+      </p>
+      <h1 className="text-3xl font-display font-bold tracking-tight text-text-primary">
         {updated ? t.updatedTitle : t.title}
       </h1>
 

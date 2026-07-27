@@ -389,8 +389,11 @@ export default function LogMeal() {
     return (
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6 pb-8">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Záznam stravy</p>
-          <h1 ref={captureHeadingRef} tabIndex={-1} className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary outline-none">Zapísať jedlo</h1>
+          <p className="flex items-center gap-2 ledger-label text-text-secondary">
+            <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            Záznam stravy
+          </p>
+          <h1 ref={captureHeadingRef} tabIndex={-1} className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary outline-none">Zapísať jedlo</h1>
           <p className="mt-2 text-sm text-text-secondary">Odfoť jedlo a AI ti predvyplní položky. Pred uložením ich skontroluješ.</p>
         </div>
 
@@ -434,8 +437,11 @@ export default function LogMeal() {
     <div className="flex flex-col gap-6 pb-28 sm:pb-8">
       <div>
         {cameFromCapture && <button type="button" onClick={() => setStep('capture')} className="mb-3 inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-text-secondary hover:text-text-primary">← Späť na fotografiu</button>}
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Záznam stravy</p>
-        <h1 ref={reviewHeadingRef} tabIndex={-1} className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary outline-none">{isEdit ? 'Upraviť jedlo' : 'Zapísať jedlo'}</h1>
+        <p className="flex items-center gap-2 ledger-label text-text-secondary">
+          <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+          Záznam stravy
+        </p>
+        <h1 ref={reviewHeadingRef} tabIndex={-1} className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary outline-none">{isEdit ? 'Upraviť jedlo' : 'Zapísať jedlo'}</h1>
         <p className="mt-2 text-sm text-text-secondary">Skontroluj a uprav položky. Nič sa neuloží bez potvrdenia.</p>
       </div>
 
@@ -488,7 +494,7 @@ export default function LogMeal() {
             <Card className="p-4 sm:p-5">
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {([['Kcal', totals.calories, ''], ['Bielk.', totals.protein_g, 'g'], ['Sach.', totals.carbs_g, 'g'], ['Tuky', totals.fat_g, 'g']] as const).map(([label, value, unit]) => (
-                  <div key={label} className="rounded-xl bg-surface-highest p-3 text-center"><p className="text-lg font-extrabold text-text-primary">{Math.round(value)}{unit}</p><p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">{label}</p></div>
+                  <div key={label} className="rounded-xl bg-surface-highest p-3 text-center"><p className="font-display text-lg font-extrabold tabular-nums text-text-primary">{Math.round(value)}{unit}</p><p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">{label}</p></div>
                 ))}
               </div>
             </Card>

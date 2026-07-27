@@ -99,7 +99,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <Card>
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-text-secondary">{label}</p>
-      <p className="text-3xl font-extrabold tracking-tight text-text-primary">{value}</p>
+      <p className="text-3xl font-display font-extrabold tracking-tight tabular-nums text-text-primary">{value}</p>
     </Card>
   )
 }

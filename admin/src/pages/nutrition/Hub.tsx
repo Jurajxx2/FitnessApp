@@ -25,8 +25,11 @@ export default function Hub() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Your nutrition</p>
-          <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Výživa</h2>
+          <p className="flex items-center gap-2 ledger-label text-text-secondary">
+            <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            Your nutrition
+          </p>
+          <h2 className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary">Výživa</h2>
           <p className="mt-2 text-sm text-text-secondary">Denné ciele, jedálniček a recepty na jednom mieste.</p>
         </div>
         <Button onClick={() => navigate('/nutrition/log')} className="w-full sm:w-auto">
@@ -71,8 +74,11 @@ function TodayOverview() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Daily overview</p>
-        <h3 className="mt-1 text-2xl font-extrabold tracking-[-0.025em] text-text-primary">Dnes</h3>
+        <p className="flex items-center gap-2 ledger-label text-text-secondary">
+          <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+          Daily overview
+        </p>
+        <h3 className="mt-1 text-2xl font-display font-bold tracking-tight text-text-primary">Dnes</h3>
         <p className="mt-1 text-sm text-text-secondary">
           {new Intl.DateTimeFormat('sk-SK', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}
         </p>

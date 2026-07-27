@@ -82,7 +82,7 @@ function ExerciseList() {
                   </div>
                   {favoriteIds.has(exercise.id) && <Heart size={16} fill="currentColor" className="text-text-accent" />}
                 </div>
-                {exercise.difficulty && <span className="mt-3 inline-block rounded-full bg-surface-highest px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-text-secondary">{exercise.difficulty}</span>}
+                {exercise.difficulty && <span className="mt-3 inline-block rounded-full bg-surface-highest px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-text-secondary">{exercise.difficulty}</span>}
               </div>
             </Link>
           ))}
@@ -140,8 +140,11 @@ function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
       <div className="grid overflow-hidden rounded-3xl border border-outline bg-surface-elevated lg:grid-cols-2">
         <ExerciseVisual exercise={exercise} name={title} className="aspect-[4/3] h-full w-full" />
         <div className="p-6 sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-accent">{exercise.exercise_categories?.name ?? 'Cvik'}</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-text-primary">{title}</h2>
+          <p className="flex items-center gap-2 ledger-label text-text-secondary">
+            <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+            {exercise.exercise_categories?.name ?? 'Cvik'}
+          </p>
+          <h2 className="mt-2 text-3xl font-display font-bold tracking-tight text-text-primary">{title}</h2>
           {exercise.name_cs && <p className="mt-1 text-sm text-text-secondary">{exercise.name_en}</p>}
           <button type="button" onClick={() => favoriteMutation.mutate()} disabled={favoriteMutation.isPending} className={`mt-5 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border px-4 text-sm font-semibold ${favorite ? 'border-accent bg-accent/10 text-text-accent' : 'border-outline bg-surface text-text-primary'}`}>
             <Heart size={16} fill={favorite ? 'currentColor' : 'none'} /> {favorite ? 'Uložené medzi obľúbené' : 'Uložiť medzi obľúbené'}
@@ -149,19 +152,19 @@ function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
           {description && <p className="mt-6 whitespace-pre-line text-sm leading-7 text-text-secondary">{description}</p>}
           <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-text-secondary">Náročnosť</dt>
+              <dt className="ledger-label text-text-secondary">Náročnosť</dt>
               <dd className="mt-1 text-text-primary">{exercise.difficulty ?? 'Neuvedené'}</dd>
             </div>
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-text-secondary">Vybavenie</dt>
+              <dt className="ledger-label text-text-secondary">Vybavenie</dt>
               <dd className="mt-1 text-text-primary">{exercise.equipment_names.join(', ') || 'Žiadne'}</dd>
             </div>
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-text-secondary">Hlavné svaly</dt>
+              <dt className="ledger-label text-text-secondary">Hlavné svaly</dt>
               <dd className="mt-1 text-text-primary">{exercise.primary_muscles.join(', ') || 'Neuvedené'}</dd>
             </div>
             <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-text-secondary">Vedľajšie svaly</dt>
+              <dt className="ledger-label text-text-secondary">Vedľajšie svaly</dt>
               <dd className="mt-1 text-text-primary">{exercise.secondary_muscles.join(', ') || 'Neuvedené'}</dd>
             </div>
           </dl>

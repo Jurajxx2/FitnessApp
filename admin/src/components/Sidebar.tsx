@@ -56,7 +56,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside className={`fixed top-0 left-0 z-50 flex h-full w-64 flex-shrink-0 flex-col border-r border-outline bg-background transition-transform duration-300 md:relative md:z-auto md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="flex h-16 items-center justify-between border-b border-outline-subtle px-5">
-          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-text-primary">Coach Foska</p>
+          <div className="flex items-center gap-2.5">
+            <span className="h-5 w-1.5 rounded-full bg-accent-strong" aria-hidden="true" />
+            <p className="font-display text-sm font-extrabold uppercase tracking-[0.13em] text-text-primary">Coach Foska</p>
+          </div>
           <button
             aria-label="Close menu"
             onClick={onClose}
@@ -67,7 +70,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
-          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary">Manage</p>
+          <p className="mb-2 px-3 ledger-label text-text-secondary">Manage</p>
           {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -75,15 +78,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               end={end}
               onClick={onClose}
               className={({ isActive }) =>
-                `flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm transition-colors ${
+                `relative flex min-h-10 items-center gap-3 rounded-xl pl-4 pr-3 text-sm transition-colors ${
                   isActive
                     ? 'bg-surface-elevated font-semibold text-text-primary'
                     : 'text-text-secondary hover:bg-surface hover:text-text-primary'
                 }`
               }
             >
-              <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
-              {label}
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={`absolute left-1 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent-strong transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`}
+                    aria-hidden="true"
+                  />
+                  <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
+                  {label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -106,7 +117,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
 
           <div className="mt-2 flex items-center gap-3 rounded-xl bg-surface p-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-surface-highest text-xs font-bold uppercase text-text-primary">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-surface-highest font-mono text-[11px] font-bold uppercase text-text-primary">
               {user?.email?.slice(0, 2) ?? 'CF'}
             </div>
             <div className="min-w-0 flex-1">

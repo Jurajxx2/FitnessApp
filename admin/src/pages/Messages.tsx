@@ -94,8 +94,11 @@ export default function Messages() {
   return (
     <div className="flex h-[calc(100dvh-12rem)] min-h-96 flex-col">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Coach chat</p>
-        <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-text-primary">Správy</h1>
+        <p className="flex items-center gap-2 ledger-label text-text-secondary">
+          <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+          Coach chat
+        </p>
+        <h1 className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary">Správy</h1>
         <p className="mt-2 text-sm text-text-secondary">Napíš svojej trénerke — odpovie ti čo najskôr.</p>
       </div>
 

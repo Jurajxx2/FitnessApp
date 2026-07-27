@@ -25,8 +25,13 @@ export default function Recipes({ embedded = false }: { embedded?: boolean }) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div>
-          {!embedded && <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Recipe library</p>}
-          <h2 className={`${embedded ? 'text-2xl' : 'mt-1 text-3xl'} font-extrabold tracking-[-0.035em] text-text-primary`}>Recepty</h2>
+          {!embedded && (
+            <p className="flex items-center gap-2 ledger-label text-text-secondary">
+              <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+              Recipe library
+            </p>
+          )}
+          <h2 className={`${embedded ? 'text-2xl' : 'mt-1 text-3xl'} font-display font-bold tracking-tight text-text-primary`}>Recepty</h2>
           <p className="mt-2 text-sm text-text-secondary">Jedlá vybrané pre tvoje ciele a makrá.</p>
         </div>
         <Chip selected={onlyFavs} onClick={() => setOnlyFavs(v => !v)}>Obľúbené</Chip>
