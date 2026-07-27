@@ -108,8 +108,9 @@ export function DataTable<T>({
           onClear={selection.clear}
         />
       )}
-      <Table>
-        <thead>
+      <div className="overflow-hidden rounded-2xl border border-outline bg-surface-elevated">
+        <Table contained>
+          <thead>
           <tr>
             {selectable && (
               <Th>
@@ -135,8 +136,8 @@ export function DataTable<T>({
               <Th><span className="sr-only">Actions</span></Th>
             )}
           </tr>
-        </thead>
-        <tbody>
+          </thead>
+          <tbody>
           {loading
             ? Array.from({ length: loadingRowCount }).map((_, i) => (
                 <tr key={`skeleton-${i}`}>
@@ -181,18 +182,19 @@ export function DataTable<T>({
                   <tr key={id}>{cells}</tr>
                 )
               })}
-        </tbody>
-      </Table>
-      {!loading && totalItems > 0 && (
-        <Pagination
-          page={activePage}
-          pageSize={activeSize}
-          totalItems={totalItems}
-          pageSizeOptions={pageSizeOptions}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      )}
+          </tbody>
+        </Table>
+        {!loading && totalItems > 0 && (
+          <Pagination
+            page={activePage}
+            pageSize={activeSize}
+            totalItems={totalItems}
+            pageSizeOptions={pageSizeOptions}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        )}
+      </div>
     </div>
   )
 }

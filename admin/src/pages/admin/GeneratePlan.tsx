@@ -8,7 +8,7 @@ import { useNutritionPreferences } from '../../nutrition/preferences'
 import { generateWeek, isWithinTargetTolerances, restorePinnedSlotLockState, type GeneratedPlan, type GeneratedSlot, type GeneratorOptions, type GeneratorTarget } from '../../nutrition/generator'
 import { deletePlan, fetchGeneratedPlan, fetchGeneratorPool, fetchNutritionTargetVersion, persistCurrentPlanThenPublish, publishPlan, saveGeneratedPlan } from '../../nutrition/generationApi'
 import { combineReadiness, getGeneratedPlanActionState, getGenerationReadiness, getPublishReadiness, isGeneratorGuardrailsApproved } from '../../nutrition/generationReadiness'
-import type { NutritionTarget, UserNutritionPreferences } from '../../types/database'
+import type { NutritionTarget, Profile, UserNutritionPreferences } from '../../types/database'
 
 const DAY_SHORTS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
 const SLOT_LABELS: Record<string, string> = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
@@ -75,6 +75,20 @@ export default function GeneratePlan() {
       const { data, error } = await supabase.rpc('get_active_nutrition_target', { p_user_id: userId })
       if (error) throw error
       return (data as NutritionTarget[] | null)?.[0] ?? null
+    },
+  })
+  const athletesQuery = useQuery<Pick<Profile, 'id' | 'email' | 'full_name'>[]>({
+    queryKey: ['generator-athletes'],
+    enabled: !isPreview && !userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('is_admin', false)
+        .eq('is_blocked', false)
+        .order('full_name')
+      if (error) throw error
+      return data ?? []
     },
   })
   const poolQuery = useQuery({ queryKey: ['generator-pool'], queryFn: fetchGeneratorPool })
@@ -219,7 +233,7 @@ export default function GeneratePlan() {
   })
   const isSavingOrPublishing = saveDraft.isPending || publish.isPending
 
-  if ((isPreview && previewQuery.isLoading) || targetQuery.isLoading || poolQuery.isLoading || preferencesQuery.isLoading) {
+  if ((isPreview && previewQuery.isLoading) || targetQuery.isLoading || poolQuery.isLoading || preferencesQuery.isLoading || athletesQuery.isLoading) {
     return <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Loading…"><Shimmer className="h-96 w-full" /></EditorPage>
   }
   if (isPreview && previewQuery.isError) {
@@ -242,6 +256,37 @@ export default function GeneratePlan() {
     return (
       <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Saved target unavailable">
         <EmptyState title="Saved target reference missing" description="This generated plan does not identify the nutrition target version it was built against, so it cannot be safely reviewed or published." />
+      </EditorPage>
+    )
+  }
+  if (!isPreview && !userId) {
+    return (
+      <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Generate meal plan">
+        <Card className="max-w-2xl">
+          <h2 className="text-base font-bold text-text-primary">Choose an athlete</h2>
+          <p className="mt-1 text-sm text-text-secondary">The generator uses the athlete’s active macro target and saved nutrition preferences.</p>
+          {athletesQuery.isError ? (
+            <p role="alert" className="mt-4 text-sm text-error">Athletes couldn’t be loaded. Refresh and try again.</p>
+          ) : (
+            <div className="mt-5">
+              <label htmlFor="generator-athlete" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">Athlete</label>
+              <select
+                id="generator-athlete"
+                defaultValue=""
+                onChange={event => {
+                  if (event.target.value) navigate(`/admin/nutrition/meal-plans/generate?user=${encodeURIComponent(event.target.value)}`, { replace: true })
+                }}
+                className="h-11 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary outline-none focus:border-accent"
+              >
+                <option value="" disabled>Select athlete…</option>
+                {(athletesQuery.data ?? []).map(athlete => (
+                  <option key={athlete.id} value={athlete.id}>{athlete.full_name || athlete.email}</option>
+                ))}
+              </select>
+              {athletesQuery.data?.length === 0 && <p className="mt-3 text-sm text-text-secondary">No active athlete accounts are available.</p>}
+            </div>
+          )}
+        </Card>
       </EditorPage>
     )
   }

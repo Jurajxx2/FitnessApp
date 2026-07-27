@@ -24,7 +24,7 @@ vi.mock('../../nutrition/generationApi', () => ({
   saveGeneratedPlan: vi.fn(),
 }))
 
-vi.mock('../../lib/supabase', () => ({ supabase: { rpc: vi.fn() } }))
+vi.mock('../../lib/supabase', () => ({ supabase: { rpc: vi.fn(), from: vi.fn() } }))
 
 vi.mock('../../nutrition/preferences', () => ({
   useNutritionPreferences: () => ({
@@ -128,11 +128,27 @@ function renderCreate() {
   )
 }
 
+function renderChooseAthlete() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  render(
+    <QueryClientProvider client={queryClient}>
+      <NoticeProvider>
+        <MemoryRouter initialEntries={['/admin/nutrition/generate']}>
+          <Routes>
+            <Route path="/admin/nutrition/generate" element={<GeneratePlan />} />
+          </Routes>
+        </MemoryRouter>
+      </NoticeProvider>
+    </QueryClientProvider>,
+  )
+}
+
 beforeEach(() => {
   vi.mocked(fetchGeneratorPool).mockResolvedValue([])
   vi.mocked(fetchNutritionTargetVersion).mockResolvedValue(target)
   vi.mocked(saveGeneratedPlan).mockResolvedValue('plan-1')
   vi.mocked(supabase.rpc).mockResolvedValue({ data: [target], error: null } as never)
+  vi.mocked(supabase.from).mockReset()
 })
 
 afterEach(() => {
@@ -200,5 +216,22 @@ describe('generation preferences', () => {
     expect(screen.getAllByRole('textbox')).toHaveLength(1)
     expect(screen.getByRole('textbox', { name: 'Plan name' })).toBeInTheDocument()
     expect(supabase.rpc).toHaveBeenCalledWith('get_active_nutrition_target', { p_user_id: 'athlete-1' })
+  })
+
+  it('lets a coach choose an athlete when opening generation from the nutrition tab', async () => {
+    const order = vi.fn().mockResolvedValue({
+      data: [{ id: 'athlete-1', email: 'athlete@example.com', full_name: 'Athlete One' }],
+      error: null,
+    })
+    const secondEq = vi.fn().mockReturnValue({ order })
+    const firstEq = vi.fn().mockReturnValue({ eq: secondEq })
+    const select = vi.fn().mockReturnValue({ eq: firstEq })
+    vi.mocked(supabase.from).mockReturnValue({ select } as never)
+
+    renderChooseAthlete()
+
+    expect(await screen.findByRole('heading', { name: 'Choose an athlete' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Athlete')).toHaveTextContent('Athlete One')
+    expect(select).toHaveBeenCalledWith('id, email, full_name')
   })
 })

@@ -1,11 +1,9 @@
 import { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 
-export function Table({ children }: { children: ReactNode }) {
-  return (
-    <div className="overflow-x-auto rounded-2xl border border-outline bg-surface-elevated">
-      <table className="w-full border-collapse">{children}</table>
-    </div>
-  )
+export function Table({ children, contained = false }: { children: ReactNode; contained?: boolean }) {
+  const table = <table className="w-full border-collapse [&_tbody_tr:last-child_td]:border-b-0">{children}</table>
+  if (contained) return <div className="overflow-x-auto">{table}</div>
+  return <div className="overflow-x-auto rounded-2xl border border-outline bg-surface-elevated">{table}</div>
 }
 
 export function Th({ children }: { children: ReactNode }) {

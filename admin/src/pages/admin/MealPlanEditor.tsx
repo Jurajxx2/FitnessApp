@@ -304,6 +304,14 @@ export default function MealPlanEditor() {
       actions={
         <>
           <Button variant="ghost" onClick={() => navigate(returnTo)}>Cancel</Button>
+          {isNew && (
+            <Button
+              variant="secondary"
+              onClick={() => navigate(`/admin/nutrition/meal-plans/generate${initialUserId ? `?user=${encodeURIComponent(initialUserId)}` : ''}`)}
+            >
+              Generate from macro goals
+            </Button>
+          )}
           <Button onClick={() => savePlan.mutate()} disabled={!planName.trim()} loading={savePlan.isPending}>{isNew ? 'Create plan' : 'Save changes'}</Button>
         </>
       }

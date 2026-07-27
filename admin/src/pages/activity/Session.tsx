@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ChevronDown, ChevronUp, CircleStop, Pause, Play, Plus, Save, TimerReset, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { addSet, discardWorkout, finishWorkout, getActiveWorkout, getWorkout, removeSet, saveSet } from '../../activity/api'
-import type { ExerciseLogRow, SetLogRow, WorkoutExerciseRow, WorkoutLogRow } from '../../activity/types'
+import { addSet, discardWorkout, finishWorkout, getActiveWorkout, getLastExercisePerformances, getWorkout, removeSet, saveSet } from '../../activity/api'
+import type { ExerciseLogRow, LastExercisePerformance, SetLogRow, WorkoutExerciseRow, WorkoutLogRow } from '../../activity/types'
 import { useAuth } from '../../hooks/useAuth'
-import { formatSeconds } from '../../workouts/builder'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
 
 interface SetDraft {
@@ -48,6 +47,15 @@ export default function WorkoutSession() {
     queryKey: ['activity', 'workout', activeQuery.data?.workout_id],
     queryFn: () => getWorkout(activeQuery.data!.workout_id!),
     enabled: Boolean(activeQuery.data?.workout_id)
+  })
+  const exerciseIds = useMemo(
+    () => (activeQuery.data?.exercise_logs ?? []).flatMap(exercise => exercise.exercise_id ? [exercise.exercise_id] : []),
+    [activeQuery.data?.exercise_logs],
+  )
+  const performanceQuery = useQuery({
+    queryKey: ['activity', 'last-exercise-performances', userId, exerciseIds],
+    queryFn: () => getLastExercisePerformances(userId, exerciseIds),
+    enabled: Boolean(userId && exerciseIds.length),
   })
 
   useEffect(() => {
@@ -151,6 +159,7 @@ export default function WorkoutSession() {
               logType={target?.log_type ?? null}
               targetSeconds={target?.target_duration_seconds ?? null}
               restSeconds={target?.rest_seconds ?? exercise.set_logs[0]?.target_rest_seconds ?? 0}
+              lastPerformance={exercise.exercise_id ? performanceQuery.data?.[exercise.exercise_id] ?? null : null}
               onChanged={refresh}
               onRest={seconds => {
                 if (seconds > 0) setRestUntil(Date.now() + seconds * 1000)
@@ -188,7 +197,7 @@ export default function WorkoutSession() {
   )
 }
 
-function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeconds, restSeconds, onChanged, onRest }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; logType: WorkoutExerciseRow['log_type']; targetSeconds: number | null; restSeconds: number; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void }) {
+function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeconds, restSeconds, lastPerformance, onChanged, onRest }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; logType: WorkoutExerciseRow['log_type']; targetSeconds: number | null; restSeconds: number; lastPerformance: LastExercisePerformance | null; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void }) {
   const [open, setOpen] = useState(true)
   // Authoritative: a plan's log_type decides timed vs. reps. Only fall back to the
   // legacy set-shape heuristic (existing duration values) when there is no plan at all.
@@ -205,6 +214,17 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
     onSuccess: onChanged
   })
   const complete = exercise.set_logs.filter(set => set.completed).length
+  const targetDescription = timed
+    ? `${targetSeconds ?? targetLabel ?? '—'} s na sériu`
+    : `${targetLabel ?? '—'} opakovaní na sériu`
+  const previousDescription = lastPerformance
+    ? [
+        lastPerformance.actual_duration_seconds != null ? `${lastPerformance.actual_duration_seconds} s` : null,
+        lastPerformance.actual_reps != null ? `${lastPerformance.actual_reps} op.` : null,
+        lastPerformance.actual_weight_kg != null ? `${lastPerformance.actual_weight_kg} kg` : null,
+        lastPerformance.rpe != null ? `RPE ${lastPerformance.rpe}` : null,
+      ].filter(Boolean).join(' · ')
+    : null
 
   return (
     <section className="overflow-hidden rounded-2xl border border-outline bg-surface-elevated">
@@ -213,17 +233,18 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
         <span className="min-w-0 flex-1">
           <span className="block truncate text-base font-bold">{exercise.exercise_name}</span>
           <span className="mt-0.5 block text-xs text-text-secondary">
-            {complete}/{exercise.set_logs.length} sérií · {targetLabel ?? 'Zapíš svoju sériu'}
+            {complete}/{exercise.set_logs.length} sérií dokončených · Cieľ: {targetDescription}
           </span>
+          {previousDescription && <span className="mt-1 block text-xs text-text-secondary">Posledný výkon: {previousDescription}</span>}
         </span>
         {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
       </button>
       {open && (
         <div className="border-t border-outline-subtle px-3 pb-4 sm:px-5">
-          <div className="hidden grid-cols-[2.5rem_1fr_1fr_5rem_3rem] gap-2 py-3 ledger-label text-text-secondary sm:grid">
+          <div className={`hidden gap-2 py-3 ledger-label text-text-secondary sm:grid ${timed ? 'grid-cols-[2.5rem_minmax(0,1fr)_5rem_3rem]' : 'grid-cols-[2.5rem_1fr_1fr_5rem_3rem]'}`}>
             <span>Séria</span>
             <span>{timed ? 'Čas (s)' : 'Opakovania'}</span>
-            <span>{timed ? 'RPE' : 'Váha (kg)'}</span>
+            {!timed && <span>Váha (kg)</span>}
             <span>RPE</span>
             <span></span>
           </div>
@@ -234,6 +255,7 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
                 set={set}
                 timed={timed}
                 targetSeconds={targetSeconds}
+                suggestion={lastPerformance}
                 canDelete={exercise.set_logs.length > 1}
                 deleting={deleteMutation.isPending}
                 onDelete={() => deleteMutation.mutate(set.id)}
@@ -258,7 +280,7 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
   )
 }
 
-function SessionSetRow({ set, timed, targetSeconds, canDelete, deleting, onDelete, onSaved }: { set: SetLogRow; timed: boolean; targetSeconds: number | null; canDelete: boolean; deleting: boolean; onDelete: () => void; onSaved: (completedNow: boolean) => Promise<unknown> }) {
+function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, deleting, onDelete, onSaved }: { set: SetLogRow; timed: boolean; targetSeconds: number | null; suggestion: LastExercisePerformance | null; canDelete: boolean; deleting: boolean; onDelete: () => void; onSaved: (completedNow: boolean) => Promise<unknown> }) {
   const [draft, setDraft] = useState(() => draftFromSet(set))
   const [stopwatch, setStopwatch] = useState<{ startedAt: number; baseline: number } | null>(null)
   const payload = useMemo(
@@ -302,7 +324,7 @@ function SessionSetRow({ set, timed, targetSeconds, canDelete, deleting, onDelet
   }
 
   return (
-    <div className={`grid grid-cols-[2.5rem_1fr_1fr_3rem] gap-2 rounded-xl border p-2 sm:grid-cols-[2.5rem_1fr_1fr_5rem_3rem] ${set.completed ? 'border-success/50 bg-success/10' : 'border-outline-subtle bg-surface'}`}>
+    <div className={`grid grid-cols-[2.5rem_1fr_1fr_3rem] gap-2 rounded-xl border p-2 ${timed ? 'sm:grid-cols-[2.5rem_minmax(0,1fr)_5rem_3rem]' : 'sm:grid-cols-[2.5rem_1fr_1fr_5rem_3rem]'} ${set.completed ? 'border-success/50 bg-success/10' : 'border-outline-subtle bg-surface'}`}>
       <span className="flex items-center justify-center text-sm font-bold text-text-secondary">{set.sort_order}</span>
       {timed ? (
         <div className="flex min-w-0 items-center gap-1">
@@ -312,7 +334,7 @@ function SessionSetRow({ set, timed, targetSeconds, canDelete, deleting, onDelet
             min="0"
             inputMode="decimal"
             value={draft.duration}
-            placeholder={targetSeconds ? formatSeconds(targetSeconds) : undefined}
+            placeholder={suggestion?.actual_duration_seconds != null ? String(suggestion.actual_duration_seconds) : targetSeconds ? String(targetSeconds) : undefined}
             onChange={event => setDraft(value => ({ ...value, duration: event.target.value }))}
             className="min-w-0 flex-1 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
           />
@@ -332,19 +354,17 @@ function SessionSetRow({ set, timed, targetSeconds, canDelete, deleting, onDelet
           min="0"
           inputMode="decimal"
           value={draft.reps}
+          placeholder={String(set.target_reps ?? suggestion?.actual_reps ?? '') || undefined}
           onChange={event => setDraft(value => ({ ...value, reps: event.target.value }))}
           className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
         />
       )}
       {timed ? (
-        <>
-          <input aria-label={`Séria ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent sm:hidden" />
-          <span className="hidden items-center text-text-secondary sm:flex">—</span>
-        </>
+        <input aria-label={`Séria ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} placeholder={suggestion?.rpe?.toString()} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
       ) : (
-        <input aria-label={`Séria ${set.sort_order} váha v kilogramoch`} type="number" min="0" step="0.5" inputMode="decimal" value={draft.weight} onChange={event => setDraft(value => ({ ...value, weight: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
+        <input aria-label={`Séria ${set.sort_order} váha v kilogramoch`} type="number" min="0" step="0.5" inputMode="decimal" value={draft.weight} placeholder={suggestion?.actual_weight_kg?.toString()} onChange={event => setDraft(value => ({ ...value, weight: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
       )}
-      <input aria-label={`Séria ${set.sort_order} RPE na počítači`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="hidden min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent sm:block" />
+      {!timed && <input aria-label={`Séria ${set.sort_order} RPE na počítači`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} placeholder={suggestion?.rpe?.toString()} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="hidden min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent sm:block" />}
       <div className="flex items-center justify-end gap-1">
         {canDelete && !set.completed && (
           <button type="button" aria-label={`Odstrániť sériu ${set.sort_order}`} onClick={onDelete} disabled={deleting} className="hidden cursor-pointer border-0 bg-transparent p-1 text-text-secondary hover:text-error sm:block">

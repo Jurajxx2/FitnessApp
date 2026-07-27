@@ -127,6 +127,7 @@ export default function CreateWorkout() {
                     index={index}
                     total={selected.length}
                     locale="sk"
+                    detailHref={`/activity/exercises/${exercise.exercise_id}`}
                     onMove={toIndex => moveExercise(index, toIndex)}
                     onDropExercise={dropExercise}
                     onRemove={() => setSelected(current => current.filter(item => item.client_id !== exercise.client_id))}

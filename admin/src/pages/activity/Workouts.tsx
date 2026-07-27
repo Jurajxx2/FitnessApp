@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getAssignedWorkouts, getWorkout, getWorkoutLibrary, startWorkout } from '../../activity/api'
 import { formatDuration } from '../../activity/logic'
 import type { WorkoutRow } from '../../activity/types'
+import { useNotice } from '../../components/ui'
 import { useAuth } from '../../hooks/useAuth'
 import { ActivityPage, ErrorBlock, ExerciseVisual, LoadingBlock, PageIntro, StartButton, WorkoutCard } from './shared'
 
@@ -101,6 +102,7 @@ function WorkoutDetail({ workoutId }: { workoutId: string }) {
   const userId = user?.id ?? ''
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { notify } = useNotice()
   const workoutQuery = useQuery({
     queryKey: ['activity', 'workout', workoutId],
     queryFn: () => getWorkout(workoutId),
@@ -108,10 +110,13 @@ function WorkoutDetail({ workoutId }: { workoutId: string }) {
   })
   const startMutation = useMutation({
     mutationFn: (workout: WorkoutRow) => startWorkout(userId, workout),
-    onSuccess: async () => {
+    onSuccess: async (activeLog, requestedWorkout) => {
       await queryClient.invalidateQueries({
         queryKey: ['activity', 'active', userId]
       })
+      if (activeLog.workout_id !== requestedWorkout.id) {
+        notify(`Už prebieha tréning „${activeLog.workout_name}“. Otváram ho namiesto spustenia ďalšieho.`, 'error')
+      }
       navigate('/activity/session')
     }
   })
