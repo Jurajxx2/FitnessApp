@@ -203,7 +203,7 @@ export function AthleteAppShell() {
               {({ isActive }) => (
                 <>
                   <span
-                    className={`absolute top-0 h-[3px] w-8 rounded-full bg-accent-strong transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`}
+                    className={`absolute left-1/2 top-0 h-[3px] w-8 -translate-x-1/2 rounded-full bg-accent-strong transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`}
                     aria-hidden="true"
                   />
                   <span className="relative">
