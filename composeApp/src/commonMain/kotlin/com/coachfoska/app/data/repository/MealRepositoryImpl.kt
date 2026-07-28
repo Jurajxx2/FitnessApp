@@ -48,12 +48,15 @@ class MealRepositoryImpl(
 
         val logDto = mealDataSource.insertMealLog(userId, mealName, notes, imageUrl)
         val foodPayloads = foods.map { food ->
+            // meal_log_foods_portion_valid CHECK constraint: amount_grams may only be set
+            // when unit == "g" (and must then equal amount); unit must be non-empty.
+            val unit = food.unit.ifBlank { "g" }
             MealLogFoodInsertDto(
                 mealLogId = logDto.id,
                 name = food.name,
                 amount = food.amount,
-                unit = food.unit,
-                amountGrams = if (food.unit == "g") food.amount else food.amount, // keep column populated; treated as "primary amount" until legacy column dropped
+                unit = unit,
+                amountGrams = if (unit == "g") food.amount else null,
                 calories = food.calories,
                 proteinG = food.proteinG,
                 carbsG = food.carbsG,
