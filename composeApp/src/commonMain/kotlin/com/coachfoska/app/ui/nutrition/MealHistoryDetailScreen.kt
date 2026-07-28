@@ -78,6 +78,7 @@ fun MealHistoryDetailRoute(
             state.isHistoryLoading -> DsLoadingBox(Modifier.weight(1f))
             state.selectedMealLog != null -> MealHistoryDetailScreen(
                 log = state.selectedMealLog!!,
+                photoUrl = state.selectedMealPhotoUrl,
                 modifier = Modifier.weight(1f)
             )
             else -> Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -92,16 +93,16 @@ fun MealHistoryDetailRoute(
 }
 
 @Composable
-private fun MealHistoryDetailScreen(log: MealLog, modifier: Modifier = Modifier) {
+private fun MealHistoryDetailScreen(log: MealLog, photoUrl: String?, modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(bottom = 40.dp)
     ) {
-        // Photo
-        if (log.imageUrl != null) {
+        // Photo — image_url is a private-bucket object path; render only once resolved to a signed URL.
+        if (photoUrl != null) {
             item {
                 AsyncImage(
-                    model = log.imageUrl,
+                    model = photoUrl,
                     contentDescription = log.mealName,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

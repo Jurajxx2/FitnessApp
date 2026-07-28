@@ -34,6 +34,9 @@ interface MealRepository {
     /** Sends a meal photo to Gemini (via edge function) and returns the parsed analysis. */
     suspend fun analyzeMealPhoto(imageBytes: ByteArray): Result<com.coachfoska.app.domain.model.MealPhotoAnalysis>
 
+    /** Resolves a meal-photo object path (as stored in image_url) to a short-lived signed URL. */
+    suspend fun signedMealPhotoUrl(path: String): Result<String>
+
     /** Returns user's meal log history. */
     suspend fun getMealHistory(userId: String): Result<List<MealLog>>
 

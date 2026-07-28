@@ -28,6 +28,7 @@ import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LookupFoodByBarcodeUseCase
+import com.coachfoska.app.domain.usecase.nutrition.ResolveMealPhotoUrlUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.fixtures.aRecipe
@@ -73,6 +74,7 @@ class NutritionViewModelTest {
         calculateMacroTargetsUseCase = CalculateMacroTargetsUseCase(),
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         lookupFoodByBarcodeUseCase = LookupFoodByBarcodeUseCase(offDataSource),
+        resolveMealPhotoUrlUseCase = ResolveMealPhotoUrlUseCase(repo),
         userId = "user-1"
     )
 
@@ -164,6 +166,64 @@ class NutritionViewModelTest {
         vm.onIntent(NutritionIntent.SelectMeal("meal-1"))
 
         assertEquals(meal, vm.state.value.selectedMeal)
+    }
+
+    @Test
+    fun `SelectMealLog with a photo path resolves and sets selectedMealPhotoUrl`() = runTest {
+        val log = aMealLog(id = "log-1", imageUrl = "user-1/meal_1700000000000.jpg")
+        coEvery { repo.getMealHistory("user-1") } returns Result.success(listOf(log))
+        coEvery { repo.signedMealPhotoUrl("user-1/meal_1700000000000.jpg") } returns
+            Result.success("https://signed.example/meal.jpg?token=abc")
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LoadHistory)
+
+        vm.onIntent(NutritionIntent.SelectMealLog("log-1"))
+
+        assertEquals(log, vm.state.value.selectedMealLog)
+        assertEquals("https://signed.example/meal.jpg?token=abc", vm.state.value.selectedMealPhotoUrl)
+    }
+
+    @Test
+    fun `SelectMealLog with no imageUrl leaves selectedMealPhotoUrl null`() = runTest {
+        val log = aMealLog(id = "log-1", imageUrl = null)
+        coEvery { repo.getMealHistory("user-1") } returns Result.success(listOf(log))
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LoadHistory)
+
+        vm.onIntent(NutritionIntent.SelectMealLog("log-1"))
+
+        assertEquals(log, vm.state.value.selectedMealLog)
+        assertNull(vm.state.value.selectedMealPhotoUrl)
+    }
+
+    @Test
+    fun `SelectMealLog photo resolution failure leaves selectedMealPhotoUrl null without crashing`() = runTest {
+        val log = aMealLog(id = "log-1", imageUrl = "user-1/meal_1700000000000.jpg")
+        coEvery { repo.getMealHistory("user-1") } returns Result.success(listOf(log))
+        coEvery { repo.signedMealPhotoUrl(any()) } returns Result.failure(RuntimeException("expired"))
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LoadHistory)
+
+        vm.onIntent(NutritionIntent.SelectMealLog("log-1"))
+
+        assertEquals(log, vm.state.value.selectedMealLog)
+        assertNull(vm.state.value.selectedMealPhotoUrl)
+    }
+
+    @Test
+    fun `SelectMealLog resets stale selectedMealPhotoUrl when the new selection has no photo`() = runTest {
+        val withPhoto = aMealLog(id = "log-1", imageUrl = "user-1/meal_1700000000000.jpg")
+        val withoutPhoto = aMealLog(id = "log-2", imageUrl = null)
+        coEvery { repo.getMealHistory("user-1") } returns Result.success(listOf(withPhoto, withoutPhoto))
+        coEvery { repo.signedMealPhotoUrl(any()) } returns Result.success("https://signed.example/meal.jpg")
+        val vm = viewModel()
+        vm.onIntent(NutritionIntent.LoadHistory)
+        vm.onIntent(NutritionIntent.SelectMealLog("log-1"))
+        assertEquals("https://signed.example/meal.jpg", vm.state.value.selectedMealPhotoUrl)
+
+        vm.onIntent(NutritionIntent.SelectMealLog("log-2"))
+
+        assertNull(vm.state.value.selectedMealPhotoUrl)
     }
 
     @Test
@@ -457,9 +517,9 @@ private fun aMeal(
     timeOfDay = "12:00", sortOrder = 0, dayOfWeek = null, foods = foods
 )
 
-private fun aMealLog() = MealLog(
-    id = "log-1", userId = "user-1", mealName = "Lunch", notes = null,
-    foods = emptyList(), loggedAt = Instant.parse("2026-04-03T12:00:00Z")
+private fun aMealLog(id: String = "log-1", imageUrl: String? = null) = MealLog(
+    id = id, userId = "user-1", mealName = "Lunch", notes = null,
+    foods = emptyList(), imageUrl = imageUrl, loggedAt = Instant.parse("2026-04-03T12:00:00Z")
 )
 
 private fun aUser(

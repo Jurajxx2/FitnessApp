@@ -14,6 +14,7 @@ import com.coachfoska.app.domain.usecase.nutrition.GetRecipesUseCase
 import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LookupFoodByBarcodeUseCase
+import com.coachfoska.app.domain.usecase.nutrition.ResolveMealPhotoUrlUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.core.util.todayDate
@@ -43,6 +44,7 @@ class NutritionViewModel(
     private val calculateMacroTargetsUseCase: CalculateMacroTargetsUseCase,
     private val getUserProfileUseCase: GetUserProfileUseCase,
     private val lookupFoodByBarcodeUseCase: LookupFoodByBarcodeUseCase,
+    private val resolveMealPhotoUrlUseCase: ResolveMealPhotoUrlUseCase,
     private val userId: String
 ) : ViewModel() {
 
@@ -51,6 +53,7 @@ class NutritionViewModel(
 
     private var loadFavoritesJob: Job? = null
     private var loadDailySummaryJob: Job? = null
+    private var resolveMealPhotoJob: Job? = null
 
     init {
         onIntent(NutritionIntent.LoadMealPlan)
@@ -149,7 +152,19 @@ class NutritionViewModel(
 
     private fun selectMealLog(logId: String) {
         val log = _state.value.mealHistory.firstOrNull { it.id == logId }
-        _state.update { it.copy(selectedMealLog = log) }
+        resolveMealPhotoJob?.cancel()
+        // Reset immediately so a previous log's photo never flashes under the new selection.
+        _state.update { it.copy(selectedMealLog = log, selectedMealPhotoUrl = null) }
+
+        val path = log?.imageUrl ?: return
+        resolveMealPhotoJob = viewModelScope.launch {
+            resolveMealPhotoUrlUseCase(path)
+                .onSuccess { url -> _state.update { it.copy(selectedMealPhotoUrl = url) } }
+                .onFailure { e ->
+                    // Best-effort: a resolution failure just means the photo doesn't render.
+                    Napier.e("resolveMealPhotoUrl($path) failed", e, tag = TAG)
+                }
+        }
     }
 
     private fun logMeal(intent: NutritionIntent.LogMeal) {
