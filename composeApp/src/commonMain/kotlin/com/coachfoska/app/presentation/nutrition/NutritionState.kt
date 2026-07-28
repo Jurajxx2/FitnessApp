@@ -30,6 +30,7 @@ data class NutritionState(
     val selectedMeal: Meal? = null,
     val mealHistory: List<MealLog> = emptyList(),
     val selectedMealLog: MealLog? = null,
+    val selectedMealPhotoUrl: String? = null,
     val isHistoryLoading: Boolean = false,
     val allRecipes: List<Recipe> = emptyList(),
     val isRecipesLoading: Boolean = false,

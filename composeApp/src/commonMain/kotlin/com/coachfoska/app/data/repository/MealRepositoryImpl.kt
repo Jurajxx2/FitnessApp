@@ -74,6 +74,10 @@ class MealRepositoryImpl(
         mealPhotoDataSource.analyzeMealPhoto(imageBytes).toDomain()
     }
 
+    override suspend fun signedMealPhotoUrl(path: String): Result<String> = runCatching {
+        mealPhotoDataSource.signedMealPhotoUrl(path)
+    }
+
     override suspend fun getMealHistory(userId: String): Result<List<MealLog>> = runCatching {
         mealDataSource.getMealHistory(userId).map { it.toDomain() }
     }

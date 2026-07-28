@@ -66,6 +66,7 @@ import com.coachfoska.app.domain.usecase.nutrition.SearchFoodsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.AnalyzeMealPhotoUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LogMealUseCase
 import com.coachfoska.app.domain.usecase.nutrition.LookupFoodByBarcodeUseCase
+import com.coachfoska.app.domain.usecase.nutrition.ResolveMealPhotoUrlUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.onboarding.SaveOnboardingUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
@@ -252,6 +253,7 @@ val useCaseModule = module {
     factory { GetFavoriteRecipeIdsUseCase(get()) }
     factory { ToggleFavoriteRecipeUseCase(get()) }
     factory { CalculateMacroTargetsUseCase() }
+    factory { ResolveMealPhotoUrlUseCase(get()) }
 
     // Profile
     factory { GetUserProfileUseCase(get()) }
@@ -281,7 +283,7 @@ val viewModelModule = module {
     viewModel { (userId: String) -> HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> WorkoutViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> ActivityLogViewModel(get(), get(), userId) }
-    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
+    viewModel { (userId: String) -> NutritionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (recipeId: String, userId: String) -> RecipeDetailViewModel(get(), get(), get(), get(), recipeId, userId) }
     viewModel { (userId: String) -> ProfileViewModel(get(), get(), get(), get(), get(), get(), userId) }
     viewModel { (userId: String) -> OnboardingViewModel(get(), userId) }

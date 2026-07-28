@@ -202,6 +202,38 @@ class MealRepositoryImplTest {
     }
 
     @Test
+    fun `logMeal stores the uploaded photo object path (not a public URL) in image_url`() = runTest {
+        coEvery { photoDataSource.uploadMealPhoto("user-1", any()) } returns "user-1/meal_1700000000000.jpg"
+        coEvery { dataSource.insertMealLog("user-1", "Lunch", null, "user-1/meal_1700000000000.jpg") } returns aMealLogDto()
+
+        val result = repository.logMeal("user-1", "Lunch", emptyList(), null, byteArrayOf(7, 8))
+
+        assertTrue(result.isSuccess)
+        coVerify(exactly = 1) { dataSource.insertMealLog("user-1", "Lunch", null, "user-1/meal_1700000000000.jpg") }
+    }
+
+    @Test
+    fun `signedMealPhotoUrl returns the data source's signed URL wrapped in Result`() = runTest {
+        coEvery { photoDataSource.signedMealPhotoUrl("user-1/meal_1700000000000.jpg") } returns
+            "https://signed.example/meal.jpg?token=abc"
+
+        val result = repository.signedMealPhotoUrl("user-1/meal_1700000000000.jpg")
+
+        assertTrue(result.isSuccess)
+        assertEquals("https://signed.example/meal.jpg?token=abc", result.getOrThrow())
+    }
+
+    @Test
+    fun `signedMealPhotoUrl wraps data source failure in Result failure`() = runTest {
+        coEvery { photoDataSource.signedMealPhotoUrl(any()) } throws RuntimeException("expired")
+
+        val result = repository.signedMealPhotoUrl("user-1/meal_1700000000000.jpg")
+
+        assertTrue(result.isFailure)
+        assertEquals("expired", result.exceptionOrNull()?.message)
+    }
+
+    @Test
     fun `getDailyNutritionSummary aggregates calories from meal logs`() = runTest {
         val foodDto = aMealLogFoodDto(calories = 500f, proteinG = 40f, carbsG = 50f, fatG = 20f)
         val logDto = aMealLogDto(foods = listOf(foodDto))
