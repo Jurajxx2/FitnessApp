@@ -150,7 +150,7 @@ data class MealLogFoodInsertDto(
     val name: String,
     val amount: Float,
     val unit: String,
-    @SerialName("amount_grams") val amountGrams: Float, // keep populated for now
+    @SerialName("amount_grams") val amountGrams: Float? = null,
     val calories: Float,
     @SerialName("protein_g") val proteinG: Float,
     @SerialName("carbs_g") val carbsG: Float,
