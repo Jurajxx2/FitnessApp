@@ -117,6 +117,40 @@ class MealRepositoryImplTest {
     }
 
     @Test
+    fun `logMeal with uppercase gram unit populates amountGrams equal to amount`() = runTest {
+        val logDto = aMealLogDto()
+        val insertedFoods = slot<List<MealLogFoodInsertDto>>()
+        coEvery { dataSource.insertMealLog(any(), any(), any(), any()) } returns logDto
+        coEvery { dataSource.insertMealLogFoods(capture(insertedFoods)) } returns listOf(aMealLogFoodDto())
+        val foods = listOf(aMealLogFood(amount = 150f, unit = "G"))
+
+        val result = repository.logMeal("user-1", "Lunch", foods, null)
+
+        assertTrue(result.isSuccess)
+        val payload = insertedFoods.captured.single()
+        assertEquals("G", payload.unit)
+        assertEquals(150f, payload.amount)
+        assertEquals(150f, payload.amountGrams)
+    }
+
+    @Test
+    fun `logMeal with whitespace-padded gram unit is trimmed and populates amountGrams`() = runTest {
+        val logDto = aMealLogDto()
+        val insertedFoods = slot<List<MealLogFoodInsertDto>>()
+        coEvery { dataSource.insertMealLog(any(), any(), any(), any()) } returns logDto
+        coEvery { dataSource.insertMealLogFoods(capture(insertedFoods)) } returns listOf(aMealLogFoodDto())
+        val foods = listOf(aMealLogFood(amount = 150f, unit = " g "))
+
+        val result = repository.logMeal("user-1", "Lunch", foods, null)
+
+        assertTrue(result.isSuccess)
+        val payload = insertedFoods.captured.single()
+        assertEquals("g", payload.unit)
+        assertEquals(150f, payload.amount)
+        assertEquals(150f, payload.amountGrams)
+    }
+
+    @Test
     fun `logMeal with blank unit is normalized to grams`() = runTest {
         val logDto = aMealLogDto()
         val insertedFoods = slot<List<MealLogFoodInsertDto>>()
