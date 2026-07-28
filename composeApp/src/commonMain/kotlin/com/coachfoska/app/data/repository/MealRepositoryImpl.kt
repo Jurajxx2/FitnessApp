@@ -49,14 +49,16 @@ class MealRepositoryImpl(
         val logDto = mealDataSource.insertMealLog(userId, mealName, notes, imageUrl)
         val foodPayloads = foods.map { food ->
             // meal_log_foods_portion_valid CHECK constraint: amount_grams may only be set
-            // when unit == "g" (and must then equal amount); unit must be non-empty.
-            val unit = food.unit.ifBlank { "g" }
+            // when lower(btrim(unit)) == "g" (and must then equal amount); unit must be
+            // non-empty. Trim (but don't lowercase) the stored unit, matching the DB's
+            // NULLIF(btrim(unit), '') normalization, and compare case-insensitively.
+            val unit = food.unit.trim().ifBlank { "g" }
             MealLogFoodInsertDto(
                 mealLogId = logDto.id,
                 name = food.name,
                 amount = food.amount,
                 unit = unit,
-                amountGrams = if (unit == "g") food.amount else null,
+                amountGrams = if (unit.equals("g", ignoreCase = true)) food.amount else null,
                 calories = food.calories,
                 proteinG = food.proteinG,
                 carbsG = food.carbsG,
