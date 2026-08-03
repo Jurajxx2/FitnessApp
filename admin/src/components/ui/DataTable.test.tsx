@@ -102,4 +102,23 @@ describe('DataTable', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Next page' }))
     expect(onPageChange).toHaveBeenCalledWith(1)
   })
+
+  it('clamps a stale server page after the filtered result shrinks', () => {
+    const onPageChange = vi.fn()
+    render(
+      <DataTable<Row>
+        rows={[]}
+        getRowId={(r) => r.id}
+        columns={columns}
+        serverPagination
+        page={3}
+        pageSize={5}
+        totalItems={2}
+        onPageChange={onPageChange}
+        onPageSizeChange={() => {}}
+        empty={<div>Nothing here</div>}
+      />,
+    )
+    expect(onPageChange).toHaveBeenCalledWith(0)
+  })
 })

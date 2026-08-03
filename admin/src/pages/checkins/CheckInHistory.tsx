@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { ArrowLeft, Camera, History } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Card, EmptyState, Shimmer } from '../../components/ui'
+import { Card, EmptyState, Pagination, Shimmer } from '../../components/ui'
 import { useCheckIns } from '../../checkins/hooks'
 import { formatCheckInWeek, formatResponseDate } from '../../checkins/date'
 
@@ -15,7 +16,11 @@ function Metric({ label, value }: { label: string; value: string | null }) {
 
 export default function CheckInHistory() {
   const navigate = useNavigate()
-  const { data: checkIns = [], isLoading, error } = useCheckIns()
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(12)
+  const { data: checkInResult, isLoading, error } = useCheckIns(page, pageSize)
+  const checkIns = checkInResult?.data ?? []
+  const totalCheckIns = checkInResult?.count ?? 0
 
   return (
     <div className="flex flex-col gap-6">
@@ -62,6 +67,17 @@ export default function CheckInHistory() {
         </Card>
       ))}
       </div>
+      {totalCheckIns > 0 && (
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCheckIns}
+          pageSizeOptions={[12, 24, 48]}
+          onPageChange={setPage}
+          onPageSizeChange={size => { setPageSize(size); setPage(0) }}
+          standalone
+        />
+      )}
     </div>
   )
 }

@@ -7,17 +7,24 @@ import type { ActionMenuItem, BulkAction, DataColumn } from '../../components/ui
 import { supabase } from '../../lib/supabase'
 import type { DailyQuote } from '../../types/database'
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+
 export function applyActiveQuote(quotes: { id: string; is_active: boolean }[], activeId: string) {
   return quotes.map(quote => ({ ...quote, is_active: quote.id === activeId }))
 }
 
-function useQuotes() {
-  return useQuery<DailyQuote[]>({
-    queryKey: ['quotes-admin'],
+function useQuotes(page: number, pageSize: number) {
+  return useQuery<{ data: DailyQuote[]; count: number }>({
+    queryKey: ['quotes-admin', page, pageSize],
     queryFn: async () => {
-      const { data, error } = await supabase.from('daily_quotes').select('*').order('created_at', { ascending: false })
+      const { data, count, error } = await supabase
+        .from('daily_quotes')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .order('id')
+        .range(page * pageSize, page * pageSize + pageSize - 1)
       if (error) throw error
-      return data ?? []
+      return { data: data ?? [], count: count ?? 0 }
     },
   })
 }
@@ -26,7 +33,9 @@ export default function Quotes() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { notify } = useNotice()
-  const { data: quotes = [], isLoading, isError } = useQuotes()
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const { data: { data: quotes = [], count: totalCount = 0 } = {}, isLoading, isError } = useQuotes(page, pageSize)
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -114,6 +123,13 @@ export default function Quotes() {
           rowActions={rowActions}
           selectable
           bulkActions={bulkActions}
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={size => { setPageSize(size); setPage(0) }}
           loading={isLoading}
           empty={
             <EmptyState

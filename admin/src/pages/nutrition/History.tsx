@@ -1,15 +1,20 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, UtensilsCrossed } from 'lucide-react'
 import { useMealHistory } from '../../nutrition/hooks'
 import { groupByDay } from '../../nutrition/history'
 import { sumMacros } from '../../nutrition/calc'
-import { Card, EmptyState, SectionHeader, Shimmer } from '../../components/ui'
+import { Card, EmptyState, Pagination, SectionHeader, Shimmer } from '../../components/ui'
 import { MealPhoto } from '../../components/MealPhoto'
 import { MEAL_TYPE_OPTIONS } from '../../nutrition/constants'
 
 export default function History() {
   const navigate = useNavigate()
-  const { data: logs, isLoading } = useMealHistory()
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(24)
+  const { data: historyResult, isLoading } = useMealHistory(page, pageSize)
+  const logs = historyResult?.data ?? []
+  const totalLogs = historyResult?.count ?? 0
 
   if (isLoading) {
     return (
@@ -21,7 +26,7 @@ export default function History() {
     )
   }
 
-  const groups = groupByDay(logs ?? [])
+  const groups = groupByDay(logs)
   if (groups.length === 0) {
     return (
       <EmptyState
@@ -89,6 +94,15 @@ export default function History() {
           </div>
         </section>
       ))}
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        totalItems={totalLogs}
+        pageSizeOptions={[12, 24, 48]}
+        onPageChange={setPage}
+        onPageSizeChange={size => { setPageSize(size); setPage(0) }}
+        standalone
+      />
     </div>
   )
 }

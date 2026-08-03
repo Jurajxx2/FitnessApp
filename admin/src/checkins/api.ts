@@ -6,6 +6,7 @@ const PHOTO_BUCKET = 'check-in-photos'
 
 export const checkInKeys = {
   all: (userId: string) => ['check-ins', userId] as const,
+  page: (userId: string, page: number, pageSize: number) => ['check-ins', userId, 'page', page, pageSize] as const,
   week: (userId: string, weekOf: string) => ['check-ins', userId, weekOf] as const,
 }
 
@@ -49,14 +50,16 @@ export function checkInToDraft(checkIn: CheckInRow): CheckInDraft {
   }
 }
 
-export async function fetchCheckIns(userId: string): Promise<CheckInRow[]> {
-  const { data, error } = await supabase
+export async function fetchCheckIns(userId: string, page = 0, pageSize = 12): Promise<{ data: CheckInRow[]; count: number }> {
+  const { data, count, error } = await supabase
     .from('check_ins')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('user_id', userId)
     .order('week_of', { ascending: false })
+    .order('id')
+    .range(page * pageSize, page * pageSize + pageSize - 1)
   if (error) throw error
-  return (data ?? []) as CheckInRow[]
+  return { data: (data ?? []) as CheckInRow[], count: count ?? 0 }
 }
 
 export async function fetchCheckInForWeek(userId: string, weekOf: string): Promise<CheckInRow | null> {

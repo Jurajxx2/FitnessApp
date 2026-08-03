@@ -10,11 +10,11 @@ import {
 } from './api'
 import { currentWeekMondayIso } from './date'
 
-export function useCheckIns() {
+export function useCheckIns(page = 0, pageSize = 12) {
   const { user } = useAuth()
   return useQuery({
-    queryKey: checkInKeys.all(user?.id ?? ''),
-    queryFn: () => fetchCheckIns(user!.id),
+    queryKey: checkInKeys.page(user?.id ?? '', page, pageSize),
+    queryFn: () => fetchCheckIns(user!.id, page, pageSize),
     enabled: !!user,
   })
 }

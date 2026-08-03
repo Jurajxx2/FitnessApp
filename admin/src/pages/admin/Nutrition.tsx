@@ -9,15 +9,22 @@ import type { Food, MealPlan, Recipe } from '../../types/database'
 import RecipeImportModal from './RecipeImportModal'
 import RecipePhotoUploadModal from './RecipePhotoUploadModal'
 
-function useFoods(search: string) {
-  return useQuery<Food[]>({
-    queryKey: ['foods-admin', search],
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+
+function useFoods(search: string, page: number, pageSize: number) {
+  return useQuery<{ data: Food[]; count: number }>({
+    queryKey: ['foods-admin', search, page, pageSize],
     queryFn: async () => {
-      let query = supabase.from('foods').select('*').order('name')
+      let query = supabase
+        .from('foods')
+        .select('*', { count: 'exact' })
+        .order('name')
+        .order('id')
+        .range(page * pageSize, page * pageSize + pageSize - 1)
       if (search) query = query.ilike('name', `%${search}%`)
-      const { data, error } = await query
+      const { data, count, error } = await query
       if (error) throw error
-      return data ?? []
+      return { data: data ?? [], count: count ?? 0 }
     },
   })
 }
@@ -29,8 +36,10 @@ function FoodsTab() {
   const [search, setSearch] = useState('')
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const deferredSearch = useDeferredValue(search)
-  const { data: foods = [], isLoading, isError } = useFoods(deferredSearch)
+  const deferredSearch = useDeferredValue(search.trim())
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const { data: { data: foods = [], count: totalCount = 0 } = {}, isLoading, isError } = useFoods(deferredSearch, page, pageSize)
 
   const deleteFood = useMutation({
     mutationFn: async (id: string) => {
@@ -91,7 +100,7 @@ function FoodsTab() {
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <SearchInput placeholder="Search foods…" value={search} onChange={event => setSearch(event.target.value)} onClear={() => setSearch('')} className="w-full sm:w-72" />
+        <SearchInput placeholder="Search foods…" value={search} onChange={event => { setSearch(event.target.value); setPage(0) }} onClear={() => { setSearch(''); setPage(0) }} className="w-full sm:w-72" />
         <Button onClick={() => navigate('/admin/nutrition/foods/new')}>Add food</Button>
       </div>
 
@@ -107,6 +116,13 @@ function FoodsTab() {
           rowActions={rowActions}
           selectable
           bulkActions={bulkActions}
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={size => { setPageSize(size); setPage(0) }}
           loading={isLoading}
           empty={
             <EmptyState
@@ -138,15 +154,21 @@ function FoodsTab() {
   )
 }
 
-function useRecipes(search: string) {
-  return useQuery<Recipe[]>({
-    queryKey: ['recipes-admin', search],
+function useRecipes(search: string, generatorOnly: boolean, page: number, pageSize: number) {
+  return useQuery<{ data: Recipe[]; count: number }>({
+    queryKey: ['recipes-admin', search, generatorOnly, page, pageSize],
     queryFn: async () => {
-      let query = supabase.from('recipes').select('*').order('name')
+      let query = supabase
+        .from('recipes')
+        .select('*', { count: 'exact' })
+        .order('name')
+        .order('id')
+        .range(page * pageSize, page * pageSize + pageSize - 1)
       if (search) query = query.ilike('name', `%${search}%`)
-      const { data, error } = await query
+      if (generatorOnly) query = query.eq('eligible_for_generator', true).eq('macros_verified', true)
+      const { data, count, error } = await query
       if (error) throw error
-      return data ?? []
+      return { data: data ?? [], count: count ?? 0 }
     },
   })
 }
@@ -162,12 +184,10 @@ function RecipesTab() {
   const [deleting, setDeleting] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
   const [generatorOnly, setGeneratorOnly] = useState(false)
-  const deferredSearch = useDeferredValue(search)
-  const { data: recipes = [], isLoading, isError } = useRecipes(deferredSearch)
-  const generatorReadyCount = recipes.filter(recipe => recipe.eligible_for_generator && recipe.macros_verified && recipe.is_active).length
-  const visibleRecipes = generatorOnly
-    ? recipes.filter(recipe => recipe.eligible_for_generator && recipe.macros_verified)
-    : recipes
+  const deferredSearch = useDeferredValue(search.trim())
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const { data: { data: recipes = [], count: totalCount = 0 } = {}, isLoading, isError } = useRecipes(deferredSearch, generatorOnly, page, pageSize)
 
   const updateRecipe = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<Recipe, 'featured' | 'is_active'>>; silent?: boolean }) => {
@@ -282,9 +302,9 @@ function RecipesTab() {
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <SearchInput placeholder="Search recipes…" value={search} onChange={event => setSearch(event.target.value)} onClear={() => setSearch('')} className="w-full sm:w-72" />
-        <Chip selected={generatorOnly} onClick={() => setGeneratorOnly(current => !current)}>
-          Generator-ready · {generatorReadyCount} of {recipes.length}
+        <SearchInput placeholder="Search recipes…" value={search} onChange={event => { setSearch(event.target.value); setPage(0) }} onClear={() => { setSearch(''); setPage(0) }} className="w-full sm:w-72" />
+        <Chip selected={generatorOnly} onClick={() => { setGeneratorOnly(current => !current); setPage(0) }}>
+          Generator-ready only
         </Chip>
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={() => setPhotoUploadOpen(true)}>Upload photos</Button>
@@ -297,7 +317,7 @@ function RecipesTab() {
         <EmptyState title="Recipes couldn’t be loaded" description="Refresh the page to retry." />
       ) : (
         <DataTable<Recipe>
-          rows={visibleRecipes}
+          rows={recipes}
           getRowId={recipe => recipe.id}
           columns={columns}
           rowLabel={recipe => `Open ${recipe.name}`}
@@ -305,6 +325,13 @@ function RecipesTab() {
           rowActions={rowActions}
           selectable
           bulkActions={bulkActions}
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={size => { setPageSize(size); setPage(0) }}
           loading={isLoading}
           empty={
             search || generatorOnly ? (
@@ -345,22 +372,31 @@ function RecipesTab() {
   )
 }
 
-function useMealPlans() {
-  return useQuery<MealPlan[]>({
-    queryKey: ['meal-plans-admin'],
+function useMealPlans(originFilter: 'all' | 'manual' | 'generated', page: number, pageSize: number) {
+  return useQuery<{ data: MealPlan[]; count: number }>({
+    queryKey: ['meal-plans-admin', originFilter, page, pageSize],
     queryFn: async () => {
-      const { data, error } = await supabase.from('meal_plans').select('*').order('name')
+      let query = supabase
+        .from('meal_plans')
+        .select('*', { count: 'exact' })
+        .order('name')
+        .order('id')
+        .range(page * pageSize, page * pageSize + pageSize - 1)
+      if (originFilter === 'generated') query = query.eq('origin', 'generated')
+      if (originFilter === 'manual') query = query.or('origin.eq.manual,origin.is.null')
+      const { data, count, error } = await query
       if (error) throw error
-      return data ?? []
+      return { data: data ?? [], count: count ?? 0 }
     },
   })
 }
 
-function usePlanAssignmentCounts() {
+function usePlanAssignmentCounts(planIds: string[]) {
   return useQuery<Record<string, number>>({
-    queryKey: ['meal-plan-assignment-counts'],
+    queryKey: ['meal-plan-assignment-counts', planIds],
     queryFn: async () => {
-      const { data, error } = await supabase.from('user_meal_plans').select('meal_plan_id').eq('status', 'current')
+      if (!planIds.length) return {}
+      const { data, error } = await supabase.from('user_meal_plans').select('meal_plan_id').eq('status', 'current').in('meal_plan_id', planIds)
       if (error) throw error
       return (data ?? []).reduce<Record<string, number>>((counts, row) => {
         counts[row.meal_plan_id] = (counts[row.meal_plan_id] ?? 0) + 1
@@ -374,12 +410,13 @@ function MealPlansTab() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { notify } = useNotice()
-  const { data: mealPlans = [], isLoading, isError } = useMealPlans()
-  const { data: assignmentCounts = {} } = usePlanAssignmentCounts()
   const [deleteTargets, setDeleteTargets] = useState<MealPlan[] | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [originFilter, setOriginFilter] = useState<'all' | 'manual' | 'generated'>('all')
-  const visiblePlans = mealPlans.filter(plan => originFilter === 'all' || (plan.origin ?? 'manual') === originFilter)
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const { data: { data: mealPlans = [], count: totalCount = 0 } = {}, isLoading, isError } = useMealPlans(originFilter, page, pageSize)
+  const { data: assignmentCounts = {} } = usePlanAssignmentCounts(mealPlans.map(plan => plan.id))
 
   const planRoute = (plan: MealPlan) =>
     plan.origin === 'generated' ? `/admin/nutrition/meal-plans/${plan.id}/preview` : `/admin/nutrition/meal-plans/${plan.id}`
@@ -458,10 +495,10 @@ function MealPlansTab() {
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-sm text-text-secondary">{mealPlans.length} meal plans</p>
+          <p className="text-sm text-text-secondary">{totalCount} meal plans</p>
           <div className="flex gap-2">
             {(['all', 'manual', 'generated'] as const).map(option => (
-              <Chip key={option} selected={originFilter === option} onClick={() => setOriginFilter(option)} className="capitalize">{option}</Chip>
+              <Chip key={option} selected={originFilter === option} onClick={() => { setOriginFilter(option); setPage(0) }} className="capitalize">{option}</Chip>
             ))}
           </div>
         </div>
@@ -475,7 +512,7 @@ function MealPlansTab() {
         <EmptyState title="Meal plans couldn’t be loaded" description="Refresh the page to retry." />
       ) : (
         <DataTable<MealPlan>
-          rows={visiblePlans}
+          rows={mealPlans}
           getRowId={plan => plan.id}
           columns={columns}
           rowLabel={plan => `Open ${plan.name}`}
@@ -483,6 +520,13 @@ function MealPlansTab() {
           rowActions={rowActions}
           selectable
           bulkActions={bulkActions}
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={size => { setPageSize(size); setPage(0) }}
           loading={isLoading}
           empty={
             originFilter !== 'all' ? (

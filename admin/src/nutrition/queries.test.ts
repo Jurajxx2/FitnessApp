@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchRecentFoods, fetchSavedMeals, fetchSeedFoods } from './queries'
+import { fetchMealHistory, fetchRecentFoods, fetchRecipes, fetchSavedMeals, fetchSeedFoods } from './queries'
 
 const mocks = vi.hoisted(() => ({ from: vi.fn() }))
 vi.mock('../lib/supabase', () => ({ supabase: { from: mocks.from, rpc: vi.fn() } }))
@@ -7,9 +7,10 @@ vi.mock('../lib/supabase', () => ({ supabase: { from: mocks.from, rpc: vi.fn() }
 function queryChain(result: object) {
   const promise = Promise.resolve(result)
   const chain: Record<string, ReturnType<typeof vi.fn> | typeof promise.then> = {
-    select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn(), then: promise.then.bind(promise),
+    select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn(), range: vi.fn(),
+    ilike: vi.fn(), in: vi.fn(), then: promise.then.bind(promise),
   }
-  for (const method of ['select', 'eq', 'order', 'limit'] as const) {
+  for (const method of ['select', 'eq', 'order', 'limit', 'range', 'ilike', 'in'] as const) {
     ;(chain[method] as ReturnType<typeof vi.fn>).mockReturnValue(chain)
   }
   return chain
@@ -73,5 +74,36 @@ describe('nutrition quick-add queries', () => {
     mocks.from.mockReturnValue(chain)
     const [saved] = await fetchSavedMeals('user-1')
     expect(saved.saved_meal_items.map(item => item.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('nutrition paged queries', () => {
+  it('uses a counted, deterministically ordered range for recipe search', async () => {
+    const chain = queryChain({ data: [], count: 73, error: null })
+    mocks.from.mockReturnValue(chain)
+
+    const result = await fetchRecipes(2, 24, 'oats', ['recipe-1'])
+
+    expect(chain.select).toHaveBeenCalledWith('*', { count: 'exact' })
+    expect(chain.eq).toHaveBeenCalledWith('is_active', true)
+    expect(chain.order).toHaveBeenNthCalledWith(1, 'featured', { ascending: false })
+    expect(chain.order).toHaveBeenNthCalledWith(2, 'name')
+    expect(chain.order).toHaveBeenNthCalledWith(3, 'id')
+    expect(chain.range).toHaveBeenCalledWith(48, 71)
+    expect(chain.ilike).toHaveBeenCalledWith('name', '%oats%')
+    expect(chain.in).toHaveBeenCalledWith('id', ['recipe-1'])
+    expect(result).toEqual({ data: [], count: 73 })
+  })
+
+  it('bounds meal history while preserving the full filtered count', async () => {
+    const chain = queryChain({ data: [], count: 31, error: null })
+    mocks.from.mockReturnValue(chain)
+
+    const result = await fetchMealHistory('user-1', 1, 12)
+
+    expect(chain.select).toHaveBeenCalledWith('*, meal_log_foods(*)', { count: 'exact' })
+    expect(chain.eq).toHaveBeenCalledWith('user_id', 'user-1')
+    expect(chain.range).toHaveBeenCalledWith(12, 23)
+    expect(result).toEqual({ data: [], count: 31 })
   })
 })

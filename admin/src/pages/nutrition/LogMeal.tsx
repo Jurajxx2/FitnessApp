@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   useActiveMealPlan,
   useFoodFavorites,
-  useMealHistory,
+  useMealLog,
   useRecentFoods,
   useRecipe,
   useSavedMeals,
@@ -92,7 +92,7 @@ export default function LogMeal() {
   const now = useRef(new Date()).current
   const recipeQuery = useRecipe(recipeId)
   const mealPlanQuery = useActiveMealPlan(Boolean(mealId) && !recipeId)
-  const historyQuery = useMealHistory()
+  const mealLogQuery = useMealLog(logId)
   const favoritesQuery = useFoodFavorites()
   const recentsQuery = useRecentFoods()
   const savedMealsQuery = useSavedMeals()
@@ -127,7 +127,7 @@ export default function LogMeal() {
   const deleteFavorite = useDeleteFoodFavorite()
   const saveMealTemplate = useSaveMealTemplate()
   const deleteMealTemplate = useDeleteMealTemplate()
-  const existingLog = isEdit ? (historyQuery.data ?? []).find(entry => entry.id === logId) ?? null : null
+  const existingLog = isEdit ? (mealLogQuery.data ?? null) : null
   const favorites = favoritesQuery.data ?? []
 
   function replaceItems(next: LogFoodDraft[]) {
@@ -365,9 +365,9 @@ export default function LogMeal() {
   const totals = mealDraftTotals(items.filter(item => item.name.trim()))
   const hasIngredient = items.some(item => item.name.trim())
   const hasAiItems = items.some(item => item.source === 'ai')
-  const isPrefilling = (isEdit && historyQuery.isLoading) || (recipeId && recipeQuery.isLoading) || (mealId && mealPlanQuery.isLoading)
+  const isPrefilling = (isEdit && mealLogQuery.isLoading) || (recipeId && recipeQuery.isLoading) || (mealId && mealPlanQuery.isLoading)
 
-  if (isEdit && !historyQuery.isLoading && !existingLog) {
+  if (isEdit && !mealLogQuery.isLoading && !existingLog) {
     return <EmptyState title="Záznam sa nenašiel" message="Toto jedlo už bolo pravdepodobne vymazané." action={<Button onClick={() => navigate('/nutrition/history')}>Späť do histórie</Button>} />
   }
 
