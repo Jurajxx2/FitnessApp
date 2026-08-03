@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { NoticeProvider } from '../../components/ui'
@@ -11,6 +12,7 @@ import {
   saveGeneratedPlan,
 } from '../../nutrition/generationApi'
 import type { GeneratedPlanRecord } from '../../nutrition/generationApi'
+import type { GeneratorRecipe, SlotType } from '../../nutrition/generator'
 import type { NutritionTarget } from '../../types/database'
 import GeneratePlan from './GeneratePlan'
 
@@ -143,6 +145,38 @@ function renderChooseAthlete() {
   )
 }
 
+function mockAthletes(athletes: Array<{ id: string; email: string; full_name: string }>) {
+  const order = vi.fn().mockResolvedValue({ data: athletes, error: null })
+  const secondEq = vi.fn().mockReturnValue({ order })
+  const firstEq = vi.fn().mockReturnValue({ eq: secondEq })
+  const select = vi.fn().mockReturnValue({ eq: firstEq })
+  vi.mocked(supabase.from).mockReturnValue({ select } as never)
+  return { select }
+}
+
+function generatorRecipes(): GeneratorRecipe[] {
+  const slots: SlotType[] = ['breakfast', 'lunch', 'dinner']
+  return slots.flatMap((slot, slotIndex) => Array.from({ length: 4 }, (_, index) => ({
+    id: `${slot}-${index + 1}`,
+    name: `${slot} ${index + 1}`,
+    calories: [600, 800, 600][slotIndex],
+    protein_g: [45, 60, 45][slotIndex],
+    carbs_g: [66, 88, 66][slotIndex],
+    fat_g: [20, 25, 20][slotIndex],
+    fiber_g: 8,
+    prep_time_min: 10,
+    cook_time_min: 10,
+    meal_types: [slot],
+    dietary_patterns: [],
+    allergens: [],
+    is_active: true,
+    eligible_for_generator: true,
+    macros_verified: true,
+    is_scalable: true,
+    allowed_portions: null,
+  })))
+}
+
 beforeEach(() => {
   vi.mocked(fetchGeneratorPool).mockResolvedValue([])
   vi.mocked(fetchNutritionTargetVersion).mockResolvedValue(target)
@@ -218,20 +252,43 @@ describe('generation preferences', () => {
     expect(supabase.rpc).toHaveBeenCalledWith('get_active_nutrition_target', { p_user_id: 'athlete-1' })
   })
 
-  it('lets a coach choose an athlete when opening generation from the nutrition tab', async () => {
-    const order = vi.fn().mockResolvedValue({
-      data: [{ id: 'athlete-1', email: 'athlete@example.com', full_name: 'Athlete One' }],
-      error: null,
-    })
-    const secondEq = vi.fn().mockReturnValue({ order })
-    const firstEq = vi.fn().mockReturnValue({ eq: secondEq })
-    const select = vi.fn().mockReturnValue({ eq: firstEq })
-    vi.mocked(supabase.from).mockReturnValue({ select } as never)
+  it('keeps athlete selection optional when opening generation from the nutrition tab', async () => {
+    const { select } = mockAthletes([{ id: 'athlete-1', email: 'athlete@example.com', full_name: 'Athlete One' }])
 
     renderChooseAthlete()
 
-    expect(await screen.findByRole('heading', { name: 'Choose an athlete' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Athlete')).toHaveTextContent('Athlete One')
+    expect(await screen.findByRole('heading', { name: 'Generation inputs' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Athlete (optional)')).toHaveTextContent('No athlete — use manual inputs')
+    expect(screen.getByLabelText('Athlete (optional)')).toHaveTextContent('Athlete One')
+    expect(screen.getByLabelText('Calories')).toHaveValue(2000)
+    expect(screen.getByLabelText('Protein (g)')).toHaveValue(150)
+    expect(screen.getByLabelText('Carbohydrates (g)')).toHaveValue(220)
+    expect(screen.getByLabelText('Fat (g)')).toHaveValue(65)
     expect(select).toHaveBeenCalledWith('id, email, full_name')
+  })
+
+  it('generates a complete plan from manual inputs without loading an athlete target', async () => {
+    const user = userEvent.setup()
+    mockAthletes([])
+    vi.mocked(fetchGeneratorPool).mockResolvedValue(generatorRecipes())
+
+    renderChooseAthlete()
+
+    const generate = await screen.findByRole('button', { name: 'Generate' })
+    expect(generate).toBeEnabled()
+    expect(screen.queryByRole('button', { name: 'Save draft' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Publish to athlete' })).not.toBeInTheDocument()
+
+    await user.click(generate)
+
+    expect(await screen.findByText('Mon')).toBeInTheDocument()
+    expect(screen.getByText('Sun')).toBeInTheDocument()
+    expect(supabase.rpc).not.toHaveBeenCalledWith('get_active_nutrition_target', expect.anything())
+
+    await user.clear(screen.getByLabelText('Calories'))
+
+    expect(screen.getByLabelText('Calories')).toHaveValue(null)
+    expect(generate).toBeDisabled()
+    expect(screen.queryByText('Mon')).not.toBeInTheDocument()
   })
 })
