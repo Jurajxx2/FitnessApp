@@ -132,8 +132,32 @@ describe('Exercises library page', () => {
 
     fireEvent.click(screen.getByText('Obľúbené'))
     const keyAfterToggle = capturedKeys[capturedKeys.length - 1]!
-    expect(keyAfterToggle[5]).toBe(true)
+    // Favourites-filter segment turns into the (empty, per FAVORITES_RETURN) id array once toggled on.
+    expect(keyAfterToggle[5]).toEqual([])
     expect(keyAfterToggle[6]).toBe(0)
+  })
+
+  it('keys the exercise query by the actual favourite ids, not just the favoritesOnly flag', () => {
+    // Regression test: the query key must change when the favourites *list* changes (e.g.
+    // un-favouriting on the detail page invalidates ['activity','exercise-favorites',userId]),
+    // not just when the on/off toggle flips. A boolean-only key would keep serving a stale
+    // cached page after that invalidation. TanStack Query hashes array segments structurally,
+    // so an id-array key segment is valid and gives the desired refetch-on-change behaviour.
+    const capturedKeys: unknown[][] = []
+    const favoritesReturn = { data: ['ex-1', 'ex-2'], isLoading: false, isError: false }
+    vi.mocked(useQuery).mockImplementation((options: any) => {
+      if (options.queryKey[1] === 'exercise-favorites') return favoritesReturn as any
+      capturedKeys.push(options.queryKey)
+      return { data: { data: [EXERCISE], count: 1 }, isLoading: false, isError: false } as any
+    })
+
+    renderPage()
+    // favoritesOnly starts off: the filter segment must be null, never the boolean `false`.
+    expect(capturedKeys[capturedKeys.length - 1]![5]).toBeNull()
+
+    fireEvent.click(screen.getByText('Obľúbené'))
+    // favoritesOnly toggled on: the filter segment must be the actual id array, never the boolean `true`.
+    expect(capturedKeys[capturedKeys.length - 1]![5]).toEqual(['ex-1', 'ex-2'])
   })
 
   it('shows the Slovak empty state when no exercises match the filters', () => {

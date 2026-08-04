@@ -28,11 +28,16 @@ function ExerciseList() {
     enabled: Boolean(userId)
   })
   const favoriteIds = useMemo(() => new Set(favoritesQuery.data ?? []), [favoritesQuery.data])
+  // Keyed by the actual id list (not just the `favoritesOnly` boolean) so that when the
+  // favourite toggle on the exercise detail page invalidates ['activity', 'exercise-favorites', userId]
+  // and this list changes, the page query key changes too and refetches instead of
+  // serving a stale cached page that still shows an un-favourited exercise.
+  const favoritesFilter = favoritesOnly ? (favoritesQuery.data ?? []) : null
 
   const exerciseQuery = useQuery({
-    queryKey: ['activity', 'exercises', 'page', debouncedSearch, difficulty, favoritesOnly, page],
+    queryKey: ['activity', 'exercises', 'page', debouncedSearch, difficulty, favoritesFilter, page],
     queryFn: () => getExercisePage(
-      { search: debouncedSearch, difficulty, favoriteIds: favoritesOnly ? (favoritesQuery.data ?? []) : null },
+      { search: debouncedSearch, difficulty, favoriteIds: favoritesFilter },
       page
     ),
     enabled: Boolean(userId),
