@@ -2,8 +2,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { signedCheckInPhotoUrl } from '../../lib/storage'
 import { Button, useNotice } from '../../components/ui'
+import { CheckInPhoto } from '../../components/CheckInPhoto'
 import type { CheckIn } from '../../types/database'
 
 function useCheckIns(userId: string) {
@@ -30,15 +30,6 @@ function Metric({ label, value }: { label: string; value: number | string | null
       <span className="text-sm text-[var(--text)]">{value}</span>
     </div>
   )
-}
-
-function PhotoThumb({ path }: { path: string }) {
-  const { data: url } = useQuery({
-    queryKey: ['checkin-photo', path],
-    queryFn: () => signedCheckInPhotoUrl(path),
-  })
-  if (!url) return null
-  return <img src={url} alt="" className="w-24 h-32 rounded-md object-cover" />
 }
 
 export function CheckInsSection({ userId, adminUserId }: { userId: string; adminUserId: string | undefined }) {
@@ -100,8 +91,12 @@ export function CheckInsSection({ userId, adminUserId }: { userId: string; admin
             {c.notes && <p className="mt-2 text-sm text-[var(--text-muted)] whitespace-pre-wrap">{c.notes}</p>}
             {(c.photo_front_path || c.photo_side_path) && (
               <div className="mt-2 flex gap-2">
-                {c.photo_front_path && <PhotoThumb path={c.photo_front_path} />}
-                {c.photo_side_path && <PhotoThumb path={c.photo_side_path} />}
+                {c.photo_front_path && (
+                  <CheckInPhoto path={c.photo_front_path} alt="" className="w-24 h-32 rounded-md object-cover" />
+                )}
+                {c.photo_side_path && (
+                  <CheckInPhoto path={c.photo_side_path} alt="" className="w-24 h-32 rounded-md object-cover" />
+                )}
               </div>
             )}
             {c.coach_response && editingResponseId !== c.id ? (

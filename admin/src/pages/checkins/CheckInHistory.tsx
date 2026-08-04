@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { ArrowLeft, Camera, History } from 'lucide-react'
+import { ArrowLeft, History } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Card, EmptyState, Pagination, Shimmer } from '../../components/ui'
+import { CheckInPhoto } from '../../components/CheckInPhoto'
 import { useCheckIns } from '../../checkins/hooks'
 import { formatCheckInWeek, formatResponseDate } from '../../checkins/date'
+import type { CheckInRow } from '../../types/database'
 
 function Metric({ label, value }: { label: string; value: string | null }) {
   return (
@@ -11,6 +13,62 @@ function Metric({ label, value }: { label: string; value: string | null }) {
       <span className="text-text-secondary">{label}</span>
       <span className="text-text-primary">{value ?? '—'}</span>
     </div>
+  )
+}
+
+/** One decimal place, Slovak comma separator, e.g. `82,4 kg`. */
+function formatWeightKg(value: number): string {
+  return `${value.toFixed(1).replace('.', ',')} kg`
+}
+
+/** Real minus sign for losses, `+` for gains, e.g. `−2,3 kg` / `+1,0 kg`. */
+function formatWeightDelta(delta: number): string {
+  const sign = delta < 0 ? '−' : '+'
+  return `${sign}${Math.abs(delta).toFixed(1).replace('.', ',')} kg`
+}
+
+/**
+ * Weight trend for the check-ins on the current page: a small inline sparkline
+ * plus a first → last summary line. Renders nothing with fewer than two
+ * weighed check-ins — there is no trend to show for zero or one data point.
+ */
+function WeightTrend({ checkIns }: { checkIns: CheckInRow[] }) {
+  const weighed = [...checkIns]
+    .filter(c => c.weight_kg !== null)
+    .sort((a, b) => a.week_of.localeCompare(b.week_of))
+
+  if (weighed.length < 2) return null
+
+  const weights = weighed.map(c => c.weight_kg as number)
+  const min = Math.min(...weights)
+  const max = Math.max(...weights)
+  const points = weights
+    .map((weight, index) => {
+      const x = (index / (weights.length - 1)) * 100
+      const y = max === min ? 16 : 32 - ((weight - min) / (max - min)) * 32
+      return `${x},${y}`
+    })
+    .join(' ')
+
+  const first = weights[0]
+  const last = weights[weights.length - 1]
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <p className="ledger-label text-text-secondary">Vývoj hmotnosti</p>
+      <div className="flex items-center gap-4">
+        <svg
+          viewBox="0 0 100 32"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label="Vývoj hmotnosti"
+          className="h-12 w-32 shrink-0 text-accent"
+        >
+          <polyline points={points} fill="none" stroke="currentColor" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+        </svg>
+        <p className="text-sm text-text-secondary">{formatWeightKg(first)} → {formatWeightKg(last)} ({formatWeightDelta(last - first)})</p>
+      </div>
+    </Card>
   )
 }
 
@@ -35,6 +93,8 @@ export default function CheckInHistory() {
         </div>
       </div>
 
+      <WeightTrend checkIns={checkIns} />
+
       {isLoading && <Shimmer className="h-48 w-full" />}
       {error && <p role="alert" className="text-sm text-error">Históriu sa nepodarilo načítať.</p>}
       {!isLoading && !error && checkIns.length === 0 && (
@@ -55,7 +115,17 @@ export default function CheckInHistory() {
           </div>
           {checkIn.notes && <p className="text-sm text-text-secondary whitespace-pre-wrap">{checkIn.notes}</p>}
           {(checkIn.photo_front_path || checkIn.photo_side_path) && (
-            <div className="flex items-center gap-2 text-xs text-text-secondary"><Camera size={16} /> Fotky priložené</div>
+            <div className="flex flex-col gap-2">
+              <p className="ledger-label text-text-secondary">Fotky</p>
+              <div className="flex gap-2">
+                {checkIn.photo_front_path && (
+                  <CheckInPhoto path={checkIn.photo_front_path} alt="Fotka spredu" className="h-40 w-30 rounded-lg object-cover" />
+                )}
+                {checkIn.photo_side_path && (
+                  <CheckInPhoto path={checkIn.photo_side_path} alt="Fotka z boku" className="h-40 w-30 rounded-lg object-cover" />
+                )}
+              </div>
+            </div>
           )}
           {checkIn.coach_response && (
             <div className="rounded-xl bg-surface p-3 border border-outline-subtle flex flex-col gap-1">
