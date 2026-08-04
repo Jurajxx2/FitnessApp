@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -7,7 +7,10 @@ import WorkoutSession from './Session'
 
 // vi.mock factories are hoisted above imports/consts, so mock data referenced
 // inside them must live in a vi.hoisted() block rather than a plain top-level const.
-const { ACTIVE_LOG, WORKOUT_ROW, saveSet } = vi.hoisted(() => {
+// getActiveWorkout/getWorkout/discardWorkout/removeSet are hoisted too (not just
+// baked into the factory) so individual tests can override their resolved value
+// or assert on their call history, the same way `saveSet` already is below.
+const { ACTIVE_LOG, WORKOUT_ROW, saveSet, getActiveWorkout, getWorkout, discardWorkout, removeSet } = vi.hoisted(() => {
   function makeSetLog(overrides: Record<string, unknown>) {
     return {
       id: 'set-1',
@@ -113,7 +116,15 @@ const { ACTIVE_LOG, WORKOUT_ROW, saveSet } = vi.hoisted(() => {
     ],
   }
 
-  return { ACTIVE_LOG, WORKOUT_ROW, saveSet: vi.fn().mockResolvedValue(undefined) }
+  return {
+    ACTIVE_LOG,
+    WORKOUT_ROW,
+    saveSet: vi.fn().mockResolvedValue(undefined),
+    getActiveWorkout: vi.fn().mockResolvedValue(ACTIVE_LOG),
+    getWorkout: vi.fn().mockResolvedValue(WORKOUT_ROW),
+    discardWorkout: vi.fn().mockResolvedValue(undefined),
+    removeSet: vi.fn().mockResolvedValue(undefined),
+  }
 })
 
 vi.mock('../../hooks/useAuth', () => ({
@@ -121,17 +132,17 @@ vi.mock('../../hooks/useAuth', () => ({
 }))
 
 vi.mock('../../activity/api', () => ({
-  getActiveWorkout: vi.fn().mockResolvedValue(ACTIVE_LOG),
+  getActiveWorkout: (...args: unknown[]) => getActiveWorkout(...args),
   getLastExercisePerformances: vi.fn().mockResolvedValue({
     'ex-1': { logged_at: '2026-07-20T10:00:00Z', actual_reps: null, actual_weight_kg: null, actual_duration_seconds: 42, rpe: 7 },
     'ex-2': { logged_at: '2026-07-20T10:00:00Z', actual_reps: 8, actual_weight_kg: 80, actual_duration_seconds: null, rpe: 8 },
   }),
-  getWorkout: vi.fn().mockResolvedValue(WORKOUT_ROW),
+  getWorkout: (...args: unknown[]) => getWorkout(...args),
   saveSet: (...args: unknown[]) => saveSet(...args),
   addSet: vi.fn(),
-  removeSet: vi.fn(),
+  removeSet: (...args: unknown[]) => removeSet(...args),
   finishWorkout: vi.fn(),
-  discardWorkout: vi.fn(),
+  discardWorkout: (...args: unknown[]) => discardWorkout(...args),
 }))
 
 function renderPage() {
@@ -229,5 +240,149 @@ describe('WorkoutSession live stopwatch', () => {
     )
     const [, payload] = saveSet.mock.calls[0]
     expect(payload.actual_duration_seconds).toBeGreaterThanOrEqual(3)
+  })
+})
+
+// A dedicated single-exercise, weight/reps fixture whose first set is sort_order 1 —
+// distinct from the shared ACTIVE_LOG/WORKOUT_ROW above, where the weight/reps set
+// (Bench Press) is deliberately sort_order 2. Two sets so canDelete (set_logs.length > 1)
+// is true and the delete button actually renders.
+const RPE_ACTIVE_LOG = {
+  id: 'log-2',
+  user_id: 'athlete-1',
+  workout_id: 'workout-2',
+  workout_name: 'Mobile RPE Workout',
+  duration_minutes: 0,
+  notes: null,
+  status: 'in_progress' as const,
+  logged_at: new Date().toISOString(),
+  created_at: new Date().toISOString(),
+  exercise_logs: [
+    {
+      id: 'ex-log-3',
+      workout_log_id: 'log-2',
+      exercise_id: 'ex-3',
+      exercise_name: 'Squat',
+      notes: null,
+      sets_completed: null,
+      reps_completed: null,
+      weight_kg: null,
+      set_logs: [
+        { id: 'set-3', exercise_log_id: 'ex-log-3', sort_order: 1, target_reps: 10, actual_reps: null, target_weight_kg: null, actual_weight_kg: null, rpe: null, target_rest_seconds: 90, actual_rest_seconds: null, actual_duration_seconds: null, completed: false },
+        { id: 'set-4', exercise_log_id: 'ex-log-3', sort_order: 2, target_reps: 10, actual_reps: null, target_weight_kg: null, actual_weight_kg: null, rpe: null, target_rest_seconds: 90, actual_rest_seconds: null, actual_duration_seconds: null, completed: false },
+      ],
+    },
+  ],
+}
+
+const RPE_WORKOUT_ROW = {
+  id: 'workout-2',
+  user_id: null,
+  owner_user_id: null,
+  name: 'Mobile RPE Workout',
+  day_of_week: null,
+  duration_minutes: 30,
+  notes: null,
+  is_active: true,
+  source: 'coach' as const,
+  workout_exercises: [
+    {
+      id: 'we-3',
+      workout_id: 'workout-2',
+      exercise_id: 'ex-3',
+      name: 'Squat',
+      muscle_group: null,
+      sets: 2,
+      reps: '10',
+      log_type: 'weight_reps' as const,
+      target_duration_seconds: null,
+      rest_seconds: 90,
+      tips: null,
+      sort_order: 1,
+    },
+  ],
+}
+
+describe('WorkoutSession mobile RPE and delete-set controls', () => {
+  beforeEach(() => {
+    getActiveWorkout.mockResolvedValue(RPE_ACTIVE_LOG)
+    getWorkout.mockResolvedValue(RPE_WORKOUT_ROW)
+  })
+
+  afterEach(() => {
+    // Restore the shared defaults other describe blocks in this file rely on.
+    getActiveWorkout.mockResolvedValue(ACTIVE_LOG)
+    getWorkout.mockResolvedValue(WORKOUT_ROW)
+  })
+
+  it('renders exactly one RPE input for a weight/reps set, unhidden and touch-sized', async () => {
+    renderPage()
+
+    const rpeInputs = await screen.findAllByLabelText('Séria 1 RPE')
+    expect(rpeInputs).toHaveLength(1)
+    expect(rpeInputs[0].className).not.toMatch(/\bhidden\b/)
+    expect(rpeInputs[0].className).toMatch(/\bmin-h-11\b/)
+  })
+
+  it('shows the delete-set button unhidden with a 44px tap target', async () => {
+    renderPage()
+
+    const deleteButton = await screen.findByLabelText('Odstrániť sériu 1')
+    expect(deleteButton.className).not.toMatch(/\bhidden\b/)
+    expect(deleteButton.className).toMatch(/\bmin-h-11\b/)
+    expect(deleteButton.className).toMatch(/\bmin-w-11\b/)
+  })
+
+  it('deletes only on click, calling removeSet with the set id', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    const deleteButton = await screen.findByLabelText('Odstrániť sériu 1')
+    expect(removeSet).not.toHaveBeenCalled()
+
+    await user.click(deleteButton)
+    // TanStack Query calls a bare mutationFn as (variables, context) — assert on the
+    // variable it was actually invoked with rather than toHaveBeenCalledWith, which
+    // would also have to match react-query's internal context object.
+    expect(removeSet.mock.calls[0][0]).toBe('set-3')
+    // onDelete's success handler invalidates and refetches the active-workout query
+    // outside userEvent's own act scope; flush it before the test tears down so
+    // React doesn't warn about a state update after the fact.
+    await act(async () => {})
+  })
+})
+
+describe('WorkoutSession discard confirmation dialog', () => {
+  beforeEach(() => {
+    discardWorkout.mockClear()
+  })
+
+  it('opens the styled ConfirmDialog on click without discarding, then discards only on confirm', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Zahodiť' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Zahodiť tréning?')).toBeInTheDocument()
+    expect(within(dialog).getByText('Uložené série zostanú v zahodenom tréningu, ale nebudú sa započítavať do pokroku.')).toBeInTheDocument()
+    expect(discardWorkout).not.toHaveBeenCalled()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Zahodiť' }))
+    // Same reasoning as the delete-set assertion above: check the variable, not the
+    // full call signature, since react-query appends its own context argument.
+    expect(discardWorkout.mock.calls[0][0]).toBe('log-1')
+  })
+
+  it('cancelling the dialog closes it and runs no mutation', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Zahodiť' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Pokračovať v tréningu' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(discardWorkout).not.toHaveBeenCalled()
   })
 })

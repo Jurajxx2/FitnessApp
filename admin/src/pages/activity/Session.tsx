@@ -5,7 +5,19 @@ import { useNavigate } from 'react-router-dom'
 import { addSet, discardWorkout, finishWorkout, getActiveWorkout, getLastExercisePerformances, getWorkout, removeSet, saveSet } from '../../activity/api'
 import type { ExerciseLogRow, LastExercisePerformance, SetLogRow, WorkoutExerciseRow, WorkoutLogRow } from '../../activity/types'
 import { useAuth } from '../../hooks/useAuth'
+import { ConfirmDialog } from '../../components/ui'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
+
+// Shared between the column-header row and each set row so the two can never drift
+// out of sync: whichever columns a row renders, the header mirrors exactly, at
+// every breakpoint. Timed rows already fit in one line at every width (4 fixed
+// tracks). Weight/reps rows now carry a 5th column (RPE) that mobile has no room
+// for on one line, so they wrap to two lines via a 2-column mobile grid instead.
+function setRowGridClass(timed: boolean) {
+  return timed
+    ? 'grid-cols-[2.5rem_1fr_1fr_3rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_5rem_3rem]'
+    : 'grid-cols-2 sm:grid-cols-[2.5rem_1fr_1fr_5rem_3rem]'
+}
 
 interface SetDraft {
   reps: string
@@ -37,6 +49,7 @@ export default function WorkoutSession() {
   const [notes, setNotes] = useState('')
   const [restUntil, setRestUntil] = useState<number | null>(null)
   const [restRemaining, setRestRemaining] = useState(0)
+  const [discardOpen, setDiscardOpen] = useState(false)
   const activeQuery = useQuery({
     queryKey: ['activity', 'active', userId],
     queryFn: () => getActiveWorkout(userId),
@@ -181,9 +194,7 @@ export default function WorkoutSession() {
       <div className="sticky bottom-3 z-20 flex flex-col gap-2 rounded-2xl border border-outline bg-background/95 p-3 shadow-xl backdrop-blur sm:flex-row sm:justify-end">
         <button
           type="button"
-          onClick={() => {
-            if (window.confirm('Zahodiť tento tréning? Uložené série zostanú v zahodenom tréningu, ale nebudú sa započítavať do pokroku.')) discardMutation.mutate(active.id)
-          }}
+          onClick={() => setDiscardOpen(true)}
           disabled={discardMutation.isPending || finishMutation.isPending}
           className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-error/40 bg-error/10 px-4 text-sm font-semibold text-error disabled:opacity-40"
         >
@@ -193,6 +204,18 @@ export default function WorkoutSession() {
           <CircleStop size={18} /> {finishMutation.isPending ? 'Dokončuje sa…' : 'Ukončiť tréning'}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={discardOpen}
+        title="Zahodiť tréning?"
+        description="Uložené série zostanú v zahodenom tréningu, ale nebudú sa započítavať do pokroku."
+        confirmLabel="Zahodiť"
+        cancelLabel="Pokračovať v tréningu"
+        confirmVariant="danger"
+        pending={discardMutation.isPending}
+        onClose={() => setDiscardOpen(false)}
+        onConfirm={() => discardMutation.mutate(active.id)}
+      />
     </ActivityPage>
   )
 }
@@ -241,12 +264,11 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
       </button>
       {open && (
         <div className="border-t border-outline-subtle px-3 pb-4 sm:px-5">
-          <div className={`hidden gap-2 py-3 ledger-label text-text-secondary sm:grid ${timed ? 'grid-cols-[2.5rem_minmax(0,1fr)_5rem_3rem]' : 'grid-cols-[2.5rem_1fr_1fr_5rem_3rem]'}`}>
+          <div className={`grid gap-2 py-3 ledger-label text-text-secondary ${setRowGridClass(timed)}`}>
             <span>Séria</span>
             <span>{timed ? 'Čas (s)' : 'Opakovania'}</span>
             {!timed && <span>Váha (kg)</span>}
             <span>RPE</span>
-            <span></span>
           </div>
           <div className="space-y-2">
             {exercise.set_logs.map(set => (
@@ -324,7 +346,7 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
   }
 
   return (
-    <div className={`grid grid-cols-[2.5rem_1fr_1fr_3rem] gap-2 rounded-xl border p-2 ${timed ? 'sm:grid-cols-[2.5rem_minmax(0,1fr)_5rem_3rem]' : 'sm:grid-cols-[2.5rem_1fr_1fr_5rem_3rem]'} ${set.completed ? 'border-success/50 bg-success/10' : 'border-outline-subtle bg-surface'}`}>
+    <div className={`grid gap-2 rounded-xl border p-2 ${setRowGridClass(timed)} ${set.completed ? 'border-success/50 bg-success/10' : 'border-outline-subtle bg-surface'}`}>
       <span className="flex items-center justify-center text-sm font-bold text-text-secondary">{set.sort_order}</span>
       {timed ? (
         <div className="flex min-w-0 items-center gap-1">
@@ -359,15 +381,13 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
           className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
         />
       )}
-      {timed ? (
-        <input aria-label={`Séria ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} placeholder={suggestion?.rpe?.toString()} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
-      ) : (
+      {!timed && (
         <input aria-label={`Séria ${set.sort_order} váha v kilogramoch`} type="number" min="0" step="0.5" inputMode="decimal" value={draft.weight} placeholder={suggestion?.actual_weight_kg?.toString()} onChange={event => setDraft(value => ({ ...value, weight: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
       )}
-      {!timed && <input aria-label={`Séria ${set.sort_order} RPE na počítači`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} placeholder={suggestion?.rpe?.toString()} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="hidden min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent sm:block" />}
-      <div className="flex items-center justify-end gap-1">
+      <input aria-label={`Séria ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} placeholder={suggestion?.rpe?.toString()} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-h-11 min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
+      <div className={`flex items-center justify-end gap-1 ${timed ? '' : 'col-span-2 sm:col-span-1'}`}>
         {canDelete && !set.completed && (
-          <button type="button" aria-label={`Odstrániť sériu ${set.sort_order}`} onClick={onDelete} disabled={deleting} className="hidden cursor-pointer border-0 bg-transparent p-1 text-text-secondary hover:text-error sm:block">
+          <button type="button" aria-label={`Odstrániť sériu ${set.sort_order}`} onClick={onDelete} disabled={deleting} className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center border-0 bg-transparent text-text-secondary hover:text-error">
             <Trash2 size={15} />
           </button>
         )}
