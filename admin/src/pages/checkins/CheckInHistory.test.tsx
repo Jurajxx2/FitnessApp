@@ -55,6 +55,16 @@ function renderPage() {
   )
 }
 
+function parsePoints(points: string): Array<{ x: number; y: number }> {
+  return points
+    .trim()
+    .split(' ')
+    .map(pair => {
+      const [x, y] = pair.split(',').map(Number)
+      return { x, y }
+    })
+}
+
 describe('CheckInHistory', () => {
   beforeEach(() => vi.clearAllMocks())
   afterEach(() => cleanup())
@@ -101,7 +111,20 @@ describe('CheckInHistory', () => {
     expect(screen.getByText('82,4 kg → 80,1 kg (−2,3 kg)')).toBeInTheDocument()
 
     const svg = screen.getByRole('img', { name: 'Vývoj hmotnosti' })
-    expect(svg.querySelector('polyline')?.getAttribute('points')?.trim().split(' ')).toHaveLength(3)
+    const points = parsePoints(svg.querySelector('polyline')!.getAttribute('points')!)
+    expect(points).toHaveLength(3)
+    // x must stay in chronological (oldest -> newest) order: a bug that reversed the
+    // point array while leaving the weights/delta calculation untouched — e.g. an
+    // errant `.reverse()` applied only at the point-mapping step — flips this to
+    // [100, 50, 0] and must fail here.
+    expect(points.map(p => p.x)).toEqual([0, 50, 100])
+    // This fixture's weight strictly decreases oldest -> newest (82.4 -> 81 -> 80.1),
+    // and higher weight maps to a smaller y (closer to the SVG's top), so y must
+    // strictly increase left -> right for a correctly ordered, non-reversed line.
+    expect(points[0].y).toBeCloseTo(0)
+    expect(points[2].y).toBeCloseTo(32)
+    expect(points[0].y).toBeLessThan(points[1].y)
+    expect(points[1].y).toBeLessThan(points[2].y)
   })
 
   it('renders no weight trend for a single weighed check-in', () => {
