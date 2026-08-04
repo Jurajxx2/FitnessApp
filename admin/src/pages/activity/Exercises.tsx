@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Heart, PlayCircle, Search } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import { getExercise, getExercises, getFavoriteExerciseIds, setExerciseFavorite } from '../../activity/api'
+import { EXERCISE_PAGE_SIZE, getExercise, getExercisePage, getFavoriteExerciseIds, setExerciseFavorite } from '../../activity/api'
+import { Pagination } from '../../components/ui'
 import { useAuth } from '../../hooks/useAuth'
+import type { Difficulty } from '../../types/database'
 import { ActivityPage, ErrorBlock, ExerciseVisual, LoadingBlock, PageIntro } from './shared'
 
 export default function Exercises() {
@@ -15,39 +17,40 @@ function ExerciseList() {
   const { user } = useAuth()
   const userId = user?.id ?? ''
   const [search, setSearch] = useState('')
-  const [difficulty, setDifficulty] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [difficulty, setDifficulty] = useState<Difficulty | null>(null)
   const [favoritesOnly, setFavoritesOnly] = useState(false)
-  const exerciseQuery = useQuery({
-    queryKey: ['activity', 'exercises'],
-    queryFn: getExercises,
-    enabled: Boolean(userId)
-  })
+  const [page, setPage] = useState(0)
+
   const favoritesQuery = useQuery({
     queryKey: ['activity', 'exercise-favorites', userId],
     queryFn: () => getFavoriteExerciseIds(userId),
     enabled: Boolean(userId)
   })
   const favoriteIds = useMemo(() => new Set(favoritesQuery.data ?? []), [favoritesQuery.data])
-  const visible = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    return (exerciseQuery.data ?? []).filter(exercise => {
-      const matchesSearch = !term || exercise.name_en.toLowerCase().includes(term) || exercise.name_cs?.toLowerCase().includes(term) || exercise.primary_muscles.some(muscle => muscle.toLowerCase().includes(term))
-      return matchesSearch && (!difficulty || exercise.difficulty === difficulty) && (!favoritesOnly || favoriteIds.has(exercise.id))
-    })
-  }, [difficulty, exerciseQuery.data, favoriteIds, favoritesOnly, search])
 
-  if (exerciseQuery.isLoading || favoritesQuery.isLoading)
-    return (
-      <ActivityPage>
-        <LoadingBlock label="Načítava sa knižnica cvikov…" />
-      </ActivityPage>
-    )
-  if (exerciseQuery.isError || favoritesQuery.isError)
-    return (
-      <ActivityPage>
-        <ErrorBlock message="Knižnicu cvikov sa nepodarilo načítať." />
-      </ActivityPage>
-    )
+  const exerciseQuery = useQuery({
+    queryKey: ['activity', 'exercises', 'page', debouncedSearch, difficulty, favoritesOnly, page],
+    queryFn: () => getExercisePage(
+      { search: debouncedSearch, difficulty, favoriteIds: favoritesOnly ? (favoritesQuery.data ?? []) : null },
+      page
+    ),
+    enabled: Boolean(userId),
+    placeholderData: keepPreviousData
+  })
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearch(search.trim())
+      setPage(0)
+    }, 300)
+    return () => window.clearTimeout(timeout)
+  }, [search])
+
+  const exercises = exerciseQuery.data?.data ?? []
+  const count = exerciseQuery.data?.count ?? 0
+  const isLoading = exerciseQuery.isLoading || favoritesQuery.isLoading
+  const isError = exerciseQuery.isError || favoritesQuery.isError
 
   return (
     <ActivityPage>
@@ -58,37 +61,56 @@ function ExerciseList() {
           <span className="sr-only">Hľadať cviky</span>
           <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Hľadať cvik alebo sval…" className="h-11 w-full rounded-xl border border-outline bg-surface pl-10 pr-3 text-sm text-text-primary outline-none focus:border-accent" />
         </label>
-        <select aria-label="Filtrovať podľa náročnosti" value={difficulty} onChange={event => setDifficulty(event.target.value)} className="h-11 rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary">
+        <select aria-label="Filtrovať podľa náročnosti" value={difficulty ?? ''} onChange={event => { setDifficulty((event.target.value || null) as Difficulty | null); setPage(0) }} className="h-11 rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary">
           <option value="">Všetky úrovne</option>
           <option value="beginner">Začiatočník</option>
           <option value="intermediate">Stredne pokročilý</option>
           <option value="advanced">Pokročilý</option>
         </select>
-        <button type="button" onClick={() => setFavoritesOnly(value => !value)} className={`inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold ${favoritesOnly ? 'border-accent bg-accent/10 text-text-accent' : 'border-outline bg-surface text-text-primary'}`}>
+        <button type="button" onClick={() => { setFavoritesOnly(value => !value); setPage(0) }} className={`inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold ${favoritesOnly ? 'border-accent bg-accent/10 text-text-accent' : 'border-outline bg-surface text-text-primary'}`}>
           <Heart size={16} fill={favoritesOnly ? 'currentColor' : 'none'} /> Obľúbené
         </button>
       </div>
-      <p className="text-sm text-text-secondary">{visible.length} cvikov</p>
-      {visible.length ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {visible.map(exercise => (
-            <Link key={exercise.id} to={`/activity/exercises/${exercise.id}`} className="group overflow-hidden rounded-2xl border border-outline bg-surface-elevated text-inherit no-underline hover:bg-surface-highest">
-              <ExerciseVisual exercise={exercise} name={exercise.name_en} className="aspect-[4/3] w-full" />
-              <div className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-base font-bold text-text-primary">{exercise.name_cs || exercise.name_en}</h3>
-                    <p className="mt-1 truncate text-xs text-text-secondary">{exercise.primary_muscles.join(' · ') || exercise.exercise_categories?.name || 'Cvik'}</p>
-                  </div>
-                  {favoriteIds.has(exercise.id) && <Heart size={16} fill="currentColor" className="text-text-accent" />}
-                </div>
-                {exercise.difficulty && <span className="mt-3 inline-block rounded-full bg-surface-highest px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-text-secondary">{exercise.difficulty}</span>}
-              </div>
-            </Link>
-          ))}
-        </div>
+      {isError ? (
+        <ErrorBlock message="Knižnicu cvikov sa nepodarilo načítať." />
+      ) : isLoading ? (
+        <LoadingBlock label="Načítava sa knižnica cvikov…" />
       ) : (
-        <div className="rounded-2xl border border-dashed border-outline p-8 text-center text-sm text-text-secondary">Žiadne cviky nezodpovedajú týmto filtrom.</div>
+        <>
+          <p className="text-sm text-text-secondary">{count} cvikov</p>
+          {exercises.length ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {exercises.map(exercise => (
+                <Link key={exercise.id} to={`/activity/exercises/${exercise.id}`} className="group overflow-hidden rounded-2xl border border-outline bg-surface-elevated text-inherit no-underline hover:bg-surface-highest">
+                  <ExerciseVisual exercise={exercise} name={exercise.name_en} className="aspect-[4/3] w-full" />
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-base font-bold text-text-primary">{exercise.name_cs || exercise.name_en}</h3>
+                        <p className="mt-1 truncate text-xs text-text-secondary">{exercise.primary_muscles.join(' · ') || exercise.exercise_categories?.name || 'Cvik'}</p>
+                      </div>
+                      {favoriteIds.has(exercise.id) && <Heart size={16} fill="currentColor" className="text-text-accent" />}
+                    </div>
+                    {exercise.difficulty && <span className="mt-3 inline-block rounded-full bg-surface-highest px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-text-secondary">{exercise.difficulty}</span>}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-outline p-8 text-center text-sm text-text-secondary">Žiadne cviky nezodpovedajú týmto filtrom.</div>
+          )}
+          {count > 0 && (
+            <Pagination
+              page={page}
+              pageSize={EXERCISE_PAGE_SIZE}
+              totalItems={count}
+              pageSizeOptions={[EXERCISE_PAGE_SIZE]}
+              onPageChange={setPage}
+              onPageSizeChange={() => {}}
+              standalone
+            />
+          )}
+        </>
       )}
     </ActivityPage>
   )

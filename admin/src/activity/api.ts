@@ -12,6 +12,7 @@ import type {
   WorkoutLogRow,
   WorkoutRow,
 } from './types'
+import type { Difficulty } from '../types/database'
 
 const workoutSelect = `
   *,
@@ -344,15 +345,36 @@ export async function discardWorkout(logId: string) {
   if (error) throw error
 }
 
-export async function getExercises(): Promise<ExerciseSummary[]> {
-  const { data, error } = await supabase
+export const EXERCISE_PAGE_SIZE = 24
+
+export interface ExercisePageFilters {
+  search: string
+  difficulty: Difficulty | null
+  favoriteIds: string[] | null
+}
+
+export async function getExercisePage(
+  filters: ExercisePageFilters,
+  page: number,
+  pageSize = EXERCISE_PAGE_SIZE,
+): Promise<{ data: ExerciseSummary[]; count: number }> {
+  // .in('id', []) is a Postgrest edge case that does not mean "match nothing" reliably;
+  // short-circuit instead of hitting the network with an empty favourites filter.
+  if (filters.favoriteIds && filters.favoriteIds.length === 0) return { data: [], count: 0 }
+
+  let query = supabase
     .from('exercises')
-    .select('id, name_en, name_cs, description_en, description_cs, image_url, image_url_2, video_url, difficulty, primary_muscles, secondary_muscles, equipment_names, exercise_categories(id, name)')
+    .select('id, name_en, name_cs, description_en, description_cs, image_url, image_url_2, video_url, difficulty, primary_muscles, secondary_muscles, equipment_names, exercise_categories(id, name)', { count: 'exact' })
     .eq('is_active', true)
     .order('name_en')
-    .limit(500)
+    .range(page * pageSize, page * pageSize + pageSize - 1)
+  if (filters.search) query = query.textSearch('search_vector', filters.search, { type: 'websearch', config: 'simple' })
+  if (filters.difficulty) query = query.eq('difficulty', filters.difficulty)
+  if (filters.favoriteIds) query = query.in('id', filters.favoriteIds)
+
+  const { data, count, error } = await query
   if (error) throw error
-  return (data ?? []) as unknown as ExerciseSummary[]
+  return { data: (data ?? []) as unknown as ExerciseSummary[], count: count ?? 0 }
 }
 
 export async function getExercise(exerciseId: string): Promise<ExerciseSummary> {
