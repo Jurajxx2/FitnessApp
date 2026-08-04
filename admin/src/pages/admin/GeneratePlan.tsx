@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { NutritionPreferencesForm } from '../../components/NutritionPreferencesForm'
 import { Button, Card, ConfirmDialog, EditorPage, Input, useNotice, Shimmer, EmptyState } from '../../components/ui'
 import { useNutritionPreferences } from '../../nutrition/preferences'
-import { generateWeek, isWithinTargetTolerances, restorePinnedSlotLockState, type GeneratedPlan, type GeneratedSlot, type GeneratorOptions, type GeneratorTarget } from '../../nutrition/generator'
+import { generateWeek, isWithinTargetTolerances, swapGeneratedSlot, type GeneratedPlan, type GeneratedSlot, type GeneratorOptions, type GeneratorTarget } from '../../nutrition/generator'
 import { deletePlan, fetchGeneratedPlan, fetchGeneratorPool, fetchNutritionTargetVersion, persistCurrentPlanThenPublish, publishPlan, saveGeneratedPlan, saveGeneratedPlanToLibrary } from '../../nutrition/generationApi'
 import { combineReadiness, getGeneratedPlanActionState, getGenerationReadiness, getPublishReadiness, isGeneratorGuardrailsApproved } from '../../nutrition/generationReadiness'
 import type { NutritionTarget, Profile, UserNutritionPreferences } from '../../types/database'
@@ -250,16 +250,23 @@ export default function GeneratePlan() {
   function swapSlot(dayOfWeek: number, slotType: GeneratedSlot['slot']) {
     if (!generationReadiness.ready || !target || !preferences || !poolQuery.data || !plan) return
     const nextSeed = seed + 1000 + dayOfWeek * 7
+    const result = swapGeneratedSlot(
+      poolQuery.data,
+      target,
+      optionsFromPreferences(preferences, nextSeed),
+      plan,
+      dayOfWeek,
+      slotType,
+    )
+    if (!result.ok) {
+      const slotLabel = SLOT_LABELS[slotType].toLowerCase()
+      notify(result.reason === 'slot-not-found'
+        ? `Couldn’t swap this ${slotLabel} because the slot is no longer available. Regenerate the plan and try again.`
+        : `No compatible ${slotLabel} alternative is available within the current nutrition filters and weekly repeat limit.`, 'error')
+      return
+    }
     setSeed(nextSeed)
-    const locks = new Map(lockedSlots)
-    // Lock everything except the slot being swapped, then regenerate.
-    plan.days.forEach(day => day.slots.forEach(slot => {
-      const key = `${day.dayOfWeek}:${slot.slot}`
-      if (!(day.dayOfWeek === dayOfWeek && slot.slot === slotType)) locks.set(key, slot)
-      else locks.delete(key)
-    }))
-    const regenerated = generateWeek(poolQuery.data, target, optionsFromPreferences(preferences, nextSeed), locks)
-    setPlan(restorePinnedSlotLockState(regenerated, plan, dayOfWeek, slotType))
+    setPlan(result.plan)
   }
 
   const saveDraft = useMutation({

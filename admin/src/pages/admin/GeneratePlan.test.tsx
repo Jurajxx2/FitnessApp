@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -13,7 +13,7 @@ import {
   saveGeneratedPlanToLibrary,
 } from '../../nutrition/generationApi'
 import type { GeneratedPlanRecord } from '../../nutrition/generationApi'
-import type { GeneratorRecipe, SlotType } from '../../nutrition/generator'
+import { generateWeek, type GeneratorOptions, type GeneratorRecipe, type SlotType } from '../../nutrition/generator'
 import type { NutritionTarget } from '../../types/database'
 import GeneratePlan from './GeneratePlan'
 
@@ -180,6 +180,18 @@ function generatorRecipes(): GeneratorRecipe[] {
   })))
 }
 
+const generatorOptions: GeneratorOptions = {
+  includeSnack: false,
+  mealDistribution: null,
+  dietaryPatterns: [],
+  excludedAllergens: [],
+  maxPrepTimeMin: null,
+  maxRecipeRepeatsPerWeek: 2,
+  dislikedRecipeIds: [],
+  favouriteRecipeIds: [],
+  seed: 1,
+}
+
 beforeEach(() => {
   vi.mocked(fetchGeneratorPool).mockResolvedValue([])
   vi.mocked(fetchNutritionTargetVersion).mockResolvedValue(target)
@@ -323,5 +335,58 @@ describe('generation preferences', () => {
     expect(screen.getByLabelText('Calories')).toHaveValue(null)
     expect(generate).toBeDisabled()
     expect(screen.queryByText('Mon')).not.toBeInTheDocument()
+  })
+
+  it('replaces the selected recipe when a compatible alternative has weekly capacity', async () => {
+    const user = userEvent.setup()
+    const pool = generatorRecipes()
+    const initialPlan = generateWeek(pool, target, generatorOptions)
+    const breakfastUsage = new Map<string, number>()
+    initialPlan.days.forEach(day => {
+      const breakfast = day.slots.find(slot => slot.slot === 'breakfast')!
+      breakfastUsage.set(breakfast.recipeId, (breakfastUsage.get(breakfast.recipeId) ?? 0) + 1)
+    })
+    const swappableDay = initialPlan.days.find(day => {
+      const breakfast = day.slots.find(slot => slot.slot === 'breakfast')!
+      return breakfastUsage.get(breakfast.recipeId) === 2
+    })!
+    const originalRecipe = swappableDay.slots.find(slot => slot.slot === 'breakfast')!
+    mockAthletes([])
+    vi.mocked(fetchGeneratorPool).mockResolvedValue(pool)
+
+    renderChooseAthlete()
+    await user.click(await screen.findByRole('button', { name: 'Generate' }))
+    expect(screen.getAllByText(originalRecipe.recipeName)).toHaveLength(2)
+
+    await user.click(screen.getByRole('button', { name: `Swap Breakfast on ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][swappableDay.dayOfWeek]}` }))
+
+    await waitFor(() => expect(screen.getAllByText(originalRecipe.recipeName)).toHaveLength(1))
+  })
+
+  it('keeps the plan unchanged and shows an error when no compatible alternative has weekly capacity', async () => {
+    const user = userEvent.setup()
+    const pool = generatorRecipes()
+    const initialPlan = generateWeek(pool, target, generatorOptions)
+    const breakfastUsage = new Map<string, number>()
+    initialPlan.days.forEach(day => {
+      const breakfast = day.slots.find(slot => slot.slot === 'breakfast')!
+      breakfastUsage.set(breakfast.recipeId, (breakfastUsage.get(breakfast.recipeId) ?? 0) + 1)
+    })
+    const blockedDay = initialPlan.days.find(day => {
+      const breakfast = day.slots.find(slot => slot.slot === 'breakfast')!
+      return breakfastUsage.get(breakfast.recipeId) === 1
+    })!
+    const originalRecipe = blockedDay.slots.find(slot => slot.slot === 'breakfast')!
+    mockAthletes([])
+    vi.mocked(fetchGeneratorPool).mockResolvedValue(pool)
+
+    renderChooseAthlete()
+    await user.click(await screen.findByRole('button', { name: 'Generate' }))
+    expect(screen.getAllByText(originalRecipe.recipeName)).toHaveLength(1)
+
+    await user.click(screen.getByRole('button', { name: `Swap Breakfast on ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][blockedDay.dayOfWeek]}` }))
+
+    expect(await screen.findByText('No compatible breakfast alternative is available within the current nutrition filters and weekly repeat limit.')).toBeInTheDocument()
+    expect(screen.getAllByText(originalRecipe.recipeName)).toHaveLength(1)
   })
 })

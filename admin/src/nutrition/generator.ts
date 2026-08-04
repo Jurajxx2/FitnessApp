@@ -28,6 +28,10 @@ export interface GeneratorOptions {
   dislikedRecipeIds: string[]; favouriteRecipeIds: string[]; seed: number
 }
 
+interface GenerationConstraints {
+  excludedRecipeIds?: ReadonlySet<string>
+}
+
 export function mulberry32(seed: number): () => number {
   let state = seed >>> 0
   return function () {
@@ -232,6 +236,7 @@ export function generateWeek(
   target: GeneratorTarget,
   options: GeneratorOptions,
   lockedSlots?: Map<string, GeneratedSlot>,
+  constraints?: GenerationConstraints,
 ): GeneratedPlan {
   const rng = mulberry32(options.seed)
   const budgets = slotBudgets(target, options)
@@ -271,6 +276,7 @@ export function generateWeek(
         continue
       }
       const pool = filterPool(recipes, budget.slot, options)
+        .filter(candidate => !constraints?.excludedRecipeIds?.has(candidate.id))
       if (!pool.length) continue
       const scored = pool
         .map(candidate => {
@@ -311,4 +317,58 @@ export function generateWeek(
       }, 0) / days.length
     : 1
   return { days, score, diagnostics }
+}
+
+export type SwapGeneratedSlotResult =
+  | { ok: true; plan: GeneratedPlan }
+  | { ok: false; reason: 'slot-not-found' | 'no-compatible-alternative' }
+
+/**
+ * Rebuild one slot while pinning the rest of the week. A swap is successful only
+ * when another recipe passes the normal hard filters and still has capacity under
+ * the weekly repeat limit; the current recipe is explicitly excluded from selection.
+ */
+export function swapGeneratedSlot(
+  recipes: GeneratorRecipe[],
+  target: GeneratorTarget,
+  options: GeneratorOptions,
+  plan: GeneratedPlan,
+  dayOfWeek: number,
+  slotType: SlotType,
+): SwapGeneratedSlotResult {
+  const currentSlot = plan.days
+    .find(day => day.dayOfWeek === dayOfWeek)
+    ?.slots.find(slot => slot.slot === slotType)
+  if (!currentSlot) return { ok: false, reason: 'slot-not-found' }
+
+  const locks = new Map<string, GeneratedSlot>()
+  const lockedUsage = new Map<string, number>()
+  plan.days.forEach(day => day.slots.forEach(slot => {
+    if (day.dayOfWeek === dayOfWeek && slot.slot === slotType) return
+    locks.set(`${day.dayOfWeek}:${slot.slot}`, slot)
+    lockedUsage.set(slot.recipeId, (lockedUsage.get(slot.recipeId) ?? 0) + 1)
+  }))
+
+  const hasAlternative = filterPool(recipes, slotType, options).some(candidate => {
+    if (candidate.id === currentSlot.recipeId) return false
+    return options.maxRecipeRepeatsPerWeek <= 0
+      || (lockedUsage.get(candidate.id) ?? 0) < options.maxRecipeRepeatsPerWeek
+  })
+  if (!hasAlternative) return { ok: false, reason: 'no-compatible-alternative' }
+
+  const regenerated = generateWeek(
+    recipes,
+    target,
+    options,
+    locks,
+    { excludedRecipeIds: new Set([currentSlot.recipeId]) },
+  )
+  const swappedSlot = regenerated.days
+    .find(day => day.dayOfWeek === dayOfWeek)
+    ?.slots.find(slot => slot.slot === slotType)
+  if (!swappedSlot || swappedSlot.recipeId === currentSlot.recipeId) {
+    return { ok: false, reason: 'no-compatible-alternative' }
+  }
+
+  return { ok: true, plan: restorePinnedSlotLockState(regenerated, plan, dayOfWeek, slotType) }
 }
