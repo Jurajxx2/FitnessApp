@@ -18,6 +18,7 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.time.Duration.Companion.hours
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -59,14 +60,16 @@ class MealPhotoDataSource(
         return json.decodeFromString(MealPhotoAnalysisDto.serializer(), text)
     }
 
+    /** Uploads bytes to {userId}/meal_{millis}.jpg and returns the object PATH (bucket is private). */
     suspend fun uploadMealPhoto(userId: String, imageBytes: ByteArray): String {
         val fileName = "$userId/meal_${currentInstant().toEpochMilliseconds()}.jpg"
-        val bucket = supabase.storage.from(BUCKET)
-        bucket.upload(fileName, imageBytes) { upsert = true }
-        val publicUrl = bucket.publicUrl(fileName)
-        Napier.d("Uploaded meal photo: $publicUrl", tag = TAG)
-        return publicUrl
+        supabase.storage.from(BUCKET).upload(fileName, imageBytes) { upsert = true }
+        Napier.d("Uploaded meal photo: $fileName", tag = TAG)
+        return fileName
     }
+
+    suspend fun signedMealPhotoUrl(path: String): String =
+        supabase.storage.from(BUCKET).createSignedUrl(path, 1.hours)
 }
 
 @Serializable

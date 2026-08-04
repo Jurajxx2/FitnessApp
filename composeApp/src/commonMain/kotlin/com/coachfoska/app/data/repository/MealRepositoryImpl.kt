@@ -48,12 +48,17 @@ class MealRepositoryImpl(
 
         val logDto = mealDataSource.insertMealLog(userId, mealName, notes, imageUrl)
         val foodPayloads = foods.map { food ->
+            // meal_log_foods_portion_valid CHECK constraint: amount_grams may only be set
+            // when lower(btrim(unit)) == "g" (and must then equal amount); unit must be
+            // non-empty. Trim (but don't lowercase) the stored unit, matching the DB's
+            // NULLIF(btrim(unit), '') normalization, and compare case-insensitively.
+            val unit = food.unit.trim().ifBlank { "g" }
             MealLogFoodInsertDto(
                 mealLogId = logDto.id,
                 name = food.name,
                 amount = food.amount,
-                unit = food.unit,
-                amountGrams = if (food.unit == "g") food.amount else food.amount, // keep column populated; treated as "primary amount" until legacy column dropped
+                unit = unit,
+                amountGrams = if (unit.equals("g", ignoreCase = true)) food.amount else null,
                 calories = food.calories,
                 proteinG = food.proteinG,
                 carbsG = food.carbsG,
@@ -69,6 +74,10 @@ class MealRepositoryImpl(
 
     override suspend fun analyzeMealPhoto(imageBytes: ByteArray): Result<MealPhotoAnalysis> = runCatching {
         mealPhotoDataSource.analyzeMealPhoto(imageBytes).toDomain()
+    }
+
+    override suspend fun signedMealPhotoUrl(path: String): Result<String> = runCatching {
+        mealPhotoDataSource.signedMealPhotoUrl(path)
     }
 
     override suspend fun getMealHistory(userId: String): Result<List<MealLog>> = runCatching {

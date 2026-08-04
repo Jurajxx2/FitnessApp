@@ -12,8 +12,12 @@ import { dedupeRecentEntries, type LogFoodDraft } from './logDraft'
 export const qk = {
   mealPlan: (userId: string) => ['mealPlan', userId] as const,
   recipes: ['recipes'] as const,
+  recipePage: (page: number, pageSize: number, search: string, favoriteIds: string[] | null) => ['recipes', 'page', page, pageSize, search, favoriteIds] as const,
+  featuredRecipes: ['recipes', 'featured'] as const,
   recipe: (id: string) => ['recipe', id] as const,
   history: (userId: string) => ['mealHistory', userId] as const,
+  historyPage: (userId: string, page: number, pageSize: number) => ['mealHistory', userId, 'page', page, pageSize] as const,
+  mealLog: (userId: string, id: string) => ['mealHistory', userId, 'detail', id] as const,
   dailyLogs: (userId: string, date: string) => ['dailyLogs', userId, date] as const,
   foodSearch: (q: string) => ['foodSearch', q] as const,
   seedFoods: ['seedFoods'] as const,
@@ -25,6 +29,7 @@ export const qk = {
 }
 
 type CurrentMealPlanIdRow = { meal_plan_id: string }
+export type PageResult<T> = { data: T[]; count: number }
 type ActiveNutritionTargetRow = {
   calories: number
   protein_g: number
@@ -55,8 +60,31 @@ export async function fetchActiveMealPlan(userId: string): Promise<MealPlanRow |
   return (data as MealPlanRow | null) ?? null
 }
 
-export async function fetchRecipes(): Promise<RecipeRow[]> {
-  const { data, error } = await supabase.from('recipes').select('*').eq('is_active', true)
+export async function fetchRecipes(page = 0, pageSize = 24, search = '', favoriteIds: string[] | null = null): Promise<PageResult<RecipeRow>> {
+  if (favoriteIds !== null && favoriteIds.length === 0) return { data: [], count: 0 }
+  let query = supabase
+    .from('recipes')
+    .select('*', { count: 'exact' })
+    .eq('is_active', true)
+    .order('featured', { ascending: false })
+    .order('name')
+    .order('id')
+    .range(page * pageSize, page * pageSize + pageSize - 1)
+  if (search) query = query.ilike('name', `%${search}%`)
+  if (favoriteIds !== null) query = query.in('id', favoriteIds)
+  const { data, count, error } = await query
+  if (error) throw error
+  return { data: (data as RecipeRow[]) ?? [], count: count ?? 0 }
+}
+
+export async function fetchFeaturedRecipes(limit = 5): Promise<RecipeRow[]> {
+  const { data, error } = await supabase
+    .from('recipes')
+    .select('*')
+    .eq('is_active', true)
+    .eq('featured', true)
+    .order('name')
+    .limit(limit)
   if (error) throw error
   return (data as RecipeRow[]) ?? []
 }
@@ -72,14 +100,27 @@ export async function fetchRecipe(id: string): Promise<RecipeRow | null> {
   return (data?.[0] as RecipeRow) ?? null
 }
 
-export async function fetchMealHistory(userId: string): Promise<MealLogRow[]> {
+export async function fetchMealHistory(userId: string, page = 0, pageSize = 24): Promise<PageResult<MealLogRow>> {
+  const { data, count, error } = await supabase
+    .from('meal_logs')
+    .select('*, meal_log_foods(*)', { count: 'exact' })
+    .eq('user_id', userId)
+    .order('logged_at', { ascending: false })
+    .order('id')
+    .range(page * pageSize, page * pageSize + pageSize - 1)
+  if (error) throw error
+  return { data: (data as MealLogRow[]) ?? [], count: count ?? 0 }
+}
+
+export async function fetchMealLog(userId: string, id: string): Promise<MealLogRow | null> {
   const { data, error } = await supabase
     .from('meal_logs')
     .select('*, meal_log_foods(*)')
     .eq('user_id', userId)
-    .order('logged_at', { ascending: false })
+    .eq('id', id)
+    .maybeSingle()
   if (error) throw error
-  return (data as MealLogRow[]) ?? []
+  return data as MealLogRow | null
 }
 
 export async function fetchDailyLogs(userId: string, date: string): Promise<MealLogRow[]> {

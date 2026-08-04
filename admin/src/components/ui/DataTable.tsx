@@ -72,6 +72,12 @@ export function DataTable<T>({
     if (!serverPagination && clientPage > totalPages - 1) setClientPage(totalPages - 1)
   }, [serverPagination, clientPage, totalPages])
 
+  useEffect(() => {
+    if (serverPagination && serverTotal > 0 && serverPage > totalPages - 1) {
+      onPageChange?.(totalPages - 1)
+    }
+  }, [serverPagination, serverTotal, serverPage, totalPages, onPageChange])
+
   const displayRows = serverPagination
     ? rows
     : rows.slice(activePage * activeSize, activePage * activeSize + activeSize)

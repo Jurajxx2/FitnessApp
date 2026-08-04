@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useDeferredValue, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -60,20 +60,29 @@ export function describeInvalidExerciseRows(rowIndexes: number[]): string {
 
 type WorkoutWithCount = Workout & { exercise_count: number }
 
-function useWorkouts() {
-  return useQuery<WorkoutWithCount[]>({
-    queryKey: ['workouts-admin'],
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+
+function useWorkouts(search: string, page: number, pageSize: number) {
+  return useQuery<{ data: WorkoutWithCount[]; count: number }>({
+    queryKey: ['workouts-admin', search, page, pageSize],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('workouts')
-        .select('*, workout_exercises(id)')
+        .select('*, workout_exercises(id)', { count: 'exact' })
         .eq('source', 'coach')
         .order('name')
+        .order('id')
+        .range(page * pageSize, page * pageSize + pageSize - 1)
+      if (search) query = query.ilike('name', `%${search}%`)
+      const { data, count, error } = await query
       if (error) throw error
-      return (data ?? []).map(workout => ({
-        ...workout,
-        exercise_count: (workout.workout_exercises as { id: string }[]).length,
-      }))
+      return {
+        data: (data ?? []).map(workout => ({
+          ...workout,
+          exercise_count: (workout.workout_exercises as { id: string }[]).length,
+        })),
+        count: count ?? 0,
+      }
     },
   })
 }
@@ -82,12 +91,13 @@ export default function Workouts() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { notify } = useNotice()
-  const { data: workouts = [], isLoading, isError } = useWorkouts()
   const [search, setSearch] = useState('')
+  const deferredSearch = useDeferredValue(search.trim())
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const { data: { data: workouts = [], count: totalCount = 0 } = {}, isLoading, isError } = useWorkouts(deferredSearch, page, pageSize)
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null)
   const [deleting, setDeleting] = useState(false)
-
-  const visibleWorkouts = workouts.filter(workout => workout.name.toLowerCase().includes(search.trim().toLowerCase()))
 
   const deleteWorkout = useMutation({
     mutationFn: async (id: string) => {
@@ -147,19 +157,19 @@ export default function Workouts() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <SearchInput
           value={search}
-          onChange={event => setSearch(event.target.value)}
-          onClear={() => setSearch('')}
+          onChange={event => { setSearch(event.target.value); setPage(0) }}
+          onClear={() => { setSearch(''); setPage(0) }}
           placeholder="Search workout plans…"
           className="w-full sm:max-w-sm"
         />
-        {!isLoading && <p className="text-sm text-text-secondary">{visibleWorkouts.length} of {workouts.length} plans</p>}
+        {!isLoading && <p className="text-sm text-text-secondary">{workouts.length} of {totalCount} plans</p>}
       </div>
 
       {isError ? (
         <EmptyState title="Workout plans couldn’t be loaded" description="Refresh the page to retry." />
       ) : (
         <DataTable<WorkoutWithCount>
-          rows={visibleWorkouts}
+          rows={workouts}
           getRowId={workout => workout.id}
           columns={columns}
           rowLabel={workout => `Open ${workout.name}`}
@@ -167,6 +177,13 @@ export default function Workouts() {
           rowActions={rowActions}
           selectable
           bulkActions={bulkActions}
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={size => { setPageSize(size); setPage(0) }}
           loading={isLoading}
           empty={
             <EmptyState

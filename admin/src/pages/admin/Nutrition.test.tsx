@@ -74,11 +74,20 @@ function setupMealPlansSupabase(plans: MealPlan[], options: {
   rpcResult?: { data: string | null; error: Error | null }
   manualDeleteResult?: { data: { id: string } | null; error: Error | null }
 } = {}) {
-  const orderPlans = vi.fn().mockResolvedValue({ data: plans, error: null })
-  const selectPlans = vi.fn().mockReturnValue({ order: orderPlans })
-  const selectAssignments = vi.fn().mockReturnValue({
-    eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-  })
+  const rangePlans = vi.fn().mockResolvedValue({ data: plans, count: plans.length, error: null })
+  const planQuery = {
+    order: vi.fn(),
+    range: rangePlans,
+    eq: vi.fn(),
+    or: vi.fn(),
+  }
+  planQuery.order.mockReturnValue(planQuery)
+  planQuery.eq.mockReturnValue(planQuery)
+  planQuery.or.mockReturnValue(planQuery)
+  const selectPlans = vi.fn().mockReturnValue(planQuery)
+  const inAssignments = vi.fn().mockResolvedValue({ data: [], error: null })
+  const eqAssignments = vi.fn().mockReturnValue({ in: inAssignments })
+  const selectAssignments = vi.fn().mockReturnValue({ eq: eqAssignments })
   const maybeSingle = vi.fn().mockResolvedValue(
     options.manualDeleteResult ?? { data: { id: plans[0]?.id ?? 'plan-1' }, error: null },
   )
@@ -96,7 +105,7 @@ function setupMealPlansSupabase(plans: MealPlan[], options: {
   vi.mocked(supabase.rpc).mockReset()
   vi.mocked(supabase.rpc).mockImplementation(rpc)
 
-  return { deletePlan, matchDeletedPlan, selectDeletedPlan, maybeSingle, rpc }
+  return { deletePlan, matchDeletedPlan, selectDeletedPlan, maybeSingle, rpc, selectPlans, rangePlans }
 }
 
 function renderNutritionMealPlans() {
@@ -283,11 +292,13 @@ describe('Nutrition meal-plan deletion', () => {
   })
 
   it('exposes macro-based generation directly from the meal-plan tab', async () => {
-    setupMealPlansSupabase([mealPlan()])
+    const { selectPlans, rangePlans } = setupMealPlansSupabase([mealPlan()])
     renderNutritionMealPlans()
 
     expect(await screen.findByRole('button', { name: 'Generate from macro goals' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create meal plan' })).toBeInTheDocument()
+    expect(selectPlans).toHaveBeenCalledWith('*', { count: 'exact' })
+    expect(rangePlans).toHaveBeenCalledWith(0, 24)
   })
 
   it('does not report generated deletion success when the RPC returns no id', async () => {

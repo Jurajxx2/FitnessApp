@@ -3,6 +3,7 @@ package com.coachfoska.app.data.repository
 import com.coachfoska.app.data.remote.datasource.MealRemoteDataSource
 import com.coachfoska.app.data.remote.dto.MealLogDto
 import com.coachfoska.app.data.remote.dto.MealLogFoodDto
+import com.coachfoska.app.data.remote.dto.MealLogFoodInsertDto
 import com.coachfoska.app.data.remote.dto.MealPlanDto
 import com.coachfoska.app.data.remote.dto.RecipeDetailDto
 import com.coachfoska.app.data.remote.dto.RecipeDto
@@ -12,6 +13,7 @@ import com.coachfoska.app.domain.model.MealLogFood
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -72,6 +74,125 @@ class MealRepositoryImplTest {
     }
 
     @Test
+    fun `logMeal with gram unit populates amountGrams equal to amount`() = runTest {
+        val logDto = aMealLogDto()
+        val insertedFoods = slot<List<MealLogFoodInsertDto>>()
+        coEvery { dataSource.insertMealLog(any(), any(), any(), any()) } returns logDto
+        coEvery { dataSource.insertMealLogFoods(capture(insertedFoods)) } returns listOf(aMealLogFoodDto())
+        val foods = listOf(aMealLogFood(amount = 150f, unit = "g"))
+
+        val result = repository.logMeal("user-1", "Lunch", foods, null)
+
+        assertTrue(result.isSuccess)
+        val payload = insertedFoods.captured.single()
+        assertEquals("g", payload.unit)
+        assertEquals(150f, payload.amount)
+        assertEquals(150f, payload.amountGrams)
+    }
+
+    @Test
+    fun `logMeal with non-gram unit leaves amountGrams null`() = runTest {
+        val logDto = aMealLogDto()
+        val insertedFoods = slot<List<MealLogFoodInsertDto>>()
+        coEvery { dataSource.insertMealLog(any(), any(), any(), any()) } returns logDto
+        coEvery { dataSource.insertMealLogFoods(capture(insertedFoods)) } returns listOf(aMealLogFoodDto())
+        val foods = listOf(
+            aMealLogFood(name = "Yogurt", amount = 2f, unit = "serving"),
+            aMealLogFood(name = "Milk", amount = 200f, unit = "ml")
+        )
+
+        val result = repository.logMeal("user-1", "Lunch", foods, null)
+
+        assertTrue(result.isSuccess)
+        val payloads = insertedFoods.captured
+        val servingPayload = payloads.single { it.name == "Yogurt" }
+        assertEquals("serving", servingPayload.unit)
+        assertEquals(2f, servingPayload.amount)
+        assertNull(servingPayload.amountGrams)
+
+        val mlPayload = payloads.single { it.name == "Milk" }
+        assertEquals("ml", mlPayload.unit)
+        assertEquals(200f, mlPayload.amount)
+        assertNull(mlPayload.amountGrams)
+    }
+
+    @Test
+    fun `logMeal with uppercase gram unit populates amountGrams equal to amount`() = runTest {
+        val logDto = aMealLogDto()
+        val insertedFoods = slot<List<MealLogFoodInsertDto>>()
+        coEvery { dataSource.insertMealLog(any(), any(), any(), any()) } returns logDto
+        coEvery { dataSource.insertMealLogFoods(capture(insertedFoods)) } returns listOf(aMealLogFoodDto())
+        val foods = listOf(aMealLogFood(amount = 150f, unit = "G"))
+
+        val result = repository.logMeal("user-1", "Lunch", foods, null)
+
+        assertTrue(result.isSuccess)
+        val payload = insertedFoods.captured.single()
+        assertEquals("G", payload.unit)
+        assertEquals(150f, payload.amount)
+        assertEquals(150f, payload.amountGrams)
+    }
+
+    @Test
+    fun `logMeal with whitespace-padded gram unit is trimmed and populates amountGrams`() = runTest {
+        val logDto = aMealLogDto()
+        val insertedFoods = slot<List<MealLogFoodInsertDto>>()
+        coEvery { dataSource.insertMealLog(any(), any(), any(), any()) } returns logDto
+        coEvery { dataSource.insertMealLogFoods(capture(insertedFoods)) } returns listOf(aMealLogFoodDto())
+        val foods = listOf(aMealLogFood(amount = 150f, unit = " g "))
+
+        val result = repository.logMeal("user-1", "Lunch", foods, null)
+
+        assertTrue(result.isSuccess)
+        val payload = insertedFoods.captured.single()
+        assertEquals("g", payload.unit)
+        assertEquals(150f, payload.amount)
+        assertEquals(150f, payload.amountGrams)
+    }
+
+    @Test
+    fun `logMeal with blank unit is normalized to grams`() = runTest {
+        val logDto = aMealLogDto()
+        val insertedFoods = slot<List<MealLogFoodInsertDto>>()
+        coEvery { dataSource.insertMealLog(any(), any(), any(), any()) } returns logDto
+        coEvery { dataSource.insertMealLogFoods(capture(insertedFoods)) } returns listOf(aMealLogFoodDto())
+        val foods = listOf(aMealLogFood(amount = 120f, unit = ""))
+
+        val result = repository.logMeal("user-1", "Lunch", foods, null)
+
+        assertTrue(result.isSuccess)
+        val payload = insertedFoods.captured.single()
+        assertEquals("g", payload.unit)
+        assertEquals(120f, payload.amount)
+        assertEquals(120f, payload.amountGrams)
+    }
+
+    @Test
+    fun `logMeal passes macros through unchanged`() = runTest {
+        val logDto = aMealLogDto()
+        val insertedFoods = slot<List<MealLogFoodInsertDto>>()
+        coEvery { dataSource.insertMealLog(any(), any(), any(), any()) } returns logDto
+        coEvery { dataSource.insertMealLogFoods(capture(insertedFoods)) } returns listOf(aMealLogFoodDto())
+        val foods = listOf(
+            aMealLogFood(
+                unit = "serving",
+                calories = 250f,
+                proteinG = 12f,
+                carbsG = 30f,
+                fatG = 8f
+            )
+        )
+
+        repository.logMeal("user-1", "Lunch", foods, null)
+
+        val payload = insertedFoods.captured.single()
+        assertEquals(250f, payload.calories)
+        assertEquals(12f, payload.proteinG)
+        assertEquals(30f, payload.carbsG)
+        assertEquals(8f, payload.fatG)
+    }
+
+    @Test
     fun `analyzeMealPhoto maps DTO to domain`() = runTest {
         coEvery { photoDataSource.analyzeMealPhoto(any(), any()) } returns
             com.coachfoska.app.data.remote.dto.MealPhotoAnalysisDto(
@@ -112,6 +233,38 @@ class MealRepositoryImplTest {
 
         assertTrue(result.isSuccess)
         coVerify(exactly = 1) { dataSource.insertMealLog("user-1", "Lunch", null, null) }
+    }
+
+    @Test
+    fun `logMeal stores the uploaded photo object path (not a public URL) in image_url`() = runTest {
+        coEvery { photoDataSource.uploadMealPhoto("user-1", any()) } returns "user-1/meal_1700000000000.jpg"
+        coEvery { dataSource.insertMealLog("user-1", "Lunch", null, "user-1/meal_1700000000000.jpg") } returns aMealLogDto()
+
+        val result = repository.logMeal("user-1", "Lunch", emptyList(), null, byteArrayOf(7, 8))
+
+        assertTrue(result.isSuccess)
+        coVerify(exactly = 1) { dataSource.insertMealLog("user-1", "Lunch", null, "user-1/meal_1700000000000.jpg") }
+    }
+
+    @Test
+    fun `signedMealPhotoUrl returns the data source's signed URL wrapped in Result`() = runTest {
+        coEvery { photoDataSource.signedMealPhotoUrl("user-1/meal_1700000000000.jpg") } returns
+            "https://signed.example/meal.jpg?token=abc"
+
+        val result = repository.signedMealPhotoUrl("user-1/meal_1700000000000.jpg")
+
+        assertTrue(result.isSuccess)
+        assertEquals("https://signed.example/meal.jpg?token=abc", result.getOrThrow())
+    }
+
+    @Test
+    fun `signedMealPhotoUrl wraps data source failure in Result failure`() = runTest {
+        coEvery { photoDataSource.signedMealPhotoUrl(any()) } throws RuntimeException("expired")
+
+        val result = repository.signedMealPhotoUrl("user-1/meal_1700000000000.jpg")
+
+        assertTrue(result.isFailure)
+        assertEquals("expired", result.exceptionOrNull()?.message)
     }
 
     @Test
@@ -188,9 +341,17 @@ private fun aMealLogFoodDto(
     amountGrams = 150f, calories = calories, proteinG = proteinG, carbsG = carbsG, fatG = fatG
 )
 
-private fun aMealLogFood() = MealLogFood(
-    id = "food-1", mealLogId = "log-1", name = "Chicken",
-    amount = 150f, unit = "g", calories = 300f, proteinG = 25f, carbsG = 30f, fatG = 10f
+private fun aMealLogFood(
+    name: String = "Chicken",
+    amount: Float = 150f,
+    unit: String = "g",
+    calories: Float = 300f,
+    proteinG: Float = 25f,
+    carbsG: Float = 30f,
+    fatG: Float = 10f
+) = MealLogFood(
+    id = "food-1", mealLogId = "log-1", name = name,
+    amount = amount, unit = unit, calories = calories, proteinG = proteinG, carbsG = carbsG, fatG = fatG
 )
 
 private fun aRecipeDto() = RecipeDto(

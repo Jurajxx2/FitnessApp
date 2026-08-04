@@ -8,6 +8,7 @@ interface PaginationProps {
   pageSizeOptions?: number[]
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
+  standalone?: boolean
 }
 
 export function Pagination({
@@ -17,6 +18,7 @@ export function Pagination({
   pageSizeOptions = [10, 25, 50, 100],
   onPageChange,
   onPageSizeChange,
+  standalone = false,
 }: PaginationProps) {
   const selectId = useId()
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
@@ -24,7 +26,7 @@ export function Pagination({
   const end = Math.min(totalItems, (page + 1) * pageSize)
 
   return (
-    <div className="flex flex-col gap-3 border-t border-outline bg-surface-elevated px-4 py-3 text-sm text-text-secondary sm:flex-row sm:items-center sm:justify-between">
+    <div className={`flex flex-col gap-3 bg-surface-elevated px-4 py-3 text-sm text-text-secondary sm:flex-row sm:items-center sm:justify-between ${standalone ? 'rounded-2xl border border-outline' : 'border-t border-outline'}`}>
       <div className="flex items-center gap-2">
         <label htmlFor={selectId}>Rows per page</label>
         <select

@@ -1,10 +1,12 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, BarChart3, ChevronRight, Clock3, Dumbbell } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import { getWorkoutHistory, getWorkoutLog } from '../../activity/api'
+import { getWorkoutHistoryPage, getWorkoutLog } from '../../activity/api'
 import { completedSets, formatDate, formatDuration, workoutVolume } from '../../activity/logic'
 import { useAuth } from '../../hooks/useAuth'
 import { formatSeconds } from '../../workouts/builder'
+import { Pagination } from '../../components/ui'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
 
 export default function WorkoutHistory() {
@@ -15,9 +17,11 @@ export default function WorkoutHistory() {
 function HistoryList() {
   const { user } = useAuth()
   const userId = user?.id ?? ''
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(12)
   const historyQuery = useQuery({
-    queryKey: ['activity', 'history', userId],
-    queryFn: () => getWorkoutHistory(userId),
+    queryKey: ['activity', 'history', userId, page, pageSize],
+    queryFn: () => getWorkoutHistoryPage(userId, page, pageSize),
     enabled: Boolean(userId)
   })
   if (historyQuery.isLoading)
@@ -32,7 +36,8 @@ function HistoryList() {
         <ErrorBlock message="Históriu tréningov sa nepodarilo načítať." />
       </ActivityPage>
     )
-  const history = historyQuery.data ?? []
+  const history = historyQuery.data?.data ?? []
+  const totalHistory = historyQuery.data?.count ?? 0
 
   return (
     <ActivityPage>
@@ -47,33 +52,44 @@ function HistoryList() {
         }
       />
       {history.length ? (
-        <div className="space-y-3">
-          {history.map(log => {
-            const volume = workoutVolume(log)
-            return (
-              <Link key={log.id} to={`/activity/history/${log.id}`} className="flex items-center gap-4 rounded-2xl border border-outline bg-surface-elevated p-4 text-inherit no-underline hover:bg-surface-highest sm:p-5">
-                <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-surface-highest text-text-primary">
-                  <Dumbbell size={20} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-base font-bold text-text-primary">{log.workout_name}</span>
-                  <span className="mt-1 block text-xs text-text-secondary">
-                    {formatDate(log.logged_at, {
-                      dateStyle: 'medium',
-                      timeStyle: 'short'
-                    })}
+        <>
+          <div className="space-y-3">
+            {history.map(log => {
+              const volume = workoutVolume(log)
+              return (
+                <Link key={log.id} to={`/activity/history/${log.id}`} className="flex items-center gap-4 rounded-2xl border border-outline bg-surface-elevated p-4 text-inherit no-underline hover:bg-surface-highest sm:p-5">
+                  <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-surface-highest text-text-primary">
+                    <Dumbbell size={20} />
                   </span>
-                  <span className="mt-2 flex flex-wrap gap-3 text-xs text-text-secondary">
-                    <span>{formatDuration(log.duration_minutes)}</span>
-                    <span>{completedSets(log)} sérií</span>
-                    {volume > 0 && <span>{Math.round(volume).toLocaleString()} kg objem</span>}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-base font-bold text-text-primary">{log.workout_name}</span>
+                    <span className="mt-1 block text-xs text-text-secondary">
+                      {formatDate(log.logged_at, {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                      })}
+                    </span>
+                    <span className="mt-2 flex flex-wrap gap-3 text-xs text-text-secondary">
+                      <span>{formatDuration(log.duration_minutes)}</span>
+                      <span>{completedSets(log)} sérií</span>
+                      {volume > 0 && <span>{Math.round(volume).toLocaleString()} kg objem</span>}
+                    </span>
                   </span>
-                </span>
-                <ChevronRight size={18} className="text-text-secondary" />
-              </Link>
-            )
-          })}
-        </div>
+                  <ChevronRight size={18} className="text-text-secondary" />
+                </Link>
+              )
+            })}
+          </div>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalHistory}
+            pageSizeOptions={[12, 24, 48]}
+            onPageChange={setPage}
+            onPageSizeChange={size => { setPageSize(size); setPage(0) }}
+            standalone
+          />
+        </>
       ) : (
         <div className="rounded-2xl border border-dashed border-outline p-8 text-center">
           <p className="font-semibold text-text-primary">Zatiaľ žiadne dokončené tréningy</p>

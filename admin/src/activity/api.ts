@@ -100,6 +100,19 @@ export async function getWorkoutHistory(userId: string): Promise<WorkoutLogRow[]
   return ((data ?? []) as WorkoutLogRow[]).map(sortLog)
 }
 
+export async function getWorkoutHistoryPage(userId: string, page: number, pageSize: number): Promise<{ data: WorkoutLogRow[]; count: number }> {
+  const { data, count, error } = await supabase
+    .from('workout_logs')
+    .select(logSelect, { count: 'exact' })
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .order('logged_at', { ascending: false })
+    .order('id')
+    .range(page * pageSize, page * pageSize + pageSize - 1)
+  if (error) throw error
+  return { data: ((data ?? []) as WorkoutLogRow[]).map(sortLog), count: count ?? 0 }
+}
+
 export async function getWorkoutLog(userId: string, logId: string): Promise<WorkoutLogRow> {
   const { data, error } = await supabase
     .from('workout_logs')

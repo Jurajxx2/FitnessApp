@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NoticeProvider } from '../../components/ui'
 import {
-  useActiveMealPlan, useFoodFavorites, useMealHistory, useRecentFoods, useRecipe,
+  useActiveMealPlan, useFoodFavorites, useMealLog, useRecentFoods, useRecipe,
   useSavedMeals, useSeedFoods,
 } from '../../nutrition/hooks'
 import {
@@ -19,7 +19,7 @@ import { rescaleDraftAmount, draftFromFood } from '../../nutrition/logDraft'
 vi.mock('../../nutrition/hooks', () => ({
   useActiveMealPlan: vi.fn(),
   useFoodFavorites: vi.fn(),
-  useMealHistory: vi.fn(),
+  useMealLog: vi.fn(),
   useRecentFoods: vi.fn(),
   useRecipe: vi.fn(),
   useSavedMeals: vi.fn(),
@@ -75,14 +75,14 @@ beforeEach(() => {
   vi.mocked(useRecentFoods).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useRecentFoods>)
   vi.mocked(useSavedMeals).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useSavedMeals>)
   vi.mocked(useSeedFoods).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useSeedFoods>)
-  vi.mocked(useMealHistory).mockReturnValue({
-    data: [{
+  vi.mocked(useMealLog).mockReturnValue({
+    data: {
       id: 'log-1', user_id: 'user-1', meal_name: 'Obed', meal_type: 'lunch', notes: 'pozn', image_url: null,
       logged_at: '2026-07-13T11:00:00Z',
       meal_log_foods: [{ id: 'food-1', meal_log_id: 'log-1', name: 'Ryža', amount: 150, unit: 'g', amount_grams: 150, calories: 195, protein_g: 4, carbs_g: 42, fat_g: 1 }],
-    }],
+    },
     isLoading: false,
-  } as unknown as ReturnType<typeof useMealHistory>)
+  } as unknown as ReturnType<typeof useMealLog>)
   mutateAsync.mockResolvedValue({ id: 'meal-log-1', photoAttached: true, photoError: null })
   vi.mocked(useLogMeal).mockReturnValue({ mutateAsync, isPending: false, isError: false } as unknown as ReturnType<typeof useLogMeal>)
   updateMutateAsync.mockResolvedValue({ id: 'log-1', photoAttached: false, photoError: null })

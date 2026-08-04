@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronLeft, Pencil, Trash2 } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useMealHistory } from '../../nutrition/hooks'
+import { useMealLog } from '../../nutrition/hooks'
 import { sumMacros } from '../../nutrition/calc'
 import { useDeleteMealLog } from '../../nutrition/mutations'
 import { Button, Card, ConfirmDialog, EmptyState, Shimmer, StatRow, useNotice } from '../../components/ui'
@@ -11,14 +11,13 @@ import { MEAL_TYPE_OPTIONS } from '../../nutrition/constants'
 export default function HistoryDetail() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { data: logs, isLoading } = useMealHistory()
+  const { data: log, isLoading } = useMealLog(id)
   const { notify } = useNotice()
   const deleteMealLog = useDeleteMealLog()
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   if (isLoading) return <Shimmer className="h-64 w-full" />
 
-  const log = (logs ?? []).find((entry) => entry.id === id)
   if (!log) return <EmptyState title="Záznam sa nenašiel" />
 
   const totals = sumMacros(log.meal_log_foods)

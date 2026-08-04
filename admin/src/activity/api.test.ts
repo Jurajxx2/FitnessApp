@@ -5,6 +5,7 @@ import type { UserWorkoutDraft, UserWorkoutExerciseDraft } from './types'
 // before the direct Postgrest insert (which bypasses the validating RPC coach plans go through).
 let capturedExerciseRows: Array<Record<string, unknown>> | null = null
 let recentPerformanceRows: Array<Record<string, unknown>> = []
+let capturedHistoryRange: [number, number] | null = null
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -24,6 +25,10 @@ vi.mock('../lib/supabase', () => ({
           in: () => builder,
           order: () => builder,
           limit: () => Promise.resolve({ data: recentPerformanceRows, error: null }),
+          range: (from: number, to: number) => {
+            capturedHistoryRange = [from, to]
+            return Promise.resolve({ data: [], count: 37, error: null })
+          },
         }
         return builder
       }
@@ -36,7 +41,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
-const { createUserWorkout, getLastExercisePerformances } = await import('./api')
+const { createUserWorkout, getLastExercisePerformances, getWorkoutHistoryPage } = await import('./api')
 
 function exercise(overrides: Partial<UserWorkoutExerciseDraft>): UserWorkoutExerciseDraft {
   return {
@@ -117,5 +122,14 @@ describe('getLastExercisePerformances', () => {
         rpe: 8,
       },
     })
+  })
+})
+
+describe('getWorkoutHistoryPage', () => {
+  it('returns a counted inclusive range for the requested page', async () => {
+    capturedHistoryRange = null
+
+    await expect(getWorkoutHistoryPage('athlete-1', 2, 12)).resolves.toEqual({ data: [], count: 37 })
+    expect(capturedHistoryRange).toEqual([24, 35])
   })
 })

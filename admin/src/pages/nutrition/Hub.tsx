@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, CalendarDays, ChevronRight, History, LayoutDashboard, Plus } from 'lucide-react'
-import { useDailySummary, useMacroTargets, useRecipes } from '../../nutrition/hooks'
+import { useDailySummary, useFeaturedRecipes, useMacroTargets } from '../../nutrition/hooks'
 import { todayIso } from '../../nutrition/date'
 import { Card, SectionHeader, Button, Shimmer, MacroRing } from '../../components/ui'
 import Plan from './Plan'
@@ -68,8 +68,7 @@ function TodayOverview() {
   const navigate = useNavigate()
   const { data: summary, isLoading } = useDailySummary(todayIso())
   const targets = useMacroTargets()
-  const { data: recipes } = useRecipes()
-  const featured = (recipes ?? []).filter(r => r.featured).slice(0, 5)
+  const { data: featured = [] } = useFeaturedRecipes()
 
   return (
     <div className="flex flex-col gap-8">

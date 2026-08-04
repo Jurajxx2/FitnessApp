@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Lock, LockOpen, RefreshCw } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { NutritionPreferencesForm } from '../../components/NutritionPreferencesForm'
 import { Button, Card, ConfirmDialog, EditorPage, Input, useNotice, Shimmer, EmptyState } from '../../components/ui'
 import { useNutritionPreferences } from '../../nutrition/preferences'
 import { generateWeek, isWithinTargetTolerances, restorePinnedSlotLockState, type GeneratedPlan, type GeneratedSlot, type GeneratorOptions, type GeneratorTarget } from '../../nutrition/generator'
@@ -13,6 +14,45 @@ import type { NutritionTarget, Profile, UserNutritionPreferences } from '../../t
 const DAY_SHORTS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
 const SLOT_LABELS: Record<string, string> = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
 const GENERATOR_GUARDRAILS_APPROVED = isGeneratorGuardrailsApproved(import.meta.env.VITE_MEAL_PLAN_GENERATOR_GUARDRAILS_APPROVED)
+
+const DEFAULT_MANUAL_TARGET: GeneratorTarget = {
+  calories: 2_000,
+  protein_g: 150,
+  carbs_g: 220,
+  fat_g: 65,
+  calorie_tol_pct: 5,
+  protein_tol_pct: 10,
+  carbs_tol_pct: 15,
+  fat_tol_pct: 15,
+}
+
+function defaultManualPreferences(): UserNutritionPreferences {
+  return {
+    user_id: '',
+    dietary_patterns: [],
+    excluded_allergens: [],
+    disliked_recipe_ids: [],
+    favourite_recipe_ids: [],
+    meals_per_day: 3,
+    include_snack: false,
+    meal_distribution: null,
+    max_prep_time_min: null,
+    max_recipe_repeats_per_week: 2,
+    updated_at: new Date().toISOString(),
+  }
+}
+
+function numberInputValue(value: number): string {
+  return Number.isFinite(value) ? String(value) : ''
+}
+
+function numberFromInput(value: string): number {
+  return value === '' ? Number.NaN : Number(value)
+}
+
+function roundedTargetValue(value: number, suffix = ''): string {
+  return Number.isFinite(value) ? `${Math.round(value)}${suffix}` : '—'
+}
 
 function optionsFromPreferences(preferences: UserNutritionPreferences, seed: number): GeneratorOptions {
   return {
@@ -59,6 +99,7 @@ export default function GeneratePlan() {
   const userId = isPreview ? (previewQuery.data?.user_id ?? '') : (searchParams.get('user') ?? '')
   const previewTargetId = previewQuery.data?.nutrition_target_id ?? ''
   const previewTargetVersion = previewQuery.data?.target_version ?? null
+  const isStandalone = !isPreview && !userId
 
   const targetQuery = useQuery<NutritionTarget | null>({
     queryKey: isPreview
@@ -93,11 +134,12 @@ export default function GeneratePlan() {
   })
   const poolQuery = useQuery({ queryKey: ['generator-pool'], queryFn: fetchGeneratorPool })
   const preferencesQuery = useNutritionPreferences(userId)
-  const preferences = preferencesQuery.data ?? null
 
   const [planName, setPlanName] = useState('')
   const [seed, setSeed] = useState(1)
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
+  const [manualTarget, setManualTarget] = useState<GeneratorTarget>(DEFAULT_MANUAL_TARGET)
+  const [manualPreferences, setManualPreferences] = useState<UserNutritionPreferences>(defaultManualPreferences)
   const [savedPlanId, setSavedPlanId] = useState<string | null>(previewPlanId ?? null)
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -117,6 +159,13 @@ export default function GeneratePlan() {
       setPlanName(`Generated plan · ${new Date().toLocaleDateString('en-GB')}`)
     }
   }, [isPreview, planName, targetQuery.data])
+  useEffect(() => {
+    if (!isPreview) {
+      setPlan(null)
+      setSavedPlanId(null)
+      setSeed(1)
+    }
+  }, [isPreview, userId])
 
   const target: GeneratorTarget | null = targetQuery.data
     ? {
@@ -129,16 +178,26 @@ export default function GeneratePlan() {
         carbs_tol_pct: targetQuery.data.carbs_tol_pct,
         fat_tol_pct: targetQuery.data.fat_tol_pct,
       }
-    : null
+    : isStandalone ? manualTarget : null
+  const preferences = isStandalone ? manualPreferences : (preferencesQuery.data ?? null)
+  const targetInputReadiness = !isStandalone || (
+    Number.isFinite(manualTarget.calories) && manualTarget.calories > 0
+    && Number.isFinite(manualTarget.protein_g) && manualTarget.protein_g >= 0
+    && Number.isFinite(manualTarget.carbs_g) && manualTarget.carbs_g >= 0
+    && Number.isFinite(manualTarget.fat_g) && manualTarget.fat_g >= 0
+  )
+    ? { ready: true, blockers: [] }
+    : { ready: false, blockers: ['Enter a calorie goal above zero and non-negative protein, carbohydrate, and fat goals.'] }
   const generationOptions = preferences ? optionsFromPreferences(preferences, seed) : null
-  const generationReadiness = generationOptions && poolQuery.data
+  const recipeReadiness = generationOptions && poolQuery.data
     ? getGenerationReadiness(poolQuery.data, generationOptions, GENERATOR_GUARDRAILS_APPROVED)
     : {
         ready: false,
         blockers: [poolQuery.isError
           ? 'Couldn’t load the generator-ready recipe pool. Retry before generating or publishing.'
-          : 'Couldn’t load the athlete’s nutrition preferences. Retry before generating or publishing.'],
+          : 'Couldn’t load the generation preferences. Retry before generating.'],
       }
+  const generationReadiness = combineReadiness(targetInputReadiness, recipeReadiness)
   const publishReadiness = plan && target && generationOptions && poolQuery.data
     ? getPublishReadiness(plan, target, generationOptions, poolQuery.data)
     : { ready: false, blockers: [] }
@@ -157,6 +216,16 @@ export default function GeneratePlan() {
     if (!actionState.actionable || !generationReadiness.ready || !target || !preferences || !poolQuery.data) return
     setSeed(newSeed)
     setPlan(generateWeek(poolQuery.data, target, optionsFromPreferences(preferences, newSeed), keepLocks ? lockedSlots : undefined))
+  }
+
+  function updateManualTarget(key: 'calories' | 'protein_g' | 'carbs_g' | 'fat_g', value: string) {
+    setManualTarget(current => ({ ...current, [key]: numberFromInput(value) }))
+    setPlan(null)
+  }
+
+  function updateManualPreferences(next: UserNutritionPreferences) {
+    setManualPreferences(next)
+    setPlan(null)
   }
 
   function toggleLock(dayOfWeek: number, slotType: string) {
@@ -259,38 +328,7 @@ export default function GeneratePlan() {
       </EditorPage>
     )
   }
-  if (!isPreview && !userId) {
-    return (
-      <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Generate meal plan">
-        <Card className="max-w-2xl">
-          <h2 className="text-base font-bold text-text-primary">Choose an athlete</h2>
-          <p className="mt-1 text-sm text-text-secondary">The generator uses the athlete’s active macro target and saved nutrition preferences.</p>
-          {athletesQuery.isError ? (
-            <p role="alert" className="mt-4 text-sm text-error">Athletes couldn’t be loaded. Refresh and try again.</p>
-          ) : (
-            <div className="mt-5">
-              <label htmlFor="generator-athlete" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">Athlete</label>
-              <select
-                id="generator-athlete"
-                defaultValue=""
-                onChange={event => {
-                  if (event.target.value) navigate(`/admin/nutrition/meal-plans/generate?user=${encodeURIComponent(event.target.value)}`, { replace: true })
-                }}
-                className="h-11 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary outline-none focus:border-accent"
-              >
-                <option value="" disabled>Select athlete…</option>
-                {(athletesQuery.data ?? []).map(athlete => (
-                  <option key={athlete.id} value={athlete.id}>{athlete.full_name || athlete.email}</option>
-                ))}
-              </select>
-              {athletesQuery.data?.length === 0 && <p className="mt-3 text-sm text-text-secondary">No active athlete accounts are available.</p>}
-            </div>
-          )}
-        </Card>
-      </EditorPage>
-    )
-  }
-  if (!userId || !target) {
+  if (!target) {
     const previewDescription = isPreview
       ? 'The exact nutrition target version stored on this draft no longer exists. Restore it before reviewing or publishing the plan.'
       : 'Save macro goals for the athlete first, then generate a plan.'
@@ -304,31 +342,37 @@ export default function GeneratePlan() {
   return (
     <EditorPage
       backTo={userId ? `/admin/users/${userId}` : '/admin/nutrition?tab=meal-plans'}
-      backLabel="Back to athlete"
+      backLabel={userId ? 'Back to athlete' : 'Back to meal plans'}
       eyebrow="Generated nutrition"
       title={isPreview ? planName || 'Generated plan' : 'Generate meal plan'}
-      description="Deterministic draft built from the athlete's macro target and preferences. Swap or lock slots, regenerate, then publish."
+      description={isStandalone
+        ? 'Build a seven-day plan from manually entered macro goals and nutrition preferences.'
+        : "Deterministic draft built from the athlete's macro target and preferences. Swap or lock slots, regenerate, then publish."}
       actions={
         <>
           {savedPlanId && actionState.actionable && <Button variant="danger" onClick={() => setDeleteDialogOpen(true)} disabled={isSavingOrPublishing}>Delete draft</Button>}
           <Button variant="ghost" onClick={() => regenerate(seed + 1, true)} disabled={!actionState.actionable || !poolQuery.data?.length || isSavingOrPublishing || !generationReadiness.ready} title={actionState.actionable ? generationReadiness.blockers[0] : undefined}>
             <RefreshCw size={15} /> Regenerate
           </Button>
-          <Button variant="secondary" onClick={() => { if (plan) saveDraft.mutate(plan) }} loading={saveDraft.isPending} disabled={!plan || !actionState.actionable || publish.isPending}>Save draft</Button>
-          <Button onClick={() => setPublishDialogOpen(true)} disabled={!plan || !actionState.actionable || saveDraft.isPending || !canPublish} loading={publish.isPending} title={actionState.actionable && !canPublish ? publishGate.blockers[0] : undefined}>
-            {published ? 'Published' : 'Publish to athlete'}
-          </Button>
+          {!isStandalone && (
+            <>
+              <Button variant="secondary" onClick={() => { if (plan) saveDraft.mutate(plan) }} loading={saveDraft.isPending} disabled={!plan || !actionState.actionable || publish.isPending}>Save draft</Button>
+              <Button onClick={() => setPublishDialogOpen(true)} disabled={!plan || !actionState.actionable || saveDraft.isPending || !canPublish} loading={publish.isPending} title={actionState.actionable && !canPublish ? publishGate.blockers[0] : undefined}>
+                {published ? 'Published' : 'Publish to athlete'}
+              </Button>
+            </>
+          )}
         </>
       }
       aside={
         <>
           <Card>
-            <h2 className="text-sm font-bold text-text-primary">Athlete target</h2>
+            <h2 className="text-sm font-bold text-text-primary">{isStandalone ? 'Manual macro target' : 'Athlete target'}</h2>
             <div className="mt-3 divide-y divide-outline-subtle text-sm">
-              <div className="flex justify-between py-2"><span className="text-text-secondary">Calories</span><span className="font-semibold text-text-primary">{Math.round(target.calories)}</span></div>
-              <div className="flex justify-between py-2"><span className="text-text-secondary">Protein</span><span className="font-semibold text-text-primary">{Math.round(target.protein_g)}g</span></div>
-              <div className="flex justify-between py-2"><span className="text-text-secondary">Carbs</span><span className="font-semibold text-text-primary">{Math.round(target.carbs_g)}g</span></div>
-              <div className="flex justify-between py-2"><span className="text-text-secondary">Fat</span><span className="font-semibold text-text-primary">{Math.round(target.fat_g)}g</span></div>
+              <div className="flex justify-between py-2"><span className="text-text-secondary">Calories</span><span className="font-semibold text-text-primary">{roundedTargetValue(target.calories)}</span></div>
+              <div className="flex justify-between py-2"><span className="text-text-secondary">Protein</span><span className="font-semibold text-text-primary">{roundedTargetValue(target.protein_g, 'g')}</span></div>
+              <div className="flex justify-between py-2"><span className="text-text-secondary">Carbs</span><span className="font-semibold text-text-primary">{roundedTargetValue(target.carbs_g, 'g')}</span></div>
+              <div className="flex justify-between py-2"><span className="text-text-secondary">Fat</span><span className="font-semibold text-text-primary">{roundedTargetValue(target.fat_g, 'g')}</span></div>
             </div>
           </Card>
           {plan && (
@@ -356,7 +400,9 @@ export default function GeneratePlan() {
       {actionState.actionable && generationReadiness.blockers.length > 0 && (
         <Card className="border-warning/40 bg-warning/5" role="alert">
           <h2 className="text-sm font-bold text-text-primary">Generator launch blocked</h2>
-          <p className="mt-1 text-xs text-text-secondary">Generation and publishing stay disabled until every launch requirement below is resolved.</p>
+          <p className="mt-1 text-xs text-text-secondary">{isStandalone
+            ? 'Generation stays disabled until every requirement below is resolved.'
+            : 'Generation and publishing stay disabled until every launch requirement below is resolved.'}</p>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-warning">
             {generationReadiness.blockers.map(blocker => <li key={blocker}>{blocker}</li>)}
           </ul>
@@ -365,8 +411,10 @@ export default function GeneratePlan() {
 
       {plan && actionState.actionable && publishReadiness.blockers.length > 0 && (
         <Card className="border-warning/40 bg-warning/5" role="alert">
-          <h2 className="text-sm font-bold text-text-primary">Publish blocked</h2>
-          <p className="mt-1 text-xs text-text-secondary">You can still save this draft. Complete or adjust it before publishing to the athlete.</p>
+          <h2 className="text-sm font-bold text-text-primary">{isStandalone ? 'Target check' : 'Publish blocked'}</h2>
+          <p className="mt-1 text-xs text-text-secondary">{isStandalone
+            ? 'The plan was generated, but one or more days are outside the requested targets. Adjust the inputs or regenerate.'
+            : 'You can still save this draft. Complete or adjust it before publishing to the athlete.'}</p>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-warning">
             {publishReadiness.blockers.map(blocker => <li key={blocker}>{blocker}</li>)}
           </ul>
@@ -375,10 +423,44 @@ export default function GeneratePlan() {
 
       {!isPreview && preferences && (
         <Card className="p-5">
-          <h2 className="mb-1 text-sm font-bold text-text-primary">Generation options</h2>
-          <p className="mb-4 text-xs text-text-secondary">Generation uses the athlete's saved nutrition preferences. Edit them on the athlete profile before generating if they need to change.</p>
+          <h2 className="mb-1 text-sm font-bold text-text-primary">Generation inputs</h2>
+          <p className="mb-4 text-xs text-text-secondary">{isStandalone
+            ? 'Enter the required macro goals and filters below. Selecting an athlete is optional.'
+            : "Generation uses the athlete's saved nutrition preferences. Edit them on the athlete profile before generating if they need to change."}</p>
+          {isStandalone && (
+            <div className="mb-6 space-y-5">
+              <div>
+                <label htmlFor="generator-athlete" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">Athlete (optional)</label>
+                <select
+                  id="generator-athlete"
+                  value=""
+                  onChange={event => {
+                    if (event.target.value) navigate(`/admin/nutrition/meal-plans/generate?user=${encodeURIComponent(event.target.value)}`, { replace: true })
+                  }}
+                  className="h-11 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary outline-none focus:border-accent"
+                >
+                  <option value="">No athlete — use manual inputs</option>
+                  {(athletesQuery.data ?? []).map(athlete => (
+                    <option key={athlete.id} value={athlete.id}>{athlete.full_name || athlete.email}</option>
+                  ))}
+                </select>
+                {athletesQuery.isError && <p role="alert" className="mt-2 text-sm text-error">Athletes couldn’t be loaded. Manual generation is still available.</p>}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Input label="Calories" type="number" min="1" step="1" value={numberInputValue(manualTarget.calories)}
+                  onChange={event => updateManualTarget('calories', event.target.value)} />
+                <Input label="Protein (g)" type="number" min="0" step="1" value={numberInputValue(manualTarget.protein_g)}
+                  onChange={event => updateManualTarget('protein_g', event.target.value)} />
+                <Input label="Carbohydrates (g)" type="number" min="0" step="1" value={numberInputValue(manualTarget.carbs_g)}
+                  onChange={event => updateManualTarget('carbs_g', event.target.value)} />
+                <Input label="Fat (g)" type="number" min="0" step="1" value={numberInputValue(manualTarget.fat_g)}
+                  onChange={event => updateManualTarget('fat_g', event.target.value)} />
+              </div>
+              <NutritionPreferencesForm value={manualPreferences} onChange={updateManualPreferences} locale="en" />
+            </div>
+          )}
           <div className="mt-4 flex items-end gap-3">
-            <Input label="Plan name" value={planName} onChange={event => setPlanName(event.target.value)} className="flex-1" disabled={isSavingOrPublishing} />
+            {!isStandalone && <Input label="Plan name" value={planName} onChange={event => setPlanName(event.target.value)} className="flex-1" disabled={isSavingOrPublishing} />}
             <Button onClick={() => regenerate(seed, false)} disabled={!poolQuery.data?.length || isSavingOrPublishing || !generationReadiness.ready} title={generationReadiness.blockers[0]}>Generate</Button>
           </div>
           {!poolQuery.data?.length && <p className="mt-3 text-sm text-error">No generator-ready recipes exist. Mark recipes as eligible with verified macros first.</p>}
