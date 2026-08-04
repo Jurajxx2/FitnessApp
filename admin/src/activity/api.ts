@@ -342,8 +342,17 @@ export async function removeSet(setId: string) {
   if (error) throw error
 }
 
+// A session left running (e.g. the athlete forgot to tap "finish" and it stayed open
+// overnight) must not record an absurd duration that then feeds Progress totals and
+// the coach's compliance dashboard. Clamp is silent — no UI prompt — and floors at 1
+// minute so a sub-minute session still counts as completed.
+export const MAX_WORKOUT_DURATION_MINUTES = 240
+
 export async function finishWorkout(log: WorkoutLogRow, notes: string | null) {
-  const durationMinutes = Math.max(1, Math.round((Date.now() - new Date(log.logged_at).getTime()) / 60_000))
+  const durationMinutes = Math.min(
+    MAX_WORKOUT_DURATION_MINUTES,
+    Math.max(1, Math.round((Date.now() - new Date(log.logged_at).getTime()) / 60_000))
+  )
   const { error } = await supabase
     .from('workout_logs')
     .update({ status: 'completed', duration_minutes: durationMinutes, notes })
@@ -354,6 +363,24 @@ export async function finishWorkout(log: WorkoutLogRow, notes: string | null) {
 
 export async function discardWorkout(logId: string) {
   const { error } = await supabase.from('workout_logs').update({ status: 'discarded' }).eq('id', logId)
+  if (error) throw error
+}
+
+export async function deleteWorkoutLog(userId: string, logId: string): Promise<void> {
+  const { error } = await supabase.from('workout_logs').delete().eq('id', logId).eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function updateWorkoutLog(
+  userId: string,
+  logId: string,
+  values: { logged_at: string; notes: string | null }
+): Promise<void> {
+  const { error } = await supabase
+    .from('workout_logs')
+    .update({ logged_at: values.logged_at, notes: values.notes })
+    .eq('id', logId)
+    .eq('user_id', userId)
   if (error) throw error
 }
 
@@ -427,5 +454,23 @@ export async function getGeneralActivities(userId: string): Promise<GeneralActiv
 
 export async function logGeneralActivity(userId: string, draft: ActivityDraft) {
   const { error } = await supabase.from('general_activity_logs').insert({ user_id: userId, ...draft })
+  if (error) throw error
+}
+
+export async function updateGeneralActivity(userId: string, activityId: string, draft: ActivityDraft): Promise<void> {
+  const { error } = await supabase
+    .from('general_activity_logs')
+    .update(draft)
+    .eq('id', activityId)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function deleteGeneralActivity(userId: string, activityId: string): Promise<void> {
+  const { error } = await supabase
+    .from('general_activity_logs')
+    .delete()
+    .eq('id', activityId)
+    .eq('user_id', userId)
   if (error) throw error
 }

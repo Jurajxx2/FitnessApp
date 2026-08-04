@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { UserWorkoutDraft, UserWorkoutExerciseDraft } from './types'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ActivityDraft, UserWorkoutDraft, UserWorkoutExerciseDraft, WorkoutLogRow } from './types'
 
 // Captures the rows handed to workout_exercises.insert so we can assert the write-time guard runs
 // before the direct Postgrest insert (which bypasses the validating RPC coach plans go through).
@@ -16,6 +16,12 @@ let capturedFeedbackEqCalls: Array<[string, unknown]> = []
 let capturedFeedbackOrArg: string | null = null
 let capturedFeedbackOrderArg: [string, unknown] | null = null
 let feedbackMockResult: unknown[] = []
+let capturedWorkoutLogUpdateValues: Record<string, unknown> | null = null
+let capturedWorkoutLogUpdateEqCalls: Array<[string, unknown]> = []
+let capturedWorkoutLogDeleteEqCalls: Array<[string, unknown]> = []
+let capturedGeneralActivityUpdateValues: Record<string, unknown> | null = null
+let capturedGeneralActivityUpdateEqCalls: Array<[string, unknown]> = []
+let capturedGeneralActivityDeleteEqCalls: Array<[string, unknown]> = []
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -38,6 +44,29 @@ vi.mock('../lib/supabase', () => ({
           range: (from: number, to: number) => {
             capturedHistoryRange = [from, to]
             return Promise.resolve({ data: [], count: 37, error: null })
+          },
+          update: (values: Record<string, unknown>) => {
+            capturedWorkoutLogUpdateValues = values
+            capturedWorkoutLogUpdateEqCalls = []
+            const updateBuilder = {
+              eq: (column: string, value: unknown) => {
+                capturedWorkoutLogUpdateEqCalls.push([column, value])
+                return updateBuilder
+              },
+              then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+            }
+            return updateBuilder
+          },
+          delete: () => {
+            capturedWorkoutLogDeleteEqCalls = []
+            const deleteBuilder = {
+              eq: (column: string, value: unknown) => {
+                capturedWorkoutLogDeleteEqCalls.push([column, value])
+                return deleteBuilder
+              },
+              then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+            }
+            return deleteBuilder
           },
         }
         return builder
@@ -87,6 +116,33 @@ vi.mock('../lib/supabase', () => ({
         }
         return builder
       }
+      if (table === 'general_activity_logs') {
+        return {
+          update: (values: Record<string, unknown>) => {
+            capturedGeneralActivityUpdateValues = values
+            capturedGeneralActivityUpdateEqCalls = []
+            const updateBuilder = {
+              eq: (column: string, value: unknown) => {
+                capturedGeneralActivityUpdateEqCalls.push([column, value])
+                return updateBuilder
+              },
+              then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+            }
+            return updateBuilder
+          },
+          delete: () => {
+            capturedGeneralActivityDeleteEqCalls = []
+            const deleteBuilder = {
+              eq: (column: string, value: unknown) => {
+                capturedGeneralActivityDeleteEqCalls.push([column, value])
+                return deleteBuilder
+              },
+              then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+            }
+            return deleteBuilder
+          },
+        }
+      }
       // 'workouts' must satisfy both the create insert and the getWorkout read-back.
       return {
         insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 'w-new' }, error: null }) }) }),
@@ -96,7 +152,18 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
-const { createUserWorkout, getExercisePage, getLastExercisePerformances, getWorkoutFeedback, getWorkoutHistoryPage } = await import('./api')
+const {
+  createUserWorkout,
+  deleteGeneralActivity,
+  deleteWorkoutLog,
+  finishWorkout,
+  getExercisePage,
+  getLastExercisePerformances,
+  getWorkoutFeedback,
+  getWorkoutHistoryPage,
+  updateGeneralActivity,
+  updateWorkoutLog,
+} = await import('./api')
 
 function exercise(overrides: Partial<UserWorkoutExerciseDraft>): UserWorkoutExerciseDraft {
   return {
@@ -258,5 +325,92 @@ describe('getWorkoutFeedback', () => {
     expect(capturedFeedbackEqCalls).toEqual([['user_id', 'athlete-1']])
     expect(capturedFeedbackEqCalls.some(([column]) => column === 'workout_log_id')).toBe(false)
     expect(capturedFeedbackOrArg).toBe('workout_log_id.eq.log-1,exercise_log_id.in.(ex-1,ex-2)')
+  })
+})
+
+describe('finishWorkout duration clamp', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('clamps a 12-hour elapsed session to the 240-minute cap, not 720', async () => {
+    const startedAt = new Date('2026-08-04T00:00:00.000Z')
+    vi.spyOn(Date, 'now').mockReturnValue(startedAt.getTime() + 12 * 60 * 60_000)
+    const log = { id: 'log-1', logged_at: startedAt.toISOString() } as WorkoutLogRow
+
+    await expect(finishWorkout(log, null)).resolves.toBe(240)
+  })
+
+  it('still floors at 1 minute for a sub-minute session', async () => {
+    const startedAt = new Date('2026-08-04T00:00:00.000Z')
+    vi.spyOn(Date, 'now').mockReturnValue(startedAt.getTime() + 10_000)
+    const log = { id: 'log-1', logged_at: startedAt.toISOString() } as WorkoutLogRow
+
+    await expect(finishWorkout(log, null)).resolves.toBe(1)
+  })
+})
+
+describe('deleteWorkoutLog', () => {
+  it('filters the delete on both id and user_id, matching useDeleteMealLog\'s defence in depth', async () => {
+    capturedWorkoutLogDeleteEqCalls = []
+
+    await deleteWorkoutLog('athlete-1', 'log-1')
+
+    expect(capturedWorkoutLogDeleteEqCalls).toEqual([
+      ['id', 'log-1'],
+      ['user_id', 'athlete-1'],
+    ])
+  })
+})
+
+describe('updateWorkoutLog', () => {
+  it('sends only logged_at and notes, filtered by id and user_id', async () => {
+    capturedWorkoutLogUpdateValues = null
+    capturedWorkoutLogUpdateEqCalls = []
+
+    await updateWorkoutLog('athlete-1', 'log-1', { logged_at: '2026-08-01T10:00:00.000Z', notes: 'Felt strong' })
+
+    expect(capturedWorkoutLogUpdateValues).toEqual({ logged_at: '2026-08-01T10:00:00.000Z', notes: 'Felt strong' })
+    expect(Object.keys(capturedWorkoutLogUpdateValues!)).toEqual(['logged_at', 'notes'])
+    expect(capturedWorkoutLogUpdateEqCalls).toEqual([
+      ['id', 'log-1'],
+      ['user_id', 'athlete-1'],
+    ])
+  })
+})
+
+describe('deleteGeneralActivity', () => {
+  it('filters the delete on both id and user_id', async () => {
+    capturedGeneralActivityDeleteEqCalls = []
+
+    await deleteGeneralActivity('athlete-1', 'activity-1')
+
+    expect(capturedGeneralActivityDeleteEqCalls).toEqual([
+      ['id', 'activity-1'],
+      ['user_id', 'athlete-1'],
+    ])
+  })
+})
+
+describe('updateGeneralActivity', () => {
+  it('sends the full draft, filtered by id and user_id', async () => {
+    capturedGeneralActivityUpdateValues = null
+    capturedGeneralActivityUpdateEqCalls = []
+    const draft: ActivityDraft = {
+      activity_type: 'RUNNING',
+      duration_minutes: 40,
+      distance_km: 5,
+      rpe: 6,
+      logged_at: '2026-08-01T09:00:00.000Z',
+      notes: null,
+    }
+
+    await updateGeneralActivity('athlete-1', 'activity-1', draft)
+
+    expect(capturedGeneralActivityUpdateValues).toEqual(draft)
+    expect(capturedGeneralActivityUpdateEqCalls).toEqual([
+      ['id', 'activity-1'],
+      ['user_id', 'athlete-1'],
+    ])
   })
 })
