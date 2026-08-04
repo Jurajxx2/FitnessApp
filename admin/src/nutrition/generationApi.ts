@@ -37,6 +37,39 @@ export function serializeGeneratedPlanDays(plan: GeneratedPlan) {
   }))
 }
 
+export function serializeGeneratedPlanAsManualMeals(plan: GeneratedPlan) {
+  return plan.days.flatMap(day => day.slots.map(slot => {
+    if (!Number.isFinite(slot.portionMultiplier) || slot.portionMultiplier <= 0) {
+      throw new Error(`Invalid portion multiplier for ${slot.recipeName || slot.recipeId}`)
+    }
+    return {
+      day_of_week: day.dayOfWeek,
+      meal_type: slot.slot,
+      recipes: [{
+        recipe_id: slot.recipeId,
+        portion_multiplier: slot.portionMultiplier,
+      }],
+    }
+  }))
+}
+
+export async function saveGeneratedPlanToLibrary(input: {
+  name: string
+  description: string
+  plan: GeneratedPlan
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('admin_save_manual_meal_plan_v2', {
+    p_plan_id: null,
+    p_name: input.name,
+    p_description: input.description,
+    p_meals: serializeGeneratedPlanAsManualMeals(input.plan),
+    p_preserved_meal_ids: [],
+    p_assigned_user_ids: [],
+  })
+  if (error) throw error
+  return data as string
+}
+
 export async function saveGeneratedPlan(input: {
   planId: string | null; userId: string; name: string; description: string; targetId: string; plan: GeneratedPlan
 }): Promise<string> {

@@ -10,6 +10,7 @@ import {
   fetchGeneratorPool,
   fetchNutritionTargetVersion,
   saveGeneratedPlan,
+  saveGeneratedPlanToLibrary,
 } from '../../nutrition/generationApi'
 import type { GeneratedPlanRecord } from '../../nutrition/generationApi'
 import type { GeneratorRecipe, SlotType } from '../../nutrition/generator'
@@ -24,6 +25,7 @@ vi.mock('../../nutrition/generationApi', () => ({
   persistCurrentPlanThenPublish: vi.fn(),
   publishPlan: vi.fn(),
   saveGeneratedPlan: vi.fn(),
+  saveGeneratedPlanToLibrary: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({ supabase: { rpc: vi.fn(), from: vi.fn() } }))
@@ -138,6 +140,7 @@ function renderChooseAthlete() {
         <MemoryRouter initialEntries={['/admin/nutrition/generate']}>
           <Routes>
             <Route path="/admin/nutrition/generate" element={<GeneratePlan />} />
+            <Route path="/admin/nutrition/meal-plans/:id" element={<div>Saved library plan</div>} />
           </Routes>
         </MemoryRouter>
       </NoticeProvider>
@@ -181,6 +184,7 @@ beforeEach(() => {
   vi.mocked(fetchGeneratorPool).mockResolvedValue([])
   vi.mocked(fetchNutritionTargetVersion).mockResolvedValue(target)
   vi.mocked(saveGeneratedPlan).mockResolvedValue('plan-1')
+  vi.mocked(saveGeneratedPlanToLibrary).mockResolvedValue('library-plan-1')
   vi.mocked(supabase.rpc).mockResolvedValue({ data: [target], error: null } as never)
   vi.mocked(supabase.from).mockReset()
 })
@@ -247,8 +251,9 @@ describe('generation preferences', () => {
     expect(await screen.findByText("Generation uses the athlete's saved nutrition preferences. Edit them on the athlete profile before generating if they need to change.")).toBeInTheDocument()
     expect(screen.queryByText('Dietary patterns')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Include snack')).not.toBeInTheDocument()
-    expect(screen.getAllByRole('textbox')).toHaveLength(1)
+    expect(screen.getAllByRole('textbox')).toHaveLength(2)
     expect(screen.getByRole('textbox', { name: 'Plan name' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Description' })).toBeInTheDocument()
     expect(supabase.rpc).toHaveBeenCalledWith('get_active_nutrition_target', { p_user_id: 'athlete-1' })
   })
 
@@ -278,12 +283,40 @@ describe('generation preferences', () => {
     expect(generate).toBeEnabled()
     expect(screen.queryByRole('button', { name: 'Save draft' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Publish to athlete' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Publish to library' })).toBeDisabled()
 
     await user.click(generate)
 
     expect(await screen.findByText('Mon')).toBeInTheDocument()
     expect(screen.getByText('Sun')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Plan summary' })).toBeInTheDocument()
+    expect(screen.getByText('Ready to publish')).toBeInTheDocument()
+    const publishToLibrary = screen.getByRole('button', { name: 'Publish to library' })
+    expect(publishToLibrary).toBeEnabled()
     expect(supabase.rpc).not.toHaveBeenCalledWith('get_active_nutrition_target', expect.anything())
+
+    await user.click(publishToLibrary)
+    expect(screen.getByRole('heading', { name: 'Publish this plan to the library?' })).toBeInTheDocument()
+    const publishButtons = screen.getAllByRole('button', { name: 'Publish to library' })
+    await user.click(publishButtons[publishButtons.length - 1])
+
+    expect(saveGeneratedPlanToLibrary).toHaveBeenCalledWith(expect.objectContaining({
+      name: expect.stringContaining('Generated plan'),
+      description: '',
+    }))
+
+  })
+
+  it('clears the generated preview when manual macro inputs become invalid', async () => {
+    const user = userEvent.setup()
+    mockAthletes([])
+    vi.mocked(fetchGeneratorPool).mockResolvedValue(generatorRecipes())
+
+    renderChooseAthlete()
+
+    const generate = await screen.findByRole('button', { name: 'Generate' })
+    await user.click(generate)
+    expect(await screen.findByText('Mon')).toBeInTheDocument()
 
     await user.clear(screen.getByLabelText('Calories'))
 

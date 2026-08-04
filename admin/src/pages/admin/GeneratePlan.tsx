@@ -7,7 +7,7 @@ import { NutritionPreferencesForm } from '../../components/NutritionPreferencesF
 import { Button, Card, ConfirmDialog, EditorPage, Input, useNotice, Shimmer, EmptyState } from '../../components/ui'
 import { useNutritionPreferences } from '../../nutrition/preferences'
 import { generateWeek, isWithinTargetTolerances, restorePinnedSlotLockState, type GeneratedPlan, type GeneratedSlot, type GeneratorOptions, type GeneratorTarget } from '../../nutrition/generator'
-import { deletePlan, fetchGeneratedPlan, fetchGeneratorPool, fetchNutritionTargetVersion, persistCurrentPlanThenPublish, publishPlan, saveGeneratedPlan } from '../../nutrition/generationApi'
+import { deletePlan, fetchGeneratedPlan, fetchGeneratorPool, fetchNutritionTargetVersion, persistCurrentPlanThenPublish, publishPlan, saveGeneratedPlan, saveGeneratedPlanToLibrary } from '../../nutrition/generationApi'
 import { combineReadiness, getGeneratedPlanActionState, getGenerationReadiness, getPublishReadiness, isGeneratorGuardrailsApproved } from '../../nutrition/generationReadiness'
 import type { NutritionTarget, Profile, UserNutritionPreferences } from '../../types/database'
 
@@ -136,17 +136,20 @@ export default function GeneratePlan() {
   const preferencesQuery = useNutritionPreferences(userId)
 
   const [planName, setPlanName] = useState('')
+  const [planDescription, setPlanDescription] = useState('')
   const [seed, setSeed] = useState(1)
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
   const [manualTarget, setManualTarget] = useState<GeneratorTarget>(DEFAULT_MANUAL_TARGET)
   const [manualPreferences, setManualPreferences] = useState<UserNutritionPreferences>(defaultManualPreferences)
   const [savedPlanId, setSavedPlanId] = useState<string | null>(previewPlanId ?? null)
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
+  const [libraryPublishDialogOpen, setLibraryPublishDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   useEffect(() => {
     if (isPreview && previewQuery.data) {
       setPlanName(previewQuery.data.name)
+      setPlanDescription(previewQuery.data.description ?? '')
       setPlan(current => current ?? {
         days: previewQuery.data.days,
         score: previewQuery.data.score ?? 0,
@@ -155,10 +158,10 @@ export default function GeneratePlan() {
     }
   }, [isPreview, previewQuery.data])
   useEffect(() => {
-    if (!isPreview && !planName && targetQuery.data) {
+    if (!isPreview && !planName && (targetQuery.data || isStandalone)) {
       setPlanName(`Generated plan · ${new Date().toLocaleDateString('en-GB')}`)
     }
-  }, [isPreview, planName, targetQuery.data])
+  }, [isPreview, isStandalone, planName, targetQuery.data])
   useEffect(() => {
     if (!isPreview) {
       setPlan(null)
@@ -203,13 +206,19 @@ export default function GeneratePlan() {
     : { ready: false, blockers: [] }
   const actionState = getGeneratedPlanActionState(isPreview, previewQuery.data?.generation_status)
   const publishGate = combineReadiness(generationReadiness, publishReadiness)
-  const canPublish = actionState.actionable && publishGate.ready
+  const canPublish = actionState.actionable && publishGate.ready && Boolean(planName.trim())
   const published = previewQuery.data?.generation_status === 'published'
 
   const lockedSlots = useMemo(() => {
     const map = new Map<string, GeneratedSlot>()
     plan?.days.forEach(day => day.slots.forEach(slot => { if (slot.locked) map.set(`${day.dayOfWeek}:${slot.slot}`, slot) }))
     return map
+  }, [plan])
+  const planSummary = useMemo(() => {
+    if (!plan?.days.length) return null
+    const weeklyMeals = plan.days.reduce((sum, day) => sum + day.slots.length, 0)
+    const averageCalories = plan.days.reduce((sum, day) => sum + day.totals.calories, 0) / plan.days.length
+    return { days: plan.days.length, weeklyMeals, averageCalories }
   }, [plan])
 
   function regenerate(newSeed: number, keepLocks: boolean) {
@@ -257,7 +266,7 @@ export default function GeneratePlan() {
     mutationFn: async (planToSave: GeneratedPlan) => {
       if (!actionState.actionable) throw new Error('This saved plan is read-only')
       if (!targetQuery.data || !userId) throw new Error('Nothing to save yet')
-      return saveGeneratedPlan({ planId: savedPlanId, userId, name: planName, description: '', targetId: targetQuery.data.id, plan: planToSave })
+      return saveGeneratedPlan({ planId: savedPlanId, userId, name: planName, description: planDescription, targetId: targetQuery.data.id, plan: planToSave })
     },
     onSuccess: planId => {
       setSavedPlanId(planId)
@@ -288,6 +297,21 @@ export default function GeneratePlan() {
     onError: error => notify(`Couldn’t publish: ${error.message}`, 'error'),
   })
 
+  const publishToLibrary = useMutation({
+    mutationFn: async () => {
+      if (!isStandalone || !plan) throw new Error('Generate a meal plan first')
+      if (!planName.trim()) throw new Error('Add a plan name before publishing')
+      if (!canPublish) throw new Error(publishGate.blockers.join(' ') || 'Resolve the plan checks before publishing')
+      return saveGeneratedPlanToLibrary({ name: planName.trim(), description: planDescription.trim(), plan })
+    },
+    onSuccess: planId => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plans-admin'] })
+      notify('Meal plan published to the library.')
+      navigate(`/admin/nutrition/meal-plans/${planId}`, { replace: true })
+    },
+    onError: error => notify(`Couldn’t publish to the library: ${error.message}`, 'error'),
+  })
+
   const removeDraft = useMutation({
     mutationFn: async () => {
       if (!actionState.actionable) throw new Error('This saved plan is read-only')
@@ -300,7 +324,7 @@ export default function GeneratePlan() {
     },
     onError: error => notify(`Couldn’t delete draft: ${error.message}`, 'error'),
   })
-  const isSavingOrPublishing = saveDraft.isPending || publish.isPending
+  const isSavingOrPublishing = saveDraft.isPending || publish.isPending || publishToLibrary.isPending
 
   if ((isPreview && previewQuery.isLoading) || targetQuery.isLoading || poolQuery.isLoading || preferencesQuery.isLoading || athletesQuery.isLoading) {
     return <EditorPage backTo="/admin/nutrition?tab=meal-plans" backLabel="Back to meal plans" eyebrow="Generated nutrition" title="Loading…"><Shimmer className="h-96 w-full" /></EditorPage>
@@ -354,9 +378,14 @@ export default function GeneratePlan() {
           <Button variant="ghost" onClick={() => regenerate(seed + 1, true)} disabled={!actionState.actionable || !poolQuery.data?.length || isSavingOrPublishing || !generationReadiness.ready} title={actionState.actionable ? generationReadiness.blockers[0] : undefined}>
             <RefreshCw size={15} /> Regenerate
           </Button>
+          {isStandalone && (
+            <Button onClick={() => setLibraryPublishDialogOpen(true)} disabled={!plan || !canPublish || isSavingOrPublishing} loading={publishToLibrary.isPending} title={plan && !canPublish ? publishGate.blockers[0] : undefined}>
+              Publish to library
+            </Button>
+          )}
           {!isStandalone && (
             <>
-              <Button variant="secondary" onClick={() => { if (plan) saveDraft.mutate(plan) }} loading={saveDraft.isPending} disabled={!plan || !actionState.actionable || publish.isPending}>Save draft</Button>
+              <Button variant="secondary" onClick={() => { if (plan) saveDraft.mutate(plan) }} loading={saveDraft.isPending} disabled={!plan || !planName.trim() || !actionState.actionable || publish.isPending}>Save draft</Button>
               <Button onClick={() => setPublishDialogOpen(true)} disabled={!plan || !actionState.actionable || saveDraft.isPending || !canPublish} loading={publish.isPending} title={actionState.actionable && !canPublish ? publishGate.blockers[0] : undefined}>
                 {published ? 'Published' : 'Publish to athlete'}
               </Button>
@@ -375,6 +404,17 @@ export default function GeneratePlan() {
               <div className="flex justify-between py-2"><span className="text-text-secondary">Fat</span><span className="font-semibold text-text-primary">{roundedTargetValue(target.fat_g, 'g')}</span></div>
             </div>
           </Card>
+          {plan && (
+            <Card>
+              <h2 className="text-sm font-bold text-text-primary">Plan summary</h2>
+              <div className="mt-3 divide-y divide-outline-subtle text-sm">
+                <div className="flex justify-between py-2"><span className="text-text-secondary">Plan</span><span className="max-w-40 truncate font-semibold text-text-primary">{planName || 'Untitled'}</span></div>
+                <div className="flex justify-between py-2"><span className="text-text-secondary">Schedule</span><span className="font-semibold text-text-primary">{planSummary?.days} days · {planSummary?.weeklyMeals} meals</span></div>
+                <div className="flex justify-between py-2"><span className="text-text-secondary">Daily structure</span><span className="font-semibold text-text-primary">{preferences?.include_snack ? '3 meals + snack' : '3 meals'}</span></div>
+                <div className="flex justify-between py-2"><span className="text-text-secondary">Average energy</span><span className="font-semibold text-text-primary">{Math.round(planSummary?.averageCalories ?? 0)} kcal/day</span></div>
+              </div>
+            </Card>
+          )}
           {plan && (
             <Card>
               <h2 className="text-sm font-bold text-text-primary">Diagnostics</h2>
@@ -459,8 +499,11 @@ export default function GeneratePlan() {
               <NutritionPreferencesForm value={manualPreferences} onChange={updateManualPreferences} locale="en" />
             </div>
           )}
-          <div className="mt-4 flex items-end gap-3">
-            {!isStandalone && <Input label="Plan name" value={planName} onChange={event => setPlanName(event.target.value)} className="flex-1" disabled={isSavingOrPublishing} />}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="Plan name" value={planName} onChange={event => setPlanName(event.target.value)} disabled={isSavingOrPublishing} required />
+            <Input label="Description" value={planDescription} onChange={event => setPlanDescription(event.target.value)} disabled={isSavingOrPublishing} placeholder="Optional note shown with the plan" />
+          </div>
+          <div className="mt-4 flex justify-end">
             <Button onClick={() => regenerate(seed, false)} disabled={!poolQuery.data?.length || isSavingOrPublishing || !generationReadiness.ready} title={generationReadiness.blockers[0]}>Generate</Button>
           </div>
           {!poolQuery.data?.length && <p className="mt-3 text-sm text-error">No generator-ready recipes exist. Mark recipes as eligible with verified macros first.</p>}
@@ -500,13 +543,32 @@ export default function GeneratePlan() {
         </div>
       )}
 
+      {plan && isStandalone && canPublish && (
+        <Card className="border-accent/30 bg-accent/5">
+          <h2 className="text-sm font-bold text-text-primary">Ready to publish</h2>
+          <p className="mt-1 text-sm text-text-secondary">Publish this exact seven-day result to the reusable meal-plan library. It will keep the generated portion sizes and will not be assigned to an athlete until you choose one later.</p>
+        </Card>
+      )}
+
       <ConfirmDialog
         open={publishDialogOpen}
         title="Publish this plan to the athlete?"
         description="It replaces the athlete's current meal plan. The previous plan stays in assignment history."
+        confirmLabel="Publish plan"
+        confirmVariant="primary"
         pending={isSavingOrPublishing}
         onClose={() => setPublishDialogOpen(false)}
         onConfirm={() => { setPublishDialogOpen(false); publish.mutate() }}
+      />
+      <ConfirmDialog
+        open={libraryPublishDialogOpen}
+        title="Publish this plan to the library?"
+        description={`${planName || 'This plan'} will be saved as a reusable seven-day meal plan with its exact generated portions. It will not be assigned to an athlete yet.`}
+        confirmLabel="Publish to library"
+        confirmVariant="primary"
+        pending={publishToLibrary.isPending}
+        onClose={() => setLibraryPublishDialogOpen(false)}
+        onConfirm={() => { setLibraryPublishDialogOpen(false); publishToLibrary.mutate() }}
       />
       <ConfirmDialog
         open={deleteDialogOpen}

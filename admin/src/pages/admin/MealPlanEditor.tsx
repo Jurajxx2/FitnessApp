@@ -21,6 +21,7 @@ const MEAL_LABELS: Record<MealType, string> = {
 interface RecipeDraft {
   recipe_id: string
   recipe_name: string
+  portion_multiplier: number
   calories: number
   protein_g: number
   carbs_g: number
@@ -170,8 +171,9 @@ export default function MealPlanEditor() {
 
           const { data: mprRows } = await supabase
             .from('meal_plan_recipes')
-            .select('recipe_id')
+            .select('recipe_id, portion_multiplier, sort_order')
             .eq('meal_id', item.id)
+            .order('sort_order')
 
           const recipeIds = (mprRows ?? []).map(r => r.recipe_id)
           if (recipeIds.length) {
@@ -179,14 +181,19 @@ export default function MealPlanEditor() {
               .from('recipes')
               .select('id, name, calories, protein_g, carbs_g, fat_g')
               .in('id', recipeIds)
-            draft.recipes = (recipeData ?? []).map(r => ({
-              recipe_id: r.id,
-              recipe_name: r.name,
-              calories: r.calories,
-              protein_g: r.protein_g,
-              carbs_g: r.carbs_g,
-              fat_g: r.fat_g,
-            }))
+            draft.recipes = (mprRows ?? []).flatMap(row => {
+              const recipe = (recipeData ?? []).find(candidate => candidate.id === row.recipe_id)
+              if (!recipe) return []
+              return [{
+                recipe_id: recipe.id,
+                recipe_name: recipe.name,
+                portion_multiplier: Number(row.portion_multiplier) || 1,
+                calories: recipe.calories,
+                protein_g: recipe.protein_g,
+                carbs_g: recipe.carbs_g,
+                fat_g: recipe.fat_g,
+              }]
+            })
           }
         }
         setMeals(drafts)
@@ -212,6 +219,7 @@ export default function MealPlanEditor() {
             recipes: [...m.recipes, {
               recipe_id: recipe.id,
               recipe_name: recipe.name,
+              portion_multiplier: 1,
               calories: recipe.calories,
               protein_g: recipe.protein_g,
               carbs_g: recipe.carbs_g,
@@ -244,14 +252,17 @@ export default function MealPlanEditor() {
   const savePlan = useMutation({
     mutationFn: async () => {
       const nonEmpty = meals.filter(m => m.recipes.length > 0)
-      const { data: savedPlanId, error } = await supabase.rpc('admin_save_manual_meal_plan', {
+      const { data: savedPlanId, error } = await supabase.rpc('admin_save_manual_meal_plan_v2', {
         p_plan_id: id ?? null,
         p_name: planName,
         p_description: description,
         p_meals: nonEmpty.map(meal => ({
           day_of_week: meal.day_of_week,
           meal_type: meal.meal_type,
-          recipes: meal.recipes.map(recipe => recipe.recipe_id),
+          recipes: meal.recipes.map(recipe => ({
+            recipe_id: recipe.recipe_id,
+            portion_multiplier: recipe.portion_multiplier,
+          })),
         })),
         p_preserved_meal_ids: unmanagedMealIds,
         p_assigned_user_ids: assignedUserIds,
@@ -281,10 +292,10 @@ export default function MealPlanEditor() {
   const selectedDayMacros = MEAL_TYPES
     .flatMap(type => getDraft(selectedDay, type).recipes)
     .reduce((total, recipe) => ({
-      calories: total.calories + recipe.calories,
-      proteinG: total.proteinG + recipe.protein_g,
-      carbsG: total.carbsG + recipe.carbs_g,
-      fatG: total.fatG + recipe.fat_g,
+      calories: total.calories + recipe.calories * recipe.portion_multiplier,
+      proteinG: total.proteinG + recipe.protein_g * recipe.portion_multiplier,
+      carbsG: total.carbsG + recipe.carbs_g * recipe.portion_multiplier,
+      fatG: total.fatG + recipe.fat_g * recipe.portion_multiplier,
     }), { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 })
   const targetAthlete = profiles.find(profile => profile.id === initialUserId)
   const { to: returnTo, label: returnLabel } = getUserContextReturn(
@@ -390,7 +401,10 @@ export default function MealPlanEditor() {
                   <div className="mb-3 space-y-2">
                     {draft.recipes.map((recipe, recipeIndex) => (
                       <div key={`${recipe.recipe_id}-${recipeIndex}`} className="flex items-center justify-between gap-2 rounded-xl border border-outline-subtle bg-surface-elevated px-3 py-2">
-                        <span className="min-w-0 truncate text-xs font-medium text-text-primary">{recipe.recipe_name}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-xs font-medium text-text-primary">{recipe.recipe_name}</span>
+                          <span className="block text-[10px] text-text-secondary">{recipe.portion_multiplier}× · {Math.round(recipe.calories * recipe.portion_multiplier)} kcal</span>
+                        </span>
                         <button type="button" aria-label={`Remove ${recipe.recipe_name}`} onClick={() => removeRecipe(selectedDay, mealType, recipeIndex)} className="min-h-8 cursor-pointer rounded-lg border-0 bg-transparent px-1 text-xs text-error hover:bg-error/10">Remove</button>
                       </div>
                     ))}

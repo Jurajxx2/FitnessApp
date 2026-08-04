@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { supabase } from '../lib/supabase'
 import type { NutritionTarget } from '../types/database'
 import type { GeneratedPlan } from './generator'
-import { deletePlan, fetchGeneratedPlan, fetchGeneratorPool, fetchNutritionTargetVersion, persistCurrentPlanThenPublish, serializeGeneratedPlanDays } from './generationApi'
+import { deletePlan, fetchGeneratedPlan, fetchGeneratorPool, fetchNutritionTargetVersion, persistCurrentPlanThenPublish, saveGeneratedPlanToLibrary, serializeGeneratedPlanAsManualMeals, serializeGeneratedPlanDays } from './generationApi'
 
 vi.mock('../lib/supabase', () => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }))
 
@@ -75,6 +75,53 @@ describe('serializeGeneratedPlanDays', () => {
     const invalid = structuredClone(plan)
     invalid.days[0].slots[0].portionMultiplier = 0
     expect(() => serializeGeneratedPlanDays(invalid)).toThrow('Invalid portion multiplier')
+  })
+})
+
+describe('saveGeneratedPlanToLibrary', () => {
+  const plan = {
+    days: [{
+      dayOfWeek: 0,
+      slots: [{
+        slot: 'breakfast', recipeId: 'recipe-1', recipeName: 'Scaled breakfast', portionMultiplier: 1.5,
+        calories: 450, protein_g: 30, carbs_g: 51, fat_g: 12, fiber_g: 6, locked: false,
+      }],
+      totals: { calories: 450, protein_g: 30, carbs_g: 51, fat_g: 12 },
+      withinTolerance: true,
+    }],
+    score: 0,
+    diagnostics: { poolSizePerSlot: {}, daysOutOfTolerance: [], notes: [] },
+  } satisfies GeneratedPlan
+
+  it('serializes the exact generated portion into the reusable manual-plan contract', () => {
+    expect(serializeGeneratedPlanAsManualMeals(plan)).toEqual([{
+      day_of_week: 0,
+      meal_type: 'breakfast',
+      recipes: [{ recipe_id: 'recipe-1', portion_multiplier: 1.5 }],
+    }])
+  })
+
+  it('publishes an unassigned reusable plan through the additive v2 RPC', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: 'library-plan-1', error: null } as never)
+
+    await expect(saveGeneratedPlanToLibrary({
+      name: 'Performance week',
+      description: 'Reusable generated plan',
+      plan,
+    })).resolves.toBe('library-plan-1')
+
+    expect(supabase.rpc).toHaveBeenCalledWith('admin_save_manual_meal_plan_v2', {
+      p_plan_id: null,
+      p_name: 'Performance week',
+      p_description: 'Reusable generated plan',
+      p_meals: [{
+        day_of_week: 0,
+        meal_type: 'breakfast',
+        recipes: [{ recipe_id: 'recipe-1', portion_multiplier: 1.5 }],
+      }],
+      p_preserved_meal_ids: [],
+      p_assigned_user_ids: [],
+    })
   })
 })
 
