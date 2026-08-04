@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   useActiveMealPlan,
   useFoodFavorites,
+  useFoodSearch,
   useMealLog,
   useRecentFoods,
   useRecipe,
@@ -108,6 +109,9 @@ export default function LogMeal() {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set([items[0].key]))
   const [recipeServings, setRecipeServings] = useState(1)
   const [savedMealName, setSavedMealName] = useState('')
+  const [foodSearchTerm, setFoodSearchTerm] = useState('')
+  const [debouncedFoodSearchTerm, setDebouncedFoodSearchTerm] = useState('')
+  const foodSearch = useFoodSearch(debouncedFoodSearchTerm)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false)
@@ -196,6 +200,11 @@ export default function LogMeal() {
     setPhotoPreview(preview)
     return () => URL.revokeObjectURL(preview)
   }, [isEdit, photoFile, removeExistingPhoto])
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedFoodSearchTerm(foodSearchTerm.trim()), 300)
+    return () => window.clearTimeout(timeout)
+  }, [foodSearchTerm])
 
   // Move focus to the incoming step's heading when the view swaps between capture and review,
   // so keyboard/screen-reader focus never falls to <body>. Skip the first render so prefills
@@ -536,6 +545,34 @@ export default function LogMeal() {
 
           <Card className="flex min-w-0 flex-col gap-5 p-5 sm:p-6 lg:sticky lg:top-0">
             <div><h2 className="font-bold text-text-primary">Rýchle pridanie</h2><p className="mt-1 text-xs text-text-secondary">Výber iba doplní návrh. Uloženie zostáva samostatný krok.</p></div>
+            <div>
+              <label htmlFor="foodSearchInput" className="mb-2 block text-xs font-bold uppercase tracking-wider text-text-secondary">Hľadať potravinu</label>
+              <input
+                id="foodSearchInput"
+                type="text"
+                value={foodSearchTerm}
+                onChange={event => setFoodSearchTerm(event.target.value)}
+                placeholder="Zadaj názov potraviny…"
+                className="min-h-11 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent"
+              />
+              {debouncedFoodSearchTerm.trim().length >= 2 && (
+                <div className="mt-2">
+                  {foodSearch.isLoading ? (
+                    <Shimmer className="h-12 w-full" />
+                  ) : foodSearch.isError ? (
+                    <p className="text-xs text-error">Potraviny sa nepodarilo načítať.</p>
+                  ) : (foodSearch.data ?? []).length === 0 ? (
+                    <p className="text-xs text-text-secondary">Žiadna potravina nezodpovedá hľadaniu.</p>
+                  ) : (
+                    <div className="divide-y divide-outline-subtle">
+                      {foodSearch.data!.map((food: FoodRow) => (
+                        <QuickAddButton key={food.id} label={food.name} detail={`${Math.round(food.calories)} kcal`} onClick={() => addDraft(draftFromFood(scaleFood(food, food.serving_size), 'manual'))} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             {favorites.length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Obľúbené</p><div className="divide-y divide-outline-subtle">{favorites.slice(0, 8).map(favorite => <QuickAddButton key={favorite.id} label={favorite.name} detail={`${Math.round(favorite.calories)} kcal`} onClick={() => addDraft(snapshotToDraft(favorite, 'favorite'))} />)}</div></div>}
             {(recentsQuery.data ?? []).length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Naposledy použité</p><div className="divide-y divide-outline-subtle">{recentsQuery.data!.slice(0, 8).map(recent => <QuickAddButton key={recent.key} label={recent.name} detail={`${Math.round(recent.calories)} kcal`} onClick={() => addDraft(draftFromFood(persistedFood(recent), 'recent'))} />)}</div></div>}
             {(savedMealsQuery.data ?? []).length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Vlastné jedlá</p><div className="divide-y divide-outline-subtle">{savedMealsQuery.data!.map(saved => <div key={saved.id} className="flex items-center gap-1"><QuickAddButton label={saved.name} detail={`${saved.saved_meal_items.length} položiek`} onClick={() => { setMealName(saved.name); replaceItems(saved.saved_meal_items.map(item => snapshotToDraft(item, 'saved'))) }} /><button type="button" aria-label={`Vymazať uložené jedlo ${saved.name}`} onClick={() => void deleteSavedMeal(saved.id)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error"><Trash2 size={15} /></button></div>)}</div></div>}

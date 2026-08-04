@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NoticeProvider } from '../../components/ui'
 import {
-  useActiveMealPlan, useFoodFavorites, useMealLog, useRecentFoods, useRecipe,
+  useActiveMealPlan, useFoodFavorites, useFoodSearch, useMealLog, useRecentFoods, useRecipe,
   useSavedMeals, useSeedFoods,
 } from '../../nutrition/hooks'
 import {
@@ -19,6 +19,7 @@ import { rescaleDraftAmount, draftFromFood } from '../../nutrition/logDraft'
 vi.mock('../../nutrition/hooks', () => ({
   useActiveMealPlan: vi.fn(),
   useFoodFavorites: vi.fn(),
+  useFoodSearch: vi.fn(),
   useMealLog: vi.fn(),
   useRecentFoods: vi.fn(),
   useRecipe: vi.fn(),
@@ -72,6 +73,7 @@ beforeEach(() => {
   } as unknown as ReturnType<typeof useRecipe>)
   vi.mocked(useActiveMealPlan).mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof useActiveMealPlan>)
   vi.mocked(useFoodFavorites).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useFoodFavorites>)
+  vi.mocked(useFoodSearch).mockReturnValue({ data: undefined, isLoading: false, isError: false } as unknown as ReturnType<typeof useFoodSearch>)
   vi.mocked(useRecentFoods).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useRecentFoods>)
   vi.mocked(useSavedMeals).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useSavedMeals>)
   vi.mocked(useSeedFoods).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useSeedFoods>)
@@ -375,6 +377,64 @@ describe('LogMeal', () => {
 
     expect(screen.getByLabelText('Názov jedla')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Jablko')).toBeInTheDocument()
+  })
+})
+
+const TOFU_RESULT = {
+  id: 'food-tofu', name: 'Tofu', calories: 144, protein_g: 15, carbs_g: 3, fat_g: 8,
+  serving_size: 100, serving_unit: 'g', brand: null, is_verified: true,
+}
+
+describe('LogMeal food search', () => {
+  it('keeps the search input mounted and focused while a query is loading', async () => {
+    vi.mocked(useFoodSearch).mockReturnValue({ data: undefined, isLoading: true, isError: false } as unknown as ReturnType<typeof useFoodSearch>)
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    const input = screen.getByLabelText('Hľadať potravinu')
+
+    await user.type(input, 'ry')
+
+    expect(document.body.contains(input)).toBe(true)
+    expect(document.activeElement).toBe(input)
+  })
+
+  it('renders result rows once a 2+ character query resolves', async () => {
+    vi.mocked(useFoodSearch).mockReturnValue({ data: [TOFU_RESULT], isLoading: false, isError: false } as unknown as ReturnType<typeof useFoodSearch>)
+    const user = userEvent.setup()
+    await enterManualReview(user)
+
+    await user.type(screen.getByLabelText('Hľadať potravinu'), 'tofu')
+
+    expect(await screen.findByRole('button', { name: /^Tofu\b.*144 kcal/ })).toBeInTheDocument()
+  })
+
+  it('adds a search result to the meal via the shared add path, with matching macros', async () => {
+    vi.mocked(useFoodSearch).mockReturnValue({ data: [TOFU_RESULT], isLoading: false, isError: false } as unknown as ReturnType<typeof useFoodSearch>)
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    await user.type(screen.getByLabelText('Hľadať potravinu'), 'tofu')
+    const resultButton = await screen.findByRole('button', { name: /^Tofu\b.*144 kcal/ })
+
+    await user.click(resultButton)
+
+    expect(screen.getByLabelText('Názov')).toHaveValue('Tofu')
+    expect(screen.getByLabelText('Kcal')).toHaveValue(144)
+    expect(screen.getByLabelText('Bielkoviny')).toHaveValue(15)
+    expect(screen.getByLabelText('Sacharidy')).toHaveValue(3)
+    expect(screen.getByLabelText('Tuky')).toHaveValue(8)
+  })
+
+  it('shows the zero-result message for an empty result set while the input stays mounted', async () => {
+    vi.mocked(useFoodSearch).mockReturnValue({ data: [], isLoading: false, isError: false } as unknown as ReturnType<typeof useFoodSearch>)
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    const input = screen.getByLabelText('Hľadať potravinu')
+
+    await user.type(input, 'xyz')
+
+    expect(await screen.findByText('Žiadna potravina nezodpovedá hľadaniu.')).toBeInTheDocument()
+    // Same DOM node, not a remounted replacement — the input never disappears mid-query.
+    expect(screen.getByLabelText('Hľadať potravinu')).toBe(input)
   })
 })
 
