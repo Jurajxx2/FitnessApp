@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, BarChart3, ChevronRight, Clock3, Dumbbell } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import { getWorkoutHistoryPage, getWorkoutLog } from '../../activity/api'
+import { getWorkoutFeedback, getWorkoutHistoryPage, getWorkoutLog } from '../../activity/api'
 import { completedSets, formatDate, formatDuration, workoutVolume } from '../../activity/logic'
 import { useAuth } from '../../hooks/useAuth'
 import { formatSeconds } from '../../workouts/builder'
 import { Pagination } from '../../components/ui'
+import type { WorkoutFeedback } from '../../types/database'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
 
 export default function WorkoutHistory() {
@@ -111,6 +112,11 @@ function HistoryDetail({ logId }: { logId: string }) {
     queryFn: () => getWorkoutLog(userId, logId),
     enabled: Boolean(userId)
   })
+  const feedbackQuery = useQuery({
+    queryKey: ['activity', 'workout-feedback', userId, logId],
+    queryFn: () => getWorkoutFeedback(userId, logId, (logQuery.data?.exercise_logs ?? []).map(exercise => exercise.id)),
+    enabled: Boolean(userId) && Boolean(logQuery.data)
+  })
   if (logQuery.isLoading)
     return (
       <ActivityPage>
@@ -125,6 +131,13 @@ function HistoryDetail({ logId }: { logId: string }) {
     )
   const log = logQuery.data
   const volume = workoutVolume(log)
+  const feedback = feedbackQuery.data ?? []
+  const sessionFeedback = feedback.filter(item => item.workout_log_id)
+  const feedbackByExercise = new Map<string, WorkoutFeedback[]>()
+  for (const item of feedback) {
+    if (!item.exercise_log_id) continue
+    feedbackByExercise.set(item.exercise_log_id, [...(feedbackByExercise.get(item.exercise_log_id) ?? []), item])
+  }
 
   return (
     <ActivityPage>
@@ -143,41 +156,64 @@ function HistoryDetail({ logId }: { logId: string }) {
         </div>
         {log.notes && <p className="mt-5 rounded-xl bg-surface p-4 text-sm leading-6 text-text-secondary">{log.notes}</p>}
       </div>
+      {sessionFeedback.length > 0 && <FeedbackNote label="Spätná väzba od trénera" items={sessionFeedback} />}
       <div className="space-y-4">
-        {log.exercise_logs.map(exercise => (
-          <section key={exercise.id} className="overflow-hidden rounded-2xl border border-outline bg-surface-elevated">
-            <div className="p-5">
-              <h3 className="font-bold text-text-primary">{exercise.exercise_name}</h3>
-              <p className="mt-1 text-xs text-text-secondary">{exercise.set_logs.filter(set => set.completed).length || exercise.sets_completed || 0} dokončených sérií</p>
-            </div>
-            {exercise.set_logs.length > 0 ? (
-              <div className="border-t border-outline-subtle px-5 pb-4">
-                <div className="grid grid-cols-5 gap-2 py-3 ledger-label text-text-secondary">
-                  <span>Séria</span>
-                  <span>Opakovania</span>
-                  <span>Váha</span>
-                  <span>Čas</span>
-                  <span>RPE</span>
-                </div>
-                {exercise.set_logs.map(set => (
-                  <div key={set.id} className={`grid grid-cols-5 gap-2 border-t border-outline-subtle py-3 text-sm ${set.completed ? 'text-text-primary' : 'text-text-secondary'}`}>
-                    <span className="font-semibold">{set.sort_order}</span>
-                    <span>{set.actual_reps ?? '—'}</span>
-                    <span>{set.actual_weight_kg != null ? `${set.actual_weight_kg} kg` : '—'}</span>
-                    <span>{set.actual_duration_seconds != null ? formatSeconds(set.actual_duration_seconds) : '—'}</span>
-                    <span>{set.rpe ?? '—'}</span>
-                  </div>
-                ))}
+        {log.exercise_logs.map(exercise => {
+          const exerciseFeedback = feedbackByExercise.get(exercise.id) ?? []
+          return (
+            <section key={exercise.id} className="overflow-hidden rounded-2xl border border-outline bg-surface-elevated">
+              <div className="p-5">
+                <h3 className="font-bold text-text-primary">{exercise.exercise_name}</h3>
+                <p className="mt-1 text-xs text-text-secondary">{exercise.set_logs.filter(set => set.completed).length || exercise.sets_completed || 0} dokončených sérií</p>
               </div>
-            ) : (
-              <p className="border-t border-outline-subtle p-5 text-sm text-text-secondary">
-                Starší záznam: {exercise.sets_completed ?? 0} sérií · {exercise.reps_completed ?? 'opakovaní nezaznamenané'} · {exercise.weight_kg != null ? `${exercise.weight_kg} kg` : 'váha nezaznamenaná'}
-              </p>
-            )}
-          </section>
-        ))}
+              {exercise.set_logs.length > 0 ? (
+                <div className="border-t border-outline-subtle px-5 pb-4">
+                  <div className="grid grid-cols-5 gap-2 py-3 ledger-label text-text-secondary">
+                    <span>Séria</span>
+                    <span>Opakovania</span>
+                    <span>Váha</span>
+                    <span>Čas</span>
+                    <span>RPE</span>
+                  </div>
+                  {exercise.set_logs.map(set => (
+                    <div key={set.id} className={`grid grid-cols-5 gap-2 border-t border-outline-subtle py-3 text-sm ${set.completed ? 'text-text-primary' : 'text-text-secondary'}`}>
+                      <span className="font-semibold">{set.sort_order}</span>
+                      <span>{set.actual_reps ?? '—'}</span>
+                      <span>{set.actual_weight_kg != null ? `${set.actual_weight_kg} kg` : '—'}</span>
+                      <span>{set.actual_duration_seconds != null ? formatSeconds(set.actual_duration_seconds) : '—'}</span>
+                      <span>{set.rpe ?? '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="border-t border-outline-subtle p-5 text-sm text-text-secondary">
+                  Starší záznam: {exercise.sets_completed ?? 0} sérií · {exercise.reps_completed ?? 'opakovaní nezaznamenané'} · {exercise.weight_kg != null ? `${exercise.weight_kg} kg` : 'váha nezaznamenaná'}
+                </p>
+              )}
+              {exerciseFeedback.length > 0 && (
+                <div className="border-t border-outline-subtle p-5">
+                  <FeedbackNote label="Poznámka trénera" items={exerciseFeedback} />
+                </div>
+              )}
+            </section>
+          )
+        })}
       </div>
     </ActivityPage>
+  )
+}
+
+function FeedbackNote({ label, items }: { label: string; items: WorkoutFeedback[] }) {
+  return (
+    <div className="space-y-3 rounded-xl border-l-2 border-accent bg-surface-highest p-4">
+      <p className="ledger-label text-text-secondary">{label}</p>
+      {items.map(item => (
+        <div key={item.id}>
+          <p className="text-sm leading-6 text-text-primary">{item.body}</p>
+          <p className="mt-1 text-xs text-text-secondary">{formatDate(item.created_at, { dateStyle: 'medium', timeStyle: 'short' })}</p>
+        </div>
+      ))}
+    </div>
   )
 }
 

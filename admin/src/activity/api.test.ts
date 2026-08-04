@@ -12,6 +12,10 @@ let capturedExerciseEqCalls: Array<[string, unknown]> = []
 let capturedExerciseInArgs: [string, string[]] | null = null
 let exercisePageQueryCount = 0
 let exercisePageMockResult: { data: unknown[]; count: number } = { data: [], count: 0 }
+let capturedFeedbackEqCalls: Array<[string, unknown]> = []
+let capturedFeedbackOrArg: string | null = null
+let capturedFeedbackOrderArg: [string, unknown] | null = null
+let feedbackMockResult: unknown[] = []
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -65,6 +69,24 @@ vi.mock('../lib/supabase', () => ({
         }
         return builder
       }
+      if (table === 'workout_feedback') {
+        const builder: Record<string, unknown> = {
+          select: () => builder,
+          eq: (column: string, value: unknown) => {
+            capturedFeedbackEqCalls.push([column, value])
+            return builder
+          },
+          or: (arg: string) => {
+            capturedFeedbackOrArg = arg
+            return builder
+          },
+          order: (column: string, options: unknown) => {
+            capturedFeedbackOrderArg = [column, options]
+            return Promise.resolve({ data: feedbackMockResult, error: null })
+          },
+        }
+        return builder
+      }
       // 'workouts' must satisfy both the create insert and the getWorkout read-back.
       return {
         insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 'w-new' }, error: null }) }) }),
@@ -74,7 +96,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
-const { createUserWorkout, getExercisePage, getLastExercisePerformances, getWorkoutHistoryPage } = await import('./api')
+const { createUserWorkout, getExercisePage, getLastExercisePerformances, getWorkoutFeedback, getWorkoutHistoryPage } = await import('./api')
 
 function exercise(overrides: Partial<UserWorkoutExerciseDraft>): UserWorkoutExerciseDraft {
   return {
@@ -208,5 +230,33 @@ describe('getExercisePage', () => {
     await expect(getExercisePage({ search: '', difficulty: null, favoriteIds: [] }, 0)).resolves.toEqual({ data: [], count: 0 })
     expect(exercisePageQueryCount).toBe(0)
     expect(capturedExercisePageRange).toBeNull()
+  })
+})
+
+describe('getWorkoutFeedback', () => {
+  beforeEach(() => {
+    capturedFeedbackEqCalls = []
+    capturedFeedbackOrArg = null
+    capturedFeedbackOrderArg = null
+    feedbackMockResult = []
+  })
+
+  it('uses the .eq(workout_log_id) path — not .or() — when exerciseLogIds is empty', async () => {
+    feedbackMockResult = [{ id: 'f1', workout_log_id: 'log-1', exercise_log_id: null }]
+
+    await expect(getWorkoutFeedback('athlete-1', 'log-1', [])).resolves.toEqual(feedbackMockResult)
+
+    expect(capturedFeedbackEqCalls).toContainEqual(['user_id', 'athlete-1'])
+    expect(capturedFeedbackEqCalls).toContainEqual(['workout_log_id', 'log-1'])
+    expect(capturedFeedbackOrArg).toBeNull()
+    expect(capturedFeedbackOrderArg).toEqual(['created_at', { ascending: true }])
+  })
+
+  it('uses the .or() path with an in.() list when exerciseLogIds is non-empty', async () => {
+    await getWorkoutFeedback('athlete-1', 'log-1', ['ex-1', 'ex-2'])
+
+    expect(capturedFeedbackEqCalls).toEqual([['user_id', 'athlete-1']])
+    expect(capturedFeedbackEqCalls.some(([column]) => column === 'workout_log_id')).toBe(false)
+    expect(capturedFeedbackOrArg).toBe('workout_log_id.eq.log-1,exercise_log_id.in.(ex-1,ex-2)')
   })
 })

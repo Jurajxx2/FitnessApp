@@ -12,7 +12,7 @@ import type {
   WorkoutLogRow,
   WorkoutRow,
 } from './types'
-import type { Difficulty } from '../types/database'
+import type { Difficulty, WorkoutFeedback } from '../types/database'
 
 const workoutSelect = `
   *,
@@ -123,6 +123,18 @@ export async function getWorkoutLog(userId: string, logId: string): Promise<Work
     .single()
   if (error) throw error
   return sortLog(data as WorkoutLogRow)
+}
+
+export async function getWorkoutFeedback(userId: string, workoutLogId: string, exerciseLogIds: string[]): Promise<WorkoutFeedback[]> {
+  const base = supabase.from('workout_feedback').select('*').eq('user_id', userId)
+  // .or() with an empty in.() list is malformed Postgrest syntax, so fall back to the
+  // plain session-level filter when there are no exercise logs to match against.
+  const filtered = exerciseLogIds.length
+    ? base.or(`workout_log_id.eq.${workoutLogId},exercise_log_id.in.(${exerciseLogIds.join(',')})`)
+    : base.eq('workout_log_id', workoutLogId)
+  const { data, error } = await filtered.order('created_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as WorkoutFeedback[]
 }
 
 interface RecentPerformanceWorkout {
