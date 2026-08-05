@@ -206,6 +206,28 @@ describe('WorkoutSession touch target sizing', () => {
     expect(completeButton.className).toMatch(/\bmin-h-11\b/)
     expect(completeButton.className).toMatch(/\bmin-w-11\b/)
   })
+
+  // Regression test for a bug the 44px fix itself introduced: timed rows used to
+  // stay on a 4-column *fixed* mobile grid (grid-cols-[2.5rem_1fr_1fr_6.5rem]).
+  // Once the trailing Actions track widened to fit two 44px buttons, the two
+  // remaining 1fr tracks were squeezed to ~65.5px each at a 375px viewport, and
+  // the duration track's own 44px stopwatch button (plus gap-1) ate 48px of that,
+  // leaving ~17.5px for the duration input — an unusable sliver. The fix wraps
+  // timed rows to the same 2-column mobile grid non-timed rows already use, with
+  // the Actions cell spanning both columns, so this asserts that template (not the
+  // old fixed-track one) is what actually renders.
+  it("wraps the timed row's mobile grid to 2 columns so the duration input isn't squeezed under the stopwatch button", async () => {
+    renderPage()
+
+    const durationInput = await screen.findByLabelText('Séria 1 trvanie v sekundách')
+    const row = durationInput.closest('.grid')
+    expect(row).not.toBeNull()
+    expect(row!.className).toMatch(/\bgrid-cols-2\b/)
+    expect(row!.className).not.toMatch(/grid-cols-\[2\.5rem_1fr_1fr_6\.5rem\]/)
+
+    const completeButton = screen.getByLabelText('Dokončiť sériu 1')
+    expect(completeButton.parentElement?.className).toMatch(/\bcol-span-2\b/)
+  })
 })
 
 describe('WorkoutSession live stopwatch', () => {

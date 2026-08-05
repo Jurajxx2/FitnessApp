@@ -10,20 +10,32 @@ import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
 
 // Shared between the column-header row and each set row so the two can never drift
 // out of sync: whichever columns a row renders, the header mirrors exactly, at
-// every breakpoint. Timed rows already fit in one line at every width (4 fixed
-// tracks). Weight/reps rows now carry a 5th column (RPE) that mobile has no room
-// for on one line, so they wrap to two lines via a 2-column mobile grid instead.
+// every breakpoint. Both row shapes now wrap to a 2-column mobile grid (Actions
+// cell spans both columns via col-span-2) and become a single-line fixed-track
+// grid from sm: up, where there's room for every column side by side.
 //
-// The trailing Actions track is 6.5rem (was 3rem) everywhere it's a fixed track:
-// delete (min-w-11) + complete (min-w-11) + their gap-1 need 44+4+44=92px, which
-// a 48px (3rem) track can't hold — verified by rendering the pre-fix markup, where
-// the two buttons visibly overlapped the RPE input to their left. The non-timed
-// mobile template isn't listed here because it uses grid-cols-2 with the Actions
-// cell spanning both columns instead (col-span-2 in SessionSetRow), so it never
-// hits this fixed-track ceiling.
+// The trailing Actions track is 6.5rem (was 3rem) in both sm: fixed-track
+// templates: delete (min-w-11) + complete (min-w-11) + their gap-1 need
+// 44+4+44=92px, which a 48px (3rem) track can't hold — verified by rendering the
+// pre-fix markup, where the two buttons visibly overlapped the RPE input to their
+// left.
+//
+// Timed rows used to stay on a 4-column *fixed* mobile grid
+// (grid-cols-[2.5rem_1fr_1fr_6.5rem]) even below sm:, unlike the non-timed
+// 2-column wrap. That's what caused a follow-up regression: at a 375px viewport
+// the two 1fr tracks split ~131px fixed leftover ~65.5px each, and the duration
+// track's own flex-row content (a 44px min-w-11 stopwatch button + gap-1) ate 48px
+// of that, leaving ~17.5px for the duration input itself — less than its own
+// border+padding, i.e. an unusable sliver on the exact device this file is tuned
+// for. min-w-0 on the flex/input wasn't protecting anything there: it's what let
+// the track shrink out from under the button's hard 44px floor in the first place.
+// Switching timed's mobile template to grid-cols-2 (matching non-timed) fixes it:
+// with 1 gap instead of 3 fixed tracks eating the width, each of the 2 columns
+// gets ~145.5px, so the duration column has ~97.5px left after the button+gap,
+// comfortably above the ~17.5px it had before.
 function setRowGridClass(timed: boolean) {
   return timed
-    ? 'grid-cols-[2.5rem_1fr_1fr_6.5rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_5rem_6.5rem]'
+    ? 'grid-cols-2 sm:grid-cols-[2.5rem_minmax(0,1fr)_5rem_6.5rem]'
     : 'grid-cols-2 sm:grid-cols-[2.5rem_1fr_1fr_5rem_6.5rem]'
 }
 
@@ -393,7 +405,7 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
         <input aria-label={`Séria ${set.sort_order} váha v kilogramoch`} type="number" min="0" step="0.5" inputMode="decimal" value={draft.weight} placeholder={suggestion?.actual_weight_kg?.toString()} onChange={event => setDraft(value => ({ ...value, weight: event.target.value }))} className="min-h-11 min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
       )}
       <input aria-label={`Séria ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} placeholder={suggestion?.rpe?.toString()} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-h-11 min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
-      <div className={`flex items-center justify-end gap-1 ${timed ? '' : 'col-span-2 sm:col-span-1'}`}>
+      <div className="flex items-center justify-end gap-1 col-span-2 sm:col-span-1">
         {canDelete && !set.completed && (
           <button type="button" aria-label={`Odstrániť sériu ${set.sort_order}`} onClick={onDelete} disabled={deleting} className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center border-0 bg-transparent text-text-secondary hover:text-error">
             <Trash2 size={15} />
