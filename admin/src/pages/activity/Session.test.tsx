@@ -191,6 +191,23 @@ describe('WorkoutSession authoritative timed detection', () => {
   })
 })
 
+describe('WorkoutSession touch target sizing', () => {
+  beforeEach(() => {
+    saveSet.mockClear()
+  })
+
+  it('renders the complete-set checkmark button and the timed duration input at 44px', async () => {
+    renderPage()
+
+    const durationInput = await screen.findByLabelText('Séria 1 trvanie v sekundách')
+    expect(durationInput.className).toMatch(/\bmin-h-11\b/)
+
+    const completeButton = screen.getByLabelText('Dokončiť sériu 1')
+    expect(completeButton.className).toMatch(/\bmin-h-11\b/)
+    expect(completeButton.className).toMatch(/\bmin-w-11\b/)
+  })
+})
+
 describe('WorkoutSession live stopwatch', () => {
   beforeEach(() => {
     saveSet.mockClear()

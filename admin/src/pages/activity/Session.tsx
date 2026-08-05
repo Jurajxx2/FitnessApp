@@ -13,10 +13,18 @@ import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
 // every breakpoint. Timed rows already fit in one line at every width (4 fixed
 // tracks). Weight/reps rows now carry a 5th column (RPE) that mobile has no room
 // for on one line, so they wrap to two lines via a 2-column mobile grid instead.
+//
+// The trailing Actions track is 6.5rem (was 3rem) everywhere it's a fixed track:
+// delete (min-w-11) + complete (min-w-11) + their gap-1 need 44+4+44=92px, which
+// a 48px (3rem) track can't hold — verified by rendering the pre-fix markup, where
+// the two buttons visibly overlapped the RPE input to their left. The non-timed
+// mobile template isn't listed here because it uses grid-cols-2 with the Actions
+// cell spanning both columns instead (col-span-2 in SessionSetRow), so it never
+// hits this fixed-track ceiling.
 function setRowGridClass(timed: boolean) {
   return timed
-    ? 'grid-cols-[2.5rem_1fr_1fr_3rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_5rem_3rem]'
-    : 'grid-cols-2 sm:grid-cols-[2.5rem_1fr_1fr_5rem_3rem]'
+    ? 'grid-cols-[2.5rem_1fr_1fr_6.5rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_5rem_6.5rem]'
+    : 'grid-cols-2 sm:grid-cols-[2.5rem_1fr_1fr_5rem_6.5rem]'
 }
 
 interface SetDraft {
@@ -358,13 +366,13 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
             value={draft.duration}
             placeholder={suggestion?.actual_duration_seconds != null ? String(suggestion.actual_duration_seconds) : targetSeconds ? String(targetSeconds) : undefined}
             onChange={event => setDraft(value => ({ ...value, duration: event.target.value }))}
-            className="min-w-0 flex-1 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
           />
           <button
             type="button"
             aria-label={stopwatch ? `Zastaviť časovač série ${set.sort_order}` : `Spustiť časovač série ${set.sort_order}`}
             onClick={toggleStopwatch}
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-outline bg-surface-highest text-text-primary"
+            className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-outline bg-surface-highest text-text-primary"
           >
             {stopwatch ? <Pause size={15} /> : <Play size={15} />}
           </button>
@@ -378,11 +386,11 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
           value={draft.reps}
           placeholder={String(set.target_reps ?? suggestion?.actual_reps ?? '') || undefined}
           onChange={event => setDraft(value => ({ ...value, reps: event.target.value }))}
-          className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
+          className="min-h-11 min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
         />
       )}
       {!timed && (
-        <input aria-label={`Séria ${set.sort_order} váha v kilogramoch`} type="number" min="0" step="0.5" inputMode="decimal" value={draft.weight} placeholder={suggestion?.actual_weight_kg?.toString()} onChange={event => setDraft(value => ({ ...value, weight: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
+        <input aria-label={`Séria ${set.sort_order} váha v kilogramoch`} type="number" min="0" step="0.5" inputMode="decimal" value={draft.weight} placeholder={suggestion?.actual_weight_kg?.toString()} onChange={event => setDraft(value => ({ ...value, weight: event.target.value }))} className="min-h-11 min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
       )}
       <input aria-label={`Séria ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} placeholder={suggestion?.rpe?.toString()} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-h-11 min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
       <div className={`flex items-center justify-end gap-1 ${timed ? '' : 'col-span-2 sm:col-span-1'}`}>
@@ -391,7 +399,7 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
             <Trash2 size={15} />
           </button>
         )}
-        <button type="button" aria-label={set.completed ? `Označiť sériu ${set.sort_order} ako nedokončenú` : `Dokončiť sériu ${set.sort_order}`} onClick={() => saveMutation.mutate(!set.completed)} disabled={saveMutation.isPending} className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border ${set.completed ? 'border-success bg-success text-white' : 'border-outline bg-surface-highest text-text-primary'}`}>
+        <button type="button" aria-label={set.completed ? `Označiť sériu ${set.sort_order} ako nedokončenú` : `Dokončiť sériu ${set.sort_order}`} onClick={() => saveMutation.mutate(!set.completed)} disabled={saveMutation.isPending} className={`flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border ${set.completed ? 'border-success bg-success text-white' : 'border-outline bg-surface-highest text-text-primary'}`}>
           {saveMutation.isPending ? <Save size={15} /> : <Check size={17} />}
         </button>
       </div>
