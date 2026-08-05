@@ -76,7 +76,7 @@ export default function CheckInHistory() {
   const navigate = useNavigate()
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(12)
-  const { data: checkInResult, isLoading, error } = useCheckIns(page, pageSize)
+  const { data: checkInResult, isLoading, isFetching, error } = useCheckIns(page, pageSize)
   const checkIns = checkInResult?.data ?? []
   const totalCheckIns = checkInResult?.count ?? 0
 
@@ -101,7 +101,7 @@ export default function CheckInHistory() {
         <EmptyState icon={<History size={30} />} title="Zatiaľ žiadne check-iny" message="Odošli svoj prvý týždenný check-in a začni budovať históriu." />
       )}
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2" aria-busy={isFetching}>
       {checkIns.map(checkIn => (
         <Card key={checkIn.id} className="flex flex-col gap-4">
           <h2 className="font-bold">Týždeň od {formatCheckInWeek(checkIn.week_of)}</h2>

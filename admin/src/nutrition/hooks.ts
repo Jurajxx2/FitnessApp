@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { calcMacroTargets, sumMacros, type Macros } from './calc'
 import { mealsForDay, todayDowMon0 } from './mealPlan'
@@ -34,6 +34,7 @@ export function useRecipes(page = 0, pageSize = 24, search = '', favoriteIds: st
   return useQuery({
     queryKey: qk.recipePage(page, pageSize, search, ids),
     queryFn: () => fetchRecipes(page, pageSize, search, ids),
+    placeholderData: keepPreviousData,
   })
 }
 export function useFeaturedRecipes() {
@@ -44,7 +45,7 @@ export function useRecipe(id: string) {
 }
 export function useMealHistory(page = 0, pageSize = 24) {
   const { user } = useAuth()
-  return useQuery({ queryKey: qk.historyPage(user?.id ?? '', page, pageSize), queryFn: () => fetchMealHistory(user!.id, page, pageSize), enabled: !!user })
+  return useQuery({ queryKey: qk.historyPage(user?.id ?? '', page, pageSize), queryFn: () => fetchMealHistory(user!.id, page, pageSize), enabled: !!user, placeholderData: keepPreviousData })
 }
 export function useMealLog(id: string) {
   const { user } = useAuth()

@@ -5,8 +5,11 @@ import { useQuery } from '@tanstack/react-query'
 import CheckInHistory from './CheckInHistory'
 import type { CheckInRow } from '../../types/database'
 
+const { KEEP_PREVIOUS_DATA } = vi.hoisted(() => ({ KEEP_PREVIOUS_DATA: Symbol('keepPreviousData') }))
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(),
+  keepPreviousData: KEEP_PREVIOUS_DATA,
 }))
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'athlete-1' } }),

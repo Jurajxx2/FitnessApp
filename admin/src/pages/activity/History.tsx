@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, BarChart3, ChevronRight, Clock3, Dumbbell, Pencil, Trash2 } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
@@ -33,7 +33,8 @@ function HistoryList() {
   const historyQuery = useQuery({
     queryKey: ['activity', 'history', userId, page, pageSize],
     queryFn: () => getWorkoutHistoryPage(userId, page, pageSize),
-    enabled: Boolean(userId)
+    enabled: Boolean(userId),
+    placeholderData: keepPreviousData
   })
   const activitiesQuery = useQuery({
     queryKey: ['activity', 'general', userId],
@@ -51,18 +52,6 @@ function HistoryList() {
     onError: () => notify('Aktivitu sa nepodarilo vymazať.', 'error')
   })
 
-  if (historyQuery.isLoading)
-    return (
-      <ActivityPage>
-        <LoadingBlock label="Načítava sa história tréningov…" />
-      </ActivityPage>
-    )
-  if (historyQuery.isError)
-    return (
-      <ActivityPage>
-        <ErrorBlock message="Históriu tréningov sa nepodarilo načítať." />
-      </ActivityPage>
-    )
   const history = historyQuery.data?.data ?? []
   const totalHistory = historyQuery.data?.count ?? 0
   const activities = activitiesQuery.data ?? []
@@ -79,9 +68,13 @@ function HistoryList() {
           </Link>
         }
       />
-      {history.length ? (
+      {historyQuery.isLoading ? (
+        <LoadingBlock label="Načítava sa história tréningov…" />
+      ) : historyQuery.isError ? (
+        <ErrorBlock message="Históriu tréningov sa nepodarilo načítať." />
+      ) : history.length ? (
         <>
-          <div className="space-y-3">
+          <div className="space-y-3" aria-busy={historyQuery.isFetching}>
             {history.map(log => {
               const volume = workoutVolume(log)
               return (

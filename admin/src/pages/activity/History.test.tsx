@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, within, cleanup, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, keepPreviousData } from '@tanstack/react-query'
 import WorkoutHistory from './History'
+
+const { MOCK_KEEP_PREVIOUS_DATA } = vi.hoisted(() => ({ MOCK_KEEP_PREVIOUS_DATA: Symbol('keepPreviousData') }))
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(),
   useMutation: vi.fn(),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  keepPreviousData: MOCK_KEEP_PREVIOUS_DATA,
 }))
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'athlete-1' } }),
@@ -272,5 +275,40 @@ describe('HistoryList general-activity delete', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Vymazať' }))
 
     expect(deleteCall!.mutate).toHaveBeenCalledWith('activity-1')
+  })
+})
+
+describe('HistoryList loading chrome', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => cleanup())
+
+  it('passes placeholderData: keepPreviousData on the paginated workout-history query', () => {
+    const capturedOptions: Array<{ queryKey: unknown[]; placeholderData?: unknown }> = []
+    vi.mocked(useQuery).mockImplementation((options: any) => {
+      if (options.queryKey[1] === 'general') return { data: [], isLoading: false, isError: false } as any
+      capturedOptions.push(options)
+      return { data: { data: [], count: 0 }, isLoading: false, isError: false } as any
+    })
+
+    renderList()
+
+    expect(capturedOptions).toHaveLength(1)
+    expect(capturedOptions[0]).toMatchObject({ placeholderData: keepPreviousData })
+  })
+
+  it('keeps the page header and the general-activities section mounted while the workout-history query is loading', () => {
+    // Regression test for the unmount bug: an early `if (historyQuery.isLoading) return ...`
+    // used to hide the PageIntro header *and* the "Ostatné aktivity" section (which is driven
+    // by the separate, already-resolved activitiesQuery) whenever the paginated workout
+    // history query re-keyed on a page change. Both must stay mounted through a loading state.
+    vi.mocked(useQuery).mockImplementation((options: any) => {
+      if (options.queryKey[1] === 'general') return { data: [ACTIVITY], isLoading: false, isError: false } as any
+      return { data: undefined, isLoading: true, isFetching: true, isError: false } as any
+    })
+
+    renderList()
+
+    expect(screen.getByText('História tréningov')).toBeInTheDocument()
+    expect(screen.getByText('Ostatné aktivity')).toBeInTheDocument()
   })
 })
