@@ -18,14 +18,14 @@ function renderLayout() {
 
 test('renders the English copy by default and the wrapped children', () => {
   renderLayout()
-  expect(screen.getByRole('heading', { name: copy.en.title })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Your plan, progress and coaching in one place.' })).toBeInTheDocument()
   expect(screen.getByText('Form content')).toBeInTheDocument()
 })
 
 test('renders the Slovak copy when the stored locale is sk', () => {
   window.localStorage.setItem('coach-foska-public-locale', 'sk')
   renderLayout()
-  expect(screen.getByRole('heading', { name: copy.sk.title })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Tvoj plán, pokrok a spolupráca s trénerkou na jednom mieste.' })).toBeInTheDocument()
   window.localStorage.clear()
 })
 

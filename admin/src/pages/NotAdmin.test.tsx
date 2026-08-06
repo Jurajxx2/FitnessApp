@@ -19,8 +19,8 @@ function renderNotAdmin() {
 test('renders the Slovak copy when the stored locale is sk', () => {
   window.localStorage.setItem('coach-foska-public-locale', 'sk')
   renderNotAdmin()
-  expect(screen.getByRole('heading', { name: copy.sk.title })).toBeInTheDocument()
-  expect(screen.getByText(copy.sk.body)).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Prístup nie je dostupný' })).toBeInTheDocument()
+  expect(screen.getByText('Tento účet nemá prístup k požadovanej stránke.')).toBeInTheDocument()
   window.localStorage.clear()
 })
 

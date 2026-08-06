@@ -33,6 +33,15 @@ test('marks the active locale as pressed and persists a new choice on click', as
   window.localStorage.clear()
 })
 
+test('renders all three options at the 44px minimum touch target', () => {
+  renderSwitcher()
+  for (const name of ['sk', 'cs', 'en']) {
+    const button = screen.getByRole('button', { name })
+    expect(button.className).toMatch(/\bmin-h-11\b/)
+    expect(button.className).toMatch(/\bmin-w-11\b/)
+  }
+})
+
 test('uses a Slovak group label for sk and cs, and English for en', () => {
   window.localStorage.setItem('coach-foska-public-locale', 'sk')
   const { unmount } = renderSwitcher()

@@ -42,9 +42,22 @@ test('renders the Slovak privacy notice with the pre-release banner', () => {
     </PublicLocaleProvider>,
   )
 
-  expect(screen.getByRole('heading', { name: privacyDocument('sk').title })).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: pageCopy.sk.draftTitle })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Informácie o spracúvaní osobných údajov' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Právny návrh pred spustením' })).toBeInTheDocument()
   window.localStorage.clear()
+})
+
+test('sk privacy resource link mirrors cs (same authority as the body text, not a different one)', () => {
+  const sk = privacyDocument('sk')
+  const cs = privacyDocument('cs')
+  expect(sk.resourceUrl).toBe(cs.resourceUrl)
+  expect(sk.sections[7].body).toContain('Českej republiky')
+})
+
+test('sk terms resource link mirrors cs', () => {
+  const sk = termsDocument('sk')
+  const cs = termsDocument('cs')
+  expect(sk.resourceUrl).toBe(cs.resourceUrl)
 })
 
 test('sk and cs pageCopy expose the same key set', () => {

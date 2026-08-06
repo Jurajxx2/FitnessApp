@@ -60,7 +60,7 @@ test('switches the public landing page to Slovak and persists the choice', async
 
   await userEvent.click(screen.getByRole('button', { name: 'sk' }))
 
-  expect(screen.getByRole('heading', { name: copy.sk.title })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Tvoj tréning. Tvoja strava. Tvoja trénerka.' })).toBeInTheDocument()
   expect(document.documentElement.lang).toBe('sk')
   expect(window.localStorage.getItem('coach-foska-public-locale')).toBe('sk')
 })

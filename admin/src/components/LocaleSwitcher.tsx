@@ -24,7 +24,7 @@ export function LocaleSwitcher({ className = '' }: { className?: string }) {
           onClick={() => setLocale(option)}
           aria-pressed={locale === option}
           className={cn(
-            'rounded-full px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-[0.12em] transition-colors',
+            'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-[11px] font-mono font-bold uppercase tracking-[0.12em] transition-colors',
             locale === option
               ? 'bg-action-primary text-on-action-primary'
               : 'text-text-secondary hover:text-text-primary',

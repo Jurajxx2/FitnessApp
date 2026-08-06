@@ -89,7 +89,7 @@ test('renders the Slovak heading when the public locale is sk', () => {
       </MemoryRouter>
     </PublicLocaleProvider>,
   )
-  expect(screen.getByRole('heading', { name: copy.sk.title })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Prihlásenie do Coach Foska' })).toBeInTheDocument()
   window.localStorage.clear()
 })
 

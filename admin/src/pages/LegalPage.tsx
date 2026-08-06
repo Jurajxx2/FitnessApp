@@ -56,8 +56,8 @@ export function privacyDocument(locale: PublicLocale): LegalDocument {
       title: 'Informácie o spracúvaní osobných údajov',
       updated: 'Aktualizované 13. júla 2026',
       intro: 'Tento dokument vysvetľuje, aké osobné údaje Coach Foska používa, prečo ich potrebuje a aké máte práva. Služba je v súčasnosti dostupná len pozvaným klientom.',
-      resourceLabel: 'Úrad na ochranu osobných údajov Slovenskej republiky',
-      resourceUrl: 'https://dataprotection.gov.sk',
+      resourceLabel: 'Úrad na ochranu osobných údajov Českej republiky',
+      resourceUrl: 'https://uoou.gov.cz/informace-o-zpracovani-osobnich-udaju',
       sections: [
         {
           title: '1. Prevádzkovateľ a kontakt',
@@ -212,8 +212,8 @@ export function termsDocument(locale: PublicLocale): LegalDocument {
       title: 'Podmienky používania',
       updated: 'Aktualizované 13. júla 2026',
       intro: 'Tieto podmienky upravujú používanie Coach Foska pozvanými klientmi. Verejný web v súčasnosti neponúka nákup ani otvorenú registráciu.',
-      resourceLabel: 'Your Europe: informácie o zmluve',
-      resourceUrl: 'https://europa.eu/youreurope/citizens/consumers/shopping/contract-information/index_sk.htm',
+      resourceLabel: 'Česká obchodná inšpekcia: digitálny obsah a služby',
+      resourceUrl: 'https://coi.gov.cz/faq/smlouvy-o-poskytovani-digitalniho-obsahu-ci-sluzby/',
       sections: [
         {
           title: '1. Poskytovateľ',

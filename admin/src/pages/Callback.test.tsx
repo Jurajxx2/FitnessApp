@@ -33,13 +33,13 @@ test('shows the English signing-in message when no PublicLocaleProvider is prese
       <Callback />
     </MemoryRouter>,
   )
-  expect(screen.getByText(copy.en.signingIn)).toBeInTheDocument()
+  expect(screen.getByText('Signing you in…')).toBeInTheDocument()
 })
 
 test('shows the Slovak signing-in message when the stored locale is sk', () => {
   window.localStorage.setItem('coach-foska-public-locale', 'sk')
   renderCallback()
-  expect(screen.getByText(copy.sk.signingIn)).toBeInTheDocument()
+  expect(screen.getByText('Prihlasujem ťa…')).toBeInTheDocument()
   window.localStorage.clear()
 })
 
