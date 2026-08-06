@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { appendUserContext, getUserContextReturn } from '../../lib/adminUserContext'
-import { Button, Card, ConfirmDialog, EditorPage, FormSection, Input, useNotice } from '../../components/ui'
+import { Button, Card, ConfirmDialog, EditorPage, FormSection, Input, Modal, SearchInput, useNotice } from '../../components/ui'
 import { AssignUsersDialog } from '../../components/AssignUsersDialog'
 import type { NutritionTarget, Profile, Recipe } from '../../types/database'
 
@@ -75,6 +75,54 @@ export function classifyExistingMeals(existingMeals: ExistingMealRow[]): {
   return { managed, unmanagedMealIds }
 }
 
+interface MealPlanRecipeRow {
+  meal_id: string
+  recipe_id: string
+  portion_multiplier: number | string | null
+  sort_order: number
+}
+
+interface RecipeMacroRow {
+  id: string
+  name: string
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+}
+
+// Joins the batched meal_plan_recipes + recipes rows into the same MealDraft[]
+// shape (and intra-slot ordering) the old per-meal loop produced. `mprRows` is
+// expected pre-sorted by sort_order (a single global order-by, not grouped by
+// meal_id) — filtering by meal_id preserves that relative order within each
+// slot regardless of how rows from different meals interleave.
+export function buildManagedMealDrafts(
+  managed: ManagedMeal[],
+  mprRows: MealPlanRecipeRow[],
+  recipeRows: RecipeMacroRow[],
+): MealDraft[] {
+  const drafts = initMeals()
+  for (const item of managed) {
+    const draft = drafts.find(d => d.day_of_week === item.dayIdx && d.meal_type === item.meal_type)
+    if (!draft) continue
+    const rowsForMeal = mprRows.filter(row => row.meal_id === item.id)
+    draft.recipes = rowsForMeal.flatMap(row => {
+      const recipe = recipeRows.find(candidate => candidate.id === row.recipe_id)
+      if (!recipe) return []
+      return [{
+        recipe_id: recipe.id,
+        recipe_name: recipe.name,
+        portion_multiplier: Number(row.portion_multiplier) || 1,
+        calories: recipe.calories,
+        protein_g: recipe.protein_g,
+        carbs_g: recipe.carbs_g,
+        fat_g: recipe.fat_g,
+      }]
+    })
+  }
+  return drafts
+}
+
 function useRecipes() {
   return useQuery<Recipe[]>({
     queryKey: ['recipes-admin'],
@@ -98,6 +146,74 @@ function useProfiles() {
       return data ?? []
     },
   })
+}
+
+// ─── Recipe picker ────────────────────────────────────────────────────────────
+
+interface RecipePickerModalProps {
+  open: boolean
+  recipes: Recipe[]
+  excludedIds: string[]
+  onClose: () => void
+  onSelect: (recipe: Recipe) => void
+}
+
+// Client-side search only — fine at the current recipe-library size (26
+// active recipes). Debounced 300ms to match the existing pattern in
+// components/ExercisePicker.tsx rather than re-filtering on every keystroke.
+function RecipePickerModal({ open, recipes, excludedIds, onClose, onSelect }: RecipePickerModalProps) {
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 300)
+    return () => window.clearTimeout(timeout)
+  }, [search])
+
+  useEffect(() => {
+    if (!open) {
+      setSearch('')
+      setDebouncedSearch('')
+    }
+  }, [open])
+
+  const excluded = new Set(excludedIds)
+  const filtered = recipes.filter(recipe => recipe.name.toLowerCase().includes(debouncedSearch))
+
+  return (
+    <Modal open={open} onClose={onClose} title="Add recipe">
+      <SearchInput
+        value={search}
+        onChange={event => setSearch(event.target.value)}
+        onClear={() => setSearch('')}
+        placeholder="Search recipes…"
+        aria-label="Search recipes"
+        autoFocus
+      />
+      <div className="mt-4 flex max-h-96 flex-col gap-2 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-outline p-5 text-center text-sm text-text-secondary">No recipes match this search.</p>
+        ) : filtered.map(recipe => {
+          const isAdded = excluded.has(recipe.id)
+          return (
+            <button
+              key={recipe.id}
+              type="button"
+              disabled={isAdded}
+              onClick={() => { onSelect(recipe); onClose() }}
+              className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-colors disabled:cursor-default ${isAdded ? 'border-outline-subtle bg-surface-highest opacity-70' : 'cursor-pointer border-outline-subtle bg-surface hover:border-accent'}`}
+            >
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold text-text-primary">{recipe.name}</span>
+                <span className="block text-xs text-text-secondary">{Math.round(recipe.calories)} kcal · P {recipe.protein_g}g · C {recipe.carbs_g}g · F {recipe.fat_g}g</span>
+              </span>
+              <span className={`flex-shrink-0 text-xs font-semibold ${isAdded ? 'text-success' : 'text-accent'}`}>{isAdded ? 'Added' : 'Add'}</span>
+            </button>
+          )
+        })}
+      </div>
+    </Modal>
+  )
 }
 
 // ─── Main Editor ──────────────────────────────────────────────────────────────
@@ -133,6 +249,7 @@ export default function MealPlanEditor() {
   const [assignedUserIds, setAssignedUserIds] = useState<string[]>([])
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
+  const [pickerTarget, setPickerTarget] = useState<{ dayOfWeek: number; mealType: MealType } | null>(null)
 
   useEffect(() => {
     if (isNew && initialUserId) setAssignedUserIds([initialUserId])
@@ -161,42 +278,37 @@ export default function MealPlanEditor() {
         .eq('meal_plan_id', id!)
 
       if (existingMeals?.length) {
-        const drafts = initMeals()
         const { managed, unmanagedMealIds: preserved } = classifyExistingMeals(existingMeals)
         // Remember unmanaged rows so savePlan can leave them untouched.
         setUnmanagedMealIds(preserved)
-        for (const item of managed) {
-          const draft = drafts.find(d => d.day_of_week === item.dayIdx && d.meal_type === item.meal_type)
-          if (!draft) continue
 
-          const { data: mprRows } = await supabase
+        // Batched replacement for the old per-meal loop: one meal_plan_recipes
+        // query for every managed meal id, one recipes query for the union of
+        // recipe ids referenced by those rows, then join in JS. Guard both
+        // queries behind a non-empty id check — Supabase's .in() with an empty
+        // array is a query worth skipping, not issuing.
+        const mealIds = managed.map(item => item.id)
+        let mprRows: MealPlanRecipeRow[] = []
+        if (mealIds.length) {
+          const { data } = await supabase
             .from('meal_plan_recipes')
-            .select('recipe_id, portion_multiplier, sort_order')
-            .eq('meal_id', item.id)
+            .select('meal_id, recipe_id, portion_multiplier, sort_order')
+            .in('meal_id', mealIds)
             .order('sort_order')
-
-          const recipeIds = (mprRows ?? []).map(r => r.recipe_id)
-          if (recipeIds.length) {
-            const { data: recipeData } = await supabase
-              .from('recipes')
-              .select('id, name, calories, protein_g, carbs_g, fat_g')
-              .in('id', recipeIds)
-            draft.recipes = (mprRows ?? []).flatMap(row => {
-              const recipe = (recipeData ?? []).find(candidate => candidate.id === row.recipe_id)
-              if (!recipe) return []
-              return [{
-                recipe_id: recipe.id,
-                recipe_name: recipe.name,
-                portion_multiplier: Number(row.portion_multiplier) || 1,
-                calories: recipe.calories,
-                protein_g: recipe.protein_g,
-                carbs_g: recipe.carbs_g,
-                fat_g: recipe.fat_g,
-              }]
-            })
-          }
+          mprRows = data ?? []
         }
-        setMeals(drafts)
+
+        const allRecipeIds = [...new Set(mprRows.map(row => row.recipe_id))]
+        let recipeRows: RecipeMacroRow[] = []
+        if (allRecipeIds.length) {
+          const { data } = await supabase
+            .from('recipes')
+            .select('id, name, calories, protein_g, carbs_g, fat_g')
+            .in('id', allRecipeIds)
+          recipeRows = data ?? []
+        }
+
+        setMeals(buildManagedMealDrafts(managed, mprRows, recipeRows))
       }
 
       const { data: assignments } = await supabase
@@ -234,6 +346,17 @@ export default function MealPlanEditor() {
     setMeals(prev => prev.map(m =>
       m.day_of_week === dayOfWeek && m.meal_type === mealType
         ? { ...m, recipes: m.recipes.filter((_, i) => i !== recipeIndex) }
+        : m
+    ))
+  }
+
+  function updatePortionMultiplier(dayOfWeek: number, mealType: MealType, recipeIndex: number, rawValue: string) {
+    const parsed = Number(rawValue)
+    if (!Number.isFinite(parsed)) return
+    const clamped = Math.min(3, Math.max(0.25, parsed))
+    setMeals(prev => prev.map(m =>
+      m.day_of_week === dayOfWeek && m.meal_type === mealType
+        ? { ...m, recipes: m.recipes.map((recipe, i) => i === recipeIndex ? { ...recipe, portion_multiplier: clamped } : recipe) }
         : m
     ))
   }
@@ -401,24 +524,35 @@ export default function MealPlanEditor() {
                   <div className="mb-3 space-y-2">
                     {draft.recipes.map((recipe, recipeIndex) => (
                       <div key={`${recipe.recipe_id}-${recipeIndex}`} className="flex items-center justify-between gap-2 rounded-xl border border-outline-subtle bg-surface-elevated px-3 py-2">
-                        <span className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-medium text-text-primary">{recipe.recipe_name}</span>
-                          <span className="block text-[10px] text-text-secondary">{recipe.portion_multiplier}× · {Math.round(recipe.calories * recipe.portion_multiplier)} kcal</span>
-                        </span>
+                          <div className="mt-1 flex items-center gap-1.5 text-[10px] text-text-secondary">
+                            <input
+                              type="number"
+                              aria-label="Portion multiplier"
+                              min={0.25}
+                              max={3}
+                              step={0.25}
+                              value={recipe.portion_multiplier}
+                              onChange={event => updatePortionMultiplier(selectedDay, mealType, recipeIndex, event.target.value)}
+                              className="min-h-11 w-14 rounded-lg border border-outline bg-surface px-1.5 text-center text-xs text-text-primary outline-none focus:border-accent"
+                            />
+                            <span>× · {Math.round(recipe.calories * recipe.portion_multiplier)} kcal</span>
+                          </div>
+                        </div>
                         <button type="button" aria-label={`Remove ${recipe.recipe_name}`} onClick={() => removeRecipe(selectedDay, mealType, recipeIndex)} className="min-h-8 cursor-pointer rounded-lg border-0 bg-transparent px-1 text-xs text-error hover:bg-error/10">Remove</button>
                       </div>
                     ))}
                   </div>
                 ) : <p className="mb-3 text-xs text-text-secondary">No recipe selected.</p>}
-                <select
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center"
                   aria-label={`Add recipe to ${MEAL_LABELS[mealType].toLowerCase()}`}
-                  className="h-10 w-full rounded-xl border border-outline bg-surface-elevated px-3 text-xs text-text-primary outline-none focus:border-accent"
-                  value=""
-                  onChange={event => { if (event.target.value) addRecipe(selectedDay, mealType, event.target.value) }}
+                  onClick={() => setPickerTarget({ dayOfWeek: selectedDay, mealType })}
                 >
-                  <option value="" disabled>Add recipe…</option>
-                  {recipes.filter(recipe => !draft.recipes.some(item => item.recipe_id === recipe.id)).map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}
-                </select>
+                  + Add recipe
+                </Button>
               </section>
             )
           })}
@@ -429,6 +563,13 @@ export default function MealPlanEditor() {
 
       <AssignUsersDialog open={assignDialogOpen} onClose={() => setAssignDialogOpen(false)} profiles={profiles} value={assignedUserIds} onChange={setAssignedUserIds} />
       <ConfirmDialog open={copyDialogOpen} title={`Copy ${DAYS[selectedDay]} to the week?`} description="This replaces the recipe selections for the other six days. You can fine-tune individual days right after copying." confirmLabel="Copy day" onClose={() => setCopyDialogOpen(false)} onConfirm={copySelectedDayToWeek} />
+      <RecipePickerModal
+        open={pickerTarget !== null}
+        recipes={recipes}
+        excludedIds={pickerTarget ? getDraft(pickerTarget.dayOfWeek, pickerTarget.mealType).recipes.map(r => r.recipe_id) : []}
+        onClose={() => setPickerTarget(null)}
+        onSelect={recipe => { if (pickerTarget) addRecipe(pickerTarget.dayOfWeek, pickerTarget.mealType, recipe.id) }}
+      />
     </EditorPage>
   )
 }
