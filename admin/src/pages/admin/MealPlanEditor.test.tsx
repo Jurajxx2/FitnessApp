@@ -375,4 +375,26 @@ describe('editable portion multiplier', () => {
     expect(multiplierInput.value).toBe('3')
     expect(screen.getByText('× · 1200 kcal')).toBeInTheDocument()
   })
+
+  it('does not snap to 0.25 when the field is cleared, so a clear-then-type edit lands on the typed value', async () => {
+    const user = userEvent.setup()
+    renderCreate()
+
+    await user.click(await screen.findByRole('button', { name: 'Add recipe to breakfast' }))
+    await user.click(await screen.findByText('Grilled Chicken Bowl'))
+
+    const multiplierInput = screen.getByLabelText('Portion multiplier') as HTMLInputElement
+    expect(screen.getByText('× · 400 kcal')).toBeInTheDocument() // 1x default
+
+    // Backspacing the field to empty (e.g. to type a replacement) must not
+    // coerce Number('') === 0 into the 0.25 floor — the draft must be left
+    // alone until a real number is typed.
+    fireEvent.change(multiplierInput, { target: { value: '' } })
+    expect(screen.getByText('× · 400 kcal')).toBeInTheDocument()
+    expect(screen.queryByText('× · 100 kcal')).not.toBeInTheDocument() // 0.25x would show this
+
+    fireEvent.change(multiplierInput, { target: { value: '1.5' } })
+    expect(multiplierInput.value).toBe('1.5')
+    expect(screen.getByText('× · 600 kcal')).toBeInTheDocument()
+  })
 })

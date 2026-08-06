@@ -351,6 +351,11 @@ export default function MealPlanEditor() {
   }
 
   function updatePortionMultiplier(dayOfWeek: number, mealType: MealType, recipeIndex: number, rawValue: string) {
+    // An emptied field (backspace-to-clear, e.g. before typing a replacement)
+    // must leave the draft untouched — Number('') is 0, which is finite, and
+    // would otherwise get clamped straight to the 0.25 floor mid-edit. Same
+    // falsy-string guard RecipeEditor.tsx already uses for its Quantity field.
+    if (rawValue.trim() === '') return
     const parsed = Number(rawValue)
     if (!Number.isFinite(parsed)) return
     const clamped = Math.min(3, Math.max(0.25, parsed))
