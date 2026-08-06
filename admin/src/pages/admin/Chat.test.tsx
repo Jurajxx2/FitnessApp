@@ -1,7 +1,26 @@
 // admin/src/pages/admin/Chat.test.tsx
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter } from 'react-router-dom'
+import { NoticeProvider } from '../../components/ui'
 import type { ChatMessage, Profile } from '../../types/database'
-import { buildConversationList, formatMessageTime } from './Chat'
+import Chat, { buildConversationList, formatMessageTime } from './Chat'
+
+const { uploadMock, insertMock, fromMock } = vi.hoisted(() => ({
+  uploadMock: vi.fn().mockResolvedValue({ error: null }),
+  insertMock: vi.fn().mockResolvedValue({ error: null }),
+  fromMock: vi.fn(),
+}))
+
+vi.mock('../../lib/supabase', () => ({
+  supabase: {
+    from: fromMock,
+    storage: { from: () => ({ upload: uploadMock }) },
+    channel: () => ({ on: () => ({ subscribe: () => ({}) }) }),
+    removeChannel: vi.fn(),
+  },
+}))
 
 function msg(overrides: Partial<ChatMessage> = {}): ChatMessage {
   return {
@@ -82,5 +101,87 @@ describe('formatMessageTime', () => {
   it('returns a HH:MM-style string from an ISO timestamp', () => {
     const result = formatMessageTime('2026-04-25T14:30:00Z')
     expect(result).toMatch(/^\d{1,2}:\d{2}/)
+  })
+})
+
+describe('Chat — coach image send', () => {
+  const ATHLETE_ID = 'athlete-1'
+
+  // jsdom doesn't implement scrollIntoView; Chat.tsx calls it to keep the
+  // thread scrolled to the latest message whenever it renders.
+  Element.prototype.scrollIntoView = vi.fn()
+
+  // Generic chainable Postgrest-like builder for the chat_messages table.
+  // select/eq/order chain to a resolved read; insert/update are captured directly.
+  function chatMessagesBuilder(): Record<string, unknown> {
+    const readResult = Promise.resolve({
+      data: [msg({ id: 'm1', user_id: ATHLETE_ID, text_content: 'Hi coach', created_at: '2026-08-01T09:00:00Z' })],
+      error: null,
+    })
+    const builder: Record<string, unknown> = {
+      select: () => builder,
+      eq: () => builder,
+      order: () => builder,
+      is: () => Promise.resolve({ error: null }),
+      limit: () => readResult,
+      insert: (row: Record<string, unknown>) => {
+        insertMock(row)
+        return Promise.resolve({ error: null })
+      },
+      update: () => builder,
+    }
+    return builder
+  }
+
+  function renderChat() {
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'chat_messages') return chatMessagesBuilder()
+      if (table === 'profiles') {
+        return { select: () => ({ in: () => Promise.resolve({ data: [profile(ATHLETE_ID, 'Alice Athlete')], error: null }) }) }
+      }
+      throw new Error(`Unexpected table: ${table}`)
+    })
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const utils = render(
+      <QueryClientProvider client={queryClient}>
+        <NoticeProvider>
+          <MemoryRouter>
+            <Chat />
+          </MemoryRouter>
+        </NoticeProvider>
+      </QueryClientProvider>
+    )
+    return utils
+  }
+
+  it('uploads a selected photo to chat-images and inserts a coach image row keyed on the athlete id', async () => {
+    const { container } = renderChat()
+
+    fireEvent.click(await screen.findByText('Alice Athlete'))
+    await screen.findByLabelText('Send image')
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    expect(fileInput).toBeTruthy()
+
+    const file = new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => expect(uploadMock).toHaveBeenCalled())
+
+    const [path, uploadedFile, options] = uploadMock.mock.calls[0]
+    expect(path).toMatch(new RegExp(`^${ATHLETE_ID}/coach_\\d+\\.jpg$`))
+    expect(uploadedFile).toBe(file)
+    expect(options).toEqual({ contentType: 'image/jpeg' })
+
+    await waitFor(() => expect(insertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: ATHLETE_ID,
+        chat_type: 'human',
+        sender_type: 'coach',
+        content_type: 'image',
+        image_url: path,
+      })
+    ))
   })
 })

@@ -2,11 +2,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
+import { ImagePlus } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { logger } from '../../lib/logger'
 import type { ChatMessage, Profile } from '../../types/database'
 import { SearchInput, useNotice } from '../../components/ui'
 import { ChatImage } from '../../chat/ChatImage'
+
+const CHAT_IMAGES_BUCKET = 'chat-images'
 
 // ─── Pure helpers (exported for tests) ──────────────────────────────────────
 
@@ -99,6 +102,7 @@ export default function Chat() {
   const [text, setText] = useState('')
   const [conversationSearch, setConversationSearch] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   const { data: allMessages = [], isLoading } = useChatMessages()
 
@@ -176,6 +180,40 @@ export default function Chat() {
   function handleSend() {
     if (!text.trim() || !selectedUserId) return
     sendMessage.mutate({ userId: selectedUserId, message: text.trim() })
+  }
+
+  // Mirrors the athlete's sendImageMessage (chat/athleteApi.ts) but keyed with a
+  // `coach_` prefix so the sender is evident in storage. The row's user_id stays
+  // the athlete's id — that's what RLS and the athlete's read path expect — even
+  // though the upload itself is performed by the coach's own auth session.
+  const sendImage = useMutation({
+    mutationFn: async ({ userId, file }: { userId: string; file: File }) => {
+      const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+      const path = `${userId}/coach_${Date.now()}.${extension}`
+      const { error: uploadError } = await supabase.storage
+        .from(CHAT_IMAGES_BUCKET)
+        .upload(path, file, { contentType: file.type })
+      if (uploadError) throw uploadError
+
+      const { error } = await supabase.from('chat_messages').insert({
+        user_id: userId,
+        chat_type: 'human',
+        sender_type: 'coach',
+        content_type: 'image',
+        image_url: path,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-chat-messages'] }),
+    onError: error => {
+      logger.error('Failed to send chat image', error)
+      notify(`Couldn’t send image: ${error.message}`, 'error')
+    },
+  })
+
+  function handleImageSelected(file: File) {
+    if (!selectedUserId) return
+    sendImage.mutate({ userId: selectedUserId, file })
   }
 
   // Realtime: invalidate cache on any new human chat insert.
@@ -293,6 +331,26 @@ export default function Chat() {
             </div>
 
             <div className="flex flex-shrink-0 items-end gap-2 border-t border-outline px-5 py-3">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={event => {
+                  const file = event.target.files?.[0]
+                  if (file) handleImageSelected(file)
+                  event.target.value = ''
+                }}
+              />
+              <button
+                type="button"
+                aria-label="Send image"
+                disabled={sendImage.isPending}
+                onClick={() => imageInputRef.current?.click()}
+                className="flex h-11 w-11 flex-shrink-0 cursor-pointer items-center justify-center rounded-xl border border-outline bg-surface text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {sendImage.isPending ? '…' : <ImagePlus size={18} />}
+              </button>
               <textarea
                 className="flex-1 resize-none rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent"
                 rows={2}
