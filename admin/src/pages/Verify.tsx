@@ -8,7 +8,7 @@ import { athleteHomePath } from '../lib/access'
 import { Button } from '../components/ui'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
-const copy = {
+export const copy = {
   en: {
     differentEmail: 'Use a different email',
     title: 'Check your email',
@@ -28,6 +28,16 @@ const copy = {
     resend: 'Poslat kód znovu',
     noUser: 'Ověření se nezdařilo: účet nebyl nalezen',
     genericError: 'Došlo k neočekávané chybě. Zkuste to prosím znovu.',
+  },
+  sk: {
+    differentEmail: 'Použiť iný e-mail',
+    title: 'Skontroluj e-mail',
+    introBefore: 'Poslali sme šesťmiestny kód na',
+    verify: 'Overiť kód',
+    resendIn: 'Znova odoslať za',
+    resend: 'Odoslať kód znova',
+    noUser: 'Overenie zlyhalo: účet nebol nájdený',
+    genericError: 'Došlo k neočakávanej chybe. Skús to, prosím, znova.',
   },
 } as const
 

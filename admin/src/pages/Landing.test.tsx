@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { PublicLocaleProvider } from '../i18n/PublicLocale'
-import Landing from './Landing'
+import Landing, { copy } from './Landing'
 
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => ({ session: null, isAdmin: false, isLoading: false, profile: null }),
@@ -53,4 +53,21 @@ test('switches the public landing page to Czech and persists the choice', async 
   expect(screen.getByRole('heading', { name: 'Váš trénink. Vaše strava. Váš trenér.' })).toBeInTheDocument()
   expect(document.documentElement.lang).toBe('cs')
   expect(window.localStorage.getItem('coach-foska-public-locale')).toBe('cs')
+})
+
+test('switches the public landing page to Slovak and persists the choice', async () => {
+  renderLanding()
+
+  await userEvent.click(screen.getByRole('button', { name: 'sk' }))
+
+  expect(screen.getByRole('heading', { name: copy.sk.title })).toBeInTheDocument()
+  expect(document.documentElement.lang).toBe('sk')
+  expect(window.localStorage.getItem('coach-foska-public-locale')).toBe('sk')
+})
+
+test('sk and cs copy expose the same key set, including nested list lengths', () => {
+  expect(Object.keys(copy.sk).sort()).toEqual(Object.keys(copy.cs).sort())
+  expect(copy.sk.nav).toHaveLength(copy.cs.nav.length)
+  expect(copy.sk.features).toHaveLength(copy.cs.features.length)
+  expect(copy.sk.steps).toHaveLength(copy.cs.steps.length)
 })

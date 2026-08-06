@@ -8,7 +8,7 @@ import { athleteHomePath } from '../lib/access'
 import { supabase } from '../lib/supabase'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
-const copy = {
+export const copy = {
   en: {
     loading: 'Loading account…',
     back: 'Back to the website',
@@ -44,6 +44,24 @@ const copy = {
     privacy: 'Ochrana soukromí',
     terms: 'Podmínky',
     genericError: 'Přihlášení se nezdařilo. Zkuste to prosím znovu.',
+  },
+  sk: {
+    loading: 'Načítavam účet…',
+    back: 'Späť na web',
+    eyebrow: 'Vitaj späť',
+    title: 'Prihlásenie do Coach Foska',
+    intro: 'Pre pokračovanie zadaj e-mail a heslo.',
+    email: 'E-mailová adresa',
+    password: 'Heslo',
+    passwordPlaceholder: 'Tvoje heslo',
+    forgot: 'Zabudnuté heslo?',
+    submit: 'Prihlásiť sa',
+    divider: 'alebo',
+    otp: 'Prihlásiť sa jednorazovým kódom',
+    invitation: 'Prístup je obmedzený na pozvané účty Coach Foska.',
+    privacy: 'Ochrana súkromia',
+    terms: 'Podmienky',
+    genericError: 'Prihlásenie sa nepodarilo. Skús to, prosím, znova.',
   },
 } as const
 

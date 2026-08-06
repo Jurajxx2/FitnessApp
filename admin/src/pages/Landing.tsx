@@ -14,7 +14,7 @@ import { LocaleSwitcher } from '../components/LocaleSwitcher'
 import { useAuth } from '../hooks/useAuth'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
-const copy = {
+export const copy = {
   en: {
     loading: 'Loading Coach Foska…',
     navLabel: 'Main navigation',
@@ -114,6 +114,56 @@ const copy = {
     privacy: 'Ochrana soukromí',
     terms: 'Podmínky',
     footerNote: 'Coachingová platforma na pozvání · Mobilní aplikace připravujeme',
+  },
+  sk: {
+    loading: 'Načítavam Coach Foska…',
+    navLabel: 'Hlavná navigácia',
+    nav: [
+      ['Čo získaš', 'features'],
+      ['Ako to funguje', 'how-it-works'],
+      ['Mobilné aplikácie', 'mobile-apps'],
+    ],
+    signIn: 'Prihlásiť sa',
+    openApp: 'Otvoriť aplikáciu',
+    eyebrow: 'Osobný koučing podporený jednou jednoduchou aplikáciou',
+    title: 'Tvoj tréning. Tvoja strava. Tvoja trénerka.',
+    intro: 'Coach Foska spája plán od trénerky, každodenné záznamy a tvoj pokrok na jednom mieste — bez toho, aby sa z fitness stala ďalšia práca na plný úväzok.',
+    heroPrimary: 'Prihlásiť sa k účtu',
+    heroSecondary: 'Ako to funguje',
+    inviteOnly: 'Prístup je momentálne určený klientom s pozvánkou.',
+    previewTitle: 'Dnes',
+    previewWorkout: 'Sila hornej časti tela',
+    previewWorkoutMeta: '6 cvikov · 48 min',
+    previewNutrition: 'Denná strava',
+    previewNutritionMeta: 'Zapísaných 1 420 z 2 050 kcal',
+    previewCheckIn: 'Týždenný check-in',
+    previewCheckInMeta: 'Pripravený v nedeľu',
+    featuresEyebrow: 'Každodenná práca na jednom mieste',
+    featuresTitle: 'Jednoduché pre každý deň.',
+    featuresIntro: 'Aplikácia podporuje spoluprácu s trénerkou. Nesnaží sa ju nahradiť.',
+    features: [
+      ['Tréningové plány', 'Pozri si pridelené tréningy, zapisuj série a maj históriu na jednom mieste.'],
+      ['Praktická výživa', 'Drž sa jedálnička, ukladaj recepty a zapisuj, čo si skutočne zjedol.'],
+      ['Check-in s trénerkou', 'Zdieľaj pokrok, poznámky a fotografie s trénerkou, ktorá pozná tvoj plán.'],
+      ['Prehľad pokroku', 'Vďaka pravidelným záznamom uvidíš vývoj a nemusíš sa spoliehať na pamäť.'],
+    ],
+    howEyebrow: 'Ako to funguje',
+    howTitle: 'Prehľadný priebeh spolupráce.',
+    steps: [
+      ['Trénerka ťa pozve', 'Coach Foska nemá verejnú registráciu. Trénerka ti pripraví prístup a východiskový plán.'],
+      ['Plníš a zapisuješ plán', 'Otvor aktuálny tréning alebo jedálniček, zapíš podstatné údaje a pokračuj vo svojom dni.'],
+      ['Spoločne vyhodnotíte pokrok', 'Check-iny a história dávajú tebe aj trénerke podklady na ďalšiu úpravu plánu.'],
+    ],
+    mobileEyebrow: 'Mobilné aplikácie',
+    mobileTitle: 'Verzie pre iOS a Android pripravujeme.',
+    mobileBody: 'Dokončujeme mobilné prostredie a prípravu vydania. Pozvaní klienti môžu medzitým používať webovú verziu.',
+    preparing: 'Pripravujeme vydanie',
+    webAvailable: 'Webová verzia je dostupná',
+    webBody: 'Máš už účet na pozvánku? Pre aktuálnu webovú aplikáciu použi rovnaké prihlásenie.',
+    webCta: 'Pokračovať k prihláseniu',
+    privacy: 'Ochrana súkromia',
+    terms: 'Podmienky',
+    footerNote: 'Koučingová platforma na pozvanie · Mobilné aplikácie pripravujeme',
   },
 } as const
 

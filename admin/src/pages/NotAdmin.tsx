@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { Button, Card } from '../components/ui'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
-const copy = {
+export const copy = {
   en: {
     title: 'Access unavailable',
     body: 'This account does not have access to the requested page.',
@@ -15,6 +15,12 @@ const copy = {
     body: 'Tento účet nemá přístup k požadované stránce.',
     back: 'Zpět na Coach Foska',
     differentAccount: 'Použít jiný účet',
+  },
+  sk: {
+    title: 'Prístup nie je dostupný',
+    body: 'Tento účet nemá prístup k požadovanej stránke.',
+    back: 'Späť na Coach Foska',
+    differentAccount: 'Použiť iný účet',
   },
 } as const
 

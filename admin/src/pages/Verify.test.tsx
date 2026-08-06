@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import Verify from './Verify'
+import Verify, { copy } from './Verify'
 
 const { mockVerifyOtp, mockSingle, mockFrom } = vi.hoisted(() => {
   const mockSingle = vi.fn()
@@ -159,5 +159,9 @@ describe('Verify', () => {
 
     await waitFor(() => expect(screen.getByText('Admin dashboard')).toBeInTheDocument())
     expect(sessionStorage.getItem('otp-email')).toBeNull()
+  })
+
+  it('exposes the same key set in the sk and cs copy objects', () => {
+    expect(Object.keys(copy.sk).sort()).toEqual(Object.keys(copy.cs).sort())
   })
 })

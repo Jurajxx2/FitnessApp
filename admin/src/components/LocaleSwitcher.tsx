@@ -1,9 +1,15 @@
 import { usePublicLocale, type PublicLocale } from '../i18n/PublicLocale'
 import { cn } from '../lib/cn'
 
+const groupLabel: Record<PublicLocale, string> = {
+  sk: 'Jazyk stránky',
+  cs: 'Jazyk stránky',
+  en: 'Page language',
+}
+
 export function LocaleSwitcher({ className = '' }: { className?: string }) {
   const { locale, setLocale } = usePublicLocale()
-  const label = locale === 'cs' ? 'Jazyk stránky' : 'Page language'
+  const label = groupLabel[locale]
 
   return (
     <div
@@ -11,7 +17,7 @@ export function LocaleSwitcher({ className = '' }: { className?: string }) {
       aria-label={label}
       className={cn('inline-flex rounded-full border border-outline-subtle bg-surface p-1', className)}
     >
-      {(['cs', 'en'] as PublicLocale[]).map(option => (
+      {(['sk', 'cs', 'en'] as PublicLocale[]).map(option => (
         <button
           key={option}
           type="button"

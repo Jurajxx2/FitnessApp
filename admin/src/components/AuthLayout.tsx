@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { usePublicLocale } from '../i18n/PublicLocale'
 import { LocaleSwitcher } from './LocaleSwitcher'
 
-const copy = {
+export const copy = {
   en: {
     eyebrow: 'Private client workspace',
     title: 'Your plan, progress and coaching in one place.',
@@ -24,6 +24,16 @@ const copy = {
     training: 'Trénink',
     trainingBody: 'Tréninky, cviky, historie aktivit a pokrok.',
     footer: 'Přístup získáte na základě pozvánky od trenéra.',
+  },
+  sk: {
+    eyebrow: 'Súkromný priestor pre klientov',
+    title: 'Tvoj plán, pokrok a spolupráca s trénerkou na jednom mieste.',
+    body: 'Maj svoj tréning, stravu a pokrok po ruke, nech si kdekoľvek.',
+    nutrition: 'Výživa',
+    nutritionBody: 'Jedálničky, recepty, denné záznamy a týždenné check-iny.',
+    training: 'Tréning',
+    trainingBody: 'Tréningy, cviky, história aktivít a pokrok.',
+    footer: 'Prístup získaš na základe pozvánky od trénerky.',
   },
 } as const
 

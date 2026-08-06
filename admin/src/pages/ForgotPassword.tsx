@@ -6,7 +6,7 @@ import { Button, Input } from '../components/ui'
 import { supabase } from '../lib/supabase'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
-const copy = {
+export const copy = {
   en: {
     eyebrow: 'Account recovery',
     title: 'Reset your password',
@@ -28,6 +28,17 @@ const copy = {
     sentStatus: 'Zkontrolujte doručenou poštu a postupujte podle odkazu v e-mailu. Tuto stránku můžete bezpečně zavřít.',
     back: 'Zpět k přihlášení',
     genericError: 'E-mail pro obnovení se nepodařilo odeslat. Zkuste to prosím znovu.',
+  },
+  sk: {
+    eyebrow: 'Obnovenie účtu',
+    title: 'Obnovenie hesla',
+    sentIntro: 'Ak pre tento e-mail existuje účet, odkaz na obnovenie hesla je na ceste.',
+    intro: 'Zadaj e-mail a pošleme ti zabezpečený odkaz na vytvorenie nového hesla.',
+    email: 'E-mailová adresa',
+    submit: 'Odoslať odkaz na obnovenie',
+    sentStatus: 'Skontroluj doručenú poštu a postupuj podľa odkazu v e-maile. Túto stránku môžeš bezpečne zavrieť.',
+    back: 'Späť na prihlásenie',
+    genericError: 'E-mail na obnovenie sa nepodarilo odoslať. Skús to, prosím, znova.',
   },
 } as const
 
