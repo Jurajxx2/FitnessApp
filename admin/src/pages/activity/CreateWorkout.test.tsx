@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router-dom'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { NoticeProvider } from '../../components/ui'
 import CreateWorkout from './CreateWorkout'
 
@@ -65,27 +65,63 @@ function createExercisesQueryBuilder() {
   return builder
 }
 
+// Supports both calls createUserWorkout makes against 'workouts': the initial
+// `.insert({...}).select('id').single()`, and the closing `getWorkout()` read
+// (`.select(workoutSelect).eq('id', workoutId).single()`). Both only need
+// `.id` from the resolved row — sortWorkout defaults workout_exercises to [].
+function createWorkoutsBuilder() {
+  const builder: Record<string, unknown> = {
+    insert: () => builder,
+    select: () => builder,
+    eq: () => builder,
+    single: () => Promise.resolve({ data: { id: 'workout-99' }, error: null }),
+  }
+  return builder
+}
+
+// Supports createUserWorkout's `.from('workout_exercises').insert([...])` call,
+// which is awaited directly (no .select()/.single() in the chain).
+function createWorkoutExercisesInsertBuilder() {
+  return {
+    insert: () => Promise.resolve({ error: null }),
+  }
+}
+
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'athlete-1' } }),
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabase: {
-    from: (table: string) => (table === 'exercises' ? createExercisesQueryBuilder() : createEmptyQueryBuilder()),
+    from: (table: string) => {
+      if (table === 'exercises') return createExercisesQueryBuilder()
+      if (table === 'workouts') return createWorkoutsBuilder()
+      if (table === 'workout_exercises') return createWorkoutExercisesInsertBuilder()
+      return createEmptyQueryBuilder()
+    },
   },
 }))
 
+// useBlocker (used by the unsaved-changes guard) requires a data router — a
+// declarative <MemoryRouter> throws its useDataRouterContext invariant. See
+// App.test.tsx for the same createMemoryRouter/RouterProvider pattern.
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const router = createMemoryRouter(
+    [
+      { path: '/activity/workouts/new', element: <CreateWorkout /> },
+      { path: '/activity/workouts/:id', element: <p>Workout detail</p> },
+    ],
+    { initialEntries: ['/activity/workouts/new'] },
+  )
   render(
     <QueryClientProvider client={queryClient}>
       <NoticeProvider>
-        <MemoryRouter initialEntries={['/activity/workouts/new']}>
-          <CreateWorkout />
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </NoticeProvider>
     </QueryClientProvider>
   )
+  return router
 }
 
 describe('CreateWorkout log_type selector', () => {
@@ -133,5 +169,46 @@ describe('CreateWorkout log_type selector', () => {
     const selectedDetail = screen.getByRole('link', { name: 'Otvoriť detail cviku Bench Press' })
     expect(selectedDetail).toHaveAttribute('href', '/activity/exercises/ex-1')
     expect(selectedDetail).toHaveAttribute('target', '_blank')
+  })
+})
+
+describe('CreateWorkout unsaved-changes guard', () => {
+  it('blocks an in-app navigation attempt once a name is typed but not yet saved', async () => {
+    const user = userEvent.setup()
+    const router = renderPage()
+
+    await user.type(screen.getByLabelText('Názov tréningu'), 'Môj tréning')
+
+    // Simulate the user tapping away (a nav link or the browser back button) —
+    // CreateWorkout itself renders no such link, so drive the router directly,
+    // the same technique used in Session.test.tsx.
+    await act(async () => { router.navigate('/activity/workouts/999') })
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Zahodiť neuložené zmeny?')).toBeInTheDocument()
+    expect(within(dialog).getByText('Máš rozpracované zmeny, ktoré sa neuložili. Ak odídeš, prídeš o ne.')).toBeInTheDocument()
+    expect(screen.queryByText('Workout detail')).not.toBeInTheDocument()
+  })
+
+  it('does not block navigation before any name/exercise has been entered', async () => {
+    const router = renderPage()
+
+    await act(async () => { router.navigate('/activity/workouts/999') })
+
+    expect(await screen.findByText('Workout detail')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('navigates to the new workout with no unsaved-changes dialog after a successful save', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(screen.getByLabelText('Názov tréningu'), 'Môj tréning')
+    await user.click(await screen.findByRole('button', { name: 'Pridať Bench Press' }))
+
+    await user.click(screen.getByRole('button', { name: 'Uložiť vlastný tréning' }))
+
+    expect(await screen.findByText('Workout detail')).toBeInTheDocument()
+    expect(screen.queryByText('Zahodiť neuložené zmeny?')).not.toBeInTheDocument()
   })
 })

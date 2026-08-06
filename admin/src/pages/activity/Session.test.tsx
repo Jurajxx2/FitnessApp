@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router-dom'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import WorkoutSession from './Session'
 
 // vi.mock factories are hoisted above imports/consts, so mock data referenced
@@ -10,7 +10,7 @@ import WorkoutSession from './Session'
 // getActiveWorkout/getWorkout/discardWorkout/removeSet are hoisted too (not just
 // baked into the factory) so individual tests can override their resolved value
 // or assert on their call history, the same way `saveSet` already is below.
-const { ACTIVE_LOG, WORKOUT_ROW, saveSet, getActiveWorkout, getWorkout, discardWorkout, removeSet } = vi.hoisted(() => {
+const { ACTIVE_LOG, WORKOUT_ROW, saveSet, getActiveWorkout, getWorkout, discardWorkout, removeSet, finishWorkout } = vi.hoisted(() => {
   function makeSetLog(overrides: Record<string, unknown>) {
     return {
       id: 'set-1',
@@ -124,6 +124,7 @@ const { ACTIVE_LOG, WORKOUT_ROW, saveSet, getActiveWorkout, getWorkout, discardW
     getWorkout: vi.fn().mockResolvedValue(WORKOUT_ROW),
     discardWorkout: vi.fn().mockResolvedValue(undefined),
     removeSet: vi.fn().mockResolvedValue(undefined),
+    finishWorkout: vi.fn().mockResolvedValue(30),
   }
 })
 
@@ -141,19 +142,34 @@ vi.mock('../../activity/api', () => ({
   saveSet: (...args: unknown[]) => saveSet(...args),
   addSet: vi.fn(),
   removeSet: (...args: unknown[]) => removeSet(...args),
-  finishWorkout: vi.fn(),
+  finishWorkout: (...args: unknown[]) => finishWorkout(...args),
   discardWorkout: (...args: unknown[]) => discardWorkout(...args),
 }))
 
+// useBlocker (used by the unsaved-changes guard) requires a data router — a
+// declarative <MemoryRouter> throws its useDataRouterContext invariant. See
+// App.test.tsx for the same createMemoryRouter/RouterProvider pattern.
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const router = createMemoryRouter(
+    [
+      { path: '/activity/session', element: <WorkoutSession /> },
+      { path: '/activity', element: <p>Activity hub</p> },
+      { path: '/activity/workouts', element: <p>Workouts</p> },
+      { path: '/activity/history/:logId', element: <p>History detail</p> },
+    ],
+    { initialEntries: ['/activity/session'] },
+  )
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/activity/session']}>
-        <WorkoutSession />
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   )
+  // Returned so tests can drive an in-app navigation attempt imperatively —
+  // Session itself renders no other internal links/nav (that chrome lives in
+  // AthleteAppShell, an ancestor route this test doesn't mount), so this
+  // stands in for "the user tapped a nav link or the browser back button".
+  return router
 }
 
 describe('WorkoutSession authoritative timed detection', () => {
@@ -423,5 +439,171 @@ describe('WorkoutSession discard confirmation dialog', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(discardWorkout).not.toHaveBeenCalled()
+  })
+})
+
+describe('WorkoutSession unsaved-changes guard', () => {
+  beforeEach(() => {
+    discardWorkout.mockClear()
+    finishWorkout.mockClear()
+  })
+
+  it('blocks an in-app navigation attempt while a set holds a typed-but-unsaved value', async () => {
+    const user = userEvent.setup()
+    const router = renderPage()
+
+    // Bench Press's set-2 (sort_order 2, weight/reps) starts with no actual_reps —
+    // typing into it without check-marking is exactly the "typed but not
+    // check-marked" case the guard exists for.
+    const repsInput = await screen.findByLabelText('Séria 2 opakovania')
+    await user.type(repsInput, '8')
+
+    // Simulate the user tapping away (a nav link or the browser back button) —
+    // Session itself renders no such link, so drive the router directly.
+    await act(async () => { router.navigate('/activity') })
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Zahodiť neuložené zmeny?')).toBeInTheDocument()
+    expect(within(dialog).getByText('Máš rozpracované zmeny, ktoré sa neuložili. Ak odídeš, prídeš o ne.')).toBeInTheDocument()
+    expect(screen.queryByText('Activity hub')).not.toBeInTheDocument()
+  })
+
+  it('Zostať cancels the navigation and keeps the typed value on the page', async () => {
+    const user = userEvent.setup()
+    const router = renderPage()
+
+    const repsInput = (await screen.findByLabelText('Séria 2 opakovania')) as HTMLInputElement
+    await user.type(repsInput, '8')
+
+    await act(async () => { router.navigate('/activity') })
+    const dialog = await screen.findByRole('dialog')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Zostať' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByText('Activity hub')).not.toBeInTheDocument()
+    expect(repsInput.value).toBe('8')
+  })
+
+  it('Odísť proceeds with the navigation, discarding the typed value', async () => {
+    const user = userEvent.setup()
+    const router = renderPage()
+
+    const repsInput = await screen.findByLabelText('Séria 2 opakovania')
+    await user.type(repsInput, '8')
+
+    await act(async () => { router.navigate('/activity') })
+    const dialog = await screen.findByRole('dialog')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Odísť' }))
+
+    expect(await screen.findByText('Activity hub')).toBeInTheDocument()
+  })
+
+  it('discards without ever showing the unsaved-changes dialog, even with a typed-but-unsaved set value', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    const repsInput = await screen.findByLabelText('Séria 2 opakovania')
+    await user.type(repsInput, '8')
+
+    await user.click(screen.getByRole('button', { name: 'Zahodiť' }))
+    const discardDialog = await screen.findByRole('dialog')
+    expect(within(discardDialog).getByText('Zahodiť tréning?')).toBeInTheDocument()
+
+    await user.click(within(discardDialog).getByRole('button', { name: 'Zahodiť' }))
+
+    expect(discardWorkout.mock.calls[0][0]).toBe('log-1')
+    expect(await screen.findByText('Activity hub')).toBeInTheDocument()
+    expect(screen.queryByText('Zahodiť neuložené zmeny?')).not.toBeInTheDocument()
+  })
+})
+
+// A dedicated fixture with one set already completed (so the Finish button is
+// enabled from mount — the shared ACTIVE_LOG fixture has none) and a second,
+// incomplete set to type an unsaved value into.
+const FINISH_ACTIVE_LOG = {
+  id: 'log-3',
+  user_id: 'athlete-1',
+  workout_id: 'workout-3',
+  workout_name: 'Finish Workout',
+  duration_minutes: 0,
+  notes: null,
+  status: 'in_progress' as const,
+  logged_at: new Date().toISOString(),
+  created_at: new Date().toISOString(),
+  exercise_logs: [
+    {
+      id: 'ex-log-5',
+      workout_log_id: 'log-3',
+      exercise_id: 'ex-5',
+      exercise_name: 'Deadlift',
+      notes: null,
+      sets_completed: null,
+      reps_completed: null,
+      weight_kg: null,
+      set_logs: [
+        { id: 'set-5', exercise_log_id: 'ex-log-5', sort_order: 1, target_reps: 5, actual_reps: 5, target_weight_kg: null, actual_weight_kg: 100, rpe: 8, target_rest_seconds: 120, actual_rest_seconds: null, actual_duration_seconds: null, completed: true },
+        { id: 'set-6', exercise_log_id: 'ex-log-5', sort_order: 2, target_reps: 5, actual_reps: null, target_weight_kg: null, actual_weight_kg: null, rpe: null, target_rest_seconds: 120, actual_rest_seconds: null, actual_duration_seconds: null, completed: false },
+      ],
+    },
+  ],
+}
+
+const FINISH_WORKOUT_ROW = {
+  id: 'workout-3',
+  user_id: null,
+  owner_user_id: null,
+  name: 'Finish Workout',
+  day_of_week: null,
+  duration_minutes: 30,
+  notes: null,
+  is_active: true,
+  source: 'coach' as const,
+  workout_exercises: [
+    {
+      id: 'we-5',
+      workout_id: 'workout-3',
+      exercise_id: 'ex-5',
+      name: 'Deadlift',
+      muscle_group: null,
+      sets: 2,
+      reps: '5',
+      log_type: 'weight_reps' as const,
+      target_duration_seconds: null,
+      rest_seconds: 120,
+      tips: null,
+      sort_order: 1,
+    },
+  ],
+}
+
+describe('WorkoutSession finish flow bypasses the unsaved-changes guard', () => {
+  beforeEach(() => {
+    getActiveWorkout.mockResolvedValue(FINISH_ACTIVE_LOG)
+    getWorkout.mockResolvedValue(FINISH_WORKOUT_ROW)
+    finishWorkout.mockClear()
+  })
+
+  afterEach(() => {
+    // Restore the shared defaults other describe blocks in this file rely on.
+    getActiveWorkout.mockResolvedValue(ACTIVE_LOG)
+    getWorkout.mockResolvedValue(WORKOUT_ROW)
+  })
+
+  it('finishes without ever showing the unsaved-changes dialog, even with a typed-but-unsaved set value', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    const repsInput = await screen.findByLabelText('Séria 2 opakovania')
+    await user.type(repsInput, '3')
+
+    const finishButton = screen.getByRole('button', { name: 'Ukončiť tréning' })
+    expect(finishButton).not.toBeDisabled()
+    await user.click(finishButton)
+
+    expect(finishWorkout.mock.calls[0][0]).toMatchObject({ id: 'log-3' })
+    expect(await screen.findByText('History detail')).toBeInTheDocument()
+    expect(screen.queryByText('Zahodiť neuložené zmeny?')).not.toBeInTheDocument()
   })
 })

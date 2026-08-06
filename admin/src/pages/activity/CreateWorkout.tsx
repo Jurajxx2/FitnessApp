@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { createUserWorkout } from '../../activity/api'
@@ -7,8 +8,9 @@ import { ExercisePicker, type ExercisePickerItem } from '../../components/Exerci
 import { LogTypeToggle } from '../../components/LogTypeToggle'
 import { SelectedExerciseCard } from '../../components/SelectedExerciseCard'
 import { WorkoutDurationControl } from '../../components/WorkoutDurationControl'
-import { useNotice } from '../../components/ui'
+import { ConfirmDialog, useNotice } from '../../components/ui'
 import { useAuth } from '../../hooks/useAuth'
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 import { applyLogTypeChange, createExerciseDraftId, estimateWorkoutDuration, inferWorkoutExerciseLogType, moveItem, type WorkoutDurationMode } from '../../workouts/builder'
 import { ActivityPage, PageIntro } from './shared'
 
@@ -46,6 +48,14 @@ export default function CreateWorkout() {
   const [durationMode, setDurationMode] = useState<WorkoutDurationMode>('auto')
   const [manualDuration, setManualDuration] = useState('45')
   const [selected, setSelected] = useState<UserWorkoutExerciseDraft[]>([])
+  // A ref, not state: onMutate fires synchronously the instant saveMutation.mutate()
+  // is called, well before the network round trip and before onSuccess's navigate().
+  // onError flips it back so a failed save (validation or network) leaves the guard
+  // armed.
+  const savedRef = useRef(false)
+  // A dummy counter whose only job is to give flushSync (below) a state update
+  // to flush.
+  const [, setGuardTick] = useState(0)
   const saveMutation = useMutation({
     mutationFn: () => {
       const trimmedName = name.trim()
@@ -63,12 +73,26 @@ export default function CreateWorkout() {
         exercises: selected,
       })
     },
+    onMutate: () => {
+      savedRef.current = true
+      // A ref mutation alone only reaches useUnsavedChangesGuard's internal
+      // copy of isDirty on this component's next render, and a fast-resolving
+      // mutation can run onMutate → onSuccess → navigate() with zero renders
+      // in between (verified empirically). flushSync forces that render here,
+      // so the guard is provably off before the mutation's async work starts.
+      flushSync(() => setGuardTick(tick => tick + 1))
+    },
     onSuccess: async workout => {
       await queryClient.invalidateQueries({ queryKey: ['activity', 'assigned', userId] })
       notify('Vlastný tréning je pripravený.')
       navigate(`/activity/workouts/${workout.id}`, { replace: true })
     },
+    onError: () => {
+      savedRef.current = false
+    },
   })
+  const isDirty = !savedRef.current && (name.trim() !== '' || selected.length > 0)
+  const { blocked, confirmLeave, cancelLeave } = useUnsavedChangesGuard(isDirty)
 
   function addExercise(exercise: ExercisePickerItem) {
     setSelected(current => current.some(item => item.exercise_id === exercise.id) ? current : [...current, makeDraft(exercise)])
@@ -168,6 +192,16 @@ export default function CreateWorkout() {
           </div>
         </section>
       </div>
+      <ConfirmDialog
+        open={blocked}
+        title="Zahodiť neuložené zmeny?"
+        description="Máš rozpracované zmeny, ktoré sa neuložili. Ak odídeš, prídeš o ne."
+        confirmLabel="Odísť"
+        cancelLabel="Zostať"
+        confirmVariant="danger"
+        onConfirm={confirmLeave}
+        onClose={cancelLeave}
+      />
     </ActivityPage>
   )
 }

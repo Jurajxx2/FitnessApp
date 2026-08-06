@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { AlertTriangle, Camera, ChevronDown, ChevronUp, ImagePlus, Plus, Sparkles, Star, Trash2, X } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -41,7 +42,8 @@ import { analyzeMealPhoto, mergeAnalysis } from '../../nutrition/photoAnalysis'
 import { prepareMealPhoto } from '../../nutrition/imagePreparation'
 import { signedMealPhotoUrl, validateMealPhoto } from '../../lib/storage'
 import type { FoodFavoriteRow, FoodRow, MealType, RecipeRow } from '../../types/database'
-import { Button, Card, EmptyState, Input, Shimmer, useNotice } from '../../components/ui'
+import { Button, Card, ConfirmDialog, EmptyState, Input, Shimmer, useNotice } from '../../components/ui'
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 
 type MacroField = keyof Macros
 type LogStep = 'capture' | 'review'
@@ -125,6 +127,15 @@ export default function LogMeal() {
   const captureHeadingRef = useRef<HTMLHeadingElement>(null)
   const reviewHeadingRef = useRef<HTMLHeadingElement>(null)
   const stepDidMount = useRef(false)
+  // Ratchets true the moment the athlete attaches/removes a photo, adds or edits
+  // an item, or removes one — deliberately NOT set by the prefill effect below,
+  // so opening an existing log/recipe/meal-plan draft doesn't itself count as
+  // unsaved work. savedRef is a ref (not state) so it's visible to isDirty on
+  // the very next render regardless of whether that render was itself triggered
+  // by a setState — see save()'s comment for why that matters.
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const savedRef = useRef(false)
+  const markDirty = () => setHasUnsavedChanges(true)
   const logMeal = useLogMeal()
   const updateMeal = useUpdateMealLog()
   const saveFavorite = useSaveFoodFavorite()
@@ -133,6 +144,7 @@ export default function LogMeal() {
   const deleteMealTemplate = useDeleteMealTemplate()
   const existingLog = isEdit ? (mealLogQuery.data ?? null) : null
   const favorites = favoritesQuery.data ?? []
+  const { blocked, confirmLeave, cancelLeave } = useUnsavedChangesGuard(hasUnsavedChanges && !savedRef.current)
 
   function replaceItems(next: LogFoodDraft[]) {
     const safe = next.length ? next : [emptyIngredient()]
@@ -151,6 +163,7 @@ export default function LogMeal() {
       next.add(draft.key)
       return next
     })
+    markDirty()
   }
 
   function appendManualDraft() {
@@ -220,11 +233,13 @@ export default function LogMeal() {
 
   function updateItem(index: number, update: (draft: LogFoodDraft) => LogFoodDraft) {
     setItems(current => current.map((item, itemIndex) => itemIndex === index ? update(item) : item))
+    markDirty()
   }
 
   function removeItem(index: number) {
     const removedKey = items[index]?.key
     if (!removedKey) return
+    markDirty()
     if (items.length === 1) {
       const replacement = emptyIngredient()
       setItems([replacement])
@@ -256,6 +271,7 @@ export default function LogMeal() {
       setPhotoError('')
       setRemoveExistingPhoto(false)
       setPhotoFile(prepared)
+      markDirty()
     } catch (error) {
       setPhotoError(error instanceof Error ? error.message : 'Fotografiu sa nepodarilo pripraviť.')
     } finally {
@@ -267,6 +283,7 @@ export default function LogMeal() {
     setPhotoFile(null)
     if (isEdit) setRemoveExistingPhoto(true)
     setPhotoPreview(null)
+    markDirty()
   }
 
   async function analyzePhoto() {
@@ -342,7 +359,16 @@ export default function LogMeal() {
       setFormError('Skontroluj názov, typ, dátum, čas a všetky výživové hodnoty.')
       return
     }
-    setFormError('')
+    // Set before the mutation even starts, and flushed synchronously: a ref
+    // mutation alone only reaches useUnsavedChangesGuard's internal copy of
+    // isDirty on this component's next render, and a fast-resolving mutation
+    // can run through to navigate() below with zero renders in between
+    // (verified empirically on an equivalent flow in Session.tsx). flushSync
+    // forces that render right here, so the guard is provably off before the
+    // mutation's async work even starts. Reverted in the catch block below so
+    // a failed save leaves the guard armed.
+    savedRef.current = true
+    flushSync(() => setFormError(''))
     try {
       if (isEdit) {
         const result = await updateMeal.mutateAsync({
@@ -367,6 +393,7 @@ export default function LogMeal() {
       notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Jedlo bolo uložené.', result.photoError ? 'error' : 'success')
       navigate('/nutrition')
     } catch {
+      savedRef.current = false
       setFormError('Jedlo sa nepodarilo uložiť. Skontroluj pripojenie a skús to znova.')
     }
   }
@@ -375,6 +402,18 @@ export default function LogMeal() {
   const hasIngredient = items.some(item => item.name.trim())
   const hasAiItems = items.some(item => item.source === 'ai')
   const isPrefilling = (isEdit && mealLogQuery.isLoading) || (recipeId && recipeQuery.isLoading) || (mealId && mealPlanQuery.isLoading)
+  const unsavedChangesDialog = (
+    <ConfirmDialog
+      open={blocked}
+      title="Zahodiť neuložené zmeny?"
+      description="Máš rozpracované zmeny, ktoré sa neuložili. Ak odídeš, prídeš o ne."
+      confirmLabel="Odísť"
+      cancelLabel="Zostať"
+      confirmVariant="danger"
+      onConfirm={confirmLeave}
+      onClose={cancelLeave}
+    />
+  )
 
   if (isEdit && !mealLogQuery.isLoading && !existingLog) {
     return <EmptyState title="Záznam sa nenašiel" message="Toto jedlo už bolo pravdepodobne vymazané." action={<Button onClick={() => navigate('/nutrition/history')}>Späť do histórie</Button>} />
@@ -438,6 +477,7 @@ export default function LogMeal() {
             </div>
           </Card>
         )}
+        {unsavedChangesDialog}
       </div>
     )
   }
@@ -458,7 +498,7 @@ export default function LogMeal() {
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)]">
           <div className="flex min-w-0 flex-col gap-5">
             <Card className="flex flex-col gap-5 p-5 sm:p-6">
-              <Input id="mealName" label="Názov jedla" placeholder="napr. Obed" value={mealName} onChange={event => setMealName(event.target.value)} />
+              <Input id="mealName" label="Názov jedla" placeholder="napr. Obed" value={mealName} onChange={event => { setMealName(event.target.value); markDirty() }} />
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wider text-text-secondary">
                   Typ jedla
@@ -474,6 +514,7 @@ export default function LogMeal() {
                   const servings = Number(event.target.value)
                   setRecipeServings(servings)
                   replaceItems(recipeIngredientsToDrafts(recipeQuery.data as RecipeRow, servings))
+                  markDirty()
                 }} />
               )}
               <div>
@@ -575,12 +616,13 @@ export default function LogMeal() {
             </div>
             {favorites.length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Obľúbené</p><div className="divide-y divide-outline-subtle">{favorites.slice(0, 8).map(favorite => <QuickAddButton key={favorite.id} label={favorite.name} detail={`${Math.round(favorite.calories)} kcal`} onClick={() => addDraft(snapshotToDraft(favorite, 'favorite'))} />)}</div></div>}
             {(recentsQuery.data ?? []).length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Naposledy použité</p><div className="divide-y divide-outline-subtle">{recentsQuery.data!.slice(0, 8).map(recent => <QuickAddButton key={recent.key} label={recent.name} detail={`${Math.round(recent.calories)} kcal`} onClick={() => addDraft(draftFromFood(persistedFood(recent), 'recent'))} />)}</div></div>}
-            {(savedMealsQuery.data ?? []).length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Vlastné jedlá</p><div className="divide-y divide-outline-subtle">{savedMealsQuery.data!.map(saved => <div key={saved.id} className="flex items-center gap-1"><QuickAddButton label={saved.name} detail={`${saved.saved_meal_items.length} položiek`} onClick={() => { setMealName(saved.name); replaceItems(saved.saved_meal_items.map(item => snapshotToDraft(item, 'saved'))) }} /><button type="button" aria-label={`Vymazať uložené jedlo ${saved.name}`} onClick={() => void deleteSavedMeal(saved.id)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error"><Trash2 size={15} /></button></div>)}</div></div>}
+            {(savedMealsQuery.data ?? []).length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Vlastné jedlá</p><div className="divide-y divide-outline-subtle">{savedMealsQuery.data!.map(saved => <div key={saved.id} className="flex items-center gap-1"><QuickAddButton label={saved.name} detail={`${saved.saved_meal_items.length} položiek`} onClick={() => { setMealName(saved.name); replaceItems(saved.saved_meal_items.map(item => snapshotToDraft(item, 'saved'))); markDirty() }} /><button type="button" aria-label={`Vymazať uložené jedlo ${saved.name}`} onClick={() => void deleteSavedMeal(saved.id)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error"><Trash2 size={15} /></button></div>)}</div></div>}
             {(seedFoodsQuery.data ?? []).length > 0 && <details><summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-text-secondary">Základné návrhy</summary><div className="mt-2 divide-y divide-outline-subtle">{seedFoodsQuery.data!.slice(0, 10).map((food: FoodRow) => <QuickAddButton key={food.id} label={food.name} detail={`${Math.round(food.calories)} kcal`} onClick={() => addDraft(draftFromFood(scaleFood(food, food.serving_size), 'manual'))} />)}</div></details>}
             <div className="border-t border-outline-subtle pt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Uložiť aktuálnu kombináciu</p><div className="flex gap-2"><Input aria-label="Názov vlastného jedla" placeholder="napr. Moje raňajky" value={savedMealName} onChange={event => setSavedMealName(event.target.value)} /><Button variant="secondary" disabled={!savedMealName.trim() || !hasIngredient} loading={saveMealTemplate.isPending} onClick={saveCurrentMealTemplate}>Uložiť</Button></div></div>
           </Card>
         </div>
       )}
+      {unsavedChangesDialog}
     </div>
   )
 }

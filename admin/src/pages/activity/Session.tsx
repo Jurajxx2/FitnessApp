@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ChevronDown, ChevronUp, CircleStop, Pause, Play, Plus, Save, TimerReset, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { addSet, discardWorkout, finishWorkout, getActiveWorkout, getLastExercisePerformances, getWorkout, removeSet, saveSet } from '../../activity/api'
 import type { ExerciseLogRow, LastExercisePerformance, SetLogRow, WorkoutExerciseRow, WorkoutLogRow } from '../../activity/types'
 import { useAuth } from '../../hooks/useAuth'
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 import { ConfirmDialog } from '../../components/ui'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
 
@@ -70,6 +72,36 @@ export default function WorkoutSession() {
   const [restUntil, setRestUntil] = useState<number | null>(null)
   const [restRemaining, setRestRemaining] = useState(0)
   const [discardOpen, setDiscardOpen] = useState(false)
+  // Which set rows currently hold a typed-but-not-check-marked value, keyed by
+  // set id and reported up by each SessionSetRow. Finish/discard are deliberate
+  // exits and must never be blocked by this, regardless of what's still dirty.
+  const [dirtySetIds, setDirtySetIds] = useState<Set<string>>(() => new Set())
+  const isExitingRef = useRef(false)
+  // A dummy counter whose only job is to give flushSync (in markExiting below)
+  // a state update to flush.
+  const [, setGuardTick] = useState(0)
+  // isExitingRef flips the instant either mutation starts (onMutate fires
+  // synchronously, well before the network round trip and long before
+  // onSuccess's navigate()) — but a ref mutation alone only reaches
+  // useUnsavedChangesGuard's internal copy of isDirty on WorkoutSession's next
+  // render, and with mocked/fast mutations that resolve within the same
+  // microtask flush, no such render happens before navigate() fires (verified
+  // empirically: onMutate → onSuccess → navigate can all run with zero renders
+  // in between). flushSync forces that render to happen right here, so the
+  // guard is provably off before the mutation's async work even starts.
+  function markExiting() {
+    isExitingRef.current = true
+    flushSync(() => setGuardTick(tick => tick + 1))
+  }
+  const handleSetDirtyChange = useCallback((setId: string, dirty: boolean) => {
+    setDirtySetIds(current => {
+      if (dirty === current.has(setId)) return current
+      const next = new Set(current)
+      if (dirty) next.add(setId)
+      else next.delete(setId)
+      return next
+    })
+  }, [])
   const activeQuery = useQuery({
     queryKey: ['activity', 'active', userId],
     queryFn: () => getActiveWorkout(userId),
@@ -106,6 +138,7 @@ export default function WorkoutSession() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['activity', 'active', userId] })
   const finishMutation = useMutation({
     mutationFn: (log: WorkoutLogRow) => finishWorkout(log, notes.trim() || null),
+    onMutate: markExiting,
     onSuccess: async (_duration, log) => {
       await Promise.all([
         queryClient.invalidateQueries({
@@ -116,17 +149,26 @@ export default function WorkoutSession() {
         })
       ])
       navigate(`/activity/history/${log.id}`, { replace: true })
+    },
+    onError: () => {
+      isExitingRef.current = false
     }
   })
   const discardMutation = useMutation({
     mutationFn: discardWorkout,
+    onMutate: markExiting,
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ['activity', 'active', userId]
       })
       navigate('/activity', { replace: true })
+    },
+    onError: () => {
+      isExitingRef.current = false
     }
   })
+  const isDirty = !isExitingRef.current && dirtySetIds.size > 0
+  const { blocked, confirmLeave, cancelLeave } = useUnsavedChangesGuard(isDirty)
 
   if (activeQuery.isLoading)
     return (
@@ -197,6 +239,7 @@ export default function WorkoutSession() {
               onRest={seconds => {
                 if (seconds > 0) setRestUntil(Date.now() + seconds * 1000)
               }}
+              onSetDirtyChange={handleSetDirtyChange}
             />
           )
         })}
@@ -236,11 +279,22 @@ export default function WorkoutSession() {
         onClose={() => setDiscardOpen(false)}
         onConfirm={() => discardMutation.mutate(active.id)}
       />
+
+      <ConfirmDialog
+        open={blocked}
+        title="Zahodiť neuložené zmeny?"
+        description="Máš rozpracované zmeny, ktoré sa neuložili. Ak odídeš, prídeš o ne."
+        confirmLabel="Odísť"
+        cancelLabel="Zostať"
+        confirmVariant="danger"
+        onConfirm={confirmLeave}
+        onClose={cancelLeave}
+      />
     </ActivityPage>
   )
 }
 
-function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeconds, restSeconds, lastPerformance, onChanged, onRest }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; logType: WorkoutExerciseRow['log_type']; targetSeconds: number | null; restSeconds: number; lastPerformance: LastExercisePerformance | null; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void }) {
+function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeconds, restSeconds, lastPerformance, onChanged, onRest, onSetDirtyChange }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; logType: WorkoutExerciseRow['log_type']; targetSeconds: number | null; restSeconds: number; lastPerformance: LastExercisePerformance | null; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void; onSetDirtyChange: (setId: string, dirty: boolean) => void }) {
   const [open, setOpen] = useState(true)
   // Authoritative: a plan's log_type decides timed vs. reps. Only fall back to the
   // legacy set-shape heuristic (existing duration values) when there is no plan at all.
@@ -305,6 +359,7 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
                   await onChanged()
                   if (completedNow) onRest(set.target_rest_seconds ?? restSeconds)
                 }}
+                onDirtyChange={onSetDirtyChange}
               />
             ))}
           </div>
@@ -322,7 +377,7 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
   )
 }
 
-function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, deleting, onDelete, onSaved }: { set: SetLogRow; timed: boolean; targetSeconds: number | null; suggestion: LastExercisePerformance | null; canDelete: boolean; deleting: boolean; onDelete: () => void; onSaved: (completedNow: boolean) => Promise<unknown> }) {
+function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, deleting, onDelete, onSaved, onDirtyChange }: { set: SetLogRow; timed: boolean; targetSeconds: number | null; suggestion: LastExercisePerformance | null; canDelete: boolean; deleting: boolean; onDelete: () => void; onSaved: (completedNow: boolean) => Promise<unknown>; onDirtyChange: (setId: string, dirty: boolean) => void }) {
   const [draft, setDraft] = useState(() => draftFromSet(set))
   const [stopwatch, setStopwatch] = useState<{ startedAt: number; baseline: number } | null>(null)
   const payload = useMemo(
@@ -338,6 +393,24 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
     mutationFn: (completed: boolean) => saveSet(set.id, { ...payload, completed }),
     onSuccess: (_data, completed) => onSaved(completed && !set.completed)
   })
+
+  // Dirty exactly when the draft (what's typed) differs from the row's last
+  // persisted values — i.e. typed but not yet check-marked. Once a save
+  // succeeds, `set` refetches to match the draft it was saved from, so this
+  // clears itself with no extra "just saved" bookkeeping.
+  const persisted = useMemo(() => draftFromSet(set), [set])
+  const isRowDirty = draft.reps !== persisted.reps
+    || draft.weight !== persisted.weight
+    || draft.duration !== persisted.duration
+    || draft.rpe !== persisted.rpe
+
+  useEffect(() => {
+    onDirtyChange(set.id, isRowDirty)
+  }, [set.id, isRowDirty, onDirtyChange])
+
+  // Report clean on unmount (e.g. the set is deleted, or its exercise card is
+  // collapsed) so a row that disappears can't keep the whole session blocked.
+  useEffect(() => () => onDirtyChange(set.id, false), [set.id, onDirtyChange])
 
   // Wall-clock anchored count-up: each tick (and the pause itself) recomputes the
   // elapsed seconds from Date.now(), so backgrounding the tab self-corrects instead

@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NoticeProvider } from '../../components/ui'
 import {
@@ -99,30 +99,35 @@ beforeEach(() => {
   })
 })
 
-function renderRecipeLogger() {
+// useBlocker (used by the unsaved-changes guard) requires a data router — a
+// declarative <MemoryRouter> throws its useDataRouterContext invariant. See
+// App.test.tsx for the same createMemoryRouter/RouterProvider pattern. The
+// router is returned so tests can drive an in-app navigation attempt
+// imperatively (LogMeal renders no other internal links to click).
+function renderLogMealAt(initialPath: string) {
+  const router = createMemoryRouter(
+    [
+      { path: '/nutrition/log', element: <LogMeal /> },
+      { path: '/nutrition', element: <p>Nutrition home</p> },
+      { path: '/nutrition/history', element: <p>History list</p> },
+      { path: '/nutrition/history/:id', element: <p>History detail</p> },
+    ],
+    { initialEntries: [initialPath] },
+  )
   render(
     <NoticeProvider>
-      <MemoryRouter initialEntries={['/nutrition/log?recipeId=recipe-1']}>
-        <Routes>
-          <Route path="/nutrition/log" element={<LogMeal />} />
-          <Route path="/nutrition" element={<p>Nutrition home</p>} />
-        </Routes>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </NoticeProvider>,
   )
+  return router
+}
+
+function renderRecipeLogger() {
+  return renderLogMealAt('/nutrition/log?recipeId=recipe-1')
 }
 
 function renderManualLogger() {
-  render(
-    <NoticeProvider>
-      <MemoryRouter initialEntries={['/nutrition/log']}>
-        <Routes>
-          <Route path="/nutrition/log" element={<LogMeal />} />
-          <Route path="/nutrition" element={<p>Nutrition home</p>} />
-        </Routes>
-      </MemoryRouter>
-    </NoticeProvider>,
-  )
+  return renderLogMealAt('/nutrition/log')
 }
 
 // Fresh logs land on the photo-first capture step; the review form (item editor, save bar)
@@ -439,16 +444,7 @@ describe('LogMeal food search', () => {
 })
 
 function renderEditLogger() {
-  render(
-    <NoticeProvider>
-      <MemoryRouter initialEntries={['/nutrition/log?logId=log-1']}>
-        <Routes>
-          <Route path="/nutrition/log" element={<LogMeal />} />
-          <Route path="/nutrition/history/:id" element={<p>History detail</p>} />
-        </Routes>
-      </MemoryRouter>
-    </NoticeProvider>,
-  )
+  return renderLogMealAt('/nutrition/log?logId=log-1')
 }
 
 describe('LogMeal edit mode', () => {
@@ -475,5 +471,70 @@ describe('LogMeal edit mode', () => {
     })))
     expect(mutateAsync).not.toHaveBeenCalled()
     expect(await screen.findByText('History detail')).toBeInTheDocument()
+  })
+})
+
+describe('LogMeal unsaved-changes guard', () => {
+  it('blocks an in-app navigation attempt once an item has been entered', async () => {
+    const user = userEvent.setup()
+    const router = renderManualLogger()
+    await user.click(screen.getByRole('button', { name: 'Zapísať manuálne' }))
+
+    await user.type(screen.getByLabelText('Názov'), 'Ryža')
+
+    // Simulate the user tapping away (a nav link or the browser back button) —
+    // this test doesn't exercise a link LogMeal itself renders, so drive the
+    // router directly, the same technique used in Session.test.tsx.
+    await act(async () => { router.navigate('/nutrition') })
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Zahodiť neuložené zmeny?')).toBeInTheDocument()
+    expect(within(dialog).getByText('Máš rozpracované zmeny, ktoré sa neuložili. Ak odídeš, prídeš o ne.')).toBeInTheDocument()
+    expect(screen.queryByText('Nutrition home')).not.toBeInTheDocument()
+  })
+
+  it('Zostať keeps the page and the typed data; a later Odísť leaves', async () => {
+    const user = userEvent.setup()
+    const router = renderManualLogger()
+    await user.click(screen.getByRole('button', { name: 'Zapísať manuálne' }))
+    await user.type(screen.getByLabelText('Názov'), 'Ryža')
+
+    await act(async () => { router.navigate('/nutrition') })
+    const firstDialog = await screen.findByRole('dialog')
+    await user.click(within(firstDialog).getByRole('button', { name: 'Zostať' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nutrition home')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Názov')).toHaveValue('Ryža')
+
+    // Still dirty, so a second attempt must block again — proves Zostať reset
+    // the blocker instead of leaving it permanently unblocked.
+    await act(async () => { router.navigate('/nutrition') })
+    const secondDialog = await screen.findByRole('dialog')
+    await user.click(within(secondDialog).getByRole('button', { name: 'Odísť' }))
+
+    expect(await screen.findByText('Nutrition home')).toBeInTheDocument()
+  })
+
+  it('does not block navigation before any photo/item has been entered', async () => {
+    const router = renderManualLogger()
+    await act(async () => { router.navigate('/nutrition') })
+
+    expect(await screen.findByText('Nutrition home')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('navigates to /nutrition with no unsaved-changes dialog after a successful save', async () => {
+    const user = userEvent.setup()
+    renderManualLogger()
+    await user.click(screen.getByRole('button', { name: 'Zapísať manuálne' }))
+
+    await user.type(screen.getByLabelText('Názov jedla'), 'Obed')
+    await user.type(screen.getByLabelText('Názov'), 'Ryža')
+
+    await user.click(screen.getByRole('button', { name: 'Uložiť jedlo' }))
+
+    expect(await screen.findByText('Nutrition home')).toBeInTheDocument()
+    expect(screen.queryByText('Zahodiť neuložené zmeny?')).not.toBeInTheDocument()
   })
 })
