@@ -63,4 +63,16 @@ describe('nutrition History', () => {
     expect(screen.getByText('História jedál')).toBeInTheDocument()
     expect(screen.getByText('Zatiaľ žiadne záznamy')).toBeInTheDocument()
   })
+
+  it('renders the Pagination control in Slovak, not English', () => {
+    mockUseMealHistory.mockReturnValue({ data: { data: [LOG], count: 60 }, isLoading: false, isFetching: false } as unknown as ReturnType<typeof useMealHistory>)
+
+    renderPage()
+
+    expect(screen.getByLabelText('Riadkov na stranu')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Predchádzajúca strana' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ďalšia strana' })).toBeInTheDocument()
+    expect(screen.queryByText('Rows per page')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Next page' })).not.toBeInTheDocument()
+  })
 })

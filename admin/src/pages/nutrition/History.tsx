@@ -99,6 +99,7 @@ export default function History() {
           onPageChange={setPage}
           onPageSizeChange={size => { setPageSize(size); setPage(0) }}
           standalone
+          locale="sk"
         />
       )}
     </div>

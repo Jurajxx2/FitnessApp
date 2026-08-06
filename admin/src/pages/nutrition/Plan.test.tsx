@@ -66,6 +66,12 @@ test('starts a meal log prefilled from the selected meal card', async () => {
   expect(screen.getByTestId('location')).toHaveTextContent('/nutrition/log?mealId=meal-1')
 })
 
+test('renders the Slovak eyebrow label when not embedded', () => {
+  render(<MemoryRouter initialEntries={['/nutrition/plan']}><Plan /></MemoryRouter>)
+
+  expect(screen.getByText('Tvoja výživa')).toBeInTheDocument()
+})
+
 test('shows a portion chip for scaled recipe rows', () => {
   const base = planFixture()
   mockUseActiveMealPlan.mockReturnValue({

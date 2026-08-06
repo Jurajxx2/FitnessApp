@@ -90,7 +90,7 @@ describe('Exercises library page', () => {
     renderPage()
 
     fireEvent.change(screen.getByPlaceholderText('Hľadať cvik alebo sval…'), { target: { value: 'zercher' } })
-    fireEvent.click(screen.getByLabelText('Next page'))
+    fireEvent.click(screen.getByLabelText('Ďalšia strana'))
 
     expect(screen.getByPlaceholderText('Hľadať cvik alebo sval…')).toHaveValue('zercher')
   })
@@ -100,14 +100,14 @@ describe('Exercises library page', () => {
     vi.mocked(useQuery).mockImplementation((options: any) => {
       if (options.queryKey[1] === 'exercise-favorites') return FAVORITES_RETURN as any
       capturedKeys.push(options.queryKey)
-      // count > EXERCISE_PAGE_SIZE so the Pagination "Next page" control is enabled.
+      // count > EXERCISE_PAGE_SIZE so the Pagination "Ďalšia strana" control is enabled.
       return { data: { data: [EXERCISE], count: 50 }, isLoading: false, isError: false } as any
     })
 
     renderPage()
 
     // Move off page 0 first, so resetting to 0 on filter change is an observable change.
-    fireEvent.click(screen.getByLabelText('Next page'))
+    fireEvent.click(screen.getByLabelText('Ďalšia strana'))
     const keyAfterPaging = capturedKeys[capturedKeys.length - 1]!
     expect(keyAfterPaging[6]).toBe(1)
 
@@ -127,7 +127,7 @@ describe('Exercises library page', () => {
 
     renderPage()
 
-    fireEvent.click(screen.getByLabelText('Next page'))
+    fireEvent.click(screen.getByLabelText('Ďalšia strana'))
     expect(capturedKeys[capturedKeys.length - 1]![6]).toBe(1)
 
     fireEvent.click(screen.getByText('Obľúbené'))

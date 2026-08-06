@@ -56,6 +56,14 @@ describe('Pagination', () => {
     expect(screen.getByText('1–25 z 130')).toBeInTheDocument()
   })
 
+  it('exposes Slovak accessible names for Previous/Next under locale="sk"', () => {
+    render(<Pagination {...base} locale="sk" />)
+    expect(screen.getByRole('button', { name: 'Predchádzajúca strana' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ďalšia strana' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Previous page' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Next page' })).not.toBeInTheDocument()
+  })
+
   it('raises the Previous/Next buttons and the rows-per-page select to the 44px touch floor', () => {
     render(<Pagination {...base} />)
     expect(screen.getByRole('button', { name: 'Previous page' })).toHaveClass('min-h-11')

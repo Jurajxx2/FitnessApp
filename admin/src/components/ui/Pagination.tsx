@@ -13,8 +13,8 @@ interface PaginationProps {
 }
 
 const COPY = {
-  en: { rowsPerPage: 'Rows per page', previous: 'Previous', next: 'Next', of: 'of' },
-  sk: { rowsPerPage: 'Riadkov na stranu', previous: 'Predchádzajúca', next: 'Ďalšia', of: 'z' },
+  en: { rowsPerPage: 'Rows per page', previous: 'Previous', next: 'Next', of: 'of', previousLabel: 'Previous page', nextLabel: 'Next page' },
+  sk: { rowsPerPage: 'Riadkov na stranu', previous: 'Predchádzajúca', next: 'Ďalšia', of: 'z', previousLabel: 'Predchádzajúca strana', nextLabel: 'Ďalšia strana' },
 } as const
 
 export function Pagination({
@@ -54,7 +54,7 @@ export function Pagination({
           <Button
             variant="ghost"
             className="min-h-11 px-3"
-            aria-label="Previous page"
+            aria-label={t.previousLabel}
             disabled={page <= 0}
             onClick={() => onPageChange(page - 1)}
           >
@@ -64,7 +64,7 @@ export function Pagination({
           <Button
             variant="ghost"
             className="min-h-11 px-3"
-            aria-label="Next page"
+            aria-label={t.nextLabel}
             disabled={page >= totalPages - 1}
             onClick={() => onPageChange(page + 1)}
           >
