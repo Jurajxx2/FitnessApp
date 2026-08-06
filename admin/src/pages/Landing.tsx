@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom'
 import { LocaleSwitcher } from '../components/LocaleSwitcher'
 import { useAuth } from '../hooks/useAuth'
 import { usePublicLocale } from '../i18n/PublicLocale'
+import { athleteHomePath } from '../lib/access'
 
 export const copy = {
   en: {
@@ -180,7 +181,7 @@ export default function Landing() {
   const { locale } = usePublicLocale()
   const t = copy[locale]
   const { session, isAdmin, isLoading, profile } = useAuth()
-  const appPath = isAdmin ? '/admin' : '/nutrition'
+  const appPath = isAdmin ? '/admin' : athleteHomePath(profile)
 
   if (isLoading) {
     return (

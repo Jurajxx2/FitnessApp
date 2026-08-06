@@ -33,7 +33,7 @@ export default function Hub() {
         <div>
           <p className="flex items-center gap-2 ledger-label text-text-secondary">
             <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
-            Your nutrition
+            Tvoja výživa
           </p>
           <h2 className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary">Výživa</h2>
           <p className="mt-2 text-sm text-text-secondary">Denné ciele, jedálniček a recepty na jednom mieste.</p>
@@ -81,7 +81,7 @@ function TodayOverview() {
       <div>
         <p className="flex items-center gap-2 ledger-label text-text-secondary">
           <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
-          Daily overview
+          Denný prehľad
         </p>
         <h3 className="mt-1 text-2xl font-display font-bold tracking-tight text-text-primary">Dnes</h3>
         <p className="mt-1 text-sm text-text-secondary">

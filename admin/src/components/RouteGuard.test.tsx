@@ -74,7 +74,7 @@ describe('AdminRouteGuard', () => {
         </Routes>
       </MemoryRouter>
     )
-    expect(screen.getByText('Account access is blocked')).toBeInTheDocument()
+    expect(screen.getByText('Prístup k účtu je zablokovaný')).toBeInTheDocument()
     expect(screen.queryByText('Admin content')).not.toBeInTheDocument()
   })
 

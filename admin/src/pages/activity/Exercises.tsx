@@ -113,6 +113,7 @@ function ExerciseList() {
               onPageChange={setPage}
               onPageSizeChange={() => {}}
               standalone
+              locale="sk"
             />
           )}
         </>

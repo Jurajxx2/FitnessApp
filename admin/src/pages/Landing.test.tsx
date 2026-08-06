@@ -5,8 +5,10 @@ import { MemoryRouter } from 'react-router-dom'
 import { PublicLocaleProvider } from '../i18n/PublicLocale'
 import Landing, { copy } from './Landing'
 
+const { mockUseAuth } = vi.hoisted(() => ({ mockUseAuth: vi.fn() }))
+
 vi.mock('../hooks/useAuth', () => ({
-  useAuth: () => ({ session: null, isAdmin: false, isLoading: false, profile: null }),
+  useAuth: mockUseAuth,
 }))
 
 beforeAll(() => {
@@ -23,6 +25,7 @@ afterAll(() => {
 
 beforeEach(() => {
   window.localStorage.clear()
+  mockUseAuth.mockReturnValue({ session: null, isAdmin: false, isLoading: false, profile: null })
 })
 
 function renderLanding() {
@@ -63,6 +66,19 @@ test('switches the public landing page to Slovak and persists the choice', async
   expect(screen.getByRole('heading', { name: 'Tvoj tréning. Tvoja strava. Tvoja trénerka.' })).toBeInTheDocument()
   expect(document.documentElement.lang).toBe('sk')
   expect(window.localStorage.getItem('coach-foska-public-locale')).toBe('sk')
+})
+
+test('an activity-only athlete session links straight to the activity home, not /nutrition', () => {
+  mockUseAuth.mockReturnValue({
+    session: { user: { id: 'user-1' } },
+    isAdmin: false,
+    isLoading: false,
+    profile: { access_mode: 'activity' },
+  })
+  renderLanding()
+
+  const navigation = screen.getByRole('navigation', { name: 'Main navigation' })
+  expect(within(navigation).getByRole('link', { name: 'Open app' })).toHaveAttribute('href', '/activity')
 })
 
 test('sk and cs copy expose the same key set, including nested list lengths', () => {

@@ -146,6 +146,7 @@ export default function CheckInHistory() {
           onPageChange={setPage}
           onPageSizeChange={size => { setPageSize(size); setPage(0) }}
           standalone
+          locale="sk"
         />
       )}
     </div>

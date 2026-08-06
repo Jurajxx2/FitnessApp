@@ -96,7 +96,7 @@ export default function Messages() {
       <div>
         <p className="flex items-center gap-2 ledger-label text-text-secondary">
           <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
-          Coach chat
+          Chat s trénerkou
         </p>
         <h1 className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary">Správy</h1>
         <p className="mt-2 text-sm text-text-secondary">Napíš svojej trénerke — odpovie ti čo najskôr.</p>

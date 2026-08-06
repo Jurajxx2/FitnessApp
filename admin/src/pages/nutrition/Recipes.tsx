@@ -29,7 +29,7 @@ export default function Recipes({ embedded = false }: { embedded?: boolean }) {
           {!embedded && (
             <p className="flex items-center gap-2 ledger-label text-text-secondary">
               <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
-              Recipe library
+              Knižnica receptov
             </p>
           )}
           <h2 className={`${embedded ? 'text-2xl' : 'mt-1 text-3xl'} font-display font-bold tracking-tight text-text-primary`}>Recepty</h2>
@@ -75,6 +75,7 @@ export default function Recipes({ embedded = false }: { embedded?: boolean }) {
               onPageChange={setPage}
               onPageSizeChange={size => { setPageSize(size); setPage(0) }}
               standalone
+              locale="sk"
             />
           )}
         </>
