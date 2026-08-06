@@ -244,6 +244,21 @@ interface PortionMultiplierInputProps {
 function PortionMultiplierInput({ value, onCommit }: PortionMultiplierInputProps) {
   const [draft, setDraft] = useState(() => String(value))
 
+  // This component instance is reused (same React key) across day switches,
+  // "Copy day to week", and index-reshuffles after a recipe is removed —
+  // anywhere the same slot position re-renders with a *different* recipe
+  // row's committed value. Without resyncing, a stale draft left over from
+  // whatever was previously shown at this position could silently overwrite
+  // the newly-displayed row's committed multiplier on the next blur — a
+  // real data-corruption path, not just a display glitch. Resync whenever
+  // the committed value changes; a self-triggered commit (draft -> onCommit
+  // -> parent re-renders with the same clamped value) just re-syncs to the
+  // identical string, so this never fights an edit that's still in
+  // progress in *this* instance.
+  useEffect(() => {
+    setDraft(String(value))
+  }, [value])
+
   function commit() {
     const parsed = Number(draft)
     if (draft.trim() === '' || !Number.isFinite(parsed)) {

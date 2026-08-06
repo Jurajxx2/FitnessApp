@@ -479,3 +479,66 @@ describe('editable portion multiplier', () => {
     expect(persisted).toBeLessThanOrEqual(3)
   })
 })
+
+// ─── Portion multiplier draft resync across reused rows (round-3 regression) ──
+//
+// PortionMultiplierInput is positioned by a key that does not include the
+// day (`mealType` on the section, `${recipe_id}-${recipeIndex}` on the
+// row — see the JSX around the recipe list). Switching selectedDay, or
+// "Copy day to week", re-renders the *same* fiber with a different day's
+// recipe row when both days have a recipe at the same slot index — the
+// normal outcome of the copy feature the UI itself recommends. Without
+// resyncing its local draft to the incoming `value` prop, a stale draft
+// from whichever day was last edited could get committed onto the
+// currently-viewed day's multiplier on the next blur, corrupting it.
+describe('portion multiplier draft resync when a slot position is reused across days', () => {
+  const recipePool = [
+    { id: 'rec-chicken-bowl', name: 'Grilled Chicken Bowl', calories: 400, protein_g: 40, carbs_g: 30, fat_g: 10, is_active: true },
+  ]
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    makeSupabaseMock({ activeRecipes: recipePool })
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: 'new-plan-id', error: null } as never)
+  })
+  afterEach(() => cleanup())
+
+  it('shows the newly-viewed day’s own committed value (not a leaked draft) and a stray blur never overwrites it', async () => {
+    const user = userEvent.setup()
+    renderCreate()
+
+    // Monday: add the recipe at the 1x default.
+    await user.click(await screen.findByRole('button', { name: 'Add recipe to breakfast' }))
+    await user.click(await screen.findByText('Grilled Chicken Bowl'))
+
+    // Copy Monday to the rest of the week — the exact workflow the UI
+    // itself recommends — so Tuesday's breakfast slot ends up with its own
+    // row at the identical recipe/index, currently also committed at 1x.
+    await user.click(screen.getByRole('button', { name: 'Copy Mon to week' }))
+    await user.click(await screen.findByRole('button', { name: 'Copy day' }))
+
+    // Diverge Monday's multiplier from Tuesday's freshly-copied one.
+    const mondayInput = screen.getByLabelText('Portion multiplier') as HTMLInputElement
+    fireEvent.change(mondayInput, { target: { value: '3' } })
+    fireEvent.blur(mondayInput)
+    expect(screen.getByText('× · 1200 kcal')).toBeInTheDocument()
+
+    // Switch to Tuesday. Both days' breakfast rows sit at the same
+    // `${recipe_id}-${recipeIndex}` key, at the same `mealType` section
+    // position, so React reuses the same PortionMultiplierInput fiber
+    // instead of unmounting and remounting it.
+    await user.click(screen.getByText('Tue').closest('button')!)
+
+    const tuesdayInput = screen.getByLabelText('Portion multiplier') as HTMLInputElement
+    // (a) The field must show Tuesday's own committed value (1x, from the
+    // copy) — not a leaked "3" from Monday's just-edited draft.
+    expect(tuesdayInput.value).toBe('1')
+    expect(screen.getByText('× · 400 kcal')).toBeInTheDocument()
+
+    // (b) Blurring Tuesday's field without ever editing it must not
+    // silently push Monday's stale draft into Tuesday's committed value.
+    fireEvent.blur(tuesdayInput)
+    expect(tuesdayInput.value).toBe('1')
+    expect(screen.getByText('× · 400 kcal')).toBeInTheDocument()
+  })
+})
