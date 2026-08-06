@@ -216,6 +216,61 @@ function RecipePickerModal({ open, recipes, excludedIds, onClose, onSelect }: Re
   )
 }
 
+// ─── Portion multiplier input ──────────────────────────────────────────────────
+
+const PORTION_MULTIPLIER_MIN = 0.25
+const PORTION_MULTIPLIER_MAX = 3
+
+function clampPortionMultiplier(value: number): number {
+  return Math.min(PORTION_MULTIPLIER_MAX, Math.max(PORTION_MULTIPLIER_MIN, value))
+}
+
+interface PortionMultiplierInputProps {
+  value: number
+  onCommit: (clamped: number) => void
+}
+
+// Holds the coach's in-progress keystrokes in local text state, decoupled
+// from the committed numeric draft, so typing is never fought — the first
+// "0" of "0.5" is not immediately snapped to the 0.25 floor, and clearing
+// the field to retype doesn't rewrite anything under the caret. The text is
+// only parsed and clamped to [0.25, 3] when editing ends (blur, or Enter).
+// This is the same "raw string while typing, parsed at commit" shape the
+// rest of the admin app already uses for numeric fields (Profile.tsx,
+// RecipeEditor.tsx, Session.tsx keep a string draft and parse at save) —
+// here the commit point is per-field blur rather than the page Save button,
+// because this value also drives a live kcal readout that must always
+// reflect a definite, in-range number rather than a mid-edit keystroke.
+function PortionMultiplierInput({ value, onCommit }: PortionMultiplierInputProps) {
+  const [draft, setDraft] = useState(() => String(value))
+
+  function commit() {
+    const parsed = Number(draft)
+    if (draft.trim() === '' || !Number.isFinite(parsed)) {
+      setDraft(String(value))
+      return
+    }
+    const clamped = clampPortionMultiplier(parsed)
+    setDraft(String(clamped))
+    if (clamped !== value) onCommit(clamped)
+  }
+
+  return (
+    <input
+      type="number"
+      aria-label="Portion multiplier"
+      min={PORTION_MULTIPLIER_MIN}
+      max={PORTION_MULTIPLIER_MAX}
+      step={0.25}
+      value={draft}
+      onChange={event => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }}
+      className="min-h-11 w-14 rounded-lg border border-outline bg-surface px-1.5 text-center text-xs text-text-primary outline-none focus:border-accent"
+    />
+  )
+}
+
 // ─── Main Editor ──────────────────────────────────────────────────────────────
 
 export default function MealPlanEditor() {
@@ -350,15 +405,10 @@ export default function MealPlanEditor() {
     ))
   }
 
-  function updatePortionMultiplier(dayOfWeek: number, mealType: MealType, recipeIndex: number, rawValue: string) {
-    // An emptied field (backspace-to-clear, e.g. before typing a replacement)
-    // must leave the draft untouched — Number('') is 0, which is finite, and
-    // would otherwise get clamped straight to the 0.25 floor mid-edit. Same
-    // falsy-string guard RecipeEditor.tsx already uses for its Quantity field.
-    if (rawValue.trim() === '') return
-    const parsed = Number(rawValue)
-    if (!Number.isFinite(parsed)) return
-    const clamped = Math.min(3, Math.max(0.25, parsed))
+  // Called only with an already-clamped, already-parsed number — the coach's
+  // in-progress typing is held in PortionMultiplierInput's own local state
+  // and never reaches here until the field's edit is committed (blur/Enter).
+  function commitPortionMultiplier(dayOfWeek: number, mealType: MealType, recipeIndex: number, clamped: number) {
     setMeals(prev => prev.map(m =>
       m.day_of_week === dayOfWeek && m.meal_type === mealType
         ? { ...m, recipes: m.recipes.map((recipe, i) => i === recipeIndex ? { ...recipe, portion_multiplier: clamped } : recipe) }
@@ -389,7 +439,13 @@ export default function MealPlanEditor() {
           meal_type: meal.meal_type,
           recipes: meal.recipes.map(recipe => ({
             recipe_id: recipe.recipe_id,
-            portion_multiplier: recipe.portion_multiplier,
+            // Defense in depth: the draft should already only ever hold a
+            // clamped, valid multiplier (PortionMultiplierInput never commits
+            // anything else), but guard the save payload directly too so a
+            // value that somehow reaches here out of range or non-finite can
+            // never be persisted — same fallback-to-1 precedent as the
+            // load-side `Number(row.portion_multiplier) || 1` guard above.
+            portion_multiplier: clampPortionMultiplier(Number(recipe.portion_multiplier) || 1),
           })),
         })),
         p_preserved_meal_ids: unmanagedMealIds,
@@ -532,15 +588,9 @@ export default function MealPlanEditor() {
                         <div className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-medium text-text-primary">{recipe.recipe_name}</span>
                           <div className="mt-1 flex items-center gap-1.5 text-[10px] text-text-secondary">
-                            <input
-                              type="number"
-                              aria-label="Portion multiplier"
-                              min={0.25}
-                              max={3}
-                              step={0.25}
+                            <PortionMultiplierInput
                               value={recipe.portion_multiplier}
-                              onChange={event => updatePortionMultiplier(selectedDay, mealType, recipeIndex, event.target.value)}
-                              className="min-h-11 w-14 rounded-lg border border-outline bg-surface px-1.5 text-center text-xs text-text-primary outline-none focus:border-accent"
+                              onCommit={clamped => commitPortionMultiplier(selectedDay, mealType, recipeIndex, clamped)}
                             />
                             <span>× · {Math.round(recipe.calories * recipe.portion_multiplier)} kcal</span>
                           </div>

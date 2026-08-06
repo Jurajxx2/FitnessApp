@@ -333,7 +333,7 @@ describe('editable portion multiplier', () => {
   })
   afterEach(() => cleanup())
 
-  it('updates the displayed kcal live and persists the edited multiplier through the save payload', async () => {
+  it('updates the displayed kcal on blur and persists the edited multiplier through the save payload', async () => {
     const user = userEvent.setup()
     renderCreate()
 
@@ -345,7 +345,11 @@ describe('editable portion multiplier', () => {
 
     const multiplierInput = screen.getByLabelText('Portion multiplier')
     fireEvent.change(multiplierInput, { target: { value: '1.5' } })
+    // Typing alone must not commit — the kcal readout only updates once the
+    // edit ends, so a mid-edit keystroke can never show a bogus value.
+    expect(screen.getByText('× · 400 kcal')).toBeInTheDocument()
 
+    fireEvent.blur(multiplierInput)
     expect(screen.getByText('× · 600 kcal')).toBeInTheDocument()
 
     await user.type(screen.getByLabelText('Plan name'), 'Cutting week')
@@ -362,7 +366,7 @@ describe('editable portion multiplier', () => {
     })))
   })
 
-  it('clamps a typed value above the 0.25–3 range down to the max', async () => {
+  it('clamps a typed value above the 0.25–3 range down to the max, on blur', async () => {
     const user = userEvent.setup()
     renderCreate()
 
@@ -371,12 +375,53 @@ describe('editable portion multiplier', () => {
 
     const multiplierInput = screen.getByLabelText('Portion multiplier') as HTMLInputElement
     fireEvent.change(multiplierInput, { target: { value: '10' } })
+    // Still showing exactly what was typed while the field has focus — no
+    // rewriting under the caret.
+    expect(multiplierInput.value).toBe('10')
+    expect(screen.getByText('× · 400 kcal')).toBeInTheDocument()
 
+    fireEvent.blur(multiplierInput)
     expect(multiplierInput.value).toBe('3')
     expect(screen.getByText('× · 1200 kcal')).toBeInTheDocument()
   })
 
-  it('does not snap to 0.25 when the field is cleared, so a clear-then-type edit lands on the typed value', async () => {
+  it('clamps a typed value below the 0.25–3 range up to the min, on blur', async () => {
+    const user = userEvent.setup()
+    renderCreate()
+
+    await user.click(await screen.findByRole('button', { name: 'Add recipe to breakfast' }))
+    await user.click(await screen.findByText('Grilled Chicken Bowl'))
+
+    const multiplierInput = screen.getByLabelText('Portion multiplier') as HTMLInputElement
+    fireEvent.change(multiplierInput, { target: { value: '0.1' } })
+    fireEvent.blur(multiplierInput)
+
+    expect(multiplierInput.value).toBe('0.25')
+    expect(screen.getByText('× · 100 kcal')).toBeInTheDocument()
+  })
+
+  it('restores the last committed value on blur when the field is left empty', async () => {
+    const user = userEvent.setup()
+    renderCreate()
+
+    await user.click(await screen.findByRole('button', { name: 'Add recipe to breakfast' }))
+    await user.click(await screen.findByText('Grilled Chicken Bowl'))
+
+    const multiplierInput = screen.getByLabelText('Portion multiplier') as HTMLInputElement
+    // Commit a real value first (1x -> 1.5x) so there is a non-default
+    // committed value to restore.
+    fireEvent.change(multiplierInput, { target: { value: '1.5' } })
+    fireEvent.blur(multiplierInput)
+    expect(screen.getByText('× · 600 kcal')).toBeInTheDocument()
+
+    fireEvent.change(multiplierInput, { target: { value: '' } })
+    fireEvent.blur(multiplierInput)
+
+    expect(multiplierInput.value).toBe('1.5')
+    expect(screen.getByText('× · 600 kcal')).toBeInTheDocument()
+  })
+
+  it('does not snap to 0.25 mid-edit: the first keystroke "0" and a full clear-then-type of "0.5" both leave the raw text alone until blur', async () => {
     const user = userEvent.setup()
     renderCreate()
 
@@ -390,11 +435,47 @@ describe('editable portion multiplier', () => {
     // coerce Number('') === 0 into the 0.25 floor — the draft must be left
     // alone until a real number is typed.
     fireEvent.change(multiplierInput, { target: { value: '' } })
+    expect(multiplierInput.value).toBe('')
     expect(screen.getByText('× · 400 kcal')).toBeInTheDocument()
-    expect(screen.queryByText('× · 100 kcal')).not.toBeInTheDocument() // 0.25x would show this
+    expect(screen.queryByText('× · 100 kcal')).not.toBeInTheDocument() // 0.25x snap would show this
 
-    fireEvent.change(multiplierInput, { target: { value: '1.5' } })
-    expect(multiplierInput.value).toBe('1.5')
-    expect(screen.getByText('× · 600 kcal')).toBeInTheDocument()
+    // The first keystroke of "0.5" must render as exactly "0", not get
+    // rewritten to the 0.25 floor under the caret.
+    fireEvent.change(multiplierInput, { target: { value: '0' } })
+    expect(multiplierInput.value).toBe('0')
+    expect(screen.getByText('× · 400 kcal')).toBeInTheDocument() // still uncommitted
+
+    fireEvent.change(multiplierInput, { target: { value: '0.5' } })
+    expect(multiplierInput.value).toBe('0.5')
+    expect(screen.getByText('× · 400 kcal')).toBeInTheDocument() // still uncommitted until blur
+
+    fireEvent.blur(multiplierInput)
+    expect(multiplierInput.value).toBe('0.5')
+    expect(screen.getByText('× · 200 kcal')).toBeInTheDocument()
+  })
+
+  it('never lets an out-of-range or un-blurred edit reach the save payload', async () => {
+    const user = userEvent.setup()
+    renderCreate()
+
+    await user.click(await screen.findByRole('button', { name: 'Add recipe to breakfast' }))
+    await user.click(await screen.findByText('Grilled Chicken Bowl'))
+
+    const multiplierInput = screen.getByLabelText('Portion multiplier') as HTMLInputElement
+    // Type an out-of-range value but never blur the field before saving.
+    fireEvent.change(multiplierInput, { target: { value: '9' } })
+
+    await user.type(screen.getByLabelText('Plan name'), 'Cutting week')
+    await user.click(screen.getByRole('button', { name: 'Create plan' }))
+
+    await waitFor(() => expect(supabase.rpc).toHaveBeenCalled())
+    const payload = vi.mocked(supabase.rpc).mock.calls[0][1] as { p_meals: Array<{ recipes: Array<{ portion_multiplier: number }> }> }
+    const persisted = payload.p_meals[0].recipes[0].portion_multiplier
+    // The uncommitted "9" never reached the draft, so the persisted value is
+    // still the last committed one (the 1x default) — and in every case it
+    // must fall inside the valid range regardless.
+    expect(persisted).toBe(1)
+    expect(persisted).toBeGreaterThanOrEqual(0.25)
+    expect(persisted).toBeLessThanOrEqual(3)
   })
 })
