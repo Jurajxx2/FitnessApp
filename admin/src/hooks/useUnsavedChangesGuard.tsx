@@ -17,14 +17,16 @@ import { useBlocker, type BlockerFunction } from 'react-router-dom'
  *
  * That said, this ref is only ever refreshed on a render of the *calling*
  * component (the assignment above runs as part of this hook being called,
- * which only happens when the caller renders). A caller that flips its own
- * "just saved"/"exiting" ref and then, in the same synchronous burst of
- * microtasks, calls navigate() from inside a fast-resolving mutation's
- * onSuccess can reach navigate() before any such render occurs — verified
- * empirically on LogMeal/CreateWorkout/Session. Callers in that situation
- * should force one render with `flushSync` right after flipping their ref
- * (see those three files for the pattern) so this hook is guaranteed to see
- * the fresh value before the navigation it must not block.
+ * which only happens when the caller renders). A caller whose deliberate
+ * exit is driven by a mutation must make sure a render happens — carrying
+ * the fresh `isDirty` into this hook — before it calls navigate(). The
+ * callers in this codebase (LogMeal/CreateWorkout/Session) do this by
+ * deriving `isDirty` itself from the mutation's own reactive state (e.g.
+ * `!mutation.isPending && !mutation.isSuccess && <dirty predicate>`) and
+ * deferring navigate() into a `useEffect` keyed on `mutation.isSuccess`: an
+ * effect cannot run until React has committed a render reflecting its
+ * dependency, so `isDirtyRef.current` is guaranteed fresh by the time
+ * navigate() fires — no manually-managed ref or forced render required.
  */
 export function useUnsavedChangesGuard(isDirty: boolean): {
   blocked: boolean

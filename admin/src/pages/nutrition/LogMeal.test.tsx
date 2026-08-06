@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
@@ -43,6 +44,49 @@ vi.mock('../../nutrition/photoAnalysis', async importOriginal => {
 const mutateAsync = vi.fn()
 const updateMutateAsync = vi.fn()
 
+// useLogMeal/useUpdateMealLog are mocked at the module boundary (this file's
+// established convention), but LogMeal.tsx now derives isDirty and the
+// deferred navigate() from the mutation's own isPending/isSuccess/data —
+// reactive state that only a real useMutation instance updates on its own.
+// A flat static mock (the previous `{ mutateAsync, isPending: false }`) can
+// never flip isSuccess, so a test built on it can't tell a correctly
+// effect-deferred guard apart from a guard that never re-arms at all — it
+// would pass either way. This fake reimplements just enough of useMutation's
+// public shape, backed by a real useState, so calling `.mutate()` drives a
+// genuine success/error transition (and a genuine re-render) the same way
+// the real hook does in production.
+//
+// Deliberately does NOT flush a separate "pending" render before resolving:
+// every mock resolver in this file settles near-instantly (already-resolved
+// promises), and react-query's own notifyManager batches a near-instant
+// mutation's pending and success notifications together in exactly that
+// case — no intervening commit, confirmed empirically against Session's and
+// CreateWorkout's real (unmocked) mutations. A fake that inserted a free
+// intermediate render here would grant LogMeal's guard protection the real
+// hook doesn't structurally guarantee, silently hiding a still-real race
+// behind a friendlier-than-production test double. isPending is therefore
+// always false in this fake — untested here, but nothing in this file reads
+// it for assertions.
+function useFakeMutation(asyncFn: (variables: unknown) => Promise<unknown>) {
+  return function useMutationLike() {
+    const [state, setState] = useState<{ status: 'idle' | 'success' | 'error'; data?: unknown }>({ status: 'idle' })
+    const mutate = (variables: unknown, options?: { onSuccess?: (data: unknown) => void; onError?: (error: unknown) => void }) => {
+      Promise.resolve(asyncFn(variables)).then(
+        data => { setState({ status: 'success', data }); options?.onSuccess?.(data) },
+        error => { setState({ status: 'error' }); options?.onError?.(error) },
+      )
+    }
+    return {
+      mutate,
+      mutateAsync: asyncFn,
+      isPending: false,
+      isSuccess: state.status === 'success',
+      isError: state.status === 'error',
+      data: state.data,
+    }
+  }
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:meal-photo') })
@@ -86,9 +130,9 @@ beforeEach(() => {
     isLoading: false,
   } as unknown as ReturnType<typeof useMealLog>)
   mutateAsync.mockResolvedValue({ id: 'meal-log-1', photoAttached: true, photoError: null })
-  vi.mocked(useLogMeal).mockReturnValue({ mutateAsync, isPending: false, isError: false } as unknown as ReturnType<typeof useLogMeal>)
+  vi.mocked(useLogMeal).mockImplementation(useFakeMutation(mutateAsync) as unknown as typeof useLogMeal)
   updateMutateAsync.mockResolvedValue({ id: 'log-1', photoAttached: false, photoError: null })
-  vi.mocked(useUpdateMealLog).mockReturnValue({ mutateAsync: updateMutateAsync, isPending: false, isError: false } as unknown as ReturnType<typeof useUpdateMealLog>)
+  vi.mocked(useUpdateMealLog).mockImplementation(useFakeMutation(updateMutateAsync) as unknown as typeof useUpdateMealLog)
   vi.mocked(useSaveFoodFavorite).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as unknown as ReturnType<typeof useSaveFoodFavorite>)
   vi.mocked(useDeleteFoodFavorite).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as unknown as ReturnType<typeof useDeleteFoodFavorite>)
   vi.mocked(useSaveMealTemplate).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as unknown as ReturnType<typeof useSaveMealTemplate>)

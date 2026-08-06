@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { AlertTriangle, Camera, ChevronDown, ChevronUp, ImagePlus, Plus, Sparkles, Star, Trash2, X } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -130,11 +129,8 @@ export default function LogMeal() {
   // Ratchets true the moment the athlete attaches/removes a photo, adds or edits
   // an item, or removes one — deliberately NOT set by the prefill effect below,
   // so opening an existing log/recipe/meal-plan draft doesn't itself count as
-  // unsaved work. savedRef is a ref (not state) so it's visible to isDirty on
-  // the very next render regardless of whether that render was itself triggered
-  // by a setState — see save()'s comment for why that matters.
+  // unsaved work.
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const savedRef = useRef(false)
   const markDirty = () => setHasUnsavedChanges(true)
   const logMeal = useLogMeal()
   const updateMeal = useUpdateMealLog()
@@ -144,7 +140,26 @@ export default function LogMeal() {
   const deleteMealTemplate = useDeleteMealTemplate()
   const existingLog = isEdit ? (mealLogQuery.data ?? null) : null
   const favorites = favoritesQuery.data ?? []
-  const { blocked, confirmLeave, cancelLeave } = useUnsavedChangesGuard(hasUnsavedChanges && !savedRef.current)
+  // Deliberate exits, deferred into effects keyed on each mutation's own
+  // isSuccess rather than called inline right after an awaited mutateAsync.
+  // An effect cannot run until React has committed a render that reflects
+  // its dependency, so by the time navigate() fires here, LogMeal has
+  // already re-rendered with isDirty computed from the now-true isSuccess
+  // below — no manual "saved" ref or forced render needed for the guard to
+  // see it in time.
+  useEffect(() => {
+    if (updateMeal.isSuccess) navigate(`/nutrition/history/${logId}`)
+  }, [updateMeal.isSuccess, logId, navigate])
+  useEffect(() => {
+    if (logMeal.isSuccess) navigate('/nutrition')
+  }, [logMeal.isSuccess, navigate])
+  // Neither mutation needs an onError reset: once a mutation is neither
+  // pending nor successful (a failed attempt included), isDirty falls
+  // straight back to reflecting hasUnsavedChanges again.
+  const isDirty = hasUnsavedChanges
+    && !logMeal.isPending && !logMeal.isSuccess
+    && !updateMeal.isPending && !updateMeal.isSuccess
+  const { blocked, confirmLeave, cancelLeave } = useUnsavedChangesGuard(isDirty)
 
   function replaceItems(next: LogFoodDraft[]) {
     const safe = next.length ? next : [emptyIngredient()]
@@ -340,7 +355,7 @@ export default function LogMeal() {
     }
   }
 
-  async function save() {
+  function save() {
     const candidateItems = items.filter(item => !isUntouchedEmptyIngredient(item))
     if (candidateItems.some(item => !item.name.trim())) {
       setFormError('Doplň názov každej rozpracovanej položky alebo ju odstráň.')
@@ -359,43 +374,32 @@ export default function LogMeal() {
       setFormError('Skontroluj názov, typ, dátum, čas a všetky výživové hodnoty.')
       return
     }
-    // Set before the mutation even starts, and flushed synchronously: a ref
-    // mutation alone only reaches useUnsavedChangesGuard's internal copy of
-    // isDirty on this component's next render, and a fast-resolving mutation
-    // can run through to navigate() below with zero renders in between
-    // (verified empirically on an equivalent flow in Session.tsx). flushSync
-    // forces that render right here, so the guard is provably off before the
-    // mutation's async work even starts. Reverted in the catch block below so
-    // a failed save leaves the guard armed.
-    savedRef.current = true
-    flushSync(() => setFormError(''))
-    try {
-      if (isEdit) {
-        const result = await updateMeal.mutateAsync({
-          logId,
-          mealName: mealName.trim(),
-          mealType,
-          loggedAt,
-          foods,
-          notes: notes.trim() || undefined,
-          photoFile,
-          removePhoto: removeExistingPhoto,
-          existingImageUrl: existingLog?.image_url ?? null,
-        })
-        notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Zmeny boli uložené.', result.photoError ? 'error' : 'success')
-        navigate(`/nutrition/history/${logId}`)
-        return
-      }
-      const result = await logMeal.mutateAsync({
-        mealName: mealName.trim(), mealType, loggedAt, foods,
-        notes: notes.trim() || undefined, photoFile,
+    setFormError('')
+    const onError = () => setFormError('Jedlo sa nepodarilo uložiť. Skontroluj pripojenie a skús to znova.')
+    if (isEdit) {
+      updateMeal.mutate({
+        logId,
+        mealName: mealName.trim(),
+        mealType,
+        loggedAt,
+        foods,
+        notes: notes.trim() || undefined,
+        photoFile,
+        removePhoto: removeExistingPhoto,
+        existingImageUrl: existingLog?.image_url ?? null,
+      }, {
+        onSuccess: result => notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Zmeny boli uložené.', result.photoError ? 'error' : 'success'),
+        onError,
       })
-      notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Jedlo bolo uložené.', result.photoError ? 'error' : 'success')
-      navigate('/nutrition')
-    } catch {
-      savedRef.current = false
-      setFormError('Jedlo sa nepodarilo uložiť. Skontroluj pripojenie a skús to znova.')
+      return
     }
+    logMeal.mutate({
+      mealName: mealName.trim(), mealType, loggedAt, foods,
+      notes: notes.trim() || undefined, photoFile,
+    }, {
+      onSuccess: result => notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Jedlo bolo uložené.', result.photoError ? 'error' : 'success'),
+      onError,
+    })
   }
 
   const totals = mealDraftTotals(items.filter(item => item.name.trim()))

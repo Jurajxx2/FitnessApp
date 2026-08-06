@@ -1,5 +1,4 @@
-import { useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
+import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { createUserWorkout } from '../../activity/api'
@@ -48,14 +47,6 @@ export default function CreateWorkout() {
   const [durationMode, setDurationMode] = useState<WorkoutDurationMode>('auto')
   const [manualDuration, setManualDuration] = useState('45')
   const [selected, setSelected] = useState<UserWorkoutExerciseDraft[]>([])
-  // A ref, not state: onMutate fires synchronously the instant saveMutation.mutate()
-  // is called, well before the network round trip and before onSuccess's navigate().
-  // onError flips it back so a failed save (validation or network) leaves the guard
-  // armed.
-  const savedRef = useRef(false)
-  // A dummy counter whose only job is to give flushSync (below) a state update
-  // to flush.
-  const [, setGuardTick] = useState(0)
   const saveMutation = useMutation({
     mutationFn: () => {
       const trimmedName = name.trim()
@@ -73,25 +64,26 @@ export default function CreateWorkout() {
         exercises: selected,
       })
     },
-    onMutate: () => {
-      savedRef.current = true
-      // A ref mutation alone only reaches useUnsavedChangesGuard's internal
-      // copy of isDirty on this component's next render, and a fast-resolving
-      // mutation can run onMutate → onSuccess → navigate() with zero renders
-      // in between (verified empirically). flushSync forces that render here,
-      // so the guard is provably off before the mutation's async work starts.
-      flushSync(() => setGuardTick(tick => tick + 1))
-    },
-    onSuccess: async workout => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['activity', 'assigned', userId] })
       notify('Vlastný tréning je pripravený.')
-      navigate(`/activity/workouts/${workout.id}`, { replace: true })
-    },
-    onError: () => {
-      savedRef.current = false
     },
   })
-  const isDirty = !savedRef.current && (name.trim() !== '' || selected.length > 0)
+  // The deliberate exit, deferred into an effect keyed on the mutation's own
+  // isSuccess rather than called inline from onSuccess. An effect cannot run
+  // until React has committed a render that reflects its dependency, so by
+  // the time navigate() fires here, this component has already re-rendered
+  // with isDirty computed from the now-true isSuccess below — no manual ref,
+  // no forced render needed for the guard to see it in time.
+  useEffect(() => {
+    if (saveMutation.isSuccess && saveMutation.data) {
+      navigate(`/activity/workouts/${saveMutation.data.id}`, { replace: true })
+    }
+  }, [saveMutation.isSuccess, saveMutation.data, navigate])
+  // No onError reset needed: once the mutation is neither pending nor
+  // successful (a failed attempt included), isDirty falls straight back to
+  // reflecting the name/selected fields again.
+  const isDirty = !saveMutation.isPending && !saveMutation.isSuccess && (name.trim() !== '' || selected.length > 0)
   const { blocked, confirmLeave, cancelLeave } = useUnsavedChangesGuard(isDirty)
 
   function addExercise(exercise: ExercisePickerItem) {

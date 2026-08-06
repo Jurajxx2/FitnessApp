@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ChevronDown, ChevronUp, CircleStop, Pause, Play, Plus, Save, TimerReset, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -74,25 +73,10 @@ export default function WorkoutSession() {
   const [discardOpen, setDiscardOpen] = useState(false)
   // Which set rows currently hold a typed-but-not-check-marked value, keyed by
   // set id and reported up by each SessionSetRow. Finish/discard are deliberate
-  // exits and must never be blocked by this, regardless of what's still dirty.
+  // exits and must never be blocked by this, regardless of what's still dirty —
+  // isDirty below is gated on finishMutation/discardMutation's own isPending/
+  // isSuccess, not a manually-managed flag.
   const [dirtySetIds, setDirtySetIds] = useState<Set<string>>(() => new Set())
-  const isExitingRef = useRef(false)
-  // A dummy counter whose only job is to give flushSync (in markExiting below)
-  // a state update to flush.
-  const [, setGuardTick] = useState(0)
-  // isExitingRef flips the instant either mutation starts (onMutate fires
-  // synchronously, well before the network round trip and long before
-  // onSuccess's navigate()) — but a ref mutation alone only reaches
-  // useUnsavedChangesGuard's internal copy of isDirty on WorkoutSession's next
-  // render, and with mocked/fast mutations that resolve within the same
-  // microtask flush, no such render happens before navigate() fires (verified
-  // empirically: onMutate → onSuccess → navigate can all run with zero renders
-  // in between). flushSync forces that render to happen right here, so the
-  // guard is provably off before the mutation's async work even starts.
-  function markExiting() {
-    isExitingRef.current = true
-    flushSync(() => setGuardTick(tick => tick + 1))
-  }
   const handleSetDirtyChange = useCallback((setId: string, dirty: boolean) => {
     setDirtySetIds(current => {
       if (dirty === current.has(setId)) return current
@@ -138,8 +122,7 @@ export default function WorkoutSession() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['activity', 'active', userId] })
   const finishMutation = useMutation({
     mutationFn: (log: WorkoutLogRow) => finishWorkout(log, notes.trim() || null),
-    onMutate: markExiting,
-    onSuccess: async (_duration, log) => {
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ['activity', 'active', userId]
@@ -148,26 +131,36 @@ export default function WorkoutSession() {
           queryKey: ['activity', 'history', userId]
         })
       ])
-      navigate(`/activity/history/${log.id}`, { replace: true })
-    },
-    onError: () => {
-      isExitingRef.current = false
     }
   })
   const discardMutation = useMutation({
     mutationFn: discardWorkout,
-    onMutate: markExiting,
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ['activity', 'active', userId]
       })
-      navigate('/activity', { replace: true })
-    },
-    onError: () => {
-      isExitingRef.current = false
     }
   })
-  const isDirty = !isExitingRef.current && dirtySetIds.size > 0
+  // Deliberate exits, deferred into effects keyed on each mutation's own
+  // isSuccess rather than called inline from onSuccess. An effect cannot run
+  // until React has committed a render that reflects its dependency, so by
+  // the time navigate() fires here, WorkoutSession has already re-rendered
+  // with isDirty computed from the now-true isSuccess below — no manual ref,
+  // no forced render needed for the guard to see it in time.
+  useEffect(() => {
+    if (finishMutation.isSuccess && finishMutation.variables) {
+      navigate(`/activity/history/${finishMutation.variables.id}`, { replace: true })
+    }
+  }, [finishMutation.isSuccess, finishMutation.variables, navigate])
+  useEffect(() => {
+    if (discardMutation.isSuccess) navigate('/activity', { replace: true })
+  }, [discardMutation.isSuccess, navigate])
+  // Neither mutation needs an onError reset: once a mutation is neither
+  // pending nor successful (a failed attempt included), isDirty below falls
+  // straight back to reflecting dirtySetIds again.
+  const isDirty = !finishMutation.isPending && !finishMutation.isSuccess
+    && !discardMutation.isPending && !discardMutation.isSuccess
+    && dirtySetIds.size > 0
   const { blocked, confirmLeave, cancelLeave } = useUnsavedChangesGuard(isDirty)
 
   if (activeQuery.isLoading)
