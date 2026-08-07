@@ -4,9 +4,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import Hub from './Hub'
+import { useAuth } from '../../hooks/useAuth'
+import { getActiveWorkout, getAssignedWorkouts } from '../../activity/api'
 
 vi.mock('@tanstack/react-query', () => ({ useQuery: vi.fn() }))
-vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'athlete-1' }, profile: null }) }))
+vi.mock('../../hooks/useAuth', () => ({ useAuth: vi.fn() }))
 vi.mock('../../activity/api', () => ({ getAssignedWorkouts: vi.fn(), getActiveWorkout: vi.fn() }))
 vi.mock('./Plan', () => ({ default: () => <div>Embedded meal plan</div> }))
 vi.mock('./Recipes', () => ({ default: () => <div>Embedded recipes</div> }))
@@ -26,11 +28,22 @@ const DEFAULTS: Record<string, QueryResult> = {
 // Every hook Hub.tsx touches ultimately calls this mocked `useQuery`, so tests
 // drive behaviour by branching on the query key's first (and, for the shared
 // `activity` namespace, second) segment rather than mocking each local hook.
+//
+// For the `activity` namespace specifically, this also invokes the real
+// `queryFn` whenever the component passed `enabled !== false` — mirroring
+// react-query closely enough that tests can assert `getAssignedWorkouts` /
+// `getActiveWorkout` were (not) called, which is the only way to prove the
+// workout queries are actually gated rather than just their JSX.
 function mockQueries(overrides: Record<string, QueryResult> = {}) {
   const merged = { ...DEFAULTS, ...overrides }
   vi.mocked(useQuery).mockImplementation((options: unknown) => {
-    const { queryKey } = options as { queryKey: readonly unknown[] }
+    const { queryKey, queryFn, enabled } = options as {
+      queryKey: readonly unknown[]
+      queryFn?: () => unknown
+      enabled?: boolean
+    }
     const [type, sub] = queryKey as [string, string?]
+    if (type === 'activity' && enabled !== false) queryFn?.()
     const bucket = type === 'activity' ? `activity:${sub}` : type
     return (merged[bucket] ?? { data: undefined, isLoading: false }) as ReturnType<typeof useQuery>
   })
@@ -38,6 +51,7 @@ function mockQueries(overrides: Record<string, QueryResult> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(useAuth).mockReturnValue({ user: { id: 'athlete-1' }, profile: null } as unknown as ReturnType<typeof useAuth>)
   mockQueries()
 })
 afterEach(() => cleanup())
@@ -123,6 +137,47 @@ it('shows Pokračovať (not Začať tréning) when an active workout session exi
 
   expect(screen.getByRole('link', { name: 'Pokračovať' })).toHaveAttribute('href', '/activity/session')
   expect(screen.queryByRole('link', { name: 'Začať tréning' })).not.toBeInTheDocument()
+})
+
+it('hides the workout block and never queries workout data for a nutrition-only athlete, even with an active workout', () => {
+  vi.mocked(useAuth).mockReturnValue({ user: { id: 'athlete-1' }, profile: { access_mode: 'nutrition' } } as unknown as ReturnType<typeof useAuth>)
+  mockQueries({
+    'activity:active': { data: { id: 'log-1', workout_name: 'Push Day', status: 'in_progress' }, isLoading: false },
+    'activity:assigned': { data: [{ id: 'w1', name: 'Push Day', workout_exercises: [] }], isLoading: false },
+  })
+  render(<MemoryRouter initialEntries={['/nutrition']}><Hub /></MemoryRouter>)
+
+  expect(screen.queryByText('Ďalší tréning')).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: 'Pokračovať' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: 'Začať tréning' })).not.toBeInTheDocument()
+  expect(getAssignedWorkouts).not.toHaveBeenCalled()
+  expect(getActiveWorkout).not.toHaveBeenCalled()
+})
+
+it('renders the workout CTA for access_mode "both"', () => {
+  vi.mocked(useAuth).mockReturnValue({ user: { id: 'athlete-1' }, profile: { access_mode: 'both' } } as unknown as ReturnType<typeof useAuth>)
+  mockQueries({
+    'activity:assigned': { data: [{ id: 'w1', name: 'Push Day', workout_exercises: [] }], isLoading: false },
+    'activity:active': { data: null, isLoading: false },
+  })
+  render(<MemoryRouter initialEntries={['/nutrition']}><Hub /></MemoryRouter>)
+
+  expect(screen.getByText('Ďalší tréning')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Začať tréning' })).toHaveAttribute('href', '/activity/workouts/w1')
+  expect(getAssignedWorkouts).toHaveBeenCalledWith('athlete-1')
+})
+
+it('renders the workout CTA when access_mode is unset (null means full access)', () => {
+  vi.mocked(useAuth).mockReturnValue({ user: { id: 'athlete-1' }, profile: { access_mode: null } } as unknown as ReturnType<typeof useAuth>)
+  mockQueries({
+    'activity:assigned': { data: [{ id: 'w1', name: 'Push Day', workout_exercises: [] }], isLoading: false },
+    'activity:active': { data: null, isLoading: false },
+  })
+  render(<MemoryRouter initialEntries={['/nutrition']}><Hub /></MemoryRouter>)
+
+  expect(screen.getByText('Ďalší tréning')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Začať tréning' })).toHaveAttribute('href', '/activity/workouts/w1')
+  expect(getAssignedWorkouts).toHaveBeenCalledWith('athlete-1')
 })
 
 it('renders every block together when the athlete has a quote, meals, a plan, and an assigned workout', () => {

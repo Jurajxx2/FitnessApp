@@ -8,6 +8,7 @@ import { DailyQuoteCard } from '../../quotes/DailyQuoteCard'
 import { todayIso } from '../../nutrition/date'
 import { sumMacros } from '../../nutrition/calc'
 import { useAuth } from '../../hooks/useAuth'
+import { canAccessActivity } from '../../lib/access'
 import { getActiveWorkout, getAssignedWorkouts } from '../../activity/api'
 import { Card, SectionHeader, Button, EmptyState, Shimmer, MacroRing } from '../../components/ui'
 import Plan from './Plan'
@@ -224,18 +225,21 @@ function PlannedMealsBlock() {
 }
 
 function NextWorkoutBlock() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const userId = user?.id ?? ''
+  const hasActivityAccess = canAccessActivity(profile)
   const assignedQuery = useQuery({
     queryKey: ['activity', 'assigned', userId],
     queryFn: () => getAssignedWorkouts(userId),
-    enabled: Boolean(userId),
+    enabled: Boolean(userId) && hasActivityAccess,
   })
   const activeQuery = useQuery({
     queryKey: ['activity', 'active', userId],
     queryFn: () => getActiveWorkout(userId),
-    enabled: Boolean(userId),
+    enabled: Boolean(userId) && hasActivityAccess,
   })
+
+  if (!hasActivityAccess) return null
 
   if (assignedQuery.isLoading || activeQuery.isLoading) return <Shimmer className="h-24 w-full" />
 
