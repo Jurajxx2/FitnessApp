@@ -125,14 +125,33 @@ export async function getWorkoutLog(userId: string, logId: string): Promise<Work
   return sortLog(data as WorkoutLogRow)
 }
 
+// Characters PostgREST's .or() filter syntax treats as structural (comma separates
+// conditions, parentheses group/list values). An id containing any of them would
+// let a caller break out of the intended filter and inject extra clauses once this
+// value is interpolated into the raw filter string below.
+const SAFE_FILTER_ID = /^[A-Za-z0-9-]+$/
+
 export async function getWorkoutFeedback(userId: string, workoutLogId: string, exerciseLogIds: string[]): Promise<WorkoutFeedback[]> {
   const base = supabase.from('workout_feedback').select('*').eq('user_id', userId)
   // .or() with an empty in.() list is malformed Postgrest syntax, so fall back to the
   // plain session-level filter when there are no exercise logs to match against.
-  const filtered = exerciseLogIds.length
-    ? base.or(`workout_log_id.eq.${workoutLogId},exercise_log_id.in.(${exerciseLogIds.join(',')})`)
-    : base.eq('workout_log_id', workoutLogId)
-  const { data, error } = await filtered.order('created_at', { ascending: true })
+  // The .eq() path binds workoutLogId as a value (no string interpolation), so it
+  // needs no shape check here.
+  if (!exerciseLogIds.length) {
+    const { data, error } = await base.eq('workout_log_id', workoutLogId).order('created_at', { ascending: true })
+    if (error) throw error
+    return (data ?? []) as WorkoutFeedback[]
+  }
+  // The .or() path below builds a raw filter string by interpolating both ids
+  // directly. Reject anything that isn't safely id-shaped instead of sending a
+  // malformed or maliciously-crafted filter to Postgrest — an empty result is the
+  // right call here since this always renders as "no feedback yet", not an error.
+  if (!SAFE_FILTER_ID.test(workoutLogId) || !exerciseLogIds.every(id => SAFE_FILTER_ID.test(id))) {
+    return []
+  }
+  const { data, error } = await base
+    .or(`workout_log_id.eq.${workoutLogId},exercise_log_id.in.(${exerciseLogIds.join(',')})`)
+    .order('created_at', { ascending: true })
   if (error) throw error
   return (data ?? []) as WorkoutFeedback[]
 }

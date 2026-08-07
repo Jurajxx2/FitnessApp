@@ -416,6 +416,7 @@ export default function LogMeal() {
       confirmVariant="danger"
       onConfirm={confirmLeave}
       onClose={cancelLeave}
+      locale="sk"
     />
   )
 
@@ -506,12 +507,12 @@ export default function LogMeal() {
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wider text-text-secondary">
                   Typ jedla
-                  <select value={mealType} onChange={event => setMealType(event.target.value as MealType)} className="h-10 rounded-xl border border-outline bg-surface px-3 text-sm normal-case tracking-normal text-text-primary outline-none focus:border-accent">
+                  <select value={mealType} onChange={event => { setMealType(event.target.value as MealType); markDirty() }} className="h-10 rounded-xl border border-outline bg-surface px-3 text-sm normal-case tracking-normal text-text-primary outline-none focus:border-accent">
                     {MEAL_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </label>
-                <Input label="Dátum" type="date" value={logDate} onChange={event => setLogDate(event.target.value)} />
-                <Input label="Čas" type="time" value={logTime} onChange={event => setLogTime(event.target.value)} />
+                <Input label="Dátum" type="date" value={logDate} onChange={event => { setLogDate(event.target.value); markDirty() }} />
+                <Input label="Čas" type="time" value={logTime} onChange={event => { setLogTime(event.target.value); markDirty() }} />
               </div>
               {recipeId && recipeQuery.data && (
                 <Input label="Počet zjedených porcií" type="number" inputMode="decimal" min={0.1} step={0.1} value={recipeServings} onChange={event => {
@@ -526,7 +527,7 @@ export default function LogMeal() {
                   <label htmlFor="mealNotes" className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Poznámka</label>
                   <span className="text-[11px] text-text-secondary">voliteľné</span>
                 </div>
-                <textarea id="mealNotes" value={notes} onChange={event => setNotes(event.target.value)} placeholder="Ako jedlo chutilo, úpravy porcie…" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />
+                <textarea id="mealNotes" value={notes} onChange={event => { setNotes(event.target.value); markDirty() }} placeholder="Ako jedlo chutilo, úpravy porcie…" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />
               </div>
             </Card>
 

@@ -54,7 +54,11 @@ export default function Recipes({ embedded = false }: { embedded?: boolean }) {
               <Card key={r.id} className="group cursor-pointer overflow-hidden p-0" onClick={() => navigate(`/nutrition/recipes/${r.id}`)}>
                 <div className="relative aspect-[16/10] overflow-hidden bg-surface-highest">
                   {r.photo_url ? <img src={r.photo_url} alt={r.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" /> : <div className="flex h-full items-center justify-center text-text-secondary"><BookOpen size={28} /></div>}
-                  <button aria-label="favorite" onClick={e => { e.stopPropagation(); toggle.mutate({ recipeId: r.id, isFavorite: isFav }) }} className="absolute right-3 top-3 rounded-full border border-outline-subtle bg-background/85 p-2 backdrop-blur">
+                  <button
+                    aria-label={isFav ? 'Odobrať z obľúbených' : 'Pridať medzi obľúbené'}
+                    onClick={e => { e.stopPropagation(); toggle.mutate({ recipeId: r.id, isFavorite: isFav }) }}
+                    className="absolute right-3 top-3 flex min-h-11 min-w-11 items-center justify-center rounded-full border border-outline-subtle bg-background/85 backdrop-blur"
+                  >
                     <Heart size={18} className={isFav ? 'fill-accent text-accent' : 'text-text-secondary'} />
                   </button>
                 </div>

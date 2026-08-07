@@ -82,4 +82,21 @@ describe('Recipes', () => {
 
     expect(screen.getByText('Ryžová miska')).toBeInTheDocument()
   })
+
+  it('gives the favourite toggle a Slovak, state-reflecting label and a 44px tap target', () => {
+    mockUseRecipes.mockReturnValue({ data: { data: [RECIPE], count: 1 }, isLoading: false, isFetching: false } as unknown as ReturnType<typeof useRecipes>)
+    renderPage()
+
+    const toggleButton = screen.getByRole('button', { name: 'Pridať medzi obľúbené' })
+    expect(toggleButton).toHaveClass('min-h-11', 'min-w-11')
+    expect(screen.queryByRole('button', { name: 'favorite' })).not.toBeInTheDocument()
+  })
+
+  it('flips the favourite toggle label once the recipe is already favourited', () => {
+    mockUseFavorites.mockReturnValue({ data: new Set(['recipe-1']) } as unknown as ReturnType<typeof useFavorites>)
+    mockUseRecipes.mockReturnValue({ data: { data: [RECIPE], count: 1 }, isLoading: false, isFetching: false } as unknown as ReturnType<typeof useRecipes>)
+    renderPage()
+
+    expect(screen.getByRole('button', { name: 'Odobrať z obľúbených' })).toBeInTheDocument()
+  })
 })

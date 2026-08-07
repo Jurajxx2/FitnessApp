@@ -48,6 +48,8 @@ it('keeps today, meal plan, and recipes inside one nutrition hub', async () => {
 
   expect(screen.getByRole('heading', { name: 'Výživa' })).toBeInTheDocument()
   expect(screen.getByText('Embedded meal plan')).toBeInTheDocument()
+  expect(screen.getByRole('navigation', { name: 'Sekcie výživy' })).toBeInTheDocument()
+  expect(screen.queryByRole('navigation', { name: 'Nutrition sections' })).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Jedálniček' })).toHaveAttribute('aria-current', 'page')
 
   await user.click(screen.getByRole('button', { name: 'Recepty' }))

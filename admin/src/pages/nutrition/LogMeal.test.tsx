@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -79,6 +79,11 @@ function useFakeMutation(asyncFn: (variables: unknown) => Promise<unknown>) {
     return {
       mutate,
       mutateAsync: asyncFn,
+      // Keep this permanently false — see the block comment above. Modeling a real
+      // pending render here (e.g. flipping this true synchronously inside `mutate`
+      // before the promise settles) would give the unsaved-changes exit tests below
+      // a friendlier guard than production's react-query instance structurally
+      // guarantees, and none of them would fail to tell you it happened.
       isPending: false,
       isSuccess: state.status === 'success',
       isError: state.status === 'error',
@@ -580,5 +585,23 @@ describe('LogMeal unsaved-changes guard', () => {
 
     expect(await screen.findByText('Nutrition home')).toBeInTheDocument()
     expect(screen.queryByText('Zahodiť neuložené zmeny?')).not.toBeInTheDocument()
+  })
+
+  // Regression test: the prefill effect in edit mode deliberately does not call
+  // markDirty (prefilling isn't a user edit), so only the field handlers themselves
+  // can arm the guard. Before this fix, mealType/logDate/logTime/notes changes in
+  // edit mode were silently lossy — hasUnsavedChanges stayed false and an attempted
+  // navigation left with no prompt at all.
+  it('edit mode: changing only the time arms the unsaved-changes guard', async () => {
+    const router = renderEditLogger()
+    await screen.findByLabelText('Názov jedla')
+
+    fireEvent.change(screen.getByLabelText('Čas'), { target: { value: '18:30' } })
+
+    await act(async () => { router.navigate('/nutrition') })
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Zahodiť neuložené zmeny?')).toBeInTheDocument()
+    expect(screen.queryByText('Nutrition home')).not.toBeInTheDocument()
   })
 })

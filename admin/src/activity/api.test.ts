@@ -326,6 +326,18 @@ describe('getWorkoutFeedback', () => {
     expect(capturedFeedbackEqCalls.some(([column]) => column === 'workout_log_id')).toBe(false)
     expect(capturedFeedbackOrArg).toBe('workout_log_id.eq.log-1,exercise_log_id.in.(ex-1,ex-2)')
   })
+
+  it('returns an empty array without querying the network when workoutLogId could break out of the .or() filter', async () => {
+    await expect(getWorkoutFeedback('athlete-1', 'log-1),exercise_log_id.in.(evil', ['ex-1'])).resolves.toEqual([])
+
+    expect(capturedFeedbackOrArg).toBeNull()
+  })
+
+  it('returns an empty array without querying the network when an exerciseLogId could break out of the .or() filter', async () => {
+    await expect(getWorkoutFeedback('athlete-1', 'log-1', ['ex-1', 'ex-2),workout_log_id.eq.evil'])).resolves.toEqual([])
+
+    expect(capturedFeedbackOrArg).toBeNull()
+  })
 })
 
 describe('finishWorkout duration clamp', () => {

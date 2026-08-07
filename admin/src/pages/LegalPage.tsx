@@ -380,6 +380,7 @@ export const pageCopy = {
     officialGuidance: 'Official guidance used for this draft:',
     privacy: 'Privacy',
     terms: 'Terms',
+    legalDocuments: 'Legal documents',
   },
   cs: {
     back: 'Zpět na Coach Foska',
@@ -388,6 +389,7 @@ export const pageCopy = {
     officialGuidance: 'Oficiální zdroj použitý pro návrh:',
     privacy: 'Ochrana soukromí',
     terms: 'Podmínky',
+    legalDocuments: 'Právní dokumenty',
   },
   sk: {
     back: 'Späť na Coach Foska',
@@ -396,6 +398,7 @@ export const pageCopy = {
     officialGuidance: 'Oficiálny zdroj použitý pre tento návrh:',
     privacy: 'Ochrana súkromia',
     terms: 'Podmienky',
+    legalDocuments: 'Právne dokumenty',
   },
 } as const
 
@@ -460,7 +463,7 @@ export default function LegalPage({ kind }: { kind: LegalDocumentKind }) {
           </a>
         </div>
 
-        <nav className="mt-10 flex gap-6 border-t border-outline-subtle pt-7 text-sm font-semibold" aria-label="Legal documents">
+        <nav className="mt-10 flex gap-6 border-t border-outline-subtle pt-7 text-sm font-semibold" aria-label={page.legalDocuments}>
           <Link to="/privacy" className={kind === 'privacy' ? 'text-accent' : 'text-text-secondary hover:text-text-primary'}>{page.privacy}</Link>
           <Link to="/terms" className={kind === 'terms' ? 'text-accent' : 'text-text-secondary hover:text-text-primary'}>{page.terms}</Link>
         </nav>

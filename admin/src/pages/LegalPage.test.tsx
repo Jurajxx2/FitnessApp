@@ -64,6 +64,27 @@ test('sk and cs pageCopy expose the same key set', () => {
   expect(Object.keys(pageCopy.sk).sort()).toEqual(Object.keys(pageCopy.cs).sort())
 })
 
+test('localises the legal-documents nav landmark per locale instead of leaving it English everywhere', () => {
+  expect(pageCopy.en.legalDocuments).toBe('Legal documents')
+  expect(pageCopy.cs.legalDocuments).toBe('Právní dokumenty')
+  expect(pageCopy.sk.legalDocuments).toBe('Právne dokumenty')
+})
+
+test('renders the Slovak legal-documents nav landmark under the sk locale', () => {
+  window.localStorage.setItem('coach-foska-public-locale', 'sk')
+  render(
+    <PublicLocaleProvider>
+      <MemoryRouter>
+        <LegalPage kind="privacy" />
+      </MemoryRouter>
+    </PublicLocaleProvider>,
+  )
+
+  expect(screen.getByRole('navigation', { name: 'Právne dokumenty' })).toBeInTheDocument()
+  expect(screen.queryByRole('navigation', { name: 'Legal documents' })).not.toBeInTheDocument()
+  window.localStorage.clear()
+})
+
 test('sk and cs privacy documents have the same section count and top-level shape', () => {
   const sk = privacyDocument('sk')
   const cs = privacyDocument('cs')

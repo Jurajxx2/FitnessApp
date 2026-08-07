@@ -43,7 +43,7 @@ export default function Hub() {
         </Button>
       </div>
 
-      <nav aria-label="Nutrition sections" className="grid grid-cols-3 gap-1 rounded-2xl border border-outline-subtle bg-surface-elevated p-1.5">
+      <nav aria-label="Sekcie výživy" className="grid grid-cols-3 gap-1 rounded-2xl border border-outline-subtle bg-surface-elevated p-1.5">
         {TABS.map(({ label, to, icon: Icon }) => {
           const selected = to === '/nutrition'
             ? activeTab === 'today'
