@@ -284,6 +284,27 @@ describe('AthleteManagementPanel', () => {
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
   })
 
+  it('explains why Save changes is disabled when macros are invalid, and clears the explanation once macros are fixed', () => {
+    renderPanel()
+
+    fireEvent.change(screen.getByLabelText('Calories'), { target: { value: '0' } })
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+    expect(screen.getByText(/Calories must be greater than 0/)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Calories'), { target: { value: '2200' } })
+    expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled()
+    expect(screen.queryByText(/Calories must be greater than 0/)).not.toBeInTheDocument()
+  })
+
+  it('does not show the macros explanation when a different section is dirty', () => {
+    renderPanel()
+
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Changed Name' } })
+
+    expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled()
+    expect(screen.queryByText(/Calories must be greater than 0/)).not.toBeInTheDocument()
+  })
+
   it('registers a beforeunload guard while dirty and removes it once the panel is clean again', () => {
     const addSpy = vi.spyOn(window, 'addEventListener')
     const removeSpy = vi.spyOn(window, 'removeEventListener')
@@ -299,5 +320,21 @@ describe('AthleteManagementPanel', () => {
 
     fireEvent.change(screen.getByLabelText('Full name'), { target: { value: BASE_USER.full_name as string } })
     expect(beforeUnloadRemoves()).toBe(1)
+  })
+
+  it('does not re-register the beforeunload guard on every keystroke while a section stays dirty', () => {
+    const addSpy = vi.spyOn(window, 'addEventListener')
+    const beforeUnloadAdds = () => addSpy.mock.calls.filter(call => call[0] === 'beforeunload').length
+
+    renderPanel()
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Changed Name' } })
+    expect(beforeUnloadAdds()).toBe(1)
+
+    // The dirtySections Set is a new reference every render (useMemo keyed on the
+    // draft objects), so a second keystroke that keeps the same section dirty must
+    // not tear down and re-add the listener — it should still depend on the boolean
+    // "is anything dirty", not the Set itself.
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Changed Name Again' } })
+    expect(beforeUnloadAdds()).toBe(1)
   })
 })

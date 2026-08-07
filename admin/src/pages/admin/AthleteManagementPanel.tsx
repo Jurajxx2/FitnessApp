@@ -190,6 +190,7 @@ export function AthleteManagementPanel({
     && macroValues.carbsG >= 0
     && macroValues.fatG >= 0
     && (macroValues.fiberGMin == null || macroValues.fiberGMin >= 0)
+  const macrosValidationError = 'Calories must be greater than 0, and protein, carbs, fat, and fiber must each be 0 or greater.'
   const currentMealPlanUnavailable = Boolean(currentMealPlanId && !mealPlans.some(plan => plan.id === currentMealPlanId))
 
   const saveProfile = useMutation({
@@ -307,6 +308,7 @@ export function AthleteManagementPanel({
     preferences, preferencesBaseline,
   ])
   const dirtyLabels = SECTION_ORDER.filter(key => dirtySections.has(key)).map(key => SECTION_LABELS[key])
+  const hasDirtySections = dirtySections.size > 0
   const [isSavingAll, setIsSavingAll] = useState(false)
 
   // Guard against closing the tab/browser with unsaved edits. This is
@@ -314,15 +316,20 @@ export function AthleteManagementPanel({
   // useUnsavedChangesGuard hook — that hook also blocks in-app navigation via
   // useBlocker and pairs it with a Slovak-copy ConfirmDialog, neither of
   // which belongs on this English-language coach surface.
+  //
+  // Depends on the boolean hasDirtySections, not dirtySections itself: the
+  // Set is rebuilt (new reference) by the useMemo above on every keystroke,
+  // which would otherwise tear down and re-add this listener on every
+  // character typed.
   useEffect(() => {
-    if (dirtySections.size === 0) return
+    if (!hasDirtySections) return
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault()
       event.returnValue = ''
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [dirtySections])
+  }, [hasDirtySections])
 
   async function handleSaveAll() {
     if (dirtySections.size === 0 || isSavingAll) return
@@ -465,9 +472,14 @@ export function AthleteManagementPanel({
 
       {dirtySections.size > 0 && (
         <Card className="sticky bottom-0 z-20 mt-5 flex flex-col gap-3 shadow-xl sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-text-secondary">
-            <span className="font-semibold text-text-primary">Unsaved:</span> {dirtyLabels.join(', ')}
-          </p>
+          <div>
+            <p className="text-sm text-text-secondary">
+              <span className="font-semibold text-text-primary">Unsaved:</span> {dirtyLabels.join(', ')}
+            </p>
+            {dirtySections.has('macros') && !macrosValid && (
+              <p className="mt-1 text-xs text-error">{macrosValidationError}</p>
+            )}
+          </div>
           <Button
             onClick={handleSaveAll}
             loading={isSavingAll}
