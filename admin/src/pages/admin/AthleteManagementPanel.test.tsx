@@ -99,11 +99,11 @@ function baseProps(overrides: Partial<Props> = {}): Props {
 
 function Wrapper(props: Props) {
   return (
-    <NoticeProvider>
-      <MemoryRouter>
+    <MemoryRouter>
+      <NoticeProvider>
         <AthleteManagementPanel {...props} />
-      </MemoryRouter>
-    </NoticeProvider>
+      </NoticeProvider>
+    </MemoryRouter>
   )
 }
 

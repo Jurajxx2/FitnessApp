@@ -15,11 +15,11 @@ function renderPage(onCreated = vi.fn()) {
   const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/users/new']}>
+      <MemoryRouter initialEntries={['/admin/users/new']}>
+        <NoticeProvider>
           <CreateUser onCreated={onCreated} />
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>
   )
   return { onCreated, invalidateQueries }

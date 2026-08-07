@@ -147,11 +147,11 @@ describe('Chat — coach image send', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const utils = render(
       <QueryClientProvider client={queryClient}>
-        <NoticeProvider>
-          <MemoryRouter>
+        <MemoryRouter>
+          <NoticeProvider>
             <Chat />
-          </MemoryRouter>
-        </NoticeProvider>
+          </NoticeProvider>
+        </MemoryRouter>
       </QueryClientProvider>
     )
     return utils

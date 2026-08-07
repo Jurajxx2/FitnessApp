@@ -161,14 +161,14 @@ function renderEdit(planId = 'plan-1') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={[`/admin/nutrition/meal-plans/${planId}`]}>
+      <MemoryRouter initialEntries={[`/admin/nutrition/meal-plans/${planId}`]}>
+        <NoticeProvider>
           <Routes>
             <Route path="/admin/nutrition/meal-plans/:id" element={<MealPlanEditor />} />
             <Route path="*" element={<div>Redirected</div>} />
           </Routes>
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -177,14 +177,14 @@ function renderCreate() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/nutrition/meal-plans/new']}>
+      <MemoryRouter initialEntries={['/admin/nutrition/meal-plans/new']}>
+        <NoticeProvider>
           <Routes>
             <Route path="/admin/nutrition/meal-plans/new" element={<MealPlanEditor />} />
             <Route path="*" element={<div>Redirected</div>} />
           </Routes>
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { createMemoryRouter, Outlet, RouterProvider } from 'react-router-dom'
 import { NoticeProvider } from '../../components/ui'
 import CreateWorkout from './CreateWorkout'
 
@@ -105,20 +105,26 @@ vi.mock('../../lib/supabase', () => ({
 // useBlocker (used by the unsaved-changes guard) requires a data router — a
 // declarative <MemoryRouter> throws its useDataRouterContext invariant. See
 // App.test.tsx for the same createMemoryRouter/RouterProvider pattern.
+// NoticeProvider is nested inside the router (a pathless layout route, mirroring
+// RootLayout in App.tsx) rather than wrapped around RouterProvider, because it now
+// calls useLocation() and RouterProvider renders its own tree without accepting children.
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const router = createMemoryRouter(
     [
-      { path: '/activity/workouts/new', element: <CreateWorkout /> },
-      { path: '/activity/workouts/:id', element: <p>Workout detail</p> },
+      {
+        element: <NoticeProvider><Outlet /></NoticeProvider>,
+        children: [
+          { path: '/activity/workouts/new', element: <CreateWorkout /> },
+          { path: '/activity/workouts/:id', element: <p>Workout detail</p> },
+        ],
+      },
     ],
     { initialEntries: ['/activity/workouts/new'] },
   )
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <RouterProvider router={router} />
-      </NoticeProvider>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   )
   return router

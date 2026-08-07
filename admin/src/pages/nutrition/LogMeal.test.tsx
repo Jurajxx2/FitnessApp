@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { createMemoryRouter, Outlet, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NoticeProvider } from '../../components/ui'
 import {
@@ -153,20 +153,26 @@ beforeEach(() => {
 // App.test.tsx for the same createMemoryRouter/RouterProvider pattern. The
 // router is returned so tests can drive an in-app navigation attempt
 // imperatively (LogMeal renders no other internal links to click).
+// NoticeProvider is nested inside the router (a pathless layout route, mirroring
+// RootLayout in App.tsx) rather than wrapped around RouterProvider, because it now
+// calls useLocation() and RouterProvider renders its own tree without accepting children.
 function renderLogMealAt(initialPath: string) {
   const router = createMemoryRouter(
     [
-      { path: '/nutrition/log', element: <LogMeal /> },
-      { path: '/nutrition', element: <p>Nutrition home</p> },
-      { path: '/nutrition/history', element: <p>History list</p> },
-      { path: '/nutrition/history/:id', element: <p>History detail</p> },
+      {
+        element: <NoticeProvider><Outlet /></NoticeProvider>,
+        children: [
+          { path: '/nutrition/log', element: <LogMeal /> },
+          { path: '/nutrition', element: <p>Nutrition home</p> },
+          { path: '/nutrition/history', element: <p>History list</p> },
+          { path: '/nutrition/history/:id', element: <p>History detail</p> },
+        ],
+      },
     ],
     { initialEntries: [initialPath] },
   )
   render(
-    <NoticeProvider>
-      <RouterProvider router={router} />
-    </NoticeProvider>,
+    <RouterProvider router={router} />,
   )
   return router
 }
