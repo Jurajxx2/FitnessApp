@@ -331,6 +331,25 @@ export function AthleteManagementPanel({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [hasDirtySections])
 
+  // Advances one section's baseline to the value that was actually sent to the
+  // server, synchronously right after that section's save resolves — before any
+  // later section in the loop is attempted. This must happen inline in the save
+  // loop (not via the re-seeding useEffects above, which only fire once fresh
+  // query data comes back from an async refetch): saveMacros in particular
+  // *inserts* a new versioned nutrition_targets row rather than upserting, so if
+  // a later section fails and the coach hits Save again before that refetch
+  // lands, a stale macrosBaseline would leave macros marked dirty and insert a
+  // second, duplicate version. Capturing the value before its await (rather than
+  // reading state after) also avoids baselining edits the coach made while the
+  // request was in flight.
+  function markSectionSaved(key: SectionKey, sentValue: ProfileDraft | MacroDraft | string | string[] | UserNutritionPreferences) {
+    if (key === 'profile') setProfileBaseline(sentValue as ProfileDraft)
+    else if (key === 'macros') setMacrosBaseline(sentValue as MacroDraft)
+    else if (key === 'mealPlan') setMealPlanBaseline(sentValue as string)
+    else if (key === 'workouts') setWorkoutIdsBaseline(sentValue as string[])
+    else setPreferencesBaseline(sentValue as UserNutritionPreferences)
+  }
+
   async function handleSaveAll() {
     if (dirtySections.size === 0 || isSavingAll) return
     setIsSavingAll(true)
@@ -339,11 +358,27 @@ export function AthleteManagementPanel({
       for (const key of SECTION_ORDER) {
         if (!dirtySections.has(key)) continue
         try {
-          if (key === 'profile') await saveProfile.mutateAsync()
-          else if (key === 'macros') await saveMacros.mutateAsync()
-          else if (key === 'mealPlan') await saveMealPlan.mutateAsync()
-          else if (key === 'workouts') await saveWorkouts.mutateAsync()
-          else await savePreferences.mutateAsync(preferences)
+          if (key === 'profile') {
+            const sentValue = profile
+            await saveProfile.mutateAsync()
+            markSectionSaved(key, sentValue)
+          } else if (key === 'macros') {
+            const sentValue = macros
+            await saveMacros.mutateAsync()
+            markSectionSaved(key, sentValue)
+          } else if (key === 'mealPlan') {
+            const sentValue = mealPlanId
+            await saveMealPlan.mutateAsync()
+            markSectionSaved(key, sentValue)
+          } else if (key === 'workouts') {
+            const sentValue = workoutIds
+            await saveWorkouts.mutateAsync()
+            markSectionSaved(key, sentValue)
+          } else {
+            const sentValue = preferences
+            await savePreferences.mutateAsync(preferences)
+            markSectionSaved(key, sentValue)
+          }
           saved.push(SECTION_LABELS[key])
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
