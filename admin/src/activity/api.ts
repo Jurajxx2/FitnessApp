@@ -471,6 +471,21 @@ export async function getGeneralActivities(userId: string): Promise<GeneralActiv
   return (data ?? []) as GeneralActivityRow[]
 }
 
+// Dedicated single-row fetch for the edit path — the list above is capped at 100 rows,
+// so an athlete editing an older activity that fell outside that cap must not be looked
+// up by searching it (see LogActivity). .maybeSingle() resolves a genuinely missing row
+// to null instead of throwing, so the caller can render a proper not-found state.
+export async function getGeneralActivity(userId: string, activityId: string): Promise<GeneralActivityRow | null> {
+  const { data, error } = await supabase
+    .from('general_activity_logs')
+    .select('*')
+    .eq('id', activityId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) throw error
+  return data as GeneralActivityRow | null
+}
+
 export async function logGeneralActivity(userId: string, draft: ActivityDraft) {
   const { error } = await supabase.from('general_activity_logs').insert({ user_id: userId, ...draft })
   if (error) throw error

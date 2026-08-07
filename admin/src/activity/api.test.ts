@@ -22,6 +22,8 @@ let capturedWorkoutLogDeleteEqCalls: Array<[string, unknown]> = []
 let capturedGeneralActivityUpdateValues: Record<string, unknown> | null = null
 let capturedGeneralActivityUpdateEqCalls: Array<[string, unknown]> = []
 let capturedGeneralActivityDeleteEqCalls: Array<[string, unknown]> = []
+let capturedGeneralActivitySelectEqCalls: Array<[string, unknown]> = []
+let generalActivityDetailMockResult: unknown = null
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -118,6 +120,17 @@ vi.mock('../lib/supabase', () => ({
       }
       if (table === 'general_activity_logs') {
         return {
+          select: () => {
+            capturedGeneralActivitySelectEqCalls = []
+            const selectBuilder = {
+              eq: (column: string, value: unknown) => {
+                capturedGeneralActivitySelectEqCalls.push([column, value])
+                return selectBuilder
+              },
+              maybeSingle: () => Promise.resolve({ data: generalActivityDetailMockResult, error: null }),
+            }
+            return selectBuilder
+          },
           update: (values: Record<string, unknown>) => {
             capturedGeneralActivityUpdateValues = values
             capturedGeneralActivityUpdateEqCalls = []
@@ -158,6 +171,7 @@ const {
   deleteWorkoutLog,
   finishWorkout,
   getExercisePage,
+  getGeneralActivity,
   getLastExercisePerformances,
   getWorkoutFeedback,
   getWorkoutHistoryPage,
@@ -401,6 +415,30 @@ describe('deleteGeneralActivity', () => {
       ['id', 'activity-1'],
       ['user_id', 'athlete-1'],
     ])
+  })
+})
+
+describe('getGeneralActivity', () => {
+  beforeEach(() => {
+    capturedGeneralActivitySelectEqCalls = []
+    generalActivityDetailMockResult = null
+  })
+
+  it('filters by both id and user_id and returns the row via maybeSingle', async () => {
+    generalActivityDetailMockResult = { id: 'activity-1', user_id: 'athlete-1', activity_type: 'RUNNING' }
+
+    await expect(getGeneralActivity('athlete-1', 'activity-1')).resolves.toEqual(generalActivityDetailMockResult)
+
+    expect(capturedGeneralActivitySelectEqCalls).toEqual([
+      ['id', 'activity-1'],
+      ['user_id', 'athlete-1'],
+    ])
+  })
+
+  it('resolves null instead of throwing when the row does not exist', async () => {
+    generalActivityDetailMockResult = null
+
+    await expect(getGeneralActivity('athlete-1', 'missing-activity')).resolves.toBeNull()
   })
 })
 
