@@ -7,7 +7,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
-const copy = {
+export const copy = {
   en: {
     loading: 'Checking reset link…',
     eyebrow: 'Account recovery',
@@ -43,6 +43,24 @@ const copy = {
     tooShort: 'Nové heslo musí mít alespoň 8 znaků.',
     mismatch: 'Hesla se neshodují.',
     genericError: 'Heslo se nepodařilo změnit. Zkuste to prosím znovu.',
+  },
+  sk: {
+    loading: 'Kontrolujem odkaz na obnovenie…',
+    eyebrow: 'Obnovenie účtu',
+    updatedTitle: 'Heslo bolo zmenené',
+    title: 'Zvoľ nové heslo',
+    updatedStatus: 'Nové heslo je pripravené na použitie.',
+    continue: 'Pokračovať do Coach Foska',
+    invalid: 'Odkaz na obnovenie hesla je neplatný alebo vypršal.',
+    newLink: 'Požiadať o nový odkaz',
+    password: 'Nové heslo',
+    passwordPlaceholder: 'Aspoň 8 znakov',
+    confirmation: 'Potvrdenie nového hesla',
+    confirmationPlaceholder: 'Zopakuj nové heslo',
+    submit: 'Uložiť nové heslo',
+    tooShort: 'Nové heslo musí mať aspoň 8 znakov.',
+    mismatch: 'Heslá sa nezhodujú.',
+    genericError: 'Heslo sa nepodarilo zmeniť. Skús to, prosím, znova.',
   },
 } as const
 

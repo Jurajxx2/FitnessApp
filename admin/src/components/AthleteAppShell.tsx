@@ -99,7 +99,7 @@ export function AthleteAppShell() {
           </div>
         </div>
 
-        <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
+        <nav aria-label="Hlavná navigácia" className="flex flex-1 flex-col gap-1 px-3 py-5">
           <p className="mb-2 px-3 ledger-label text-text-secondary">Tvoj koučing</p>
           {visibleNav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
@@ -192,7 +192,7 @@ export function AthleteAppShell() {
           </div>
         </main>
 
-        <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-outline-subtle bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        <nav aria-label="Hlavná navigácia" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-outline-subtle bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
           {visibleNav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}

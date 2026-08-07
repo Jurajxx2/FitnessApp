@@ -35,7 +35,7 @@ export default function Plan({ embedded = false }: { embedded?: boolean }) {
         {!embedded && (
           <p className="flex items-center gap-2 ledger-label text-text-secondary">
             <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
-            Your nutrition
+            Tvoja výživa
           </p>
         )}
         <h2 className={`${embedded ? 'text-2xl' : 'mt-1 text-3xl'} font-display font-bold tracking-tight text-text-primary`}>{plan.name}</h2>

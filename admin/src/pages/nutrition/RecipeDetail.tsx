@@ -1,16 +1,20 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Plus } from 'lucide-react'
-import { useRecipe } from '../../nutrition/hooks'
+import { ChevronLeft, Heart, Plus } from 'lucide-react'
+import { useFavorites, useRecipe } from '../../nutrition/hooks'
+import { useToggleFavorite } from '../../nutrition/mutations'
 import { Button, Card, StatRow, EmptyState, Shimmer } from '../../components/ui'
 
 export default function RecipeDetail() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { data: recipe, isLoading } = useRecipe(id)
+  const { data: favorites } = useFavorites()
+  const toggle = useToggleFavorite()
 
   if (isLoading) return <Shimmer className="h-64 w-full" />
   if (!recipe) return <EmptyState title="Recept sa nenašiel" />
 
+  const isFav = (favorites ?? new Set<string>()).has(recipe.id)
   const ingredients = recipe.recipe_ingredients ?? []
   const steps = (recipe.recipe_steps ?? []).slice().sort((a, b) => a.step_number - b.step_number)
 
@@ -23,10 +27,20 @@ export default function RecipeDetail() {
         <div className="flex flex-col gap-6">
           {recipe.photo_url && <img src={recipe.photo_url} alt={recipe.name} className="aspect-[16/9] w-full rounded-2xl object-cover" />}
           <div>
-            <p className="flex items-center gap-2 ledger-label text-text-secondary">
-              <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
-              Recipe
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="flex items-center gap-2 ledger-label text-text-secondary">
+                <span className="h-3.5 w-[3px] shrink-0 rounded-full bg-accent-strong" aria-hidden="true" />
+                Recept
+              </p>
+              <button
+                type="button"
+                aria-label={isFav ? 'Odobrať z obľúbených' : 'Pridať medzi obľúbené'}
+                onClick={() => toggle.mutate({ recipeId: recipe.id, isFavorite: isFav })}
+                className="flex h-11 w-11 flex-shrink-0 cursor-pointer items-center justify-center rounded-full border border-outline-subtle bg-surface text-text-secondary transition-colors hover:text-text-primary"
+              >
+                <Heart size={18} className={isFav ? 'fill-accent text-accent' : ''} />
+              </button>
+            </div>
             <h1 className="mt-1 text-3xl font-display font-bold tracking-tight text-text-primary">{recipe.name}</h1>
             {recipe.description && <p className="mt-3 max-w-3xl text-sm leading-6 text-text-secondary">{recipe.description}</p>}
           </div>

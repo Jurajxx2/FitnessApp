@@ -7,6 +7,7 @@ interface ModalProps {
   children: ReactNode
   footer?: ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  locale?: 'sk' | 'en'
 }
 
 const SIZE = {
@@ -16,8 +17,14 @@ const SIZE = {
   xl: 'max-w-5xl',
 } as const
 
-export function Modal({ open, onClose, title, children, footer, size = 'md' }: ModalProps) {
+const COPY = {
+  en: { close: 'Close dialog' },
+  sk: { close: 'Zavrieť dialóg' },
+} as const
+
+export function Modal({ open, onClose, title, children, footer, size = 'md', locale = 'en' }: ModalProps) {
   const titleId = useId()
+  const t = COPY[locale]
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     if (open) document.addEventListener('keydown', handler)
@@ -32,7 +39,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }: M
       <div role="dialog" aria-modal="true" aria-labelledby={titleId} className={`relative z-10 flex max-h-[95vh] w-full ${SIZE[size]} flex-col rounded-2xl border border-outline bg-surface-elevated mx-3 sm:mx-4 sm:max-h-[90vh]`}>
         <div className="flex items-center justify-between border-b border-outline px-4 py-4 sm:px-6">
           <h2 id={titleId} className="font-display text-lg font-bold tracking-tight text-text-primary">{title}</h2>
-          <button aria-label="Close dialog" onClick={onClose} className="cursor-pointer border-0 bg-transparent text-xl leading-none text-text-secondary hover:text-text-primary">×</button>
+          <button aria-label={t.close} onClick={onClose} className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center border-0 bg-transparent text-xl leading-none text-text-secondary hover:text-text-primary">×</button>
         </div>
         <div className="overflow-y-auto px-4 sm:px-6 py-4 flex-1">{children}</div>
         {footer && (

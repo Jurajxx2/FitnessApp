@@ -74,8 +74,32 @@ describe('AdminRouteGuard', () => {
         </Routes>
       </MemoryRouter>
     )
-    expect(screen.getByText('Account access is blocked')).toBeInTheDocument()
+    expect(screen.getByText('Prístup k účtu je zablokovaný')).toBeInTheDocument()
     expect(screen.queryByText('Admin content')).not.toBeInTheDocument()
+  })
+
+  it('redirects an activity-only non-admin straight to the activity home, not /nutrition', () => {
+    mockUseAuth.mockReturnValue({
+      session: {} as any,
+      user: {} as any,
+      profile: { access_mode: 'activity' } as any,
+      isAdmin: false,
+      isLoading: false,
+      refreshProfile: vi.fn(),
+    })
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <Routes>
+          <Route path="/activity" element={<div>Activity home</div>} />
+          <Route path="/nutrition" element={<div>Trainee workspace</div>} />
+          <Route element={<AdminRouteGuard />}>
+            <Route path="/admin" element={<div>Admin content</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    )
+    expect(screen.getByText('Activity home')).toBeInTheDocument()
+    expect(screen.queryByText('Trainee workspace')).not.toBeInTheDocument()
   })
 
   it('renders children when admin', () => {

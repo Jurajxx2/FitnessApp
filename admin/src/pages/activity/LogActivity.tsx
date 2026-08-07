@@ -1,26 +1,17 @@
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bike, Footprints, PersonStanding, Waves } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { getGeneralActivities, logGeneralActivity } from '../../activity/api'
-import { formatDate, formatDuration } from '../../activity/logic'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { getGeneralActivities, logGeneralActivity, updateGeneralActivity } from '../../activity/api'
+import { formatDate, formatDuration, toLocalDateTimeInputValue } from '../../activity/logic'
 import type { ActivityDraft, ActivityType } from '../../activity/types'
 import { useNotice } from '../../components/ui'
 import { useAuth } from '../../hooks/useAuth'
-import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
+import { ACTIVITY_TYPE_OPTIONS, ActivityPage, ActivityTypeIcon, ErrorBlock, LoadingBlock, PageIntro } from './shared'
 
-const types: Array<{ value: ActivityType; label: string }> = [
-  { value: 'WALKING', label: 'Chôdza' },
-  { value: 'RUNNING', label: 'Beh' },
-  { value: 'CYCLING', label: 'Bicykel' },
-  { value: 'YOGA', label: 'Joga' },
-  { value: 'SWIMMING', label: 'Plávanie' },
-  { value: 'OTHER', label: 'Iné' }
-]
+const types = ACTIVITY_TYPE_OPTIONS
 
 function localDateTimeNow() {
-  const date = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000)
-  return date.toISOString().slice(0, 16)
+  return toLocalDateTimeInputValue(new Date())
 }
 
 export default function LogActivity() {
@@ -29,25 +20,45 @@ export default function LogActivity() {
   const navigate = useNavigate()
   const { notify } = useNotice()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
+  const activityId = searchParams.get('activityId') ?? ''
+  const isEditing = Boolean(activityId)
   const [type, setType] = useState<ActivityType>('WALKING')
   const [duration, setDuration] = useState('30')
   const [distance, setDistance] = useState('')
   const [rpe, setRpe] = useState('')
   const [loggedAt, setLoggedAt] = useState(localDateTimeNow)
   const [notes, setNotes] = useState('')
+  const [seeded, setSeeded] = useState(false)
   const activityQuery = useQuery({
     queryKey: ['activity', 'general', userId],
     queryFn: () => getGeneralActivities(userId),
     enabled: Boolean(userId)
   })
+  // The general-activity list is capped at 100 rows (see getGeneralActivities), which is
+  // already fetched for the "recent activities" panel below — reuse it instead of adding
+  // a dedicated single-record fetch.
+  const existingActivity = isEditing ? (activityQuery.data ?? []).find(item => item.id === activityId) ?? null : null
+
+  useEffect(() => {
+    if (!isEditing || seeded || !existingActivity) return
+    setType(existingActivity.activity_type)
+    setDuration(String(existingActivity.duration_minutes))
+    setDistance(existingActivity.distance_km != null ? String(existingActivity.distance_km) : '')
+    setRpe(existingActivity.rpe != null ? String(existingActivity.rpe) : '')
+    setLoggedAt(toLocalDateTimeInputValue(new Date(existingActivity.logged_at)))
+    setNotes(existingActivity.notes ?? '')
+    setSeeded(true)
+  }, [isEditing, seeded, existingActivity])
+
   const mutation = useMutation({
-    mutationFn: (draft: ActivityDraft) => logGeneralActivity(userId, draft),
+    mutationFn: (draft: ActivityDraft) => (isEditing ? updateGeneralActivity(userId, activityId, draft) : logGeneralActivity(userId, draft)),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ['activity', 'general', userId]
       })
-      notify('Aktivita bola uložená.')
-      navigate('/activity')
+      notify(isEditing ? 'Aktivita bola upravená.' : 'Aktivita bola uložená.')
+      navigate(isEditing ? '/activity/history' : '/activity')
     }
   })
 
@@ -69,9 +80,28 @@ export default function LogActivity() {
     })
   }
 
+  if (isEditing && activityQuery.isLoading) {
+    return (
+      <ActivityPage>
+        <LoadingBlock label="Načítava sa aktivita…" />
+      </ActivityPage>
+    )
+  }
+  if (isEditing && !activityQuery.isLoading && !existingActivity) {
+    return (
+      <ActivityPage>
+        <ErrorBlock message="Aktivita sa nenašla." />
+      </ActivityPage>
+    )
+  }
+
   return (
     <ActivityPage>
-      <PageIntro eyebrow="Aktivita" title="Zapísať ďalšiu aktivitu" description="Zapíš si pohyb mimo tréningového plánu, aby bol viditeľný celý tvoj týždeň." />
+      <PageIntro
+        eyebrow="Aktivita"
+        title={isEditing ? 'Upraviť aktivitu' : 'Zapísať ďalšiu aktivitu'}
+        description={isEditing ? 'Uprav podrobnosti tejto aktivity.' : 'Zapíš si pohyb mimo tréningového plánu, aby bol viditeľný celý tvoj týždeň.'}
+      />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.75fr)]">
         <form onSubmit={submit} className="space-y-5 rounded-2xl border border-outline bg-surface-elevated p-5 sm:p-6">
           <fieldset>
@@ -95,7 +125,7 @@ export default function LogActivity() {
             <textarea value={notes} onChange={event => setNotes(event.target.value)} rows={3} className="mt-2 w-full resize-y rounded-xl border border-outline bg-surface p-3 text-sm font-normal normal-case tracking-normal text-text-primary outline-none focus:border-accent" />
           </label>
           <button type="submit" disabled={mutation.isPending} className="min-h-11 w-full cursor-pointer rounded-xl border-0 bg-action-primary px-5 text-sm font-bold text-on-action-primary disabled:opacity-40">
-            {mutation.isPending ? 'Ukladá sa…' : 'Uložiť aktivitu'}
+            {mutation.isPending ? 'Ukladá sa…' : isEditing ? 'Uložiť zmeny' : 'Uložiť aktivitu'}
           </button>
           {mutation.isError && (
             <p role="alert" className="text-sm text-error">
@@ -120,7 +150,7 @@ export default function LogActivity() {
             <div className="mt-3 space-y-3">
               {(activityQuery.data ?? []).slice(0, 8).map(activity => (
                 <div key={activity.id} className="flex items-center gap-3 rounded-2xl border border-outline bg-surface-elevated p-4">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-highest text-text-primary">{activity.activity_type === 'CYCLING' ? <Bike size={18} /> : activity.activity_type === 'SWIMMING' ? <Waves size={18} /> : activity.activity_type === 'YOGA' ? <PersonStanding size={18} /> : <Footprints size={18} />}</span>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-highest text-text-primary"><ActivityTypeIcon type={activity.activity_type} /></span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-text-primary">{types.find(item => item.value === activity.activity_type)?.label}</p>
                     <p className="mt-1 text-xs text-text-secondary">

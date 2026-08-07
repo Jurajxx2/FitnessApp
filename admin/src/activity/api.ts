@@ -12,6 +12,7 @@ import type {
   WorkoutLogRow,
   WorkoutRow,
 } from './types'
+import type { Difficulty, WorkoutFeedback } from '../types/database'
 
 const workoutSelect = `
   *,
@@ -122,6 +123,37 @@ export async function getWorkoutLog(userId: string, logId: string): Promise<Work
     .single()
   if (error) throw error
   return sortLog(data as WorkoutLogRow)
+}
+
+// Characters PostgREST's .or() filter syntax treats as structural (comma separates
+// conditions, parentheses group/list values). An id containing any of them would
+// let a caller break out of the intended filter and inject extra clauses once this
+// value is interpolated into the raw filter string below.
+const SAFE_FILTER_ID = /^[A-Za-z0-9-]+$/
+
+export async function getWorkoutFeedback(userId: string, workoutLogId: string, exerciseLogIds: string[]): Promise<WorkoutFeedback[]> {
+  const base = supabase.from('workout_feedback').select('*').eq('user_id', userId)
+  // .or() with an empty in.() list is malformed Postgrest syntax, so fall back to the
+  // plain session-level filter when there are no exercise logs to match against.
+  // The .eq() path binds workoutLogId as a value (no string interpolation), so it
+  // needs no shape check here.
+  if (!exerciseLogIds.length) {
+    const { data, error } = await base.eq('workout_log_id', workoutLogId).order('created_at', { ascending: true })
+    if (error) throw error
+    return (data ?? []) as WorkoutFeedback[]
+  }
+  // The .or() path below builds a raw filter string by interpolating both ids
+  // directly. Reject anything that isn't safely id-shaped instead of sending a
+  // malformed or maliciously-crafted filter to Postgrest — an empty result is the
+  // right call here since this always renders as "no feedback yet", not an error.
+  if (!SAFE_FILTER_ID.test(workoutLogId) || !exerciseLogIds.every(id => SAFE_FILTER_ID.test(id))) {
+    return []
+  }
+  const { data, error } = await base
+    .or(`workout_log_id.eq.${workoutLogId},exercise_log_id.in.(${exerciseLogIds.join(',')})`)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as WorkoutFeedback[]
 }
 
 interface RecentPerformanceWorkout {
@@ -329,8 +361,17 @@ export async function removeSet(setId: string) {
   if (error) throw error
 }
 
+// A session left running (e.g. the athlete forgot to tap "finish" and it stayed open
+// overnight) must not record an absurd duration that then feeds Progress totals and
+// the coach's compliance dashboard. Clamp is silent — no UI prompt — and floors at 1
+// minute so a sub-minute session still counts as completed.
+export const MAX_WORKOUT_DURATION_MINUTES = 240
+
 export async function finishWorkout(log: WorkoutLogRow, notes: string | null) {
-  const durationMinutes = Math.max(1, Math.round((Date.now() - new Date(log.logged_at).getTime()) / 60_000))
+  const durationMinutes = Math.min(
+    MAX_WORKOUT_DURATION_MINUTES,
+    Math.max(1, Math.round((Date.now() - new Date(log.logged_at).getTime()) / 60_000))
+  )
   const { error } = await supabase
     .from('workout_logs')
     .update({ status: 'completed', duration_minutes: durationMinutes, notes })
@@ -344,15 +385,54 @@ export async function discardWorkout(logId: string) {
   if (error) throw error
 }
 
-export async function getExercises(): Promise<ExerciseSummary[]> {
-  const { data, error } = await supabase
+export async function deleteWorkoutLog(userId: string, logId: string): Promise<void> {
+  const { error } = await supabase.from('workout_logs').delete().eq('id', logId).eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function updateWorkoutLog(
+  userId: string,
+  logId: string,
+  values: { logged_at: string; notes: string | null }
+): Promise<void> {
+  const { error } = await supabase
+    .from('workout_logs')
+    .update({ logged_at: values.logged_at, notes: values.notes })
+    .eq('id', logId)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+export const EXERCISE_PAGE_SIZE = 24
+
+export interface ExercisePageFilters {
+  search: string
+  difficulty: Difficulty | null
+  favoriteIds: string[] | null
+}
+
+export async function getExercisePage(
+  filters: ExercisePageFilters,
+  page: number,
+  pageSize = EXERCISE_PAGE_SIZE,
+): Promise<{ data: ExerciseSummary[]; count: number }> {
+  // .in('id', []) is a Postgrest edge case that does not mean "match nothing" reliably;
+  // short-circuit instead of hitting the network with an empty favourites filter.
+  if (filters.favoriteIds && filters.favoriteIds.length === 0) return { data: [], count: 0 }
+
+  let query = supabase
     .from('exercises')
-    .select('id, name_en, name_cs, description_en, description_cs, image_url, image_url_2, video_url, difficulty, primary_muscles, secondary_muscles, equipment_names, exercise_categories(id, name)')
+    .select('id, name_en, name_cs, description_en, description_cs, image_url, image_url_2, video_url, difficulty, primary_muscles, secondary_muscles, equipment_names, exercise_categories(id, name)', { count: 'exact' })
     .eq('is_active', true)
     .order('name_en')
-    .limit(500)
+    .range(page * pageSize, page * pageSize + pageSize - 1)
+  if (filters.search) query = query.textSearch('search_vector', filters.search, { type: 'websearch', config: 'simple' })
+  if (filters.difficulty) query = query.eq('difficulty', filters.difficulty)
+  if (filters.favoriteIds) query = query.in('id', filters.favoriteIds)
+
+  const { data, count, error } = await query
   if (error) throw error
-  return (data ?? []) as unknown as ExerciseSummary[]
+  return { data: (data ?? []) as unknown as ExerciseSummary[], count: count ?? 0 }
 }
 
 export async function getExercise(exerciseId: string): Promise<ExerciseSummary> {
@@ -393,5 +473,23 @@ export async function getGeneralActivities(userId: string): Promise<GeneralActiv
 
 export async function logGeneralActivity(userId: string, draft: ActivityDraft) {
   const { error } = await supabase.from('general_activity_logs').insert({ user_id: userId, ...draft })
+  if (error) throw error
+}
+
+export async function updateGeneralActivity(userId: string, activityId: string, draft: ActivityDraft): Promise<void> {
+  const { error } = await supabase
+    .from('general_activity_logs')
+    .update(draft)
+    .eq('id', activityId)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function deleteGeneralActivity(userId: string, activityId: string): Promise<void> {
+  const { error } = await supabase
+    .from('general_activity_logs')
+    .delete()
+    .eq('id', activityId)
+    .eq('user_id', userId)
   if (error) throw error
 }

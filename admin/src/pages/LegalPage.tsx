@@ -32,21 +32,76 @@ const legalPublishReady = operatorConfigReady && import.meta.env.VITE_LEGAL_PUBL
 
 function operatorDescription(locale: PublicLocale) {
   if (!operatorConfigReady) {
-    return locale === 'cs'
-      ? 'Provozovatel služby Coach Foska — právní název, IČO, sídlo a kontaktní e-mail musí být doplněny před veřejným spuštěním.'
-      : 'The operator of Coach Foska — legal name, company ID, registered address and contact email must be completed before public launch.'
+    const placeholder: Record<PublicLocale, string> = {
+      sk: 'Prevádzkovateľ služby Coach Foska — právny názov, IČO, sídlo a kontaktný e-mail musia byť doplnené pred verejným spustením.',
+      cs: 'Provozovatel služby Coach Foska — právní název, IČO, sídlo a kontaktní e-mail musí být doplněny před veřejným spuštěním.',
+      en: 'The operator of Coach Foska — legal name, company ID, registered address and contact email must be completed before public launch.',
+    }
+    return placeholder[locale]
   }
 
-  return locale === 'cs'
-    ? `${operator.name}, IČO ${operator.companyId}, se sídlem ${operator.address}. Kontakt: ${operator.email}.`
-    : `${operator.name}, company ID ${operator.companyId}, registered at ${operator.address}. Contact: ${operator.email}.`
+  const filled: Record<PublicLocale, string> = {
+    sk: `${operator.name}, IČO ${operator.companyId}, so sídlom ${operator.address}. Kontakt: ${operator.email}.`,
+    cs: `${operator.name}, IČO ${operator.companyId}, se sídlem ${operator.address}. Kontakt: ${operator.email}.`,
+    en: `${operator.name}, company ID ${operator.companyId}, registered at ${operator.address}. Contact: ${operator.email}.`,
+  }
+  return filled[locale]
 }
 
-function privacyDocument(locale: PublicLocale): LegalDocument {
+export function privacyDocument(locale: PublicLocale): LegalDocument {
   const controller = operatorDescription(locale)
 
-  if (locale === 'cs') {
-    return {
+  const documents: Record<PublicLocale, LegalDocument> = {
+    sk: {
+      title: 'Informácie o spracúvaní osobných údajov',
+      updated: 'Aktualizované 13. júla 2026',
+      intro: 'Tento dokument vysvetľuje, aké osobné údaje Coach Foska používa, prečo ich potrebuje a aké máte práva. Služba je v súčasnosti dostupná len pozvaným klientom.',
+      resourceLabel: 'Úrad na ochranu osobných údajov Českej republiky',
+      resourceUrl: 'https://uoou.gov.cz/informace-o-zpracovani-osobnich-udaju',
+      sections: [
+        {
+          title: '1. Prevádzkovateľ a kontakt',
+          body: controller,
+        },
+        {
+          title: '2. Aké údaje spracúvame',
+          body: 'Podľa využívaných funkcií môže ísť o údaje účtu a profilu, prihlasovacie a bezpečnostné údaje, odpovede z onboardingu, tréningové a pohybové záznamy, jedálničky a záznamy stravy, údaje o hydratácii, hmotnosti a telesných mierach, check-iny, fotografie, komunikáciu s trénerkou, token zariadenia pre oznámenia a technické diagnostické údaje. Niektoré z týchto údajov môžu vypovedať o zdravotnom stave a patria medzi osobitné kategórie osobných údajov.',
+        },
+        {
+          title: '3. Účely a právne základy',
+          body: 'Údaje účtu a záznamy potrebné na poskytovanie služby spracúvame na splnenie zmluvy alebo krokov pred jej uzavretím. Bezpečnostné a obmedzené prevádzkové záznamy môžeme spracúvať na základe oprávneného záujmu na ochrane služby. Údaje potrebné na účtovníctvo či riešenie právnych nárokov spracúvame z dôvodu právnych povinností. Údaje o zdravotnom stave možno na účely personalizovaného koučingu spracúvať len na základe výslovného súhlasu alebo iného platného dôvodu podľa čl. 9 GDPR. Voliteľná analytika, marketing a oznámenia si vyžadujú samostatné posúdenie a voľbu používateľa, ak to vyžadujú právne predpisy.',
+        },
+        {
+          title: '4. Ako údaje používame',
+          body: 'Údaje používame na vytváranie a úpravu tréningového a výživového plánu, zobrazenie histórie a pokroku, komunikáciu s trénerkou, spracovanie check-inov, prevádzku pripomienok, podporu používateľov, zabezpečenie účtu a zlepšovanie spoľahlivosti služby. Nepoužívame ich na nesúvisiace účely bez ďalšieho právneho základu a zodpovedajúceho informovania.',
+        },
+        {
+          title: '5. Komu môžu byť údaje sprístupnené',
+          body: 'K údajom môžu v nevyhnutnom rozsahu pristupovať vaša trénerka a oprávnení správcovia služby. Technické spracovanie môžu zabezpečovať dodávatelia databázy, autentifikácie, hostingu, úložiska, e-mailu, oznámení a zákazníckej podpory. Coach Foska používa Supabase na backendové služby. Ak vedome použijete voliteľnú AI funkciu, napríklad analýzu fotografie jedla, príslušný vstup môže byť odoslaný poskytovateľovi AI; konkrétny poskytovateľ a podmienky musia byť uvedené pri danej funkcii pred jej verejným spustením.',
+        },
+        {
+          title: '6. Prenosy mimo EHP',
+          body: 'Niektorí technickí dodávatelia môžu spracúvať údaje mimo Európskeho hospodárskeho priestoru. V takom prípade sa musí použiť platné rozhodnutie o primeranosti, štandardné zmluvné doložky alebo iná zákonná záruka. Informácie o konkrétnych prenosoch musia zodpovedať finálnemu zoznamu dodávateľov.',
+        },
+        {
+          title: '7. Doba uchovávania',
+          body: 'Údaje účtu a koučingové záznamy uchovávame len po dobu potrebnú na poskytovanie účtu a následne po obmedzenú dobu nutnú na vybavenie žiadostí, bezpečnostných udalostí alebo právnych nárokov. Účtovné údaje sa uchovávajú po zákonom stanovenú dobu. Zálohy sa odstraňujú v rámci bežného cyklu obnovy. Konkrétny produkčný retenčný plán musí byť dokončený a technicky presadený pred verejným spustením.',
+        },
+        {
+          title: '8. Vaše práva',
+          body: 'Za podmienok GDPR môžete požiadať o prístup, opravu, vymazanie, obmedzenie spracovania a prenosnosť údajov alebo vzniesť námietku. Súhlas môžete kedykoľvek odvolať; tým nie je dotknutá zákonnosť predchádzajúceho spracovania. Máte tiež právo podať sťažnosť Úradu na ochranu osobných údajov Českej republiky alebo inému príslušnému dozornému orgánu. Žiadosti sa zasielajú na kontaktný e-mail prevádzkovateľa.',
+        },
+        {
+          title: '9. Úložisko prehliadača a zabezpečenie',
+          body: 'Webová aplikácia používa nevyhnutné úložisko prehliadača na udržanie prihlásenia, zabezpečenie relácie a zapamätanie jazyka. Nepoužíva reklamné cookies. Používame primerané technické a organizačné opatrenia, no žiadny internetový systém nemožno označiť za absolútne bezpečný.',
+        },
+        {
+          title: '10. Deti a zmeny dokumentu',
+          body: 'Služba nie je určená deťom bez zodpovedajúceho súhlasu a zapojenia zákonného zástupcu. Minimálny vek a prípadný režim účtov pre maloletých musia zodpovedať finálnemu obchodnému modelu a miestnym právnym predpisom. O podstatných zmenách tejto informácie budeme používateľov informovať vhodným spôsobom a uvedieme nový dátum účinnosti.',
+        },
+      ],
+    },
+    cs: {
       title: 'Informace o zpracování osobních údajů',
       updated: 'Aktualizováno 13. července 2026',
       intro: 'Tento dokument vysvětluje, jaké osobní údaje Coach Foska používá, proč je potřebuje a jaká máte práva. Služba je v současnosti dostupná pouze pozvaným klientům.',
@@ -94,65 +149,119 @@ function privacyDocument(locale: PublicLocale): LegalDocument {
           body: 'Služba není určena dětem bez odpovídajícího souhlasu a zapojení zákonného zástupce. Minimální věk a případný režim účtů pro nezletilé musí odpovídat finálnímu obchodnímu modelu a místním právním předpisům. O podstatných změnách této informace budeme uživatele informovat vhodným způsobem a uvedeme nové datum účinnosti.',
         },
       ],
-    }
+    },
+    en: {
+      title: 'Privacy notice',
+      updated: 'Updated 13 July 2026',
+      intro: 'This notice explains which personal data Coach Foska uses, why it is needed and which rights you have. The service is currently available only to invited clients.',
+      resourceLabel: 'European Commission: information for individuals',
+      resourceUrl: 'https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en',
+      sections: [
+        {
+          title: '1. Controller and contact',
+          body: controller,
+        },
+        {
+          title: '2. Data we process',
+          body: 'Depending on the features you use, this may include account and profile details, authentication and security data, onboarding answers, workout and activity logs, meal plans and meal logs, hydration data, weight and body measurements, check-ins, photos, coach conversations, device tokens for notifications and technical diagnostics. Some of this information may reveal health status and qualify as special-category personal data.',
+        },
+        {
+          title: '3. Purposes and legal bases',
+          body: 'We process account details and records needed to provide the service to perform a contract or take steps before entering one. We may process security and limited operational logs for our legitimate interest in protecting the service. We process records required for accounting or legal claims to meet legal obligations. Health-related data may be processed for personalised coaching only with explicit consent or another valid condition under Article 9 GDPR. Optional analytics, marketing and notifications require separate assessment and user choice where the law requires it.',
+        },
+        {
+          title: '4. How we use data',
+          body: 'We use data to create and adjust training and nutrition plans, show history and progress, support coach communication, process check-ins, operate reminders, provide user support, secure accounts and improve service reliability. We do not use it for unrelated purposes without a further legal basis and appropriate notice.',
+        },
+        {
+          title: '5. Who may receive data',
+          body: 'Your coach and authorised service administrators may access data where necessary. Technical processing may be provided by database, authentication, hosting, storage, email, notification and support suppliers. Coach Foska uses Supabase for backend services. If you knowingly use an optional AI feature, such as meal-photo analysis, the relevant input may be sent to an AI provider; the specific provider and terms must be disclosed next to that feature before public launch.',
+        },
+        {
+          title: '6. Transfers outside the EEA',
+          body: 'Some technical suppliers may process data outside the European Economic Area. In that case, an adequacy decision, standard contractual clauses or another lawful safeguard must be used. Details of specific transfers must match the final production supplier list.',
+        },
+        {
+          title: '7. Retention',
+          body: 'Account and coaching records are retained only while needed to provide the account and for a limited period afterwards to handle requests, security incidents or legal claims. Accounting records are retained for statutory periods. Backups are removed through the normal recovery cycle. A specific production retention schedule must be completed and technically enforced before public launch.',
+        },
+        {
+          title: '8. Your rights',
+          body: 'Subject to the GDPR, you may request access, correction, deletion, restriction and portability or object to processing. You may withdraw consent at any time without affecting earlier lawful processing. You may also complain to the Czech Office for Personal Data Protection or another competent supervisory authority. Send requests to the controller contact email.',
+        },
+        {
+          title: '9. Browser storage and security',
+          body: 'The web app uses essential browser storage to keep you signed in, secure the session and remember your language. It does not use advertising cookies. We use appropriate technical and organisational safeguards, but no internet service can honestly be described as completely secure.',
+        },
+        {
+          title: '10. Children and changes',
+          body: 'The service is not intended for children without appropriate consent and involvement from a parent or legal guardian. The minimum age and any minor-account model must match the final service design and local law. We will notify users appropriately about material changes to this notice and show the new effective date.',
+        },
+      ],
+    },
   }
 
-  return {
-    title: 'Privacy notice',
-    updated: 'Updated 13 July 2026',
-    intro: 'This notice explains which personal data Coach Foska uses, why it is needed and which rights you have. The service is currently available only to invited clients.',
-    resourceLabel: 'European Commission: information for individuals',
-    resourceUrl: 'https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en',
-    sections: [
-      {
-        title: '1. Controller and contact',
-        body: controller,
-      },
-      {
-        title: '2. Data we process',
-        body: 'Depending on the features you use, this may include account and profile details, authentication and security data, onboarding answers, workout and activity logs, meal plans and meal logs, hydration data, weight and body measurements, check-ins, photos, coach conversations, device tokens for notifications and technical diagnostics. Some of this information may reveal health status and qualify as special-category personal data.',
-      },
-      {
-        title: '3. Purposes and legal bases',
-        body: 'We process account details and records needed to provide the service to perform a contract or take steps before entering one. We may process security and limited operational logs for our legitimate interest in protecting the service. We process records required for accounting or legal claims to meet legal obligations. Health-related data may be processed for personalised coaching only with explicit consent or another valid condition under Article 9 GDPR. Optional analytics, marketing and notifications require separate assessment and user choice where the law requires it.',
-      },
-      {
-        title: '4. How we use data',
-        body: 'We use data to create and adjust training and nutrition plans, show history and progress, support coach communication, process check-ins, operate reminders, provide user support, secure accounts and improve service reliability. We do not use it for unrelated purposes without a further legal basis and appropriate notice.',
-      },
-      {
-        title: '5. Who may receive data',
-        body: 'Your coach and authorised service administrators may access data where necessary. Technical processing may be provided by database, authentication, hosting, storage, email, notification and support suppliers. Coach Foska uses Supabase for backend services. If you knowingly use an optional AI feature, such as meal-photo analysis, the relevant input may be sent to an AI provider; the specific provider and terms must be disclosed next to that feature before public launch.',
-      },
-      {
-        title: '6. Transfers outside the EEA',
-        body: 'Some technical suppliers may process data outside the European Economic Area. In that case, an adequacy decision, standard contractual clauses or another lawful safeguard must be used. Details of specific transfers must match the final production supplier list.',
-      },
-      {
-        title: '7. Retention',
-        body: 'Account and coaching records are retained only while needed to provide the account and for a limited period afterwards to handle requests, security incidents or legal claims. Accounting records are retained for statutory periods. Backups are removed through the normal recovery cycle. A specific production retention schedule must be completed and technically enforced before public launch.',
-      },
-      {
-        title: '8. Your rights',
-        body: 'Subject to the GDPR, you may request access, correction, deletion, restriction and portability or object to processing. You may withdraw consent at any time without affecting earlier lawful processing. You may also complain to the Czech Office for Personal Data Protection or another competent supervisory authority. Send requests to the controller contact email.',
-      },
-      {
-        title: '9. Browser storage and security',
-        body: 'The web app uses essential browser storage to keep you signed in, secure the session and remember your language. It does not use advertising cookies. We use appropriate technical and organisational safeguards, but no internet service can honestly be described as completely secure.',
-      },
-      {
-        title: '10. Children and changes',
-        body: 'The service is not intended for children without appropriate consent and involvement from a parent or legal guardian. The minimum age and any minor-account model must match the final service design and local law. We will notify users appropriately about material changes to this notice and show the new effective date.',
-      },
-    ],
-  }
+  return documents[locale]
 }
 
-function termsDocument(locale: PublicLocale): LegalDocument {
+export function termsDocument(locale: PublicLocale): LegalDocument {
   const provider = operatorDescription(locale)
 
-  if (locale === 'cs') {
-    return {
+  const documents: Record<PublicLocale, LegalDocument> = {
+    sk: {
+      title: 'Podmienky používania',
+      updated: 'Aktualizované 13. júla 2026',
+      intro: 'Tieto podmienky upravujú používanie Coach Foska pozvanými klientmi. Verejný web v súčasnosti neponúka nákup ani otvorenú registráciu.',
+      resourceLabel: 'Česká obchodná inšpekcia: digitálny obsah a služby',
+      resourceUrl: 'https://coi.gov.cz/faq/smlouvy-o-poskytovani-digitalniho-obsahu-ci-sluzby/',
+      sections: [
+        {
+          title: '1. Poskytovateľ',
+          body: provider,
+        },
+        {
+          title: '2. Čo služba poskytuje',
+          body: 'Coach Foska je nástroj na spoluprácu klienta s trénerkou. Môže obsahovať tréningové a výživové plány, záznamy aktivít a stravy, recepty, prehľad pokroku, check-iny, komunikáciu s trénerkou, pripomienky a voliteľné funkcie využívajúce AI. Dostupné funkcie sa môžu líšiť podľa plánu a fázy vývoja.',
+        },
+        {
+          title: '3. Pozvánka a účet',
+          body: 'Účet vytvára alebo schvaľuje trénerka či správca služby. Musíte uvádzať pravdivé údaje, chrániť prístup k svojmu e-mailu a zariadeniu a bez odkladu oznámiť podozrenie na zneužitie. Účet nesmiete zdieľať ani používať na nezákonnú činnosť.',
+        },
+        {
+          title: '4. Zdravie a bezpečnosť',
+          body: 'Coach Foska poskytuje všeobecnú podporu pre fitness a výživu, nie je lekárskou diagnózou, liečbou, fyzioterapiou ani krízovou pomocou. Ak máte zranenie, zdravotné obmedzenie, ste tehotná, užívate lieky alebo ste v minulosti mali poruchu príjmu potravy, konzultujte plán s kvalifikovaným odborníkom. Pri bolesti, závrate, bolesti na hrudi, mdlobe alebo nezvyčajnej dýchavičnosti aktivitu prerušte a vyhľadajte zodpovedajúcu pomoc.',
+        },
+        {
+          title: '5. Obsah používateľa',
+          body: 'Za fotografie, správy, poznámky a ďalší obsah, ktorý nahráte, zodpovedáte vy. Nesmiete nahrávať nezákonný obsah, obsah porušujúci práva iných osôb ani osobné údaje tretích osôb bez oprávnenia. Poskytovateľovi udeľujete obmedzené oprávnenie tento obsah technicky uložiť a spracovať len na účely prevádzky funkcií, ktoré používate.',
+        },
+        {
+          title: '6. AI a odhady',
+          body: 'Výstupy AI, odhady kalórií, makroživín a tréningových metrík môžu byť nepresné. Pred použitím dôležitého odporúčania si ho overte s trénerkou alebo kvalifikovaným odborníkom. AI funkcie nie sú určené na naliehavé ani zdravotnícke rozhodovanie.',
+        },
+        {
+          title: '7. Cena a prípadné predplatné',
+          body: 'Tento verejný web momentálne neumožňuje nákup. Ak bude ponúknutá platená služba, pred objednávkou dostanete jasné informácie o cene vrátane daní, dobe trvania, obnovovaní, ukončení, spôsobe plnenia, reklamáciách a prípadnom práve na odstúpenie. Na nákup uskutočnený v obchode Apple alebo Google sa môžu vzťahovať ich pravidlá.',
+        },
+        {
+          title: '8. Dostupnosť, zmeny a aktualizácie',
+          body: 'Službu môžeme udržiavať, opravovať a rozvíjať. Nezaručujeme nepretržitú dostupnosť, no poskytneme aktualizácie a nápravu chýb v rozsahu vyžadovanom právnymi predpismi. Ak zmena digitálnej služby výrazne negatívne ovplyvní jej používanie, zostanú zachované práva spotrebiteľa na informovanie a prípadné ukončenie.',
+        },
+        {
+          title: '9. Ukončenie účtu',
+          body: 'O ukončenie účtu môžete požiadať prostredníctvom kontaktného e-mailu. Prístup môžeme obmedziť pri závažnom porušení podmienok, bezpečnostnom riziku alebo ukončení spolupráce, vždy s ohľadom na záväzné práva spotrebiteľa. Nakladanie s údajmi po ukončení popisujú informácie o spracúvaní osobných údajov.',
+        },
+        {
+          title: '10. Zodpovednosť a práva spotrebiteľa',
+          body: 'Nič v týchto podmienkach nevylučuje zodpovednosť ani práva, ktoré nemožno podľa zákona obmedziť, vrátane práv z chybného digitálneho obsahu alebo služby. Zodpovedáte za bezpečné vykonávanie cvičení, vhodné vybavenie a rozhodnutie, či je aktivita primeraná vášmu stavu. Konkrétne obmedzenie zodpovednosti musí pred verejným spustením skontrolovať právnik podľa finálneho obchodného modelu.',
+        },
+        {
+          title: '11. Rozhodné právo a kontakt',
+          body: 'Použije sa právo podľa sídla poskytovateľa, bez toho, aby tým bola obmedzená záväzná ochrana spotrebiteľa v krajine jeho obvyklého bydliska. Otázky, sťažnosti a žiadosti sa zasielajú na kontaktný e-mail poskytovateľa. Príslušné informácie o mimosúdnom riešení sporov musia byť doplnené podľa identity a sídla finálneho poskytovateľa.',
+        },
+      ],
+    },
+    cs: {
       title: 'Podmínky používání',
       updated: 'Aktualizováno 13. července 2026',
       intro: 'Tyto podmínky upravují používání Coach Foska pozvanými klienty. Veřejný web v současnosti nenabízí nákup ani otevřenou registraci.',
@@ -204,65 +313,66 @@ function termsDocument(locale: PublicLocale): LegalDocument {
           body: 'Použije se právo podle sídla poskytovatele, aniž by tím byla omezena závazná ochrana spotřebitele v zemi jeho obvyklého bydliště. Dotazy, stížnosti a žádosti se zasílají na kontaktní e-mail poskytovatele. Příslušné informace o mimosoudním řešení sporů musí být doplněny podle identity a sídla finálního poskytovatele.',
         },
       ],
-    }
+    },
+    en: {
+      title: 'Terms of use',
+      updated: 'Updated 13 July 2026',
+      intro: 'These terms govern use of Coach Foska by invited clients. The public website currently offers neither purchases nor open registration.',
+      resourceLabel: 'Your Europe: contract information',
+      resourceUrl: 'https://europa.eu/youreurope/citizens/consumers/shopping/contract-information/index_en.htm',
+      sections: [
+        {
+          title: '1. Provider',
+          body: provider,
+        },
+        {
+          title: '2. What the service provides',
+          body: 'Coach Foska is a tool for collaboration between a client and coach. It may include training and nutrition plans, activity and meal logs, recipes, progress views, check-ins, coach messaging, reminders and optional AI-supported features. Available features may vary by plan and development stage.',
+        },
+        {
+          title: '3. Invitation and account',
+          body: 'An account is created or approved by a coach or service administrator. You must provide accurate information, protect access to your email and device and report suspected misuse promptly. You may not share the account or use it for unlawful activity.',
+        },
+        {
+          title: '4. Health and safety',
+          body: 'Coach Foska provides general fitness and nutrition support, not medical diagnosis, treatment, physiotherapy or emergency help. Consult a qualified professional if you have an injury or medical limitation, are pregnant, take medication or have a history of an eating disorder. Stop activity and seek appropriate help if you experience pain, dizziness, chest pain, fainting or unusual shortness of breath.',
+        },
+        {
+          title: '5. User content',
+          body: 'You are responsible for photos, messages, notes and other content you upload. You may not upload unlawful content, content that infringes another person’s rights or third-party personal data without authority. You grant the provider limited permission to store and process that content only to operate the features you use.',
+        },
+        {
+          title: '6. AI and estimates',
+          body: 'AI outputs and calorie, macro or training estimates may be inaccurate. Verify important guidance with your coach or a qualified professional before relying on it. AI features are not intended for emergency or clinical decisions.',
+        },
+        {
+          title: '7. Pricing and possible subscriptions',
+          body: 'This public site does not currently offer a purchase. If a paid service is offered, you will receive clear pre-contract information about the total price, taxes, duration, renewal, cancellation, performance, complaints and any withdrawal right. Apple or Google terms may apply to a purchase made through their store.',
+        },
+        {
+          title: '8. Availability, changes and updates',
+          body: 'We may maintain, repair and develop the service. We do not promise uninterrupted availability, but will provide updates and remedies for defects to the extent required by law. If a change to a digital service materially harms its use, mandatory consumer rights to notice and possible termination remain available.',
+        },
+        {
+          title: '9. Ending an account',
+          body: 'You may request account closure through the contact email. We may restrict access for a serious breach, security risk or the end of the coaching relationship, subject to mandatory consumer rights. The privacy notice describes what happens to personal data after closure.',
+        },
+        {
+          title: '10. Liability and consumer rights',
+          body: 'Nothing in these terms excludes liability or rights that cannot lawfully be limited, including statutory rights for defective digital content or services. You remain responsible for safe exercise technique, suitable equipment and deciding whether an activity is appropriate for your condition. Any specific limitation of liability must be reviewed against the final business model before public launch.',
+        },
+        {
+          title: '11. Governing law and contact',
+          body: 'The law of the provider’s establishment applies without removing mandatory consumer protection in the country where a consumer usually lives. Send questions, complaints and requests to the provider contact email. Applicable alternative-dispute-resolution information must be completed once the final provider identity and establishment are confirmed.',
+        },
+      ],
+    },
   }
 
-  return {
-    title: 'Terms of use',
-    updated: 'Updated 13 July 2026',
-    intro: 'These terms govern use of Coach Foska by invited clients. The public website currently offers neither purchases nor open registration.',
-    resourceLabel: 'Your Europe: contract information',
-    resourceUrl: 'https://europa.eu/youreurope/citizens/consumers/shopping/contract-information/index_en.htm',
-    sections: [
-      {
-        title: '1. Provider',
-        body: provider,
-      },
-      {
-        title: '2. What the service provides',
-        body: 'Coach Foska is a tool for collaboration between a client and coach. It may include training and nutrition plans, activity and meal logs, recipes, progress views, check-ins, coach messaging, reminders and optional AI-supported features. Available features may vary by plan and development stage.',
-      },
-      {
-        title: '3. Invitation and account',
-        body: 'An account is created or approved by a coach or service administrator. You must provide accurate information, protect access to your email and device and report suspected misuse promptly. You may not share the account or use it for unlawful activity.',
-      },
-      {
-        title: '4. Health and safety',
-        body: 'Coach Foska provides general fitness and nutrition support, not medical diagnosis, treatment, physiotherapy or emergency help. Consult a qualified professional if you have an injury or medical limitation, are pregnant, take medication or have a history of an eating disorder. Stop activity and seek appropriate help if you experience pain, dizziness, chest pain, fainting or unusual shortness of breath.',
-      },
-      {
-        title: '5. User content',
-        body: 'You are responsible for photos, messages, notes and other content you upload. You may not upload unlawful content, content that infringes another person’s rights or third-party personal data without authority. You grant the provider limited permission to store and process that content only to operate the features you use.',
-      },
-      {
-        title: '6. AI and estimates',
-        body: 'AI outputs and calorie, macro or training estimates may be inaccurate. Verify important guidance with your coach or a qualified professional before relying on it. AI features are not intended for emergency or clinical decisions.',
-      },
-      {
-        title: '7. Pricing and possible subscriptions',
-        body: 'This public site does not currently offer a purchase. If a paid service is offered, you will receive clear pre-contract information about the total price, taxes, duration, renewal, cancellation, performance, complaints and any withdrawal right. Apple or Google terms may apply to a purchase made through their store.',
-      },
-      {
-        title: '8. Availability, changes and updates',
-        body: 'We may maintain, repair and develop the service. We do not promise uninterrupted availability, but will provide updates and remedies for defects to the extent required by law. If a change to a digital service materially harms its use, mandatory consumer rights to notice and possible termination remain available.',
-      },
-      {
-        title: '9. Ending an account',
-        body: 'You may request account closure through the contact email. We may restrict access for a serious breach, security risk or the end of the coaching relationship, subject to mandatory consumer rights. The privacy notice describes what happens to personal data after closure.',
-      },
-      {
-        title: '10. Liability and consumer rights',
-        body: 'Nothing in these terms excludes liability or rights that cannot lawfully be limited, including statutory rights for defective digital content or services. You remain responsible for safe exercise technique, suitable equipment and deciding whether an activity is appropriate for your condition. Any specific limitation of liability must be reviewed against the final business model before public launch.',
-      },
-      {
-        title: '11. Governing law and contact',
-        body: 'The law of the provider’s establishment applies without removing mandatory consumer protection in the country where a consumer usually lives. Send questions, complaints and requests to the provider contact email. Applicable alternative-dispute-resolution information must be completed once the final provider identity and establishment are confirmed.',
-      },
-    ],
-  }
+  return documents[locale]
 }
 
-const pageCopy = {
+export const pageCopy = {
   en: {
     back: 'Back to Coach Foska',
     draftTitle: 'Pre-release legal draft',
@@ -270,6 +380,7 @@ const pageCopy = {
     officialGuidance: 'Official guidance used for this draft:',
     privacy: 'Privacy',
     terms: 'Terms',
+    legalDocuments: 'Legal documents',
   },
   cs: {
     back: 'Zpět na Coach Foska',
@@ -278,6 +389,16 @@ const pageCopy = {
     officialGuidance: 'Oficiální zdroj použitý pro návrh:',
     privacy: 'Ochrana soukromí',
     terms: 'Podmínky',
+    legalDocuments: 'Právní dokumenty',
+  },
+  sk: {
+    back: 'Späť na Coach Foska',
+    draftTitle: 'Právny návrh pred spustením',
+    draftBody: 'Šablóny v mobilnej aplikácii neboli pripravené na zverejnenie: boli výslovne označené ako vzor a obsahovali nedoplnené údaje. Pred verejným spustením doplňte identitu prevádzkovateľa, retenčný plán, zoznam dodávateľov a súhlas so spracovaním zdravotných údajov a zabezpečte kontrolu českým právnikom.',
+    officialGuidance: 'Oficiálny zdroj použitý pre tento návrh:',
+    privacy: 'Ochrana súkromia',
+    terms: 'Podmienky',
+    legalDocuments: 'Právne dokumenty',
   },
 } as const
 
@@ -342,7 +463,7 @@ export default function LegalPage({ kind }: { kind: LegalDocumentKind }) {
           </a>
         </div>
 
-        <nav className="mt-10 flex gap-6 border-t border-outline-subtle pt-7 text-sm font-semibold" aria-label="Legal documents">
+        <nav className="mt-10 flex gap-6 border-t border-outline-subtle pt-7 text-sm font-semibold" aria-label={page.legalDocuments}>
           <Link to="/privacy" className={kind === 'privacy' ? 'text-accent' : 'text-text-secondary hover:text-text-primary'}>{page.privacy}</Link>
           <Link to="/terms" className={kind === 'terms' ? 'text-accent' : 'text-text-secondary hover:text-text-primary'}>{page.terms}</Link>
         </nav>

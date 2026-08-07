@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import type {
+  DailyQuote,
   FoodFavoriteRow,
   FoodRow,
   MealLogRow,
@@ -26,6 +27,7 @@ export const qk = {
   recentFoods: (userId: string) => ['recentFoods', userId] as const,
   savedMeals: (userId: string) => ['savedMeals', userId] as const,
   macroTarget: (userId: string) => ['macroTarget', userId] as const,
+  activeQuote: ['activeQuote'] as const,
 }
 
 type CurrentMealPlanIdRow = { meal_plan_id: string }
@@ -58,6 +60,16 @@ export async function fetchActiveMealPlan(userId: string): Promise<MealPlanRow |
     .maybeSingle()
   if (error) throw error
   return (data as MealPlanRow | null) ?? null
+}
+
+export async function fetchActiveQuote(): Promise<Pick<DailyQuote, 'id' | 'text' | 'author'> | null> {
+  const { data, error } = await supabase
+    .from('daily_quotes')
+    .select('id, text, author')
+    .eq('is_active', true)
+    .maybeSingle()
+  if (error) throw error
+  return data
 }
 
 export async function fetchRecipes(page = 0, pageSize = 24, search = '', favoriteIds: string[] | null = null): Promise<PageResult<RecipeRow>> {

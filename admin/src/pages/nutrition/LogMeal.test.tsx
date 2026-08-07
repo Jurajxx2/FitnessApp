@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NoticeProvider } from '../../components/ui'
 import {
-  useActiveMealPlan, useFoodFavorites, useMealLog, useRecentFoods, useRecipe,
+  useActiveMealPlan, useFoodFavorites, useFoodSearch, useMealLog, useRecentFoods, useRecipe,
   useSavedMeals, useSeedFoods,
 } from '../../nutrition/hooks'
 import {
@@ -19,6 +20,7 @@ import { rescaleDraftAmount, draftFromFood } from '../../nutrition/logDraft'
 vi.mock('../../nutrition/hooks', () => ({
   useActiveMealPlan: vi.fn(),
   useFoodFavorites: vi.fn(),
+  useFoodSearch: vi.fn(),
   useMealLog: vi.fn(),
   useRecentFoods: vi.fn(),
   useRecipe: vi.fn(),
@@ -41,6 +43,54 @@ vi.mock('../../nutrition/photoAnalysis', async importOriginal => {
 
 const mutateAsync = vi.fn()
 const updateMutateAsync = vi.fn()
+
+// useLogMeal/useUpdateMealLog are mocked at the module boundary (this file's
+// established convention), but LogMeal.tsx now derives isDirty and the
+// deferred navigate() from the mutation's own isPending/isSuccess/data —
+// reactive state that only a real useMutation instance updates on its own.
+// A flat static mock (the previous `{ mutateAsync, isPending: false }`) can
+// never flip isSuccess, so a test built on it can't tell a correctly
+// effect-deferred guard apart from a guard that never re-arms at all — it
+// would pass either way. This fake reimplements just enough of useMutation's
+// public shape, backed by a real useState, so calling `.mutate()` drives a
+// genuine success/error transition (and a genuine re-render) the same way
+// the real hook does in production.
+//
+// Deliberately does NOT flush a separate "pending" render before resolving:
+// every mock resolver in this file settles near-instantly (already-resolved
+// promises), and react-query's own notifyManager batches a near-instant
+// mutation's pending and success notifications together in exactly that
+// case — no intervening commit, confirmed empirically against Session's and
+// CreateWorkout's real (unmocked) mutations. A fake that inserted a free
+// intermediate render here would grant LogMeal's guard protection the real
+// hook doesn't structurally guarantee, silently hiding a still-real race
+// behind a friendlier-than-production test double. isPending is therefore
+// always false in this fake — untested here, but nothing in this file reads
+// it for assertions.
+function useFakeMutation(asyncFn: (variables: unknown) => Promise<unknown>) {
+  return function useMutationLike() {
+    const [state, setState] = useState<{ status: 'idle' | 'success' | 'error'; data?: unknown }>({ status: 'idle' })
+    const mutate = (variables: unknown, options?: { onSuccess?: (data: unknown) => void; onError?: (error: unknown) => void }) => {
+      Promise.resolve(asyncFn(variables)).then(
+        data => { setState({ status: 'success', data }); options?.onSuccess?.(data) },
+        error => { setState({ status: 'error' }); options?.onError?.(error) },
+      )
+    }
+    return {
+      mutate,
+      mutateAsync: asyncFn,
+      // Keep this permanently false — see the block comment above. Modeling a real
+      // pending render here (e.g. flipping this true synchronously inside `mutate`
+      // before the promise settles) would give the unsaved-changes exit tests below
+      // a friendlier guard than production's react-query instance structurally
+      // guarantees, and none of them would fail to tell you it happened.
+      isPending: false,
+      isSuccess: state.status === 'success',
+      isError: state.status === 'error',
+      data: state.data,
+    }
+  }
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -72,6 +122,7 @@ beforeEach(() => {
   } as unknown as ReturnType<typeof useRecipe>)
   vi.mocked(useActiveMealPlan).mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof useActiveMealPlan>)
   vi.mocked(useFoodFavorites).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useFoodFavorites>)
+  vi.mocked(useFoodSearch).mockReturnValue({ data: undefined, isLoading: false, isError: false } as unknown as ReturnType<typeof useFoodSearch>)
   vi.mocked(useRecentFoods).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useRecentFoods>)
   vi.mocked(useSavedMeals).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useSavedMeals>)
   vi.mocked(useSeedFoods).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useSeedFoods>)
@@ -84,9 +135,9 @@ beforeEach(() => {
     isLoading: false,
   } as unknown as ReturnType<typeof useMealLog>)
   mutateAsync.mockResolvedValue({ id: 'meal-log-1', photoAttached: true, photoError: null })
-  vi.mocked(useLogMeal).mockReturnValue({ mutateAsync, isPending: false, isError: false } as unknown as ReturnType<typeof useLogMeal>)
+  vi.mocked(useLogMeal).mockImplementation(useFakeMutation(mutateAsync) as unknown as typeof useLogMeal)
   updateMutateAsync.mockResolvedValue({ id: 'log-1', photoAttached: false, photoError: null })
-  vi.mocked(useUpdateMealLog).mockReturnValue({ mutateAsync: updateMutateAsync, isPending: false, isError: false } as unknown as ReturnType<typeof useUpdateMealLog>)
+  vi.mocked(useUpdateMealLog).mockImplementation(useFakeMutation(updateMutateAsync) as unknown as typeof useUpdateMealLog)
   vi.mocked(useSaveFoodFavorite).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as unknown as ReturnType<typeof useSaveFoodFavorite>)
   vi.mocked(useDeleteFoodFavorite).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as unknown as ReturnType<typeof useDeleteFoodFavorite>)
   vi.mocked(useSaveMealTemplate).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as unknown as ReturnType<typeof useSaveMealTemplate>)
@@ -97,30 +148,35 @@ beforeEach(() => {
   })
 })
 
-function renderRecipeLogger() {
+// useBlocker (used by the unsaved-changes guard) requires a data router — a
+// declarative <MemoryRouter> throws its useDataRouterContext invariant. See
+// App.test.tsx for the same createMemoryRouter/RouterProvider pattern. The
+// router is returned so tests can drive an in-app navigation attempt
+// imperatively (LogMeal renders no other internal links to click).
+function renderLogMealAt(initialPath: string) {
+  const router = createMemoryRouter(
+    [
+      { path: '/nutrition/log', element: <LogMeal /> },
+      { path: '/nutrition', element: <p>Nutrition home</p> },
+      { path: '/nutrition/history', element: <p>History list</p> },
+      { path: '/nutrition/history/:id', element: <p>History detail</p> },
+    ],
+    { initialEntries: [initialPath] },
+  )
   render(
     <NoticeProvider>
-      <MemoryRouter initialEntries={['/nutrition/log?recipeId=recipe-1']}>
-        <Routes>
-          <Route path="/nutrition/log" element={<LogMeal />} />
-          <Route path="/nutrition" element={<p>Nutrition home</p>} />
-        </Routes>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </NoticeProvider>,
   )
+  return router
+}
+
+function renderRecipeLogger() {
+  return renderLogMealAt('/nutrition/log?recipeId=recipe-1')
 }
 
 function renderManualLogger() {
-  render(
-    <NoticeProvider>
-      <MemoryRouter initialEntries={['/nutrition/log']}>
-        <Routes>
-          <Route path="/nutrition/log" element={<LogMeal />} />
-          <Route path="/nutrition" element={<p>Nutrition home</p>} />
-        </Routes>
-      </MemoryRouter>
-    </NoticeProvider>,
-  )
+  return renderLogMealAt('/nutrition/log')
 }
 
 // Fresh logs land on the photo-first capture step; the review form (item editor, save bar)
@@ -378,17 +434,66 @@ describe('LogMeal', () => {
   })
 })
 
+const TOFU_RESULT = {
+  id: 'food-tofu', name: 'Tofu', calories: 144, protein_g: 15, carbs_g: 3, fat_g: 8,
+  serving_size: 100, serving_unit: 'g', brand: null, is_verified: true,
+}
+
+describe('LogMeal food search', () => {
+  it('keeps the search input mounted and focused while a query is loading', async () => {
+    vi.mocked(useFoodSearch).mockReturnValue({ data: undefined, isLoading: true, isError: false } as unknown as ReturnType<typeof useFoodSearch>)
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    const input = screen.getByLabelText('Hľadať potravinu')
+
+    await user.type(input, 'ry')
+
+    expect(document.body.contains(input)).toBe(true)
+    expect(document.activeElement).toBe(input)
+  })
+
+  it('renders result rows once a 2+ character query resolves', async () => {
+    vi.mocked(useFoodSearch).mockReturnValue({ data: [TOFU_RESULT], isLoading: false, isError: false } as unknown as ReturnType<typeof useFoodSearch>)
+    const user = userEvent.setup()
+    await enterManualReview(user)
+
+    await user.type(screen.getByLabelText('Hľadať potravinu'), 'tofu')
+
+    expect(await screen.findByRole('button', { name: /^Tofu\b.*144 kcal/ })).toBeInTheDocument()
+  })
+
+  it('adds a search result to the meal via the shared add path, with matching macros', async () => {
+    vi.mocked(useFoodSearch).mockReturnValue({ data: [TOFU_RESULT], isLoading: false, isError: false } as unknown as ReturnType<typeof useFoodSearch>)
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    await user.type(screen.getByLabelText('Hľadať potravinu'), 'tofu')
+    const resultButton = await screen.findByRole('button', { name: /^Tofu\b.*144 kcal/ })
+
+    await user.click(resultButton)
+
+    expect(screen.getByLabelText('Názov')).toHaveValue('Tofu')
+    expect(screen.getByLabelText('Kcal')).toHaveValue(144)
+    expect(screen.getByLabelText('Bielkoviny')).toHaveValue(15)
+    expect(screen.getByLabelText('Sacharidy')).toHaveValue(3)
+    expect(screen.getByLabelText('Tuky')).toHaveValue(8)
+  })
+
+  it('shows the zero-result message for an empty result set while the input stays mounted', async () => {
+    vi.mocked(useFoodSearch).mockReturnValue({ data: [], isLoading: false, isError: false } as unknown as ReturnType<typeof useFoodSearch>)
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    const input = screen.getByLabelText('Hľadať potravinu')
+
+    await user.type(input, 'xyz')
+
+    expect(await screen.findByText('Žiadna potravina nezodpovedá hľadaniu.')).toBeInTheDocument()
+    // Same DOM node, not a remounted replacement — the input never disappears mid-query.
+    expect(screen.getByLabelText('Hľadať potravinu')).toBe(input)
+  })
+})
+
 function renderEditLogger() {
-  render(
-    <NoticeProvider>
-      <MemoryRouter initialEntries={['/nutrition/log?logId=log-1']}>
-        <Routes>
-          <Route path="/nutrition/log" element={<LogMeal />} />
-          <Route path="/nutrition/history/:id" element={<p>History detail</p>} />
-        </Routes>
-      </MemoryRouter>
-    </NoticeProvider>,
-  )
+  return renderLogMealAt('/nutrition/log?logId=log-1')
 }
 
 describe('LogMeal edit mode', () => {
@@ -415,5 +520,88 @@ describe('LogMeal edit mode', () => {
     })))
     expect(mutateAsync).not.toHaveBeenCalled()
     expect(await screen.findByText('History detail')).toBeInTheDocument()
+  })
+})
+
+describe('LogMeal unsaved-changes guard', () => {
+  it('blocks an in-app navigation attempt once an item has been entered', async () => {
+    const user = userEvent.setup()
+    const router = renderManualLogger()
+    await user.click(screen.getByRole('button', { name: 'Zapísať manuálne' }))
+
+    await user.type(screen.getByLabelText('Názov'), 'Ryža')
+
+    // Simulate the user tapping away (a nav link or the browser back button) —
+    // this test doesn't exercise a link LogMeal itself renders, so drive the
+    // router directly, the same technique used in Session.test.tsx.
+    await act(async () => { router.navigate('/nutrition') })
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Zahodiť neuložené zmeny?')).toBeInTheDocument()
+    expect(within(dialog).getByText('Máš rozpracované zmeny, ktoré sa neuložili. Ak odídeš, prídeš o ne.')).toBeInTheDocument()
+    expect(screen.queryByText('Nutrition home')).not.toBeInTheDocument()
+  })
+
+  it('Zostať keeps the page and the typed data; a later Odísť leaves', async () => {
+    const user = userEvent.setup()
+    const router = renderManualLogger()
+    await user.click(screen.getByRole('button', { name: 'Zapísať manuálne' }))
+    await user.type(screen.getByLabelText('Názov'), 'Ryža')
+
+    await act(async () => { router.navigate('/nutrition') })
+    const firstDialog = await screen.findByRole('dialog')
+    await user.click(within(firstDialog).getByRole('button', { name: 'Zostať' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nutrition home')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Názov')).toHaveValue('Ryža')
+
+    // Still dirty, so a second attempt must block again — proves Zostať reset
+    // the blocker instead of leaving it permanently unblocked.
+    await act(async () => { router.navigate('/nutrition') })
+    const secondDialog = await screen.findByRole('dialog')
+    await user.click(within(secondDialog).getByRole('button', { name: 'Odísť' }))
+
+    expect(await screen.findByText('Nutrition home')).toBeInTheDocument()
+  })
+
+  it('does not block navigation before any photo/item has been entered', async () => {
+    const router = renderManualLogger()
+    await act(async () => { router.navigate('/nutrition') })
+
+    expect(await screen.findByText('Nutrition home')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('navigates to /nutrition with no unsaved-changes dialog after a successful save', async () => {
+    const user = userEvent.setup()
+    renderManualLogger()
+    await user.click(screen.getByRole('button', { name: 'Zapísať manuálne' }))
+
+    await user.type(screen.getByLabelText('Názov jedla'), 'Obed')
+    await user.type(screen.getByLabelText('Názov'), 'Ryža')
+
+    await user.click(screen.getByRole('button', { name: 'Uložiť jedlo' }))
+
+    expect(await screen.findByText('Nutrition home')).toBeInTheDocument()
+    expect(screen.queryByText('Zahodiť neuložené zmeny?')).not.toBeInTheDocument()
+  })
+
+  // Regression test: the prefill effect in edit mode deliberately does not call
+  // markDirty (prefilling isn't a user edit), so only the field handlers themselves
+  // can arm the guard. Before this fix, mealType/logDate/logTime/notes changes in
+  // edit mode were silently lossy — hasUnsavedChanges stayed false and an attempted
+  // navigation left with no prompt at all.
+  it('edit mode: changing only the time arms the unsaved-changes guard', async () => {
+    const router = renderEditLogger()
+    await screen.findByLabelText('Názov jedla')
+
+    fireEvent.change(screen.getByLabelText('Čas'), { target: { value: '18:30' } })
+
+    await act(async () => { router.navigate('/nutrition') })
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Zahodiť neuložené zmeny?')).toBeInTheDocument()
+    expect(screen.queryByText('Nutrition home')).not.toBeInTheDocument()
   })
 })

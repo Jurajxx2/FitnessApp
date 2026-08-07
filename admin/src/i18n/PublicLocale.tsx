@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
-export type PublicLocale = 'cs' | 'en'
+export type PublicLocale = 'sk' | 'cs' | 'en'
 
 type PublicLocaleValue = {
   locale: PublicLocale
@@ -14,12 +14,17 @@ const PublicLocaleContext = createContext<PublicLocaleValue>({
 function initialLocale(): PublicLocale {
   try {
     const storedLocale = window.localStorage.getItem('coach-foska-public-locale')
-    if (storedLocale === 'cs' || storedLocale === 'en') return storedLocale
+    if (storedLocale === 'sk' || storedLocale === 'cs' || storedLocale === 'en') return storedLocale
   } catch {
     // Storage may be unavailable in privacy-focused browser modes.
   }
 
-  return window.navigator.language.toLowerCase().startsWith('cs') ? 'cs' : 'en'
+  const language = window.navigator.language.toLowerCase()
+  if (language.startsWith('cs')) return 'cs'
+  if (language.startsWith('en')) return 'en'
+  // Slovak is the default: it is the primary market and the athlete app beyond
+  // this public surface is Slovak-only.
+  return 'sk'
 }
 
 export function PublicLocaleProvider({ children }: { children: ReactNode }) {

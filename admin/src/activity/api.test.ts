@@ -1,11 +1,27 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { UserWorkoutDraft, UserWorkoutExerciseDraft } from './types'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ActivityDraft, UserWorkoutDraft, UserWorkoutExerciseDraft, WorkoutLogRow } from './types'
 
 // Captures the rows handed to workout_exercises.insert so we can assert the write-time guard runs
 // before the direct Postgrest insert (which bypasses the validating RPC coach plans go through).
 let capturedExerciseRows: Array<Record<string, unknown>> | null = null
 let recentPerformanceRows: Array<Record<string, unknown>> = []
 let capturedHistoryRange: [number, number] | null = null
+let capturedExercisePageRange: [number, number] | null = null
+let capturedExerciseTextSearch: [string, string, unknown] | null = null
+let capturedExerciseEqCalls: Array<[string, unknown]> = []
+let capturedExerciseInArgs: [string, string[]] | null = null
+let exercisePageQueryCount = 0
+let exercisePageMockResult: { data: unknown[]; count: number } = { data: [], count: 0 }
+let capturedFeedbackEqCalls: Array<[string, unknown]> = []
+let capturedFeedbackOrArg: string | null = null
+let capturedFeedbackOrderArg: [string, unknown] | null = null
+let feedbackMockResult: unknown[] = []
+let capturedWorkoutLogUpdateValues: Record<string, unknown> | null = null
+let capturedWorkoutLogUpdateEqCalls: Array<[string, unknown]> = []
+let capturedWorkoutLogDeleteEqCalls: Array<[string, unknown]> = []
+let capturedGeneralActivityUpdateValues: Record<string, unknown> | null = null
+let capturedGeneralActivityUpdateEqCalls: Array<[string, unknown]> = []
+let capturedGeneralActivityDeleteEqCalls: Array<[string, unknown]> = []
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -29,8 +45,103 @@ vi.mock('../lib/supabase', () => ({
             capturedHistoryRange = [from, to]
             return Promise.resolve({ data: [], count: 37, error: null })
           },
+          update: (values: Record<string, unknown>) => {
+            capturedWorkoutLogUpdateValues = values
+            capturedWorkoutLogUpdateEqCalls = []
+            const updateBuilder = {
+              eq: (column: string, value: unknown) => {
+                capturedWorkoutLogUpdateEqCalls.push([column, value])
+                return updateBuilder
+              },
+              then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+            }
+            return updateBuilder
+          },
+          delete: () => {
+            capturedWorkoutLogDeleteEqCalls = []
+            const deleteBuilder = {
+              eq: (column: string, value: unknown) => {
+                capturedWorkoutLogDeleteEqCalls.push([column, value])
+                return deleteBuilder
+              },
+              then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+            }
+            return deleteBuilder
+          },
         }
         return builder
+      }
+      if (table === 'exercises') {
+        const builder: Record<string, unknown> = {
+          select: () => builder,
+          eq: (column: string, value: unknown) => {
+            capturedExerciseEqCalls.push([column, value])
+            return builder
+          },
+          order: () => builder,
+          range: (from: number, to: number) => {
+            capturedExercisePageRange = [from, to]
+            return builder
+          },
+          textSearch: (column: string, query: string, options: unknown) => {
+            capturedExerciseTextSearch = [column, query, options]
+            return builder
+          },
+          in: (column: string, values: string[]) => {
+            capturedExerciseInArgs = [column, values]
+            return builder
+          },
+          then: (resolve: (value: { data: unknown[]; count: number; error: null }) => unknown) => {
+            exercisePageQueryCount += 1
+            return Promise.resolve({ data: exercisePageMockResult.data, count: exercisePageMockResult.count, error: null }).then(resolve)
+          },
+        }
+        return builder
+      }
+      if (table === 'workout_feedback') {
+        const builder: Record<string, unknown> = {
+          select: () => builder,
+          eq: (column: string, value: unknown) => {
+            capturedFeedbackEqCalls.push([column, value])
+            return builder
+          },
+          or: (arg: string) => {
+            capturedFeedbackOrArg = arg
+            return builder
+          },
+          order: (column: string, options: unknown) => {
+            capturedFeedbackOrderArg = [column, options]
+            return Promise.resolve({ data: feedbackMockResult, error: null })
+          },
+        }
+        return builder
+      }
+      if (table === 'general_activity_logs') {
+        return {
+          update: (values: Record<string, unknown>) => {
+            capturedGeneralActivityUpdateValues = values
+            capturedGeneralActivityUpdateEqCalls = []
+            const updateBuilder = {
+              eq: (column: string, value: unknown) => {
+                capturedGeneralActivityUpdateEqCalls.push([column, value])
+                return updateBuilder
+              },
+              then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+            }
+            return updateBuilder
+          },
+          delete: () => {
+            capturedGeneralActivityDeleteEqCalls = []
+            const deleteBuilder = {
+              eq: (column: string, value: unknown) => {
+                capturedGeneralActivityDeleteEqCalls.push([column, value])
+                return deleteBuilder
+              },
+              then: (resolve: (value: { error: null }) => unknown) => Promise.resolve({ error: null }).then(resolve),
+            }
+            return deleteBuilder
+          },
+        }
       }
       // 'workouts' must satisfy both the create insert and the getWorkout read-back.
       return {
@@ -41,7 +152,18 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
-const { createUserWorkout, getLastExercisePerformances, getWorkoutHistoryPage } = await import('./api')
+const {
+  createUserWorkout,
+  deleteGeneralActivity,
+  deleteWorkoutLog,
+  finishWorkout,
+  getExercisePage,
+  getLastExercisePerformances,
+  getWorkoutFeedback,
+  getWorkoutHistoryPage,
+  updateGeneralActivity,
+  updateWorkoutLog,
+} = await import('./api')
 
 function exercise(overrides: Partial<UserWorkoutExerciseDraft>): UserWorkoutExerciseDraft {
   return {
@@ -131,5 +253,176 @@ describe('getWorkoutHistoryPage', () => {
 
     await expect(getWorkoutHistoryPage('athlete-1', 2, 12)).resolves.toEqual({ data: [], count: 37 })
     expect(capturedHistoryRange).toEqual([24, 35])
+  })
+})
+
+describe('getExercisePage', () => {
+  beforeEach(() => {
+    capturedExercisePageRange = null
+    capturedExerciseTextSearch = null
+    capturedExerciseEqCalls = []
+    capturedExerciseInArgs = null
+    exercisePageQueryCount = 0
+    exercisePageMockResult = { data: [{ id: 'ex-1' }], count: 99 }
+  })
+
+  it('builds the correct inclusive range for page 2', async () => {
+    await getExercisePage({ search: '', difficulty: null, favoriteIds: null }, 2, 24)
+    expect(capturedExercisePageRange).toEqual([48, 71])
+  })
+
+  it('applies textSearch only when search is non-empty', async () => {
+    await getExercisePage({ search: '', difficulty: null, favoriteIds: null }, 0)
+    expect(capturedExerciseTextSearch).toBeNull()
+
+    await getExercisePage({ search: 'squat', difficulty: null, favoriteIds: null }, 0)
+    expect(capturedExerciseTextSearch).toEqual(['search_vector', 'squat', { type: 'websearch', config: 'simple' }])
+  })
+
+  it('applies a difficulty filter only when one is set', async () => {
+    await getExercisePage({ search: '', difficulty: null, favoriteIds: null }, 0)
+    expect(capturedExerciseEqCalls.some(([column]) => column === 'difficulty')).toBe(false)
+
+    capturedExerciseEqCalls = []
+    await getExercisePage({ search: '', difficulty: 'advanced', favoriteIds: null }, 0)
+    expect(capturedExerciseEqCalls).toContainEqual(['difficulty', 'advanced'])
+  })
+
+  it('filters by favoriteIds when provided', async () => {
+    await getExercisePage({ search: '', difficulty: null, favoriteIds: ['ex-1', 'ex-2'] }, 0)
+    expect(capturedExerciseInArgs).toEqual(['id', ['ex-1', 'ex-2']])
+  })
+
+  it('returns an empty result without querying the network when favoriteIds is an empty array', async () => {
+    await expect(getExercisePage({ search: '', difficulty: null, favoriteIds: [] }, 0)).resolves.toEqual({ data: [], count: 0 })
+    expect(exercisePageQueryCount).toBe(0)
+    expect(capturedExercisePageRange).toBeNull()
+  })
+})
+
+describe('getWorkoutFeedback', () => {
+  beforeEach(() => {
+    capturedFeedbackEqCalls = []
+    capturedFeedbackOrArg = null
+    capturedFeedbackOrderArg = null
+    feedbackMockResult = []
+  })
+
+  it('uses the .eq(workout_log_id) path — not .or() — when exerciseLogIds is empty', async () => {
+    feedbackMockResult = [{ id: 'f1', workout_log_id: 'log-1', exercise_log_id: null }]
+
+    await expect(getWorkoutFeedback('athlete-1', 'log-1', [])).resolves.toEqual(feedbackMockResult)
+
+    expect(capturedFeedbackEqCalls).toContainEqual(['user_id', 'athlete-1'])
+    expect(capturedFeedbackEqCalls).toContainEqual(['workout_log_id', 'log-1'])
+    expect(capturedFeedbackOrArg).toBeNull()
+    expect(capturedFeedbackOrderArg).toEqual(['created_at', { ascending: true }])
+  })
+
+  it('uses the .or() path with an in.() list when exerciseLogIds is non-empty', async () => {
+    await getWorkoutFeedback('athlete-1', 'log-1', ['ex-1', 'ex-2'])
+
+    expect(capturedFeedbackEqCalls).toEqual([['user_id', 'athlete-1']])
+    expect(capturedFeedbackEqCalls.some(([column]) => column === 'workout_log_id')).toBe(false)
+    expect(capturedFeedbackOrArg).toBe('workout_log_id.eq.log-1,exercise_log_id.in.(ex-1,ex-2)')
+  })
+
+  it('returns an empty array without querying the network when workoutLogId could break out of the .or() filter', async () => {
+    await expect(getWorkoutFeedback('athlete-1', 'log-1),exercise_log_id.in.(evil', ['ex-1'])).resolves.toEqual([])
+
+    expect(capturedFeedbackOrArg).toBeNull()
+  })
+
+  it('returns an empty array without querying the network when an exerciseLogId could break out of the .or() filter', async () => {
+    await expect(getWorkoutFeedback('athlete-1', 'log-1', ['ex-1', 'ex-2),workout_log_id.eq.evil'])).resolves.toEqual([])
+
+    expect(capturedFeedbackOrArg).toBeNull()
+  })
+})
+
+describe('finishWorkout duration clamp', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('clamps a 12-hour elapsed session to the 240-minute cap, not 720', async () => {
+    const startedAt = new Date('2026-08-04T00:00:00.000Z')
+    vi.spyOn(Date, 'now').mockReturnValue(startedAt.getTime() + 12 * 60 * 60_000)
+    const log = { id: 'log-1', logged_at: startedAt.toISOString() } as WorkoutLogRow
+
+    await expect(finishWorkout(log, null)).resolves.toBe(240)
+  })
+
+  it('still floors at 1 minute for a sub-minute session', async () => {
+    const startedAt = new Date('2026-08-04T00:00:00.000Z')
+    vi.spyOn(Date, 'now').mockReturnValue(startedAt.getTime() + 10_000)
+    const log = { id: 'log-1', logged_at: startedAt.toISOString() } as WorkoutLogRow
+
+    await expect(finishWorkout(log, null)).resolves.toBe(1)
+  })
+})
+
+describe('deleteWorkoutLog', () => {
+  it('filters the delete on both id and user_id, matching useDeleteMealLog\'s defence in depth', async () => {
+    capturedWorkoutLogDeleteEqCalls = []
+
+    await deleteWorkoutLog('athlete-1', 'log-1')
+
+    expect(capturedWorkoutLogDeleteEqCalls).toEqual([
+      ['id', 'log-1'],
+      ['user_id', 'athlete-1'],
+    ])
+  })
+})
+
+describe('updateWorkoutLog', () => {
+  it('sends only logged_at and notes, filtered by id and user_id', async () => {
+    capturedWorkoutLogUpdateValues = null
+    capturedWorkoutLogUpdateEqCalls = []
+
+    await updateWorkoutLog('athlete-1', 'log-1', { logged_at: '2026-08-01T10:00:00.000Z', notes: 'Felt strong' })
+
+    expect(capturedWorkoutLogUpdateValues).toEqual({ logged_at: '2026-08-01T10:00:00.000Z', notes: 'Felt strong' })
+    expect(Object.keys(capturedWorkoutLogUpdateValues!)).toEqual(['logged_at', 'notes'])
+    expect(capturedWorkoutLogUpdateEqCalls).toEqual([
+      ['id', 'log-1'],
+      ['user_id', 'athlete-1'],
+    ])
+  })
+})
+
+describe('deleteGeneralActivity', () => {
+  it('filters the delete on both id and user_id', async () => {
+    capturedGeneralActivityDeleteEqCalls = []
+
+    await deleteGeneralActivity('athlete-1', 'activity-1')
+
+    expect(capturedGeneralActivityDeleteEqCalls).toEqual([
+      ['id', 'activity-1'],
+      ['user_id', 'athlete-1'],
+    ])
+  })
+})
+
+describe('updateGeneralActivity', () => {
+  it('sends the full draft, filtered by id and user_id', async () => {
+    capturedGeneralActivityUpdateValues = null
+    capturedGeneralActivityUpdateEqCalls = []
+    const draft: ActivityDraft = {
+      activity_type: 'RUNNING',
+      duration_minutes: 40,
+      distance_km: 5,
+      rpe: 6,
+      logged_at: '2026-08-01T09:00:00.000Z',
+      notes: null,
+    }
+
+    await updateGeneralActivity('athlete-1', 'activity-1', draft)
+
+    expect(capturedGeneralActivityUpdateValues).toEqual(draft)
+    expect(capturedGeneralActivityUpdateEqCalls).toEqual([
+      ['id', 'activity-1'],
+      ['user_id', 'athlete-1'],
+    ])
   })
 })

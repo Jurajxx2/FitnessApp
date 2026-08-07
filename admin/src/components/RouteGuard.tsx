@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { BlockedAccount } from './BlockedAccount'
+import { athleteHomePath } from '../lib/access'
 
 export function AdminRouteGuard() {
   const { session, profile, isAdmin, isLoading } = useAuth()
@@ -15,6 +16,6 @@ export function AdminRouteGuard() {
 
   if (!session) return <Navigate to="/login" replace />
   if (profile?.is_blocked) return <BlockedAccount />
-  if (!isAdmin) return <Navigate to="/nutrition" replace />
+  if (!isAdmin) return <Navigate to={athleteHomePath(profile)} replace />
   return <Outlet />
 }

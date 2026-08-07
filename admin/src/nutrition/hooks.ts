@@ -1,8 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { calcMacroTargets, sumMacros, type Macros } from './calc'
+import { mealsForDay, todayDowMon0 } from './mealPlan'
 import {
-  qk, fetchActiveMealPlan, fetchRecipes, fetchFeaturedRecipes, fetchRecipe, fetchMealHistory, fetchMealLog,
+  qk, fetchActiveMealPlan, fetchActiveQuote, fetchRecipes, fetchFeaturedRecipes, fetchRecipe, fetchMealHistory, fetchMealLog,
   fetchDailyLogs, searchFoods, fetchFavoriteIds, fetchActiveNutritionTarget,
   fetchFoodFavorites, fetchRecentFoods, fetchSavedMeals,
   fetchSeedFoods,
@@ -16,11 +17,24 @@ export function useActiveMealPlan(enabled = true) {
     enabled: !!user && enabled,
   })
 }
+export function useTodayPlannedMeals() {
+  const { data: plan, isLoading } = useActiveMealPlan()
+  const data = plan ? mealsForDay(plan.meals ?? [], todayDowMon0()) : []
+  return { data, isLoading }
+}
+export function useActiveQuote() {
+  return useQuery({
+    queryKey: qk.activeQuote,
+    queryFn: fetchActiveQuote,
+    staleTime: 60 * 60 * 1000,
+  })
+}
 export function useRecipes(page = 0, pageSize = 24, search = '', favoriteIds: string[] | null = null) {
   const ids = favoriteIds?.slice().sort() ?? null
   return useQuery({
     queryKey: qk.recipePage(page, pageSize, search, ids),
     queryFn: () => fetchRecipes(page, pageSize, search, ids),
+    placeholderData: keepPreviousData,
   })
 }
 export function useFeaturedRecipes() {
@@ -31,7 +45,7 @@ export function useRecipe(id: string) {
 }
 export function useMealHistory(page = 0, pageSize = 24) {
   const { user } = useAuth()
-  return useQuery({ queryKey: qk.historyPage(user?.id ?? '', page, pageSize), queryFn: () => fetchMealHistory(user!.id, page, pageSize), enabled: !!user })
+  return useQuery({ queryKey: qk.historyPage(user?.id ?? '', page, pageSize), queryFn: () => fetchMealHistory(user!.id, page, pageSize), enabled: !!user, placeholderData: keepPreviousData })
 }
 export function useMealLog(id: string) {
   const { user } = useAuth()

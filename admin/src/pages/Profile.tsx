@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { LogOut, Moon, Sun } from 'lucide-react'
 import { Button, Card, EmptyState, Input, PageHeader, useNotice } from '../components/ui'
 import { NutritionPreferencesForm } from '../components/NutritionPreferencesForm'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../hooks/useTheme'
 import { defaultPreferences, useNutritionPreferences, useSaveNutritionPreferences } from '../nutrition/preferences'
 import { supabase } from '../lib/supabase'
 import type { ActivityLevel, Goal, Profile as ProfileRecord, UserNutritionPreferences } from '../types/database'
@@ -32,7 +35,9 @@ function optionalNumber(value: string): number | null {
 }
 
 export default function Profile() {
+  const navigate = useNavigate()
   const { user, profile, refreshProfile } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const { notify } = useNotice()
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<ProfileDraft | null>(() => profile ? toDraft(profile) : null)
@@ -88,6 +93,13 @@ export default function Profile() {
   const savePreferences = useSaveNutritionPreferences(user?.id ?? '')
   const [preferences, setPreferences] = useState<UserNutritionPreferences>(() => defaultPreferences(user?.id ?? ''))
   useEffect(() => { if (preferencesQuery.data) setPreferences(preferencesQuery.data) }, [preferencesQuery.data])
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    navigate('/login', { replace: true })
+  }
+
+  const ThemeIcon = theme === 'dark' ? Moon : Sun
 
   if (!profile || !draft) {
     return (
@@ -155,6 +167,23 @@ export default function Profile() {
             <div className="flex justify-between gap-3 py-2"><span className="text-text-secondary">Prístup ku koučingu</span><span className="font-semibold capitalize text-text-primary">{profile.access_mode === 'both' ? 'Výživa + tréning' : profile.access_mode === 'nutrition' ? 'Výživa' : profile.access_mode === 'activity' ? 'Tréning' : '—'}</span></div>
           </div>
           <p className="mt-4 text-xs leading-5 text-text-secondary">Rolu a prístup ku koučingu spravuje trénerka a na tejto stránke ich nemožno zmeniť.</p>
+
+          <div className="flex flex-col gap-2 border-t border-outline-subtle pt-4 mt-4 sm:flex-row">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-outline bg-surface text-sm font-semibold text-text-primary transition-colors hover:bg-surface-elevated"
+            >
+              <ThemeIcon size={18} aria-hidden="true" /> {theme === 'dark' ? 'Tmavý vzhľad' : 'Svetlý vzhľad'}
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-error/40 bg-error/10 text-sm font-semibold text-error transition-colors hover:bg-error/20"
+            >
+              <LogOut size={18} aria-hidden="true" /> Odhlásiť sa
+            </button>
+          </div>
         </Card>
       </div>
 

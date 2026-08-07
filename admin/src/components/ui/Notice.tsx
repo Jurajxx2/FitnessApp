@@ -36,7 +36,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
   return (
     <NoticeContext.Provider value={{ notify }}>
       {children}
-      <div aria-live="polite" aria-atomic="true" className="pointer-events-none fixed inset-x-4 bottom-4 z-[60] flex flex-col items-end gap-2 sm:left-auto sm:w-96">
+      <div aria-live="polite" aria-atomic="true" className="pointer-events-none fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[60] flex flex-col items-end gap-2 sm:left-auto sm:w-96 md:bottom-4">
         {notices.map(notice => {
           const isError = notice.tone === 'error'
           const Icon = isError ? CircleAlert : CheckCircle2
@@ -44,7 +44,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
             <div key={notice.id} role="status" className={`pointer-events-auto flex w-full items-start gap-3 rounded-xl border p-3 shadow-xl ${isError ? 'border-error/40 bg-surface-elevated text-error' : 'border-success/40 bg-surface-elevated text-text-primary'}`}>
               <Icon size={18} className={isError ? 'mt-0.5 flex-shrink-0' : 'mt-0.5 flex-shrink-0 text-success'} aria-hidden="true" />
               <p className="flex-1 text-sm leading-5">{notice.message}</p>
-              <button onClick={() => dismiss(notice.id)} className="cursor-pointer border-0 bg-transparent p-0 text-text-secondary hover:text-text-primary" aria-label="Dismiss notification">
+              <button onClick={() => dismiss(notice.id)} className="cursor-pointer border-0 bg-transparent p-0 text-text-secondary hover:text-text-primary" aria-label="Zavrieť upozornenie">
                 <X size={16} />
               </button>
             </div>

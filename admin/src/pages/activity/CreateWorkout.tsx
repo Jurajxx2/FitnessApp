@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { createUserWorkout } from '../../activity/api'
@@ -7,8 +7,9 @@ import { ExercisePicker, type ExercisePickerItem } from '../../components/Exerci
 import { LogTypeToggle } from '../../components/LogTypeToggle'
 import { SelectedExerciseCard } from '../../components/SelectedExerciseCard'
 import { WorkoutDurationControl } from '../../components/WorkoutDurationControl'
-import { useNotice } from '../../components/ui'
+import { ConfirmDialog, useNotice } from '../../components/ui'
 import { useAuth } from '../../hooks/useAuth'
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 import { applyLogTypeChange, createExerciseDraftId, estimateWorkoutDuration, inferWorkoutExerciseLogType, moveItem, type WorkoutDurationMode } from '../../workouts/builder'
 import { ActivityPage, PageIntro } from './shared'
 
@@ -63,12 +64,27 @@ export default function CreateWorkout() {
         exercises: selected,
       })
     },
-    onSuccess: async workout => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['activity', 'assigned', userId] })
       notify('Vlastný tréning je pripravený.')
-      navigate(`/activity/workouts/${workout.id}`, { replace: true })
     },
   })
+  // The deliberate exit, deferred into an effect keyed on the mutation's own
+  // isSuccess rather than called inline from onSuccess. An effect cannot run
+  // until React has committed a render that reflects its dependency, so by
+  // the time navigate() fires here, this component has already re-rendered
+  // with isDirty computed from the now-true isSuccess below — no manual ref,
+  // no forced render needed for the guard to see it in time.
+  useEffect(() => {
+    if (saveMutation.isSuccess && saveMutation.data) {
+      navigate(`/activity/workouts/${saveMutation.data.id}`, { replace: true })
+    }
+  }, [saveMutation.isSuccess, saveMutation.data, navigate])
+  // No onError reset needed: once the mutation is neither pending nor
+  // successful (a failed attempt included), isDirty falls straight back to
+  // reflecting the name/selected fields again.
+  const isDirty = !saveMutation.isPending && !saveMutation.isSuccess && (name.trim() !== '' || selected.length > 0)
+  const { blocked, confirmLeave, cancelLeave } = useUnsavedChangesGuard(isDirty)
 
   function addExercise(exercise: ExercisePickerItem) {
     setSelected(current => current.some(item => item.exercise_id === exercise.id) ? current : [...current, makeDraft(exercise)])
@@ -168,6 +184,17 @@ export default function CreateWorkout() {
           </div>
         </section>
       </div>
+      <ConfirmDialog
+        open={blocked}
+        title="Zahodiť neuložené zmeny?"
+        description="Máš rozpracované zmeny, ktoré sa neuložili. Ak odídeš, prídeš o ne."
+        confirmLabel="Odísť"
+        cancelLabel="Zostať"
+        confirmVariant="danger"
+        onConfirm={confirmLeave}
+        onClose={cancelLeave}
+        locale="sk"
+      />
     </ActivityPage>
   )
 }

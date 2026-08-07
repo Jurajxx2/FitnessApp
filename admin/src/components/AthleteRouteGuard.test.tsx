@@ -69,7 +69,7 @@ test('blocks an authenticated athlete whose profile is blocked', () => {
     </MemoryRouter>,
   )
 
-  expect(screen.getByText('Account access is blocked')).toBeInTheDocument()
+  expect(screen.getByText('Prístup k účtu je zablokovaný')).toBeInTheDocument()
   expect(screen.queryByText('Athlete portal')).not.toBeInTheDocument()
 })
 

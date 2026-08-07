@@ -12,6 +12,7 @@ interface ConfirmDialogProps {
   pending?: boolean
   onConfirm: () => void
   onClose: () => void
+  locale?: 'sk' | 'en'
 }
 
 export function ConfirmDialog({
@@ -24,6 +25,7 @@ export function ConfirmDialog({
   pending = false,
   onConfirm,
   onClose,
+  locale,
 }: ConfirmDialogProps) {
   return (
     <Modal
@@ -31,10 +33,11 @@ export function ConfirmDialog({
       onClose={onClose}
       title={title}
       size="sm"
+      locale={locale}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={pending}>{cancelLabel}</Button>
-          <Button variant={confirmVariant} onClick={onConfirm} loading={pending}>{confirmLabel}</Button>
+          <Button variant="ghost" className="min-h-11" onClick={onClose} disabled={pending}>{cancelLabel}</Button>
+          <Button variant={confirmVariant} className="min-h-11" onClick={onConfirm} loading={pending}>{confirmLabel}</Button>
         </>
       }
     >

@@ -8,7 +8,7 @@ export function AthleteRouteGuard() {
   const location = useLocation()
   if (isLoading) {
     return <div className="min-h-dvh bg-background flex items-center justify-center">
-      <p className="text-text-secondary text-sm">Loading…</p>
+      <p className="text-text-secondary text-sm">Načítava sa…</p>
     </div>
   }
   if (!session) return <Navigate to="/login" replace />

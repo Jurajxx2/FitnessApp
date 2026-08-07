@@ -78,6 +78,7 @@ export default function HistoryDetail() {
       </Card>
       {log.notes && <Card className="p-5"><h2 className="mb-2 font-bold text-text-primary">Poznámka</h2><p className="text-sm leading-6 text-text-secondary">{log.notes}</p></Card>}
       <ConfirmDialog
+        locale="sk"
         open={deleteOpen}
         title="Vymazať tento záznam?"
         description="Jedlo aj jeho fotografia budú natrvalo odstránené."
