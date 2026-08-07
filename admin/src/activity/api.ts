@@ -164,41 +164,66 @@ interface RecentPerformanceWorkout {
   }>
 }
 
+// Picks the performance to surface for one exercise's logs within a single workout:
+// the last-attempted completed set (highest sort_order among completed sets).
+function lastCompletedSet(
+  setLogs: RecentPerformanceWorkout['exercise_logs'][number]['set_logs'],
+): RecentPerformanceWorkout['exercise_logs'][number]['set_logs'][number] | undefined {
+  return [...(setLogs ?? [])].filter(set => set.completed).sort((a, b) => b.sort_order - a.sort_order)[0]
+}
+
 export async function getLastExercisePerformances(userId: string, exerciseIds: string[]): Promise<Record<string, LastExercisePerformance>> {
   const uniqueExerciseIds = [...new Set(exerciseIds.filter(Boolean))]
   if (!uniqueExerciseIds.length) return {}
 
-  const { data, error } = await supabase
-    .from('workout_logs')
-    .select(`
-      logged_at,
-      exercise_logs!inner(
-        exercise_id,
-        set_logs(actual_reps, actual_weight_kg, actual_duration_seconds, rpe, completed, sort_order)
-      )
-    `)
-    .eq('user_id', userId)
-    .eq('status', 'completed')
-    .in('exercise_logs.exercise_id', uniqueExerciseIds)
-    .order('logged_at', { ascending: false })
-    .limit(50)
-  if (error) throw error
+  // One query per exercise, run concurrently, rather than a single query capped at the
+  // most recent 50 completed logs across *all* requested exercises. With a shared cap, an
+  // exercise trained every session can fill the whole window and push out an exercise
+  // trained less often, even though that exercise has real history further back — the
+  // athlete would see no "last time" suggestion despite having logged it before. Per-exercise
+  // queries make each exercise's history independent of how often the others are trained.
+  // This fans out to at most one query per exercise on the workout screen (bounded by the
+  // exercise count in a workout, typically <=12), which is cheap enough to run concurrently.
+  //
+  // limit(5) rather than limit(1): the single most recent log for an exercise may have no
+  // *completed* set at all (the athlete skipped it that session), so we need to look back a
+  // few logs to find one with a completed set, same as the previous implementation did
+  // within its shared batch. 5 preserves that fallback while keeping each query bounded.
+  const perExercise = await Promise.all(
+    uniqueExerciseIds.map(async exerciseId => {
+      const { data, error } = await supabase
+        .from('workout_logs')
+        .select(`
+          logged_at,
+          exercise_logs!inner(
+            exercise_id,
+            set_logs(actual_reps, actual_weight_kg, actual_duration_seconds, rpe, completed, sort_order)
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'completed')
+        .eq('exercise_logs.exercise_id', exerciseId)
+        .order('logged_at', { ascending: false })
+        .limit(5)
+      if (error) throw error
+      return [exerciseId, (data ?? []) as unknown as RecentPerformanceWorkout[]] as const
+    }),
+  )
 
   const latest: Record<string, LastExercisePerformance> = {}
-  for (const workout of (data ?? []) as unknown as RecentPerformanceWorkout[]) {
-    for (const exercise of workout.exercise_logs ?? []) {
-      if (!exercise.exercise_id || latest[exercise.exercise_id]) continue
-      const lastCompletedSet = [...(exercise.set_logs ?? [])]
-        .filter(set => set.completed)
-        .sort((a, b) => b.sort_order - a.sort_order)[0]
-      if (!lastCompletedSet) continue
-      latest[exercise.exercise_id] = {
+  for (const [exerciseId, workouts] of perExercise) {
+    for (const workout of workouts) {
+      const exerciseLog = workout.exercise_logs?.find(exercise => exercise.exercise_id === exerciseId)
+      const set = lastCompletedSet(exerciseLog?.set_logs ?? [])
+      if (!set) continue
+      latest[exerciseId] = {
         logged_at: workout.logged_at,
-        actual_reps: lastCompletedSet.actual_reps,
-        actual_weight_kg: lastCompletedSet.actual_weight_kg,
-        actual_duration_seconds: lastCompletedSet.actual_duration_seconds,
-        rpe: lastCompletedSet.rpe,
+        actual_reps: set.actual_reps,
+        actual_weight_kg: set.actual_weight_kg,
+        actual_duration_seconds: set.actual_duration_seconds,
+        rpe: set.rpe,
       }
+      break
     }
   }
   return latest

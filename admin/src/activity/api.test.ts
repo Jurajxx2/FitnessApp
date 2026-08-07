@@ -4,7 +4,12 @@ import type { ActivityDraft, UserWorkoutDraft, UserWorkoutExerciseDraft, Workout
 // Captures the rows handed to workout_exercises.insert so we can assert the write-time guard runs
 // before the direct Postgrest insert (which bypasses the validating RPC coach plans go through).
 let capturedExerciseRows: Array<Record<string, unknown>> | null = null
-let recentPerformanceRows: Array<Record<string, unknown>> = []
+// Keyed by exercise id: what the per-exercise `.eq('exercise_logs.exercise_id', id)` query
+// (the current implementation) returns for that exercise.
+let recentPerformanceRowsByExercise: Record<string, Array<Record<string, unknown>>> = {}
+// What a single capped `.in('exercise_logs.exercise_id', ids)` query (the old, reverted
+// implementation) would return — used only to make the revert-verification failure faithful.
+let recentPerformanceCappedRows: Array<Record<string, unknown>> = []
 let capturedHistoryRange: [number, number] | null = null
 let capturedExercisePageRange: [number, number] | null = null
 let capturedExerciseTextSearch: [string, string, unknown] | null = null
@@ -38,12 +43,27 @@ vi.mock('../lib/supabase', () => ({
         }
       }
       if (table === 'workout_logs') {
+        // Fresh closure state per `.from('workout_logs')` call, so concurrent per-exercise
+        // queries (Promise.all in getLastExercisePerformances) never share filter state.
+        let performanceExerciseId: string | null = null
+        let performanceIsBulkQuery = false
         const builder = {
           select: () => builder,
-          eq: () => builder,
-          in: () => builder,
+          eq: (column: string, value: unknown) => {
+            if (column === 'exercise_logs.exercise_id') performanceExerciseId = value as string
+            return builder
+          },
+          in: (column: string) => {
+            if (column === 'exercise_logs.exercise_id') performanceIsBulkQuery = true
+            return builder
+          },
           order: () => builder,
-          limit: () => Promise.resolve({ data: recentPerformanceRows, error: null }),
+          limit: () => {
+            if (performanceIsBulkQuery) {
+              return Promise.resolve({ data: recentPerformanceCappedRows, error: null })
+            }
+            return Promise.resolve({ data: recentPerformanceRowsByExercise[performanceExerciseId ?? ''] ?? [], error: null })
+          },
           range: (from: number, to: number) => {
             capturedHistoryRange = [from, to]
             return Promise.resolve({ data: [], count: 37, error: null })
@@ -233,26 +253,33 @@ describe('createUserWorkout write-time normalisation', () => {
 })
 
 describe('getLastExercisePerformances', () => {
+  beforeEach(() => {
+    recentPerformanceRowsByExercise = {}
+    recentPerformanceCappedRows = []
+  })
+
   it('returns the final completed set from the most recent completed workout for each exercise', async () => {
-    recentPerformanceRows = [
-      {
-        logged_at: '2026-07-25T10:00:00Z',
-        exercise_logs: [{
-          exercise_id: 'e1',
-          set_logs: [
-            { actual_reps: 10, actual_weight_kg: 80, actual_duration_seconds: null, rpe: 7, completed: true, sort_order: 1 },
-            { actual_reps: 8, actual_weight_kg: 85, actual_duration_seconds: null, rpe: 8, completed: true, sort_order: 2 },
-          ],
-        }],
-      },
-      {
-        logged_at: '2026-07-20T10:00:00Z',
-        exercise_logs: [{
-          exercise_id: 'e1',
-          set_logs: [{ actual_reps: 12, actual_weight_kg: 70, actual_duration_seconds: null, rpe: 6, completed: true, sort_order: 1 }],
-        }],
-      },
-    ]
+    recentPerformanceRowsByExercise = {
+      e1: [
+        {
+          logged_at: '2026-07-25T10:00:00Z',
+          exercise_logs: [{
+            exercise_id: 'e1',
+            set_logs: [
+              { actual_reps: 10, actual_weight_kg: 80, actual_duration_seconds: null, rpe: 7, completed: true, sort_order: 1 },
+              { actual_reps: 8, actual_weight_kg: 85, actual_duration_seconds: null, rpe: 8, completed: true, sort_order: 2 },
+            ],
+          }],
+        },
+        {
+          logged_at: '2026-07-20T10:00:00Z',
+          exercise_logs: [{
+            exercise_id: 'e1',
+            set_logs: [{ actual_reps: 12, actual_weight_kg: 70, actual_duration_seconds: null, rpe: 6, completed: true, sort_order: 1 }],
+          }],
+        },
+      ],
+    }
 
     await expect(getLastExercisePerformances('athlete-1', ['e1', 'e1'])).resolves.toEqual({
       e1: {
@@ -262,6 +289,55 @@ describe('getLastExercisePerformances', () => {
         actual_duration_seconds: null,
         rpe: 8,
       },
+    })
+  })
+
+  // Regression test for the defect fixed in this task: a single shared query capped at the
+  // 50 most recent completed logs (across ALL requested exercises) let a frequently-trained
+  // exercise crowd a rarely-trained one out of the window entirely, even though the
+  // rarely-trained exercise has real completed history further back. Resolving each exercise
+  // with its own query removes that cross-exercise interference.
+  it('surfaces both exercises when one saturates recent logs and the other only has an older completed set', async () => {
+    // Exercise A: trained in every one of the 50 most recent completed workouts.
+    recentPerformanceCappedRows = Array.from({ length: 50 }, (_, index) => ({
+      logged_at: `2026-06-${String(30 - (index % 28)).padStart(2, '0')}T10:00:00Z`,
+      exercise_logs: [{
+        exercise_id: 'exercise-a',
+        set_logs: [{ actual_reps: 5, actual_weight_kg: 100, actual_duration_seconds: null, rpe: 8, completed: true, sort_order: 1 }],
+      }],
+    }))
+    recentPerformanceRowsByExercise = {
+      'exercise-a': [
+        {
+          logged_at: '2026-07-25T10:00:00Z',
+          exercise_logs: [{
+            exercise_id: 'exercise-a',
+            set_logs: [{ actual_reps: 5, actual_weight_kg: 100, actual_duration_seconds: null, rpe: 8, completed: true, sort_order: 1 }],
+          }],
+        },
+      ],
+      // Exercise B's only completed set is far older than any of A's 50 recent logs.
+      'exercise-b': [
+        {
+          logged_at: '2024-01-10T10:00:00Z',
+          exercise_logs: [{
+            exercise_id: 'exercise-b',
+            set_logs: [{ actual_reps: 12, actual_weight_kg: 20, actual_duration_seconds: null, rpe: 5, completed: true, sort_order: 1 }],
+          }],
+        },
+      ],
+    }
+
+    const result = await getLastExercisePerformances('athlete-1', ['exercise-a', 'exercise-b'])
+
+    expect(result['exercise-a']).toBeDefined()
+    expect(result['exercise-b']).toBeDefined()
+    expect(result['exercise-b']).toEqual({
+      logged_at: '2024-01-10T10:00:00Z',
+      actual_reps: 12,
+      actual_weight_kg: 20,
+      actual_duration_seconds: null,
+      rpe: 5,
     })
   })
 })
