@@ -204,6 +204,7 @@ export async function getLastExercisePerformances(userId: string, exerciseIds: s
         .eq('status', 'completed')
         .eq('exercise_logs.exercise_id', exerciseId)
         .order('logged_at', { ascending: false })
+        .order('id')
         .limit(5)
       if (error) throw error
       return [exerciseId, (data ?? []) as unknown as RecentPerformanceWorkout[]] as const
@@ -213,8 +214,16 @@ export async function getLastExercisePerformances(userId: string, exerciseIds: s
   const latest: Record<string, LastExercisePerformance> = {}
   for (const [exerciseId, workouts] of perExercise) {
     for (const workout of workouts) {
-      const exerciseLog = workout.exercise_logs?.find(exercise => exercise.exercise_id === exerciseId)
-      const set = lastCompletedSet(exerciseLog?.set_logs ?? [])
+      // A workout can carry more than one exercise_log for the same exercise_id — plans
+      // intentionally repeat a movement (see initialiseWorkoutLog's comment above), and
+      // there is no unique constraint on (workout_log_id, exercise_id). Taking only the
+      // *first* matching log would abandon this whole workout's suggestion if that
+      // particular log has no completed set, even though a later one in the same workout
+      // does. Check every matching log and take the first with a completed set.
+      const set = (workout.exercise_logs ?? [])
+        .filter(exercise => exercise.exercise_id === exerciseId)
+        .map(exercise => lastCompletedSet(exercise.set_logs ?? []))
+        .find(candidate => Boolean(candidate))
       if (!set) continue
       latest[exerciseId] = {
         logged_at: workout.logged_at,

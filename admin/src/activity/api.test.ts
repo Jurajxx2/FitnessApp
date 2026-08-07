@@ -10,6 +10,7 @@ let recentPerformanceRowsByExercise: Record<string, Array<Record<string, unknown
 // What a single capped `.in('exercise_logs.exercise_id', ids)` query (the old, reverted
 // implementation) would return — used only to make the revert-verification failure faithful.
 let recentPerformanceCappedRows: Array<Record<string, unknown>> = []
+let capturedPerformanceOrderCalls: Array<[string, unknown]> = []
 let capturedHistoryRange: [number, number] | null = null
 let capturedExercisePageRange: [number, number] | null = null
 let capturedExerciseTextSearch: [string, string, unknown] | null = null
@@ -57,7 +58,10 @@ vi.mock('../lib/supabase', () => ({
             if (column === 'exercise_logs.exercise_id') performanceIsBulkQuery = true
             return builder
           },
-          order: () => builder,
+          order: (column: string, options?: unknown) => {
+            capturedPerformanceOrderCalls.push([column, options])
+            return builder
+          },
           limit: () => {
             if (performanceIsBulkQuery) {
               return Promise.resolve({ data: recentPerformanceCappedRows, error: null })
@@ -256,6 +260,18 @@ describe('getLastExercisePerformances', () => {
   beforeEach(() => {
     recentPerformanceRowsByExercise = {}
     recentPerformanceCappedRows = []
+    capturedPerformanceOrderCalls = []
+  })
+
+  it('orders by logged_at descending with a secondary id tie-break, matching its three neighbours', async () => {
+    recentPerformanceRowsByExercise = { e1: [] }
+
+    await getLastExercisePerformances('athlete-1', ['e1'])
+
+    expect(capturedPerformanceOrderCalls).toEqual([
+      ['logged_at', { ascending: false }],
+      ['id', undefined],
+    ])
   })
 
   it('returns the final completed set from the most recent completed workout for each exercise', async () => {
@@ -338,6 +354,70 @@ describe('getLastExercisePerformances', () => {
       actual_weight_kg: 20,
       actual_duration_seconds: null,
       rpe: 5,
+    })
+  })
+
+  // Regression test for the defect fixed in this task: initialiseWorkoutLog's own comment
+  // notes exercise names (and, by extension, exercise_logs.exercise_id) are not unique
+  // within a workout — a plan can intentionally repeat a movement (e.g. as both a warm-up
+  // and a working-set block). Taking only the *first* matching exercise_log per workout
+  // abandoned the whole workout's suggestion whenever that particular log had no completed
+  // set, even though a later log for the same exercise in the same workout did.
+  it('resolves from a later exercise_log in the same workout when an earlier one for the same exercise has no completed set', async () => {
+    recentPerformanceRowsByExercise = {
+      e1: [
+        {
+          logged_at: '2026-07-25T10:00:00Z',
+          exercise_logs: [
+            // Warm-up block: logged first, but the athlete skipped it — no completed set.
+            { exercise_id: 'e1', set_logs: [{ actual_reps: null, actual_weight_kg: null, actual_duration_seconds: null, rpe: null, completed: false, sort_order: 1 }] },
+            // Working block: same exercise, repeated later in the same workout, completed.
+            { exercise_id: 'e1', set_logs: [{ actual_reps: 6, actual_weight_kg: 90, actual_duration_seconds: null, rpe: 8, completed: true, sort_order: 1 }] },
+          ],
+        },
+      ],
+    }
+
+    await expect(getLastExercisePerformances('athlete-1', ['e1'])).resolves.toEqual({
+      e1: {
+        logged_at: '2026-07-25T10:00:00Z',
+        actual_reps: 6,
+        actual_weight_kg: 90,
+        actual_duration_seconds: null,
+        rpe: 8,
+      },
+    })
+  })
+
+  // Second half of the same regression: when the *newest* workout has no completed set for
+  // the exercise anywhere in it (not even in a repeated log), the search must fall through
+  // to an older workout still inside the 5-row window — the reason limit(5) exists at all.
+  it('falls through to an older workout inside the 5-row window when the newest workout has no completed set for the exercise at all', async () => {
+    recentPerformanceRowsByExercise = {
+      e1: [
+        {
+          logged_at: '2026-07-25T10:00:00Z',
+          exercise_logs: [
+            { exercise_id: 'e1', set_logs: [{ actual_reps: null, actual_weight_kg: null, actual_duration_seconds: null, rpe: null, completed: false, sort_order: 1 }] },
+          ],
+        },
+        {
+          logged_at: '2026-07-18T10:00:00Z',
+          exercise_logs: [
+            { exercise_id: 'e1', set_logs: [{ actual_reps: 10, actual_weight_kg: 60, actual_duration_seconds: null, rpe: 7, completed: true, sort_order: 1 }] },
+          ],
+        },
+      ],
+    }
+
+    await expect(getLastExercisePerformances('athlete-1', ['e1'])).resolves.toEqual({
+      e1: {
+        logged_at: '2026-07-18T10:00:00Z',
+        actual_reps: 10,
+        actual_weight_kg: 60,
+        actual_duration_seconds: null,
+        rpe: 7,
+      },
     })
   })
 })
