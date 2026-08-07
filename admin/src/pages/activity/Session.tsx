@@ -134,7 +134,7 @@ export default function WorkoutSession() {
     }
   })
   const discardMutation = useMutation({
-    mutationFn: discardWorkout,
+    mutationFn: (logId: string) => discardWorkout(userId, logId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ['activity', 'active', userId]

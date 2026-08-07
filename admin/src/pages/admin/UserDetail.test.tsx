@@ -103,10 +103,13 @@ describe('WorkoutLogsHistorySlideOver', () => {
     expect(lastConfig.queryKey).toEqual(['user-workout-logs-history', 'athlete-1', 1, 20])
 
     let capturedRange: [number, number] | null = null
+    // Offset pagination over a non-unique logged_at sort key lets rows shift between
+    // page requests, so the query must also tie-break on the unique id column.
+    const capturedOrderCalls: Array<[string, unknown]> = []
     const builder: any = {
       select: () => builder,
       eq: () => builder,
-      order: () => builder,
+      order: (column: string, options?: unknown) => { capturedOrderCalls.push([column, options]); return builder },
       range: (from: number, to: number) => {
         capturedRange = [from, to]
         return Promise.resolve({ data: [], count: 45, error: null })
@@ -116,6 +119,7 @@ describe('WorkoutLogsHistorySlideOver', () => {
 
     await lastConfig.queryFn()
     expect(capturedRange).toEqual([20, 39])
+    expect(capturedOrderCalls).toEqual([['logged_at', { ascending: false }], ['id', undefined]])
   })
 
   it('does not fetch when the panel is closed', () => {
@@ -150,10 +154,12 @@ describe('MealLogsHistorySlideOver', () => {
     expect(lastConfig.queryKey).toEqual(['user-meal-logs-history', 'athlete-1', 1, 20])
 
     let capturedRange: [number, number] | null = null
+    // Same tie-break requirement as the workout-log history query above.
+    const capturedOrderCalls: Array<[string, unknown]> = []
     const builder: any = {
       select: () => builder,
       eq: () => builder,
-      order: () => builder,
+      order: (column: string, options?: unknown) => { capturedOrderCalls.push([column, options]); return builder },
       range: (from: number, to: number) => {
         capturedRange = [from, to]
         return Promise.resolve({ data: [], count: 41, error: null })
@@ -163,6 +169,7 @@ describe('MealLogsHistorySlideOver', () => {
 
     await lastConfig.queryFn()
     expect(capturedRange).toEqual([20, 39])
+    expect(capturedOrderCalls).toEqual([['logged_at', { ascending: false }], ['id', undefined]])
   })
 })
 

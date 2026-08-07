@@ -346,6 +346,7 @@ function useWorkoutLogsHistory(userId: string, page: number, pageSize: number, e
         `, { count: 'exact' })
         .eq('user_id', userId)
         .order('logged_at', { ascending: false })
+        .order('id')
         .range(page * pageSize, page * pageSize + pageSize - 1)
       if (error) throw error
       return { data: (data ?? []) as unknown as WorkoutLogWithExercises[], count: count ?? 0 }
@@ -384,6 +385,7 @@ function useMealLogsHistory(userId: string, page: number, pageSize: number, enab
         `, { count: 'exact' })
         .eq('user_id', userId)
         .order('logged_at', { ascending: false })
+        .order('id')
         .range(page * pageSize, page * pageSize + pageSize - 1)
       if (error) throw error
       return { data: (data ?? []) as unknown as MealLogWithFoods[], count: count ?? 0 }

@@ -376,12 +376,17 @@ export async function finishWorkout(log: WorkoutLogRow, notes: string | null) {
     .from('workout_logs')
     .update({ status: 'completed', duration_minutes: durationMinutes, notes })
     .eq('id', log.id)
+    .eq('user_id', log.user_id)
   if (error) throw error
   return durationMinutes
 }
 
-export async function discardWorkout(logId: string) {
-  const { error } = await supabase.from('workout_logs').update({ status: 'discarded' }).eq('id', logId)
+export async function discardWorkout(userId: string, logId: string) {
+  const { error } = await supabase
+    .from('workout_logs')
+    .update({ status: 'discarded' })
+    .eq('id', logId)
+    .eq('user_id', userId)
   if (error) throw error
 }
 
@@ -425,6 +430,7 @@ export async function getExercisePage(
     .select('id, name_en, name_cs, description_en, description_cs, image_url, image_url_2, video_url, difficulty, primary_muscles, secondary_muscles, equipment_names, exercise_categories(id, name)', { count: 'exact' })
     .eq('is_active', true)
     .order('name_en')
+    .order('id')
     .range(page * pageSize, page * pageSize + pageSize - 1)
   if (filters.search) query = query.textSearch('search_vector', filters.search, { type: 'websearch', config: 'simple' })
   if (filters.difficulty) query = query.eq('difficulty', filters.difficulty)

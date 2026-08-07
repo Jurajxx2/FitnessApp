@@ -9,6 +9,7 @@ let capturedHistoryRange: [number, number] | null = null
 let capturedExercisePageRange: [number, number] | null = null
 let capturedExerciseTextSearch: [string, string, unknown] | null = null
 let capturedExerciseEqCalls: Array<[string, unknown]> = []
+let capturedExerciseOrderCalls: Array<[string, unknown]> = []
 let capturedExerciseInArgs: [string, string[]] | null = null
 let exercisePageQueryCount = 0
 let exercisePageMockResult: { data: unknown[]; count: number } = { data: [], count: 0 }
@@ -80,7 +81,10 @@ vi.mock('../lib/supabase', () => ({
             capturedExerciseEqCalls.push([column, value])
             return builder
           },
-          order: () => builder,
+          order: (column: string, options?: unknown) => {
+            capturedExerciseOrderCalls.push([column, options])
+            return builder
+          },
           range: (from: number, to: number) => {
             capturedExercisePageRange = [from, to]
             return builder
@@ -169,6 +173,7 @@ const {
   createUserWorkout,
   deleteGeneralActivity,
   deleteWorkoutLog,
+  discardWorkout,
   finishWorkout,
   getExercisePage,
   getGeneralActivity,
@@ -275,6 +280,7 @@ describe('getExercisePage', () => {
     capturedExercisePageRange = null
     capturedExerciseTextSearch = null
     capturedExerciseEqCalls = []
+    capturedExerciseOrderCalls = []
     capturedExerciseInArgs = null
     exercisePageQueryCount = 0
     exercisePageMockResult = { data: [{ id: 'ex-1' }], count: 99 }
@@ -283,6 +289,11 @@ describe('getExercisePage', () => {
   it('builds the correct inclusive range for page 2', async () => {
     await getExercisePage({ search: '', difficulty: null, favoriteIds: null }, 2, 24)
     expect(capturedExercisePageRange).toEqual([48, 71])
+  })
+
+  it('orders by name_en with a secondary id tie-break, so offset pagination over the non-unique name cannot skip or duplicate rows', async () => {
+    await getExercisePage({ search: '', difficulty: null, favoriteIds: null }, 0)
+    expect(capturedExerciseOrderCalls).toEqual([['name_en', undefined], ['id', undefined]])
   })
 
   it('applies textSearch only when search is non-empty', async () => {
@@ -362,7 +373,7 @@ describe('finishWorkout duration clamp', () => {
   it('clamps a 12-hour elapsed session to the 240-minute cap, not 720', async () => {
     const startedAt = new Date('2026-08-04T00:00:00.000Z')
     vi.spyOn(Date, 'now').mockReturnValue(startedAt.getTime() + 12 * 60 * 60_000)
-    const log = { id: 'log-1', logged_at: startedAt.toISOString() } as WorkoutLogRow
+    const log = { id: 'log-1', user_id: 'athlete-1', logged_at: startedAt.toISOString() } as WorkoutLogRow
 
     await expect(finishWorkout(log, null)).resolves.toBe(240)
   })
@@ -370,9 +381,42 @@ describe('finishWorkout duration clamp', () => {
   it('still floors at 1 minute for a sub-minute session', async () => {
     const startedAt = new Date('2026-08-04T00:00:00.000Z')
     vi.spyOn(Date, 'now').mockReturnValue(startedAt.getTime() + 10_000)
-    const log = { id: 'log-1', logged_at: startedAt.toISOString() } as WorkoutLogRow
+    const log = { id: 'log-1', user_id: 'athlete-1', logged_at: startedAt.toISOString() } as WorkoutLogRow
 
     await expect(finishWorkout(log, null)).resolves.toBe(1)
+  })
+})
+
+describe('finishWorkout user_id predicate', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('filters the update by both id and the row\'s own user_id, matching deleteWorkoutLog/updateWorkoutLog\'s defence in depth', async () => {
+    capturedWorkoutLogUpdateEqCalls = []
+    const startedAt = new Date('2026-08-04T00:00:00.000Z')
+    vi.spyOn(Date, 'now').mockReturnValue(startedAt.getTime() + 30 * 60_000)
+    const log = { id: 'log-1', user_id: 'athlete-1', logged_at: startedAt.toISOString() } as WorkoutLogRow
+
+    await finishWorkout(log, null)
+
+    expect(capturedWorkoutLogUpdateEqCalls).toEqual([
+      ['id', 'log-1'],
+      ['user_id', 'athlete-1'],
+    ])
+  })
+})
+
+describe('discardWorkout', () => {
+  it('filters the update by both id and user_id, matching deleteWorkoutLog/updateWorkoutLog\'s defence in depth', async () => {
+    capturedWorkoutLogUpdateEqCalls = []
+
+    await discardWorkout('athlete-1', 'log-1')
+
+    expect(capturedWorkoutLogUpdateEqCalls).toEqual([
+      ['id', 'log-1'],
+      ['user_id', 'athlete-1'],
+    ])
   })
 })
 
