@@ -35,8 +35,8 @@ const EXISTING_ACTIVITY = {
 // The component now runs two useQuery calls: the capped recent-activities list (queryKey
 // ['activity', 'general', userId], used only by the "recent activities" panel) and, only
 // while editing, a dedicated single-row detail fetch (queryKey ['activity', 'general',
-// 'detail', userId, activityId]) that seeds the edit form. The mock tells them apart by
-// queryKey[2] === 'detail' so each test can seed the two independently — that's what makes
+// userId, 'detail', activityId]) that seeds the edit form. The mock tells them apart by
+// queryKey[3] === 'detail' so each test can seed the two independently — that's what makes
 // the "list doesn't have the row, detail does" regression test below possible at all.
 function mockQueries({
   list = [],
@@ -49,7 +49,7 @@ function mockQueries({
 }) {
   vi.mocked(useQuery).mockImplementation((options: any) => {
     const key = options.queryKey as unknown[]
-    if (key[2] === 'detail') {
+    if (key[3] === 'detail') {
       return { data: detail, isLoading: detailLoading, isError: false } as any
     }
     return { data: list, isLoading: false, isError: false } as any

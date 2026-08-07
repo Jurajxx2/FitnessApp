@@ -42,7 +42,11 @@ export default function LogActivity() {
   // correctly, and .maybeSingle() inside getGeneralActivity resolves a genuinely missing
   // row to null rather than throwing.
   const activityDetailQuery = useQuery({
-    queryKey: ['activity', 'general', 'detail', userId, activityId],
+    // Keyed with userId ahead of 'detail' (not before it) so this query stays inside the
+    // ['activity', 'general', userId] prefix every save/delete invalidation already targets
+    // (see the mutation below and History.tsx's delete handler) — TanStack's prefix match is
+    // positional, so 'detail' has to come after userId, not before it.
+    queryKey: ['activity', 'general', userId, 'detail', activityId],
     queryFn: () => getGeneralActivity(userId, activityId),
     enabled: Boolean(userId) && isEditing
   })
