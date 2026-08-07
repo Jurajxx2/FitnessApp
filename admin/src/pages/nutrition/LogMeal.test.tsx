@@ -523,6 +523,40 @@ describe('LogMeal edit mode', () => {
   })
 })
 
+describe('LogMeal save bar clears the mobile nav', () => {
+  // jsdom performs no layout, so this cannot prove the save bar and the fixed
+  // athlete bottom nav no longer visually overlap — only a real browser
+  // layout engine could. What it does prove: the save bar's container no
+  // longer sits at the literal `bottom-0` that put it at the same edge as
+  // the nav (the exact regression an external review flagged), it is offset
+  // by the nav's derived height instead, its fixed positioning is scoped to
+  // the same md breakpoint the nav uses (not the old, narrower sm), and the
+  // save button itself meets the 44px athlete touch-target floor.
+  it('does not reintroduce bottom-0 on the fixed save bar, and keeps its breakpoint aligned with the nav', async () => {
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    const saveButton = screen.getByRole('button', { name: 'Uložiť jedlo' })
+    const saveBar = saveButton.parentElement as HTMLElement
+
+    expect(saveBar.className).not.toMatch(/(?:^|\s)bottom-0(?:\s|$)/)
+    expect(saveBar.className).toContain('bottom-[calc(4rem+env(safe-area-inset-bottom))]')
+    // The bar must stay fixed for exactly as long as the nav stays fixed
+    // (AthleteAppShell.tsx's nav is `md:hidden`) — the original bug was this
+    // bar going static at sm (640px) while the nav stayed fixed until md
+    // (768px), leaving the 640-767px band broken too.
+    expect(saveBar.className).toContain('md:static')
+    expect(saveBar.className).not.toMatch(/(?:^|\s)sm:static(?:\s|$)/)
+  })
+
+  it('gives the save button a >=44px min-height, since Button.tsx only guarantees min-h-10 (40px)', async () => {
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    const saveButton = screen.getByRole('button', { name: 'Uložiť jedlo' })
+
+    expect(saveButton).toHaveClass('min-h-11')
+  })
+})
+
 describe('LogMeal unsaved-changes guard', () => {
   it('blocks an in-app navigation attempt once an item has been entered', async () => {
     const user = userEvent.setup()
