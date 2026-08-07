@@ -14,6 +14,7 @@ import com.coachfoska.app.domain.usecase.workout.CheckPersonalRecordUseCase
 import com.coachfoska.app.domain.usecase.workout.GetPreviousExerciseLogsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
+import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.fixtures.aWorkout
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,6 +29,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.time.Duration.Companion.hours
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -311,6 +313,75 @@ class ActiveSessionViewModelTest {
         assertEquals(true, set?.completed)
         assertEquals(SetSaveState.Saved, set?.saveState)
     }
+
+    @Test
+    fun `session left running overnight is clamped to the cap, not 12 hours`() = runTest {
+        // workout_logs_duration_minutes_range rejects anything above the cap, so an unclamped
+        // 720 would fail the write outright instead of merely skewing the coach's compliance stats.
+        val log = anInProgressLog(startedAt = currentInstant() - 12.hours)
+        coEvery { repo.getInProgressSession("user-1") } returns Result.success(log)
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise())
+        coEvery { repo.finishWorkoutSession(any(), any(), any()) } returns Result.success(Unit)
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1", resumeLogId = "overnight-log-1"))
+        advanceUntilIdle()
+        vm.onIntent(ActiveSessionIntent.SubmitSession(null))
+        advanceUntilIdle()
+
+        coVerify { repo.finishWorkoutSession("overnight-log-1", MAX_WORKOUT_DURATION_MINUTES, null) }
+    }
+
+    @Test
+    fun `a sub-minute session still records one minute rather than zero`() = runTest {
+        val log = anInProgressLog(startedAt = currentInstant())
+        coEvery { repo.getInProgressSession("user-1") } returns Result.success(log)
+        coEvery { repo.getWorkoutById("w1") } returns Result.success(aWorkoutWithSingleExercise())
+        coEvery { repo.finishWorkoutSession(any(), any(), any()) } returns Result.success(Unit)
+
+        val vm = viewModel()
+        vm.onIntent(ActiveSessionIntent.InitSession("w1", resumeLogId = "overnight-log-1"))
+        advanceUntilIdle()
+        vm.onIntent(ActiveSessionIntent.SubmitSession(null))
+        advanceUntilIdle()
+
+        coVerify { repo.finishWorkoutSession("overnight-log-1", 1, null) }
+    }
+
+    private fun anInProgressLog(startedAt: kotlinx.datetime.Instant) = WorkoutLog(
+        id = "overnight-log-1",
+        userId = "user-1",
+        workoutId = "w1",
+        workoutName = "Push Day",
+        durationMinutes = 0,
+        notes = null,
+        exerciseLogs = listOf(
+            com.coachfoska.app.domain.model.ExerciseLog(
+                id = "exercise-log-1",
+                workoutLogId = "overnight-log-1",
+                exerciseName = "Bench Press",
+                notes = null,
+                exerciseId = "b1",
+                sets = listOf(
+                    SetLog(
+                        id = "set-log-1",
+                        exerciseLogId = "exercise-log-1",
+                        sortOrder = 1,
+                        targetReps = 8,
+                        actualReps = 8,
+                        targetWeightKg = null,
+                        actualWeightKg = 80f,
+                        rpe = null,
+                        targetRestSeconds = 90,
+                        actualRestSeconds = null,
+                        completed = true,
+                    )
+                ),
+            )
+        ),
+        loggedAt = startedAt,
+        status = "in_progress",
+    )
 
     @Test
     fun `init opens existing session instead of starting another workout`() = runTest {

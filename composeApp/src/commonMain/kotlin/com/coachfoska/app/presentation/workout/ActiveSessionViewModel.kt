@@ -26,6 +26,15 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "ActiveSessionVM"
 
+/**
+ * A session left running — the athlete forgot to tap "finish" and it stayed open overnight —
+ * must not record an absurd duration that then feeds progress totals and the coach's compliance
+ * dashboard. Mirrors MAX_WORKOUT_DURATION_MINUTES in the web client and the
+ * workout_logs_duration_minutes_range CHECK constraint, which rejects anything above this.
+ * The clamp is silent, and floors at 1 minute so a sub-minute session still counts as completed.
+ */
+const val MAX_WORKOUT_DURATION_MINUTES = 240
+
 class ActiveSessionViewModel(
     private val getWorkoutByIdUseCase: GetWorkoutByIdUseCase,
     private val logWorkoutUseCase: LogWorkoutUseCase,
@@ -857,7 +866,7 @@ class ActiveSessionViewModel(
         }
 
         val durationMinutes = ((currentInstant().toEpochMilliseconds() - draft.startTime) / 60_000)
-            .toInt().coerceAtLeast(1)
+            .coerceIn(1L, MAX_WORKOUT_DURATION_MINUTES.toLong()).toInt()
 
         viewModelScope.launch {
             _state.update { it.copy(isSubmitting = true) }
