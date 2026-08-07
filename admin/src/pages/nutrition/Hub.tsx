@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, CalendarDays, ChevronRight, History, LayoutDashboard, Play, Plus } from 'lucide-react'
 import {
-  useActiveQuote, useDailyLogs, useDailySummary, useFeaturedRecipes, useMacroTargets, useTodayPlannedMeals,
+  useDailyLogs, useDailySummary, useFeaturedRecipes, useMacroTargets, useTodayPlannedMeals,
 } from '../../nutrition/hooks'
+import { DailyQuoteCard } from '../../quotes/DailyQuoteCard'
 import { todayIso } from '../../nutrition/date'
 import { sumMacros } from '../../nutrition/calc'
 import { useAuth } from '../../hooks/useAuth'
@@ -89,7 +90,7 @@ function TodayOverview() {
         </p>
       </div>
 
-      <DailyQuoteBlock />
+      <DailyQuoteCard />
 
       <Card className="p-5 sm:p-6">
         <SectionHeader title="Denné ciele" />
@@ -142,20 +143,6 @@ function TodayOverview() {
         <ChevronRight size={17} className="text-text-secondary transition-transform group-hover:translate-x-0.5" />
       </button>
     </div>
-  )
-}
-
-function DailyQuoteBlock() {
-  const { data: quote, isLoading } = useActiveQuote()
-
-  if (isLoading) return <Shimmer className="h-20 w-full" />
-  if (!quote) return null
-
-  return (
-    <Card className="p-5 sm:p-6">
-      <p className="italic text-text-primary">{quote.text}</p>
-      {quote.author && <p className="mt-2 text-sm text-text-secondary">— {quote.author}</p>}
-    </Card>
   )
 }
 

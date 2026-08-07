@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { calcMacroTargets, sumMacros, type Macros } from './calc'
 import { mealsForDay, todayDowMon0 } from './mealPlan'
 import {
-  qk, fetchActiveMealPlan, fetchActiveQuote, fetchRecipes, fetchFeaturedRecipes, fetchRecipe, fetchMealHistory, fetchMealLog,
+  qk, fetchActiveMealPlan, fetchRecipes, fetchFeaturedRecipes, fetchRecipe, fetchMealHistory, fetchMealLog,
   fetchDailyLogs, searchFoods, fetchFavoriteIds, fetchActiveNutritionTarget,
   fetchFoodFavorites, fetchRecentFoods, fetchSavedMeals,
   fetchSeedFoods,
@@ -21,13 +21,6 @@ export function useTodayPlannedMeals() {
   const { data: plan, isLoading } = useActiveMealPlan()
   const data = plan ? mealsForDay(plan.meals ?? [], todayDowMon0()) : []
   return { data, isLoading }
-}
-export function useActiveQuote() {
-  return useQuery({
-    queryKey: qk.activeQuote,
-    queryFn: fetchActiveQuote,
-    staleTime: 60 * 60 * 1000,
-  })
 }
 export function useRecipes(page = 0, pageSize = 24, search = '', favoriteIds: string[] | null = null) {
   const ids = favoriteIds?.slice().sort() ?? null
