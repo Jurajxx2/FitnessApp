@@ -488,11 +488,16 @@ export default function LogMeal() {
   }
 
   return (
-    // pb accounts for the fixed save bar (~4.3rem) sitting on the fixed athlete
-    // bottom nav (~3.5rem baseline + safe-area-inset-bottom on notched devices) so the
-    // last field can scroll fully clear of both; cleared at md, where the nav
-    // (AthleteAppShell.tsx, md:hidden) and this bar (below) both return to flow.
-    <div className="flex flex-col gap-6 pb-[calc(9rem+env(safe-area-inset-bottom))] md:pb-8">
+    // pb only needs to cover the save bar's clearance beyond what AthleteAppShell's own
+    // <main> pb-20 (5rem) already reserves for the fixed athlete bottom nav — the two
+    // stack (this div renders inside that <main>), so counting the nav's ~3.5rem baseline
+    // here too would double it. The save bar sits at bottom-[calc(4rem+safe)] and is
+    // ~4.3rem tall (p-3 top/bottom + a 44px button + a 1px border), so its own top edge is
+    // at 4rem + 4.3rem ≈ 8.3rem above the viewport bottom; minus the shell's 5rem leaves
+    // ~3.3rem still owed here. 5rem keeps a rounding buffer, matching the pattern already
+    // used for the save bar's and the toast's own offsets. Cleared at md, where the nav
+    // (AthleteAppShell.tsx, md:hidden) and the save bar (below) both return to flow.
+    <div className="flex flex-col gap-6 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
       <div>
         {cameFromCapture && <button type="button" onClick={() => setStep('capture')} className="mb-3 inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-text-secondary hover:text-text-primary">← Späť na fotografiu</button>}
         <p className="flex items-center gap-2 ledger-label text-text-secondary">

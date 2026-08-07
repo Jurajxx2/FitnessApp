@@ -22,14 +22,18 @@ function renderWithRoute(initialPath: string) {
 }
 
 describe('Notice', () => {
-  it('clears the mobile bottom nav with a safe-area-aware offset and resets it back to bottom-4 on desktop', async () => {
+  it('clears the mobile bottom nav and the LogMeal save bar with a safe-area-aware offset, and resets it back to bottom-4 on desktop', async () => {
     renderWithRoute('/nutrition')
 
     await userEvent.click(screen.getByRole('button', { name: 'Notify' }))
 
     const status = await screen.findByRole('status')
     const container = status.parentElement as HTMLElement
-    expect(container.className).toContain('bottom-[calc(5rem+env(safe-area-inset-bottom))]')
+    // 9rem, not just 5rem: the fixed LogMeal save bar (LogMeal.tsx) sits above the athlete
+    // bottom nav at bottom-[calc(4rem+safe)] and is ~4.3rem tall, so its top edge is at
+    // ~8.3rem — a toast at only 5rem would paint over it (and win on z-index), re-creating
+    // the exact tap-steal the save-bar fix was meant to remove.
+    expect(container.className).toContain('bottom-[calc(9rem+env(safe-area-inset-bottom))]')
     expect(container.className).toContain('md:bottom-4')
   })
 

@@ -561,6 +561,21 @@ describe('LogMeal save bar clears the mobile nav', () => {
 
     expect(saveButton).toHaveClass('min-h-11')
   })
+
+  it('does not double-count the bottom nav clearance the shell (AthleteAppShell pb-20) already reserves', async () => {
+    // Regression guard: this page renders inside AthleteAppShell's <main>, which already
+    // pads pb-20 (5rem) for the fixed bottom nav. This page's own bottom padding must only
+    // cover what that leaves owed for the save bar sitting above it, not re-pay for the nav
+    // too — the previous 9rem here, stacked on top of the shell's 5rem, produced ~14rem of
+    // dead scroll space for an ~8.3rem requirement.
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    const heading = screen.getByRole('heading', { name: 'Zapísať jedlo' })
+    const pageWrapper = heading.parentElement!.parentElement as HTMLElement
+
+    expect(pageWrapper.className).toContain('pb-[calc(5rem+env(safe-area-inset-bottom))]')
+    expect(pageWrapper.className).not.toContain('pb-[calc(9rem')
+  })
 })
 
 describe('LogMeal unsaved-changes guard', () => {

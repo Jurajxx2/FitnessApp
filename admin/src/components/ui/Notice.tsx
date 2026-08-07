@@ -49,7 +49,18 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
   return (
     <NoticeContext.Provider value={{ notify }}>
       {children}
-      <div aria-live="polite" aria-atomic="true" className="pointer-events-none fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[60] flex flex-col items-end gap-2 sm:left-auto sm:w-96 md:bottom-4">
+      {/*
+        bottom clears LogMeal's fixed save bar (LogMeal.tsx), not just the athlete bottom
+        nav (AthleteAppShell.tsx): the save bar sits at bottom-[calc(4rem+safe)] and is
+        ~4.3rem (p-3 top/bottom + a 44px button + a 1px border) tall, so its own top edge
+        is at 4rem + 4.3rem ≈ 8.3rem above the viewport bottom. z-[60] already outranks the
+        save bar's z-20, so without enough clearance here a toast raised while the save bar
+        is on screen paints over it and steals the tap — the exact regression the save-bar
+        fix was meant to remove. 9rem gives that ~8.3rem a small rounding buffer. Only the
+        mobile offset needs this — md:bottom-4 is unaffected since the save bar itself goes
+        static at md.
+      */}
+      <div aria-live="polite" aria-atomic="true" className="pointer-events-none fixed inset-x-4 bottom-[calc(9rem+env(safe-area-inset-bottom))] z-[60] flex flex-col items-end gap-2 sm:left-auto sm:w-96 md:bottom-4">
         {notices.map(notice => {
           const isError = notice.tone === 'error'
           const Icon = isError ? CircleAlert : CheckCircle2
