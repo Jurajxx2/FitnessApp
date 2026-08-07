@@ -164,41 +164,75 @@ interface RecentPerformanceWorkout {
   }>
 }
 
+// Picks the performance to surface for one exercise's logs within a single workout:
+// the last-attempted completed set (highest sort_order among completed sets).
+function lastCompletedSet(
+  setLogs: RecentPerformanceWorkout['exercise_logs'][number]['set_logs'],
+): RecentPerformanceWorkout['exercise_logs'][number]['set_logs'][number] | undefined {
+  return [...(setLogs ?? [])].filter(set => set.completed).sort((a, b) => b.sort_order - a.sort_order)[0]
+}
+
 export async function getLastExercisePerformances(userId: string, exerciseIds: string[]): Promise<Record<string, LastExercisePerformance>> {
   const uniqueExerciseIds = [...new Set(exerciseIds.filter(Boolean))]
   if (!uniqueExerciseIds.length) return {}
 
-  const { data, error } = await supabase
-    .from('workout_logs')
-    .select(`
-      logged_at,
-      exercise_logs!inner(
-        exercise_id,
-        set_logs(actual_reps, actual_weight_kg, actual_duration_seconds, rpe, completed, sort_order)
-      )
-    `)
-    .eq('user_id', userId)
-    .eq('status', 'completed')
-    .in('exercise_logs.exercise_id', uniqueExerciseIds)
-    .order('logged_at', { ascending: false })
-    .limit(50)
-  if (error) throw error
+  // One query per exercise, run concurrently, rather than a single query capped at the
+  // most recent 50 completed logs across *all* requested exercises. With a shared cap, an
+  // exercise trained every session can fill the whole window and push out an exercise
+  // trained less often, even though that exercise has real history further back — the
+  // athlete would see no "last time" suggestion despite having logged it before. Per-exercise
+  // queries make each exercise's history independent of how often the others are trained.
+  // This fans out to at most one query per exercise on the workout screen (bounded by the
+  // exercise count in a workout, typically <=12), which is cheap enough to run concurrently.
+  //
+  // limit(5) rather than limit(1): the single most recent log for an exercise may have no
+  // *completed* set at all (the athlete skipped it that session), so we need to look back a
+  // few logs to find one with a completed set, same as the previous implementation did
+  // within its shared batch. 5 preserves that fallback while keeping each query bounded.
+  const perExercise = await Promise.all(
+    uniqueExerciseIds.map(async exerciseId => {
+      const { data, error } = await supabase
+        .from('workout_logs')
+        .select(`
+          logged_at,
+          exercise_logs!inner(
+            exercise_id,
+            set_logs(actual_reps, actual_weight_kg, actual_duration_seconds, rpe, completed, sort_order)
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'completed')
+        .eq('exercise_logs.exercise_id', exerciseId)
+        .order('logged_at', { ascending: false })
+        .order('id')
+        .limit(5)
+      if (error) throw error
+      return [exerciseId, (data ?? []) as unknown as RecentPerformanceWorkout[]] as const
+    }),
+  )
 
   const latest: Record<string, LastExercisePerformance> = {}
-  for (const workout of (data ?? []) as unknown as RecentPerformanceWorkout[]) {
-    for (const exercise of workout.exercise_logs ?? []) {
-      if (!exercise.exercise_id || latest[exercise.exercise_id]) continue
-      const lastCompletedSet = [...(exercise.set_logs ?? [])]
-        .filter(set => set.completed)
-        .sort((a, b) => b.sort_order - a.sort_order)[0]
-      if (!lastCompletedSet) continue
-      latest[exercise.exercise_id] = {
+  for (const [exerciseId, workouts] of perExercise) {
+    for (const workout of workouts) {
+      // A workout can carry more than one exercise_log for the same exercise_id — plans
+      // intentionally repeat a movement (see initialiseWorkoutLog's comment above), and
+      // there is no unique constraint on (workout_log_id, exercise_id). Taking only the
+      // *first* matching log would abandon this whole workout's suggestion if that
+      // particular log has no completed set, even though a later one in the same workout
+      // does. Check every matching log and take the first with a completed set.
+      const set = (workout.exercise_logs ?? [])
+        .filter(exercise => exercise.exercise_id === exerciseId)
+        .map(exercise => lastCompletedSet(exercise.set_logs ?? []))
+        .find(candidate => Boolean(candidate))
+      if (!set) continue
+      latest[exerciseId] = {
         logged_at: workout.logged_at,
-        actual_reps: lastCompletedSet.actual_reps,
-        actual_weight_kg: lastCompletedSet.actual_weight_kg,
-        actual_duration_seconds: lastCompletedSet.actual_duration_seconds,
-        rpe: lastCompletedSet.rpe,
+        actual_reps: set.actual_reps,
+        actual_weight_kg: set.actual_weight_kg,
+        actual_duration_seconds: set.actual_duration_seconds,
+        rpe: set.rpe,
       }
+      break
     }
   }
   return latest
@@ -376,12 +410,17 @@ export async function finishWorkout(log: WorkoutLogRow, notes: string | null) {
     .from('workout_logs')
     .update({ status: 'completed', duration_minutes: durationMinutes, notes })
     .eq('id', log.id)
+    .eq('user_id', log.user_id)
   if (error) throw error
   return durationMinutes
 }
 
-export async function discardWorkout(logId: string) {
-  const { error } = await supabase.from('workout_logs').update({ status: 'discarded' }).eq('id', logId)
+export async function discardWorkout(userId: string, logId: string) {
+  const { error } = await supabase
+    .from('workout_logs')
+    .update({ status: 'discarded' })
+    .eq('id', logId)
+    .eq('user_id', userId)
   if (error) throw error
 }
 
@@ -425,6 +464,7 @@ export async function getExercisePage(
     .select('id, name_en, name_cs, description_en, description_cs, image_url, image_url_2, video_url, difficulty, primary_muscles, secondary_muscles, equipment_names, exercise_categories(id, name)', { count: 'exact' })
     .eq('is_active', true)
     .order('name_en')
+    .order('id')
     .range(page * pageSize, page * pageSize + pageSize - 1)
   if (filters.search) query = query.textSearch('search_vector', filters.search, { type: 'websearch', config: 'simple' })
   if (filters.difficulty) query = query.eq('difficulty', filters.difficulty)
@@ -469,6 +509,21 @@ export async function getGeneralActivities(userId: string): Promise<GeneralActiv
     .limit(100)
   if (error) throw error
   return (data ?? []) as GeneralActivityRow[]
+}
+
+// Dedicated single-row fetch for the edit path — the list above is capped at 100 rows,
+// so an athlete editing an older activity that fell outside that cap must not be looked
+// up by searching it (see LogActivity). .maybeSingle() resolves a genuinely missing row
+// to null instead of throwing, so the caller can render a proper not-found state.
+export async function getGeneralActivity(userId: string, activityId: string): Promise<GeneralActivityRow | null> {
+  const { data, error } = await supabase
+    .from('general_activity_logs')
+    .select('*')
+    .eq('id', activityId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) throw error
+  return data as GeneralActivityRow | null
 }
 
 export async function logGeneralActivity(userId: string, draft: ActivityDraft) {

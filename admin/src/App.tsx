@@ -61,15 +61,20 @@ const LegalPage = lazy(() => import('./pages/LegalPage'))
 // (page-view logging, the password-recovery redirect, and the lazy-route
 // Suspense boundary) needs a home once RouterProvider owns rendering — this
 // pathless root route is that home. It wraps every route below via <Outlet>.
+//
+// NoticeProvider lives here too, not in <App>: it needs useLocation() to pick a
+// locale for its close button (admin vs. athlete surfaces), which only resolves
+// inside the router. Because this layout route is pathless, it persists across
+// navigation, so notice state survives route changes the same way it did before.
 function RootLayout() {
   return (
-    <>
+    <NoticeProvider>
       <PageViewLogger />
       <PasswordRecoveryRedirect />
       <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-background text-sm text-text-secondary">Loading workspace…</div>}>
         <Outlet />
       </Suspense>
-    </>
+    </NoticeProvider>
   )
 }
 
@@ -157,9 +162,7 @@ export default function App() {
       <ThemeProvider>
         <PublicLocaleProvider>
           <AuthProvider>
-            <NoticeProvider>
-              <RouterProvider router={router} />
-            </NoticeProvider>
+            <RouterProvider router={router} />
           </AuthProvider>
         </PublicLocaleProvider>
       </ThemeProvider>

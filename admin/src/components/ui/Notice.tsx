@@ -1,7 +1,13 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { CheckCircle2, CircleAlert, X } from 'lucide-react'
 
 type NoticeTone = 'success' | 'error'
+
+const COPY = {
+  en: { dismiss: 'Dismiss notification' },
+  sk: { dismiss: 'Zavrieť upozornenie' },
+} as const
 
 interface Notice {
   id: number
@@ -17,6 +23,13 @@ const NoticeContext = createContext<NoticeContextValue>({ notify: () => {} })
 
 export function NoticeProvider({ children }: { children: ReactNode }) {
   const [notices, setNotices] = useState<Notice[]>([])
+  // NoticeProvider wraps the whole route tree (mounted once in RootLayout, inside
+  // RouterProvider), so it derives locale from the current path rather than taking a
+  // `locale` prop from a call site the way leaf ui/* components do — there is no single
+  // call site, and admin/athlete surfaces share this one provider instance.
+  const location = useLocation()
+  const locale = location.pathname.startsWith('/admin') ? 'en' : 'sk'
+  const t = COPY[locale]
 
   const dismiss = useCallback((id: number) => {
     setNotices(current => current.filter(notice => notice.id !== id))
@@ -36,7 +49,18 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
   return (
     <NoticeContext.Provider value={{ notify }}>
       {children}
-      <div aria-live="polite" aria-atomic="true" className="pointer-events-none fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[60] flex flex-col items-end gap-2 sm:left-auto sm:w-96 md:bottom-4">
+      {/*
+        bottom clears LogMeal's fixed save bar (LogMeal.tsx), not just the athlete bottom
+        nav (AthleteAppShell.tsx): the save bar sits at bottom-[calc(4rem+safe)] and is
+        ~4.3rem (p-3 top/bottom + a 44px button + a 1px border) tall, so its own top edge
+        is at 4rem + 4.3rem ≈ 8.3rem above the viewport bottom. z-[60] already outranks the
+        save bar's z-20, so without enough clearance here a toast raised while the save bar
+        is on screen paints over it and steals the tap — the exact regression the save-bar
+        fix was meant to remove. 9rem gives that ~8.3rem a small rounding buffer. Only the
+        mobile offset needs this — md:bottom-4 is unaffected since the save bar itself goes
+        static at md.
+      */}
+      <div aria-live="polite" aria-atomic="true" className="pointer-events-none fixed inset-x-4 bottom-[calc(9rem+env(safe-area-inset-bottom))] z-[60] flex flex-col items-end gap-2 sm:left-auto sm:w-96 md:bottom-4">
         {notices.map(notice => {
           const isError = notice.tone === 'error'
           const Icon = isError ? CircleAlert : CheckCircle2
@@ -44,7 +68,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
             <div key={notice.id} role="status" className={`pointer-events-auto flex w-full items-start gap-3 rounded-xl border p-3 shadow-xl ${isError ? 'border-error/40 bg-surface-elevated text-error' : 'border-success/40 bg-surface-elevated text-text-primary'}`}>
               <Icon size={18} className={isError ? 'mt-0.5 flex-shrink-0' : 'mt-0.5 flex-shrink-0 text-success'} aria-hidden="true" />
               <p className="flex-1 text-sm leading-5">{notice.message}</p>
-              <button onClick={() => dismiss(notice.id)} className="cursor-pointer border-0 bg-transparent p-0 text-text-secondary hover:text-text-primary" aria-label="Zavrieť upozornenie">
+              <button onClick={() => dismiss(notice.id)} className="inline-flex min-h-11 min-w-11 flex-shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent text-text-secondary hover:text-text-primary" aria-label={t.dismiss}>
                 <X size={16} />
               </button>
             </div>

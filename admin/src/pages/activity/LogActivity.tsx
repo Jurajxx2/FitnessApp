@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { getGeneralActivities, logGeneralActivity, updateGeneralActivity } from '../../activity/api'
+import { getGeneralActivities, getGeneralActivity, logGeneralActivity, updateGeneralActivity } from '../../activity/api'
 import { formatDate, formatDuration, toLocalDateTimeInputValue } from '../../activity/logic'
 import type { ActivityDraft, ActivityType } from '../../activity/types'
 import { useNotice } from '../../components/ui'
@@ -35,10 +35,22 @@ export default function LogActivity() {
     queryFn: () => getGeneralActivities(userId),
     enabled: Boolean(userId)
   })
-  // The general-activity list is capped at 100 rows (see getGeneralActivities), which is
-  // already fetched for the "recent activities" panel below — reuse it instead of adding
-  // a dedicated single-record fetch.
-  const existingActivity = isEditing ? (activityQuery.data ?? []).find(item => item.id === activityId) ?? null : null
+  // The recent-activities list above is capped at 100 rows (see getGeneralActivities), so
+  // an athlete editing an older activity that fell outside that cap would get a false
+  // "not found" if the edit form seeded from it. Fetch the edited row directly instead —
+  // activityId is part of the query key so switching ids (or leaving edit mode) refetches
+  // correctly, and .maybeSingle() inside getGeneralActivity resolves a genuinely missing
+  // row to null rather than throwing.
+  const activityDetailQuery = useQuery({
+    // Keyed with userId ahead of 'detail' (not before it) so this query stays inside the
+    // ['activity', 'general', userId] prefix every save/delete invalidation already targets
+    // (see the mutation below and History.tsx's delete handler) — TanStack's prefix match is
+    // positional, so 'detail' has to come after userId, not before it.
+    queryKey: ['activity', 'general', userId, 'detail', activityId],
+    queryFn: () => getGeneralActivity(userId, activityId),
+    enabled: Boolean(userId) && isEditing
+  })
+  const existingActivity = activityDetailQuery.data ?? null
 
   useEffect(() => {
     if (!isEditing || seeded || !existingActivity) return
@@ -80,14 +92,14 @@ export default function LogActivity() {
     })
   }
 
-  if (isEditing && activityQuery.isLoading) {
+  if (isEditing && activityDetailQuery.isLoading) {
     return (
       <ActivityPage>
         <LoadingBlock label="Načítava sa aktivita…" />
       </ActivityPage>
     )
   }
-  if (isEditing && !activityQuery.isLoading && !existingActivity) {
+  if (isEditing && !activityDetailQuery.isLoading && !existingActivity) {
     return (
       <ActivityPage>
         <ErrorBlock message="Aktivita sa nenašla." />

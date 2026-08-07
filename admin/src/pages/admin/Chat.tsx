@@ -202,7 +202,16 @@ export default function Chat() {
         content_type: 'image',
         image_url: path,
       })
-      if (error) throw error
+      if (error) {
+        // The row insert failed after the upload succeeded — the object at
+        // `path` is now orphaned. Clean it up best-effort: a failure here
+        // must never mask the original insert error the caller needs to see.
+        const { error: removeError } = await supabase.storage.from(CHAT_IMAGES_BUCKET).remove([path])
+        if (removeError) {
+          logger.error('Failed to remove orphaned chat image after insert failure', removeError)
+        }
+        throw error
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-chat-messages'] }),
     onError: error => {

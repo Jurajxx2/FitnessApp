@@ -99,11 +99,11 @@ function baseProps(overrides: Partial<Props> = {}): Props {
 
 function Wrapper(props: Props) {
   return (
-    <NoticeProvider>
-      <MemoryRouter>
+    <MemoryRouter>
+      <NoticeProvider>
         <AthleteManagementPanel {...props} />
-      </MemoryRouter>
-    </NoticeProvider>
+      </NoticeProvider>
+    </MemoryRouter>
   )
 }
 
@@ -320,6 +320,69 @@ describe('AthleteManagementPanel', () => {
 
     fireEvent.change(screen.getByLabelText('Full name'), { target: { value: BASE_USER.full_name as string } })
     expect(beforeUnloadRemoves()).toBe(1)
+  })
+
+  it('advances a saved section baseline synchronously so a retried save does not duplicate the nutrition_targets insert', async () => {
+    rpc.mockImplementation((fn: string) => {
+      if (fn === 'admin_set_user_meal_plan') return Promise.resolve({ data: null, error: new Error('RLS denied for meal plan') })
+      return Promise.resolve({ data: null, error: null })
+    })
+    renderPanel()
+
+    // Dirty macros (which saves via an *insert* into nutrition_targets, never an
+    // upsert — every successful save creates a brand-new versioned row) and the
+    // meal plan (whose RPC is stubbed to fail).
+    fireEvent.change(screen.getByLabelText('Calories'), { target: { value: '2200' } })
+    fireEvent.change(screen.getByDisplayValue('Plan A'), { target: { value: 'plan-2' } })
+    expect(unsavedBarText()).toContain('Nutrition goals and meal plan')
+    expect(unsavedBarText()).toContain('Assigned meal plan')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await screen.findByRole('status')
+
+    // Macros (ordered before mealPlan in SECTION_ORDER) succeeded before mealPlan
+    // failed, so exactly one versioned row should exist so far.
+    expect(insertNutritionTargets).toHaveBeenCalledTimes(1)
+    expect(rpc.mock.calls.filter(call => call[0] === 'admin_set_user_meal_plan')).toHaveLength(1)
+
+    // The already-saved macros section must no longer read as dirty — only the
+    // still-failed meal plan should remain in the unsaved bar.
+    expect(unsavedBarText()).not.toContain('Nutrition goals and meal plan')
+    expect(unsavedBarText()).toContain('Assigned meal plan')
+
+    // Retry: only the still-dirty meal plan section should be re-attempted.
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => {
+      expect(rpc.mock.calls.filter(call => call[0] === 'admin_set_user_meal_plan')).toHaveLength(2)
+    })
+
+    // This is the assertion that fails on revert: without the fix, macros is
+    // still considered dirty on retry and re-saved, inserting a second,
+    // duplicate nutrition_targets version.
+    expect(insertNutritionTargets).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports no dirty sections once every dirtied section has saved successfully', async () => {
+    renderPanel()
+
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'New Name' } })
+    fireEvent.change(screen.getByLabelText('Calories'), { target: { value: '2200' } })
+    fireEvent.change(screen.getByDisplayValue('Plan A'), { target: { value: 'plan-2' } })
+    fireEvent.click(screen.getByLabelText('Pull day'))
+    fireEvent.change(screen.getByLabelText('Max recipe repeats per week'), { target: { value: '4' } })
+
+    const barText = unsavedBarText()
+    expect(barText).toContain('User profile and access')
+    expect(barText).toContain('Nutrition goals and meal plan')
+    expect(barText).toContain('Assigned meal plan')
+    expect(barText).toContain('Workout assignments')
+    expect(barText).toContain('Nutrition preferences')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(upsertPreferences).toHaveBeenCalled())
+    expect(unsavedBarText()).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument()
   })
 
   it('does not re-register the beforeunload guard on every keystroke while a section stays dirty', () => {

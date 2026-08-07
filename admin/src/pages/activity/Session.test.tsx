@@ -424,9 +424,12 @@ describe('WorkoutSession discard confirmation dialog', () => {
     expect(discardWorkout).not.toHaveBeenCalled()
 
     await user.click(within(dialog).getByRole('button', { name: 'Zahodiť' }))
-    // Same reasoning as the delete-set assertion above: check the variable, not the
+    // Same reasoning as the delete-set assertion above: check the variables, not the
     // full call signature, since react-query appends its own context argument.
-    expect(discardWorkout.mock.calls[0][0]).toBe('log-1')
+    // discardWorkout(userId, logId) — the userId must lead so a discard can never
+    // touch a row it doesn't own.
+    expect(discardWorkout.mock.calls[0][0]).toBe('athlete-1')
+    expect(discardWorkout.mock.calls[0][1]).toBe('log-1')
   })
 
   it('cancelling the dialog closes it and runs no mutation', async () => {
@@ -513,7 +516,8 @@ describe('WorkoutSession unsaved-changes guard', () => {
 
     await user.click(within(discardDialog).getByRole('button', { name: 'Zahodiť' }))
 
-    expect(discardWorkout.mock.calls[0][0]).toBe('log-1')
+    expect(discardWorkout.mock.calls[0][0]).toBe('athlete-1')
+    expect(discardWorkout.mock.calls[0][1]).toBe('log-1')
     expect(await screen.findByText('Activity hub')).toBeInTheDocument()
     expect(screen.queryByText('Zahodiť neuložené zmeny?')).not.toBeInTheDocument()
   })

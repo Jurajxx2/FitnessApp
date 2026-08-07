@@ -4,11 +4,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { NoticeProvider } from '../../components/ui'
+import { logger } from '../../lib/logger'
 import type { ChatMessage, Profile } from '../../types/database'
 import Chat, { buildConversationList, formatMessageTime } from './Chat'
 
-const { uploadMock, insertMock, fromMock } = vi.hoisted(() => ({
+const { uploadMock, removeMock, insertMock, fromMock } = vi.hoisted(() => ({
   uploadMock: vi.fn().mockResolvedValue({ error: null }),
+  removeMock: vi.fn().mockResolvedValue({ error: null }),
   insertMock: vi.fn().mockResolvedValue({ error: null }),
   fromMock: vi.fn(),
 }))
@@ -16,7 +18,7 @@ const { uploadMock, insertMock, fromMock } = vi.hoisted(() => ({
 vi.mock('../../lib/supabase', () => ({
   supabase: {
     from: fromMock,
-    storage: { from: () => ({ upload: uploadMock }) },
+    storage: { from: () => ({ upload: uploadMock, remove: removeMock }) },
     channel: () => ({ on: () => ({ subscribe: () => ({}) }) }),
     removeChannel: vi.fn(),
   },
@@ -113,7 +115,7 @@ describe('Chat — coach image send', () => {
 
   // Generic chainable Postgrest-like builder for the chat_messages table.
   // select/eq/order chain to a resolved read; insert/update are captured directly.
-  function chatMessagesBuilder(): Record<string, unknown> {
+  function chatMessagesBuilder(insertError: Error | null = null): Record<string, unknown> {
     const readResult = Promise.resolve({
       data: [msg({ id: 'm1', user_id: ATHLETE_ID, text_content: 'Hi coach', created_at: '2026-08-01T09:00:00Z' })],
       error: null,
@@ -126,16 +128,16 @@ describe('Chat — coach image send', () => {
       limit: () => readResult,
       insert: (row: Record<string, unknown>) => {
         insertMock(row)
-        return Promise.resolve({ error: null })
+        return Promise.resolve({ error: insertError })
       },
       update: () => builder,
     }
     return builder
   }
 
-  function renderChat() {
+  function renderChat(insertError: Error | null = null) {
     fromMock.mockImplementation((table: string) => {
-      if (table === 'chat_messages') return chatMessagesBuilder()
+      if (table === 'chat_messages') return chatMessagesBuilder(insertError)
       if (table === 'profiles') {
         return { select: () => ({ in: () => Promise.resolve({ data: [profile(ATHLETE_ID, 'Alice Athlete')], error: null }) }) }
       }
@@ -145,11 +147,11 @@ describe('Chat — coach image send', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const utils = render(
       <QueryClientProvider client={queryClient}>
-        <NoticeProvider>
-          <MemoryRouter>
+        <MemoryRouter>
+          <NoticeProvider>
             <Chat />
-          </MemoryRouter>
-        </NoticeProvider>
+          </NoticeProvider>
+        </MemoryRouter>
       </QueryClientProvider>
     )
     return utils
@@ -183,5 +185,37 @@ describe('Chat — coach image send', () => {
         image_url: path,
       })
     ))
+  })
+
+  it('removes the orphaned upload and surfaces the original insert error — even when the cleanup itself fails', async () => {
+    const insertError = new Error('insert failed: RLS violation')
+    const removeError = new Error('remove failed: object not found')
+    const loggerErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {})
+    removeMock.mockResolvedValueOnce({ error: removeError })
+
+    const { container } = renderChat(insertError)
+
+    fireEvent.click(await screen.findByText('Alice Athlete'))
+    await screen.findByLabelText('Send image')
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => expect(uploadMock).toHaveBeenCalled())
+    const [path] = uploadMock.mock.calls[uploadMock.mock.calls.length - 1]
+
+    // The just-uploaded object must be cleaned up with the exact path that was uploaded.
+    await waitFor(() => expect(removeMock).toHaveBeenCalledWith([path]))
+
+    // Even though the cleanup itself failed, the UI must surface the original
+    // insert error — never the cleanup error — and must not swallow it.
+    await screen.findByText(content => content.includes(insertError.message))
+    expect(screen.queryByText(content => content.includes(removeError.message))).toBeNull()
+
+    // The cleanup failure is logged, not thrown.
+    expect(loggerErrorSpy).toHaveBeenCalledWith(expect.any(String), removeError)
+
+    loggerErrorSpy.mockRestore()
   })
 })

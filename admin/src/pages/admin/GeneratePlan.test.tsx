@@ -106,13 +106,13 @@ function renderPreview() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/nutrition/generated/plan-1']}>
+      <MemoryRouter initialEntries={['/admin/nutrition/generated/plan-1']}>
+        <NoticeProvider>
           <Routes>
             <Route path="/admin/nutrition/generated/:id" element={<GeneratePlan />} />
           </Routes>
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -121,13 +121,13 @@ function renderCreate() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/nutrition/generate?user=athlete-1']}>
+      <MemoryRouter initialEntries={['/admin/nutrition/generate?user=athlete-1']}>
+        <NoticeProvider>
           <Routes>
             <Route path="/admin/nutrition/generate" element={<GeneratePlan />} />
           </Routes>
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -136,14 +136,14 @@ function renderChooseAthlete() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/nutrition/generate']}>
+      <MemoryRouter initialEntries={['/admin/nutrition/generate']}>
+        <NoticeProvider>
           <Routes>
             <Route path="/admin/nutrition/generate" element={<GeneratePlan />} />
             <Route path="/admin/nutrition/meal-plans/:id" element={<div>Saved library plan</div>} />
           </Routes>
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }

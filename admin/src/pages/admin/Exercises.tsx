@@ -17,6 +17,7 @@ function useExercises(search: string, categoryId: number | null, activeOnly: boo
         .from('exercises')
         .select('*', { count: 'exact' })
         .order('name_en')
+        .order('id')
         .range(page * pageSize, page * pageSize + pageSize - 1)
       if (search) query = query.ilike('name_en', `%${search}%`)
       if (categoryId !== null) query = query.eq('category_id', categoryId)

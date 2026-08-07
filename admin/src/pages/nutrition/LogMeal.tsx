@@ -488,7 +488,16 @@ export default function LogMeal() {
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-28 sm:pb-8">
+    // pb only needs to cover the save bar's clearance beyond what AthleteAppShell's own
+    // <main> pb-20 (5rem) already reserves for the fixed athlete bottom nav — the two
+    // stack (this div renders inside that <main>), so counting the nav's ~3.5rem baseline
+    // here too would double it. The save bar sits at bottom-[calc(4rem+safe)] and is
+    // ~4.3rem tall (p-3 top/bottom + a 44px button + a 1px border), so its own top edge is
+    // at 4rem + 4.3rem ≈ 8.3rem above the viewport bottom; minus the shell's 5rem leaves
+    // ~3.3rem still owed here. 5rem keeps a rounding buffer, matching the pattern already
+    // used for the save bar's and the toast's own offsets. Cleared at md, where the nav
+    // (AthleteAppShell.tsx, md:hidden) and the save bar (below) both return to flow.
+    <div className="flex flex-col gap-6 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
       <div>
         {cameFromCapture && <button type="button" onClick={() => setStep('capture')} className="mb-3 inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-text-secondary hover:text-text-primary">← Späť na fotografiu</button>}
         <p className="flex items-center gap-2 ledger-label text-text-secondary">
@@ -584,8 +593,21 @@ export default function LogMeal() {
             </section>
 
             {formError && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">{formError}</p>}
-            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-outline bg-background/95 p-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-              <Button className="w-full sm:ml-auto sm:w-auto" loading={logMeal.isPending || updateMeal.isPending} disabled={!mealName.trim() || !hasIngredient || processingPhoto || analyzing} onClick={save}><Camera size={17} aria-hidden="true" /> {isEdit ? 'Uložiť zmeny' : 'Uložiť jedlo'}</Button>
+            {/*
+              Sits fixed above the athlete bottom nav (AthleteAppShell.tsx), not at
+              bottom-0, so the fixed nav (z-30, also bottom-0) can no longer paint over
+              it and steal taps on the primary save action. The offset is the nav's own
+              rendered height: NavLink py-2 (0.5rem top + bottom) + a 20px icon + gap-1
+              (0.25rem) + a text-[10px] label (line-height 1.5 → 15px, from Tailwind's
+              preflight `html { line-height: 1.5 }`) + the nav's 1px border-t ≈ 56px
+              baseline (3.5rem), rounded up to 4rem for cross-browser buffer, plus
+              env(safe-area-inset-bottom) for the home-indicator inset the nav itself
+              also pads for. Breakpoint matches the nav's md:hidden (not the previous
+              sm:static) so the 640-767px band — where the old mismatch left the bar
+              fixed under an also-fixed nav — is covered too.
+            */}
+            <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t border-outline bg-background/95 p-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+              <Button className="min-h-11 w-full md:ml-auto md:w-auto" loading={logMeal.isPending || updateMeal.isPending} disabled={!mealName.trim() || !hasIngredient || processingPhoto || analyzing} onClick={save}><Camera size={17} aria-hidden="true" /> {isEdit ? 'Uložiť zmeny' : 'Uložiť jedlo'}</Button>
             </div>
           </div>
 

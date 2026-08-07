@@ -44,11 +44,11 @@ function renderRecipeEditor() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/nutrition/recipes/new']}>
+      <MemoryRouter initialEntries={['/admin/nutrition/recipes/new']}>
+        <NoticeProvider>
           <RecipeEditor />
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>
   )
 }
@@ -112,11 +112,11 @@ function renderNutritionMealPlans() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/nutrition?tab=meal-plans']}>
+      <MemoryRouter initialEntries={['/admin/nutrition?tab=meal-plans']}>
+        <NoticeProvider>
           <Nutrition />
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }

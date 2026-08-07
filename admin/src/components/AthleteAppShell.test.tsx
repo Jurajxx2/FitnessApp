@@ -1,3 +1,4 @@
+import { lazy } from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -40,5 +41,32 @@ describe('AthleteAppShell', () => {
     const navs = screen.getAllByRole('navigation', { name: 'Hlavná navigácia' })
     expect(navs).toHaveLength(2)
     expect(screen.queryByRole('navigation', { name: 'Main navigation' })).not.toBeInTheDocument()
+  })
+
+  it('renders the Slovak fallback while a lazy athlete route resolves, not the English "Loading workspace…" one', async () => {
+    let resolveImport!: (module: { default: () => JSX.Element }) => void
+    const importPromise = new Promise<{ default: () => JSX.Element }>(resolve => {
+      resolveImport = resolve
+    })
+    const LazyPage = lazy(() => importPromise)
+
+    vi.mocked(useQuery).mockReturnValue({ data: 0 } as unknown as ReturnType<typeof useQuery>)
+    render(
+      <MemoryRouter initialEntries={['/nutrition']}>
+        <Routes>
+          <Route element={<AthleteAppShell />}>
+            <Route path="/nutrition" element={<LazyPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('Načítavam…')).toBeInTheDocument()
+    expect(screen.queryByText('Loading workspace…')).not.toBeInTheDocument()
+
+    resolveImport({ default: () => <p>Loaded content</p> })
+
+    expect(await screen.findByText('Loaded content')).toBeInTheDocument()
+    expect(screen.queryByText('Načítavam…')).not.toBeInTheDocument()
   })
 })

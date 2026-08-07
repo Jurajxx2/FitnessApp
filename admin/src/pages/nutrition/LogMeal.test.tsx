@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { createMemoryRouter, Outlet, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NoticeProvider } from '../../components/ui'
 import {
@@ -153,20 +153,26 @@ beforeEach(() => {
 // App.test.tsx for the same createMemoryRouter/RouterProvider pattern. The
 // router is returned so tests can drive an in-app navigation attempt
 // imperatively (LogMeal renders no other internal links to click).
+// NoticeProvider is nested inside the router (a pathless layout route, mirroring
+// RootLayout in App.tsx) rather than wrapped around RouterProvider, because it now
+// calls useLocation() and RouterProvider renders its own tree without accepting children.
 function renderLogMealAt(initialPath: string) {
   const router = createMemoryRouter(
     [
-      { path: '/nutrition/log', element: <LogMeal /> },
-      { path: '/nutrition', element: <p>Nutrition home</p> },
-      { path: '/nutrition/history', element: <p>History list</p> },
-      { path: '/nutrition/history/:id', element: <p>History detail</p> },
+      {
+        element: <NoticeProvider><Outlet /></NoticeProvider>,
+        children: [
+          { path: '/nutrition/log', element: <LogMeal /> },
+          { path: '/nutrition', element: <p>Nutrition home</p> },
+          { path: '/nutrition/history', element: <p>History list</p> },
+          { path: '/nutrition/history/:id', element: <p>History detail</p> },
+        ],
+      },
     ],
     { initialEntries: [initialPath] },
   )
   render(
-    <NoticeProvider>
-      <RouterProvider router={router} />
-    </NoticeProvider>,
+    <RouterProvider router={router} />,
   )
   return router
 }
@@ -520,6 +526,55 @@ describe('LogMeal edit mode', () => {
     })))
     expect(mutateAsync).not.toHaveBeenCalled()
     expect(await screen.findByText('History detail')).toBeInTheDocument()
+  })
+})
+
+describe('LogMeal save bar clears the mobile nav', () => {
+  // jsdom performs no layout, so this cannot prove the save bar and the fixed
+  // athlete bottom nav no longer visually overlap — only a real browser
+  // layout engine could. What it does prove: the save bar's container no
+  // longer sits at the literal `bottom-0` that put it at the same edge as
+  // the nav (the exact regression an external review flagged), it is offset
+  // by the nav's derived height instead, its fixed positioning is scoped to
+  // the same md breakpoint the nav uses (not the old, narrower sm), and the
+  // save button itself meets the 44px athlete touch-target floor.
+  it('does not reintroduce bottom-0 on the fixed save bar, and keeps its breakpoint aligned with the nav', async () => {
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    const saveButton = screen.getByRole('button', { name: 'Uložiť jedlo' })
+    const saveBar = saveButton.parentElement as HTMLElement
+
+    expect(saveBar.className).not.toMatch(/(?:^|\s)bottom-0(?:\s|$)/)
+    expect(saveBar.className).toContain('bottom-[calc(4rem+env(safe-area-inset-bottom))]')
+    // The bar must stay fixed for exactly as long as the nav stays fixed
+    // (AthleteAppShell.tsx's nav is `md:hidden`) — the original bug was this
+    // bar going static at sm (640px) while the nav stayed fixed until md
+    // (768px), leaving the 640-767px band broken too.
+    expect(saveBar.className).toContain('md:static')
+    expect(saveBar.className).not.toMatch(/(?:^|\s)sm:static(?:\s|$)/)
+  })
+
+  it('gives the save button a >=44px min-height, since Button.tsx only guarantees min-h-10 (40px)', async () => {
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    const saveButton = screen.getByRole('button', { name: 'Uložiť jedlo' })
+
+    expect(saveButton).toHaveClass('min-h-11')
+  })
+
+  it('does not double-count the bottom nav clearance the shell (AthleteAppShell pb-20) already reserves', async () => {
+    // Regression guard: this page renders inside AthleteAppShell's <main>, which already
+    // pads pb-20 (5rem) for the fixed bottom nav. This page's own bottom padding must only
+    // cover what that leaves owed for the save bar sitting above it, not re-pay for the nav
+    // too — the previous 9rem here, stacked on top of the shell's 5rem, produced ~14rem of
+    // dead scroll space for an ~8.3rem requirement.
+    const user = userEvent.setup()
+    await enterManualReview(user)
+    const heading = screen.getByRole('heading', { name: 'Zapísať jedlo' })
+    const pageWrapper = heading.parentElement!.parentElement as HTMLElement
+
+    expect(pageWrapper.className).toContain('pb-[calc(5rem+env(safe-area-inset-bottom))]')
+    expect(pageWrapper.className).not.toContain('pb-[calc(9rem')
   })
 })
 
