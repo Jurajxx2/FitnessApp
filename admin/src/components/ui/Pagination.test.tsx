@@ -70,4 +70,17 @@ describe('Pagination', () => {
     expect(screen.getByRole('button', { name: 'Next page' })).toHaveClass('min-h-11')
     expect(screen.getByLabelText('Rows per page')).toHaveClass('min-h-11')
   })
+
+  it('hides the rows-per-page label and select when there is only one page-size option', () => {
+    render(<Pagination {...base} pageSizeOptions={[25]} />)
+    expect(screen.queryByLabelText('Rows per page')).not.toBeInTheDocument()
+    expect(screen.queryByText('Rows per page')).not.toBeInTheDocument()
+  })
+
+  it('keeps the count and Previous/Next controls rendering when the selector is hidden', () => {
+    render(<Pagination {...base} pageSizeOptions={[25]} />)
+    expect(screen.getByText('1–25 of 130')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeInTheDocument()
+  })
 })

@@ -193,6 +193,7 @@ export default function CreateWorkout() {
         confirmVariant="danger"
         onConfirm={confirmLeave}
         onClose={cancelLeave}
+        locale="sk"
       />
     </ActivityPage>
   )

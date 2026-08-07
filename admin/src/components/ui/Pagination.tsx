@@ -35,19 +35,21 @@ export function Pagination({
 
   return (
     <div className={`flex flex-col gap-3 bg-surface-elevated px-4 py-3 text-sm text-text-secondary sm:flex-row sm:items-center sm:justify-between ${standalone ? 'rounded-2xl border border-outline' : 'border-t border-outline'}`}>
-      <div className="flex items-center gap-2">
-        <label htmlFor={selectId}>{t.rowsPerPage}</label>
-        <select
-          id={selectId}
-          value={pageSize}
-          onChange={(event) => onPageSizeChange(Number(event.target.value))}
-          className="min-h-11 rounded-lg border border-outline bg-surface px-2 py-1 text-text-primary outline-none focus:border-accent-strong"
-        >
-          {pageSizeOptions.map((size) => (
-            <option key={size} value={size}>{size}</option>
-          ))}
-        </select>
-      </div>
+      {pageSizeOptions.length > 1 && (
+        <div className="flex items-center gap-2">
+          <label htmlFor={selectId}>{t.rowsPerPage}</label>
+          <select
+            id={selectId}
+            value={pageSize}
+            onChange={(event) => onPageSizeChange(Number(event.target.value))}
+            className="min-h-11 rounded-lg border border-outline bg-surface px-2 py-1 text-text-primary outline-none focus:border-accent-strong"
+          >
+            {pageSizeOptions.map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <span aria-live="polite">{start}–{end} {t.of} {totalItems}</span>
         <div className="flex gap-1">

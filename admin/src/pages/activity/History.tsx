@@ -178,6 +178,7 @@ function HistoryList() {
         pending={deleteActivity.isPending}
         onClose={() => setDeleteActivityId(null)}
         onConfirm={() => { if (deleteActivityId) deleteActivity.mutate(deleteActivityId) }}
+        locale="sk"
       />
     </ActivityPage>
   )
@@ -355,8 +356,9 @@ function HistoryDetail({ logId }: { logId: string }) {
         pending={deleteLog.isPending}
         onClose={() => setDeleteOpen(false)}
         onConfirm={() => deleteLog.mutate()}
+        locale="sk"
       />
-      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Upraviť tréning">
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Upraviť tréning" locale="sk">
         <form onSubmit={submitEdit} className="space-y-4">
           <label className="block">
             <span className="ledger-label text-text-secondary">Dátum a čas</span>

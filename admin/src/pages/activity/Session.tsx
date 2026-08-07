@@ -271,6 +271,7 @@ export default function WorkoutSession() {
         pending={discardMutation.isPending}
         onClose={() => setDiscardOpen(false)}
         onConfirm={() => discardMutation.mutate(active.id)}
+        locale="sk"
       />
 
       <ConfirmDialog
@@ -282,6 +283,7 @@ export default function WorkoutSession() {
         confirmVariant="danger"
         onConfirm={confirmLeave}
         onClose={cancelLeave}
+        locale="sk"
       />
     </ActivityPage>
   )
