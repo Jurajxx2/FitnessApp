@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   adjustDay, bestPortion, filterPool, generateWeek, isWithinTargetTolerances, KCAL_TOLERANCE, mulberry32, PROTEIN_FLOOR, scoreCandidate, slotBudgets,
-  restorePinnedSlotLockState, type GeneratedSlot, type GeneratorOptions, type GeneratorRecipe, type SlotType,
+  restorePinnedSlotLockState, swapGeneratedSlot, type GeneratedSlot, type GeneratorOptions, type GeneratorRecipe, type SlotType,
 } from './generator'
 
 export const baseOptions: GeneratorOptions = {
@@ -301,6 +301,52 @@ describe('generateWeek', () => {
 
     expect(lockedKeys).toEqual(['0:lunch'])
     expect(restored.days[0].slots.find(slot => slot.slot === 'breakfast')?.locked).toBe(false)
+  })
+
+  it('swaps to a different compatible recipe while preserving every other slot and lock flag', () => {
+    const original = generateWeek(richPool(), target, baseOptions)
+    const previous = {
+      ...original,
+      days: original.days.map(day => ({
+        ...day,
+        slots: day.slots.map(slot => ({
+          ...slot,
+          locked: day.dayOfWeek === 2 && slot.slot === 'lunch',
+        })),
+      })),
+    }
+    const before = previous.days[0].slots.find(slot => slot.slot === 'breakfast')!
+
+    const result = swapGeneratedSlot(richPool(), target, { ...baseOptions, seed: 99 }, previous, 0, 'breakfast')
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const after = result.plan.days[0].slots.find(slot => slot.slot === 'breakfast')!
+    expect(after.recipeId).not.toBe(before.recipeId)
+    expect(after.locked).toBe(false)
+    for (const day of previous.days) {
+      for (const slot of day.slots) {
+        if (day.dayOfWeek === 0 && slot.slot === 'breakfast') continue
+        const kept = result.plan.days[day.dayOfWeek].slots.find(candidate => candidate.slot === slot.slot)
+        expect(kept).toEqual(slot)
+      }
+    }
+  })
+
+  it('rejects a swap without changing the plan when every other recipe is incompatible', () => {
+    const pool = [
+      recipe({ id: 'breakfast-current', meal_types: ['breakfast'] }),
+      recipe({ id: 'breakfast-disliked', meal_types: ['breakfast'] }),
+      recipe({ id: 'lunch-current', meal_types: ['lunch'] }),
+      recipe({ id: 'dinner-current', meal_types: ['dinner'] }),
+    ]
+    const options = { ...baseOptions, maxRecipeRepeatsPerWeek: 0, dislikedRecipeIds: ['breakfast-disliked'] }
+    const original = generateWeek(pool, target, options)
+
+    const result = swapGeneratedSlot(pool, target, { ...options, seed: 99 }, original, 0, 'breakfast')
+
+    expect(result).toEqual({ ok: false, reason: 'no-compatible-alternative' })
+    expect(original.days[0].slots.find(slot => slot.slot === 'breakfast')?.recipeId).toBe('breakfast-current')
   })
 })
 

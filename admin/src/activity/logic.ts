@@ -84,6 +84,12 @@ export function formatDate(value: string, options?: Intl.DateTimeFormatOptions) 
   return new Intl.DateTimeFormat(undefined, options ?? { dateStyle: 'medium' }).format(new Date(value))
 }
 
+// Renders a Date as the local wall-clock value a <input type="datetime-local"> expects
+// (YYYY-MM-DDTHH:mm), by shifting off the timezone offset before formatting as ISO.
+export function toLocalDateTimeInputValue(date: Date): string {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+}
+
 export function splitAssigned(workouts: WorkoutRow[]): { pinned: WorkoutRow[]; flexible: WorkoutRow[] } {
   return {
     pinned: workouts.filter(item => item.day_of_week != null),

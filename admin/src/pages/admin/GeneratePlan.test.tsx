@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -10,9 +10,10 @@ import {
   fetchGeneratorPool,
   fetchNutritionTargetVersion,
   saveGeneratedPlan,
+  saveGeneratedPlanToLibrary,
 } from '../../nutrition/generationApi'
 import type { GeneratedPlanRecord } from '../../nutrition/generationApi'
-import type { GeneratorRecipe, SlotType } from '../../nutrition/generator'
+import { generateWeek, type GeneratorOptions, type GeneratorRecipe, type SlotType } from '../../nutrition/generator'
 import type { NutritionTarget } from '../../types/database'
 import GeneratePlan from './GeneratePlan'
 
@@ -24,6 +25,7 @@ vi.mock('../../nutrition/generationApi', () => ({
   persistCurrentPlanThenPublish: vi.fn(),
   publishPlan: vi.fn(),
   saveGeneratedPlan: vi.fn(),
+  saveGeneratedPlanToLibrary: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({ supabase: { rpc: vi.fn(), from: vi.fn() } }))
@@ -104,13 +106,13 @@ function renderPreview() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/nutrition/generated/plan-1']}>
+      <MemoryRouter initialEntries={['/admin/nutrition/generated/plan-1']}>
+        <NoticeProvider>
           <Routes>
             <Route path="/admin/nutrition/generated/:id" element={<GeneratePlan />} />
           </Routes>
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -119,13 +121,13 @@ function renderCreate() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/nutrition/generate?user=athlete-1']}>
+      <MemoryRouter initialEntries={['/admin/nutrition/generate?user=athlete-1']}>
+        <NoticeProvider>
           <Routes>
             <Route path="/admin/nutrition/generate" element={<GeneratePlan />} />
           </Routes>
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -134,13 +136,14 @@ function renderChooseAthlete() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/nutrition/generate']}>
+      <MemoryRouter initialEntries={['/admin/nutrition/generate']}>
+        <NoticeProvider>
           <Routes>
             <Route path="/admin/nutrition/generate" element={<GeneratePlan />} />
+            <Route path="/admin/nutrition/meal-plans/:id" element={<div>Saved library plan</div>} />
           </Routes>
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -177,10 +180,23 @@ function generatorRecipes(): GeneratorRecipe[] {
   })))
 }
 
+const generatorOptions: GeneratorOptions = {
+  includeSnack: false,
+  mealDistribution: null,
+  dietaryPatterns: [],
+  excludedAllergens: [],
+  maxPrepTimeMin: null,
+  maxRecipeRepeatsPerWeek: 2,
+  dislikedRecipeIds: [],
+  favouriteRecipeIds: [],
+  seed: 1,
+}
+
 beforeEach(() => {
   vi.mocked(fetchGeneratorPool).mockResolvedValue([])
   vi.mocked(fetchNutritionTargetVersion).mockResolvedValue(target)
   vi.mocked(saveGeneratedPlan).mockResolvedValue('plan-1')
+  vi.mocked(saveGeneratedPlanToLibrary).mockResolvedValue('library-plan-1')
   vi.mocked(supabase.rpc).mockResolvedValue({ data: [target], error: null } as never)
   vi.mocked(supabase.from).mockReset()
 })
@@ -247,8 +263,9 @@ describe('generation preferences', () => {
     expect(await screen.findByText("Generation uses the athlete's saved nutrition preferences. Edit them on the athlete profile before generating if they need to change.")).toBeInTheDocument()
     expect(screen.queryByText('Dietary patterns')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Include snack')).not.toBeInTheDocument()
-    expect(screen.getAllByRole('textbox')).toHaveLength(1)
+    expect(screen.getAllByRole('textbox')).toHaveLength(2)
     expect(screen.getByRole('textbox', { name: 'Plan name' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Description' })).toBeInTheDocument()
     expect(supabase.rpc).toHaveBeenCalledWith('get_active_nutrition_target', { p_user_id: 'athlete-1' })
   })
 
@@ -278,17 +295,98 @@ describe('generation preferences', () => {
     expect(generate).toBeEnabled()
     expect(screen.queryByRole('button', { name: 'Save draft' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Publish to athlete' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Publish to library' })).toBeDisabled()
 
     await user.click(generate)
 
     expect(await screen.findByText('Mon')).toBeInTheDocument()
     expect(screen.getByText('Sun')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Plan summary' })).toBeInTheDocument()
+    expect(screen.getByText('Ready to publish')).toBeInTheDocument()
+    const publishToLibrary = screen.getByRole('button', { name: 'Publish to library' })
+    expect(publishToLibrary).toBeEnabled()
     expect(supabase.rpc).not.toHaveBeenCalledWith('get_active_nutrition_target', expect.anything())
+
+    await user.click(publishToLibrary)
+    expect(screen.getByRole('heading', { name: 'Publish this plan to the library?' })).toBeInTheDocument()
+    const publishButtons = screen.getAllByRole('button', { name: 'Publish to library' })
+    await user.click(publishButtons[publishButtons.length - 1])
+
+    expect(saveGeneratedPlanToLibrary).toHaveBeenCalledWith(expect.objectContaining({
+      name: expect.stringContaining('Generated plan'),
+      description: '',
+    }))
+
+  })
+
+  it('clears the generated preview when manual macro inputs become invalid', async () => {
+    const user = userEvent.setup()
+    mockAthletes([])
+    vi.mocked(fetchGeneratorPool).mockResolvedValue(generatorRecipes())
+
+    renderChooseAthlete()
+
+    const generate = await screen.findByRole('button', { name: 'Generate' })
+    await user.click(generate)
+    expect(await screen.findByText('Mon')).toBeInTheDocument()
 
     await user.clear(screen.getByLabelText('Calories'))
 
     expect(screen.getByLabelText('Calories')).toHaveValue(null)
     expect(generate).toBeDisabled()
     expect(screen.queryByText('Mon')).not.toBeInTheDocument()
+  })
+
+  it('replaces the selected recipe when a compatible alternative has weekly capacity', async () => {
+    const user = userEvent.setup()
+    const pool = generatorRecipes()
+    const initialPlan = generateWeek(pool, target, generatorOptions)
+    const breakfastUsage = new Map<string, number>()
+    initialPlan.days.forEach(day => {
+      const breakfast = day.slots.find(slot => slot.slot === 'breakfast')!
+      breakfastUsage.set(breakfast.recipeId, (breakfastUsage.get(breakfast.recipeId) ?? 0) + 1)
+    })
+    const swappableDay = initialPlan.days.find(day => {
+      const breakfast = day.slots.find(slot => slot.slot === 'breakfast')!
+      return breakfastUsage.get(breakfast.recipeId) === 2
+    })!
+    const originalRecipe = swappableDay.slots.find(slot => slot.slot === 'breakfast')!
+    mockAthletes([])
+    vi.mocked(fetchGeneratorPool).mockResolvedValue(pool)
+
+    renderChooseAthlete()
+    await user.click(await screen.findByRole('button', { name: 'Generate' }))
+    expect(screen.getAllByText(originalRecipe.recipeName)).toHaveLength(2)
+
+    await user.click(screen.getByRole('button', { name: `Swap Breakfast on ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][swappableDay.dayOfWeek]}` }))
+
+    await waitFor(() => expect(screen.getAllByText(originalRecipe.recipeName)).toHaveLength(1))
+  })
+
+  it('keeps the plan unchanged and shows an error when no compatible alternative has weekly capacity', async () => {
+    const user = userEvent.setup()
+    const pool = generatorRecipes()
+    const initialPlan = generateWeek(pool, target, generatorOptions)
+    const breakfastUsage = new Map<string, number>()
+    initialPlan.days.forEach(day => {
+      const breakfast = day.slots.find(slot => slot.slot === 'breakfast')!
+      breakfastUsage.set(breakfast.recipeId, (breakfastUsage.get(breakfast.recipeId) ?? 0) + 1)
+    })
+    const blockedDay = initialPlan.days.find(day => {
+      const breakfast = day.slots.find(slot => slot.slot === 'breakfast')!
+      return breakfastUsage.get(breakfast.recipeId) === 1
+    })!
+    const originalRecipe = blockedDay.slots.find(slot => slot.slot === 'breakfast')!
+    mockAthletes([])
+    vi.mocked(fetchGeneratorPool).mockResolvedValue(pool)
+
+    renderChooseAthlete()
+    await user.click(await screen.findByRole('button', { name: 'Generate' }))
+    expect(screen.getAllByText(originalRecipe.recipeName)).toHaveLength(1)
+
+    await user.click(screen.getByRole('button', { name: `Swap Breakfast on ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][blockedDay.dayOfWeek]}` }))
+
+    expect(await screen.findByText('No compatible breakfast alternative is available within the current nutrition filters and weekly repeat limit.')).toBeInTheDocument()
+    expect(screen.getAllByText(originalRecipe.recipeName)).toHaveLength(1)
   })
 })

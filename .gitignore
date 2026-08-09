@@ -69,6 +69,10 @@ design/
 docs/
 skills-lock.json
 
+# Local source artifacts
+/assets/recipe-photos/
+/local-artifacts/
+
 # Supabase CLI local state
 supabase/.temp/
 

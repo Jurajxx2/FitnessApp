@@ -78,6 +78,45 @@ function useActiveNutritionTarget(userId: string) {
   })
 }
 
+const SECTION_LABELS = {
+  profile: 'User profile and access',
+  macros: 'Nutrition goals and meal plan',
+  mealPlan: 'Assigned meal plan',
+  workouts: 'Workout assignments',
+  preferences: 'Nutrition preferences',
+} as const
+
+type SectionKey = keyof typeof SECTION_LABELS
+
+// Save order per the plan: profile, macros, meal plan, workouts, preferences.
+const SECTION_ORDER: SectionKey[] = ['profile', 'macros', 'mealPlan', 'workouts', 'preferences']
+
+// Deep-equality helper for dirty tracking. Arrays are compared by content
+// regardless of order (checkbox/chip toggles rebuild arrays via filter+push,
+// so the same selected set can come out in a different order without the
+// section actually being "dirty"). Objects are compared key-by-key so a
+// freshly-fetched-but-identical object (a new reference from a refetch)
+// doesn't read as dirty.
+function normalize(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value
+      .map(normalize)
+      .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .map(([key, entryValue]): [string, unknown] => [key, normalize(entryValue)])
+        .sort(([a], [b]) => a.localeCompare(b))
+    )
+  }
+  return value
+}
+
+function isDirty<T>(current: T, baseline: T): boolean {
+  return JSON.stringify(normalize(current)) !== JSON.stringify(normalize(baseline))
+}
+
 const ACCESS_OPTIONS: Array<{ value: AccessMode; label: string; description: string }> = [
   { value: 'both', label: 'Nutrition + activity', description: 'Full athlete experience.' },
   { value: 'nutrition', label: 'Nutrition only', description: 'Meals, recipes, hydration, and nutrition history.' },
@@ -96,20 +135,47 @@ export function AthleteManagementPanel({
   const { notify } = useNotice()
   const targetQuery = useActiveNutritionTarget(user.id)
   const [profile, setProfile] = useState<ProfileDraft>(() => profileDraft(user))
+  const [profileBaseline, setProfileBaseline] = useState<ProfileDraft>(() => profileDraft(user))
   const [macros, setMacros] = useState<MacroDraft>(() => macroDraft(null))
+  const [macrosBaseline, setMacrosBaseline] = useState<MacroDraft>(() => macroDraft(null))
   const [mealPlanId, setMealPlanId] = useState('')
+  const [mealPlanBaseline, setMealPlanBaseline] = useState('')
   const [workoutIds, setWorkoutIds] = useState<string[]>([])
+  const [workoutIdsBaseline, setWorkoutIdsBaseline] = useState<string[]>([])
   const preferencesQuery = useNutritionPreferences(user.id)
   const savePreferences = useSaveNutritionPreferences(user.id)
   const [preferences, setPreferences] = useState<UserNutritionPreferences>(() => defaultPreferences(user.id))
-  useEffect(() => { if (preferencesQuery.data) setPreferences(preferencesQuery.data) }, [preferencesQuery.data])
+  const [preferencesBaseline, setPreferencesBaseline] = useState<UserNutritionPreferences>(() => defaultPreferences(user.id))
+  useEffect(() => {
+    if (!preferencesQuery.data) return
+    setPreferences(preferencesQuery.data)
+    setPreferencesBaseline(preferencesQuery.data)
+  }, [preferencesQuery.data])
 
-  useEffect(() => setProfile(profileDraft(user)), [user])
-  useEffect(() => setMacros(macroDraft(targetQuery.data)), [targetQuery.data])
-  useEffect(() => setMealPlanId(currentMealPlanId ?? ''), [currentMealPlanId])
+  // Each slice's baseline is re-seeded in lockstep with the slice itself, so
+  // the dirty comparison always tracks the *last-seeded server value* rather
+  // than a snapshot frozen at mount — a refetch (e.g. after a partial save)
+  // moves the goalposts instead of leaving the other slices permanently dirty.
+  useEffect(() => {
+    const seeded = profileDraft(user)
+    setProfile(seeded)
+    setProfileBaseline(seeded)
+  }, [user])
+  useEffect(() => {
+    const seeded = macroDraft(targetQuery.data)
+    setMacros(seeded)
+    setMacrosBaseline(seeded)
+  }, [targetQuery.data])
+  useEffect(() => {
+    const seeded = currentMealPlanId ?? ''
+    setMealPlanId(seeded)
+    setMealPlanBaseline(seeded)
+  }, [currentMealPlanId])
   useEffect(() => {
     const availableIds = new Set(workoutPlans.map(workout => workout.id))
-    setWorkoutIds(currentWorkoutIds.filter(workoutId => availableIds.has(workoutId)))
+    const seeded = currentWorkoutIds.filter(workoutId => availableIds.has(workoutId))
+    setWorkoutIds(seeded)
+    setWorkoutIdsBaseline(seeded)
   }, [currentWorkoutIds, workoutPlans])
 
   const macroValues = useMemo(() => ({
@@ -124,6 +190,7 @@ export function AthleteManagementPanel({
     && macroValues.carbsG >= 0
     && macroValues.fatG >= 0
     && (macroValues.fiberGMin == null || macroValues.fiberGMin >= 0)
+  const macrosValidationError = 'Calories must be greater than 0, and protein, carbs, fat, and fiber must each be 0 or greater.'
   const currentMealPlanUnavailable = Boolean(currentMealPlanId && !mealPlans.some(plan => plan.id === currentMealPlanId))
 
   const saveProfile = useMutation({
@@ -145,9 +212,7 @@ export function AthleteManagementPanel({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', user.id] })
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-      notify('User profile and access updated.')
     },
-    onError: error => notify(`Couldn’t update user: ${error.message}`, 'error'),
   })
 
   const saveMacros = useMutation({
@@ -168,9 +233,7 @@ export function AthleteManagementPanel({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-nutrition-target', user.id] })
       queryClient.invalidateQueries({ queryKey: ['macroTarget', user.id] })
-      notify('Coach macro goals saved as a new version.')
     },
-    onError: error => notify(`Couldn’t save macro goals: ${error.message}`, 'error'),
   })
 
   const saveMealPlan = useMutation({
@@ -184,9 +247,7 @@ export function AthleteManagementPanel({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-meal-plan', user.id] })
       queryClient.invalidateQueries({ queryKey: ['meal-plan-assignment-counts'] })
-      notify(mealPlanId ? 'Meal plan assigned.' : 'Meal plan unassigned.')
     },
-    onError: error => notify(`Couldn’t update meal plan: ${error.message}`, 'error'),
   })
 
   const saveWorkouts = useMutation({
@@ -199,9 +260,7 @@ export function AthleteManagementPanel({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-workout-plans', user.id] })
-      notify('Workout assignments updated.')
     },
-    onError: error => notify(`Couldn’t update workouts: ${error.message}`, 'error'),
   })
 
   function calculateFromProfile() {
@@ -233,7 +292,114 @@ export function AthleteManagementPanel({
     )
   }
 
+  const dirtySections = useMemo(() => {
+    const dirty = new Set<SectionKey>()
+    if (isDirty(profile, profileBaseline)) dirty.add('profile')
+    if (isDirty(macros, macrosBaseline)) dirty.add('macros')
+    if (isDirty(mealPlanId, mealPlanBaseline)) dirty.add('mealPlan')
+    if (isDirty(workoutIds, workoutIdsBaseline)) dirty.add('workouts')
+    if (isDirty(preferences, preferencesBaseline)) dirty.add('preferences')
+    return dirty
+  }, [
+    profile, profileBaseline,
+    macros, macrosBaseline,
+    mealPlanId, mealPlanBaseline,
+    workoutIds, workoutIdsBaseline,
+    preferences, preferencesBaseline,
+  ])
+  const dirtyLabels = SECTION_ORDER.filter(key => dirtySections.has(key)).map(key => SECTION_LABELS[key])
+  const hasDirtySections = dirtySections.size > 0
+  const [isSavingAll, setIsSavingAll] = useState(false)
+
+  // Guard against closing the tab/browser with unsaved edits. This is
+  // deliberately a plain beforeunload listener rather than the shared
+  // useUnsavedChangesGuard hook — that hook also blocks in-app navigation via
+  // useBlocker and pairs it with a Slovak-copy ConfirmDialog, neither of
+  // which belongs on this English-language coach surface.
+  //
+  // Depends on the boolean hasDirtySections, not dirtySections itself: the
+  // Set is rebuilt (new reference) by the useMemo above on every keystroke,
+  // which would otherwise tear down and re-add this listener on every
+  // character typed.
+  useEffect(() => {
+    if (!hasDirtySections) return
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasDirtySections])
+
+  // Advances one section's baseline to the value that was actually sent to the
+  // server, synchronously right after that section's save resolves — before any
+  // later section in the loop is attempted. This must happen inline in the save
+  // loop (not via the re-seeding useEffects above, which only fire once fresh
+  // query data comes back from an async refetch): saveMacros in particular
+  // *inserts* a new versioned nutrition_targets row rather than upserting, so if
+  // a later section fails and the coach hits Save again before that refetch
+  // lands, a stale macrosBaseline would leave macros marked dirty and insert a
+  // second, duplicate version. Capturing the value before its await (rather than
+  // reading state after) also avoids baselining edits the coach made while the
+  // request was in flight.
+  function markSectionSaved(key: SectionKey, sentValue: ProfileDraft | MacroDraft | string | string[] | UserNutritionPreferences) {
+    if (key === 'profile') setProfileBaseline(sentValue as ProfileDraft)
+    else if (key === 'macros') setMacrosBaseline(sentValue as MacroDraft)
+    else if (key === 'mealPlan') setMealPlanBaseline(sentValue as string)
+    else if (key === 'workouts') setWorkoutIdsBaseline(sentValue as string[])
+    else setPreferencesBaseline(sentValue as UserNutritionPreferences)
+  }
+
+  async function handleSaveAll() {
+    if (dirtySections.size === 0 || isSavingAll) return
+    setIsSavingAll(true)
+    const saved: string[] = []
+    try {
+      for (const key of SECTION_ORDER) {
+        if (!dirtySections.has(key)) continue
+        try {
+          if (key === 'profile') {
+            const sentValue = profile
+            await saveProfile.mutateAsync()
+            markSectionSaved(key, sentValue)
+          } else if (key === 'macros') {
+            const sentValue = macros
+            await saveMacros.mutateAsync()
+            markSectionSaved(key, sentValue)
+          } else if (key === 'mealPlan') {
+            const sentValue = mealPlanId
+            await saveMealPlan.mutateAsync()
+            markSectionSaved(key, sentValue)
+          } else if (key === 'workouts') {
+            const sentValue = workoutIds
+            await saveWorkouts.mutateAsync()
+            markSectionSaved(key, sentValue)
+          } else {
+            const sentValue = preferences
+            await savePreferences.mutateAsync(preferences)
+            markSectionSaved(key, sentValue)
+          }
+          saved.push(SECTION_LABELS[key])
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          const kept = saved.length > 0
+            ? `${saved.join(', ')} saved successfully and will not be rolled back.`
+            : 'Nothing else was saved yet.'
+          notify(
+            `Couldn’t save ${SECTION_LABELS[key]}: ${message}. ${kept} Remaining unsaved changes are still pending — fix the issue and save again.`,
+            'error'
+          )
+          return
+        }
+      }
+      notify(saved.length > 1 ? `Saved: ${saved.join(', ')}.` : `${saved[0]} saved.`)
+    } finally {
+      setIsSavingAll(false)
+    }
+  }
+
   return (
+    <>
     <div className="grid gap-5 xl:grid-cols-2">
       <Card className="xl:col-span-2">
         <div className="mb-5">
@@ -279,7 +445,6 @@ export function AthleteManagementPanel({
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">Admin notes</label>
           <textarea className="min-h-24 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-accent" value={profile.adminNotes} onChange={event => setProfile(current => ({ ...current, adminNotes: event.target.value }))} placeholder="Context only coaches can see…" />
         </div>
-        <div className="mt-4 flex justify-end"><Button onClick={() => saveProfile.mutate()} loading={saveProfile.isPending}>Save profile and access</Button></div>
       </Card>
 
       <Card>
@@ -295,7 +460,6 @@ export function AthleteManagementPanel({
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="ghost" onClick={calculateFromProfile}>Calculate from profile</Button>
-          <Button onClick={() => saveMacros.mutate()} loading={saveMacros.isPending} disabled={!macrosValid}>Save macro goals</Button>
         </div>
 
         <div className="mt-5 border-t border-outline-subtle pt-5">
@@ -306,13 +470,12 @@ export function AthleteManagementPanel({
             {mealPlans.map(plan => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
           </select>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button variant="ghost" onClick={() => saveMealPlan.mutate()} loading={saveMealPlan.isPending} disabled={currentMealPlanUnavailable && mealPlanId === currentMealPlanId}>Save assignment</Button>
             <Button variant="secondary" onClick={() => navigate(`/admin/nutrition/meal-plans/new?user=${user.id}`)} disabled={!targetQuery.data}>Create plan for these macros</Button>
             <Button onClick={() => navigate(`/admin/nutrition/meal-plans/generate?user=${user.id}`)} disabled={!targetQuery.data}>
               Generate plan from macros
             </Button>
           </div>
-          {!targetQuery.data && <p className="mt-2 text-xs text-text-secondary">Save macro goals first to open a target-aware meal-plan editor.</p>}
+          {!targetQuery.data && <p className="mt-2 text-xs text-text-secondary">Save changes first to open a target-aware meal-plan editor.</p>}
           {currentMealPlanUnavailable && <p className="mt-2 text-xs text-text-secondary">The current plan is generated, inactive, or unavailable in the manual library. Choose another plan or “No meal plan” to replace it.</p>}
         </div>
       </Card>
@@ -329,7 +492,6 @@ export function AthleteManagementPanel({
           ))}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button onClick={() => saveWorkouts.mutate()} loading={saveWorkouts.isPending}>Save workouts</Button>
           <Button variant="ghost" onClick={() => navigate(`/admin/workouts/new?user=${user.id}`)}>Create workout for {user.full_name ?? 'user'}</Button>
         </div>
       </Card>
@@ -340,19 +502,28 @@ export function AthleteManagementPanel({
         <div className="mt-4">
           <NutritionPreferencesForm value={preferences} onChange={setPreferences} locale="en" />
         </div>
-        <div className="mt-4 flex justify-end">
-          <Button
-            onClick={() => savePreferences.mutate(preferences, {
-              onSuccess: () => notify('Nutrition preferences saved.'),
-              onError: error => notify(`Couldn’t save preferences: ${error.message}`, 'error'),
-            })}
-            loading={savePreferences.isPending}
-            disabled={preferencesQuery.isLoading}
-          >
-            Save preferences
-          </Button>
-        </div>
       </Card>
-    </div>
+      </div>
+
+      {dirtySections.size > 0 && (
+        <Card className="sticky bottom-0 z-20 mt-5 flex flex-col gap-3 shadow-xl sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-text-secondary">
+              <span className="font-semibold text-text-primary">Unsaved:</span> {dirtyLabels.join(', ')}
+            </p>
+            {dirtySections.has('macros') && !macrosValid && (
+              <p className="mt-1 text-xs text-error">{macrosValidationError}</p>
+            )}
+          </div>
+          <Button
+            onClick={handleSaveAll}
+            loading={isSavingAll}
+            disabled={isSavingAll || (dirtySections.has('macros') && !macrosValid)}
+          >
+            Save changes
+          </Button>
+        </Card>
+      )}
+    </>
   )
 }

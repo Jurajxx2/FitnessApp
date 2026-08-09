@@ -1,10 +1,28 @@
 import type { ReactNode } from 'react'
-import { ArrowRight, Dumbbell, Play } from 'lucide-react'
+import { ArrowRight, Bike, Dumbbell, Footprints, PersonStanding, Play, Waves } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { formatDuration } from '../../activity/logic'
-import type { ExerciseSummary, WorkoutRow } from '../../activity/types'
+import type { ActivityType, ExerciseSummary, WorkoutRow } from '../../activity/types'
 
 const DAY_NAMES_SK = ['Pondelok', 'Utorok', 'Streda', 'Štvrtok', 'Piatok', 'Sobota', 'Nedeľa']
+
+// Shared between LogActivity's create/edit form and History's general-activity rows so
+// both surfaces label and iconify activity types identically.
+export const ACTIVITY_TYPE_OPTIONS: Array<{ value: ActivityType; label: string }> = [
+  { value: 'WALKING', label: 'Chôdza' },
+  { value: 'RUNNING', label: 'Beh' },
+  { value: 'CYCLING', label: 'Bicykel' },
+  { value: 'YOGA', label: 'Joga' },
+  { value: 'SWIMMING', label: 'Plávanie' },
+  { value: 'OTHER', label: 'Iné' },
+]
+
+export function ActivityTypeIcon({ type, size = 18 }: { type: ActivityType; size?: number }) {
+  if (type === 'CYCLING') return <Bike size={size} />
+  if (type === 'SWIMMING') return <Waves size={size} />
+  if (type === 'YOGA') return <PersonStanding size={size} />
+  return <Footprints size={size} />
+}
 
 export function ActivityPage({ children }: { children: ReactNode }) {
   return <div className="mx-auto w-full max-w-6xl space-y-6">{children}</div>

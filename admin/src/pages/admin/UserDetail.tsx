@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { Badge, Button, Card, ConfirmDialog, EditorPage, EmptyState, Shimmer, useNotice } from '../../components/ui'
+import { Badge, Button, Card, ConfirmDialog, DataTable, EditorPage, EmptyState, Shimmer, SlideOver, useNotice } from '../../components/ui'
+import type { DataColumn } from '../../components/ui'
 import { BodyFocusMap } from '../../components/BodyFocusMap'
 import { MealPhoto } from '../../components/MealPhoto'
 import { CheckInsSection } from './CheckInsSection'
@@ -211,7 +212,7 @@ function useUserCompliance(userId: string) {
   })
 }
 
-function useRecentWorkoutLogs(userId: string) {
+export function useRecentWorkoutLogs(userId: string) {
   return useQuery<WorkoutLogWithExercises[]>({
     queryKey: ['user-workout-logs', userId],
     queryFn: async () => {
@@ -259,7 +260,7 @@ function useRecentWorkoutLogs(userId: string) {
   })
 }
 
-function useRecentMealLogs(userId: string) {
+export function useRecentMealLogs(userId: string) {
   return useQuery<MealLogWithFoods[]>({
     queryKey: ['user-meal-logs', userId],
     queryFn: async () => {
@@ -291,6 +292,103 @@ function useRecentMealLogs(userId: string) {
         .limit(5)
       if (error) throw error
       return (data ?? []) as unknown as MealLogWithFoods[]
+    },
+  })
+}
+
+interface LogPage<T> {
+  data: T[]
+  count: number
+}
+
+// Separate, page-aware counterpart to useRecentWorkoutLogs. Fetches lazily
+// (only once the "View all" panel is open) and never touches the 5-row
+// preview's query key or cache entry.
+function useWorkoutLogsHistory(userId: string, page: number, pageSize: number, enabled: boolean) {
+  return useQuery<LogPage<WorkoutLogWithExercises>>({
+    queryKey: ['user-workout-logs-history', userId, page, pageSize],
+    enabled,
+    queryFn: async () => {
+      const { data, count, error } = await supabase
+        .from('workout_logs')
+        .select(`
+          id,
+          user_id,
+          workout_id,
+          workout_name,
+          duration_minutes,
+          notes,
+          status,
+          logged_at,
+          created_at,
+          exercise_logs (
+            id,
+            workout_log_id,
+            exercise_name,
+            sets_completed,
+            reps_completed,
+            weight_kg,
+            notes,
+            created_at,
+            set_logs (
+              id,
+              exercise_log_id,
+              sort_order,
+              target_reps,
+              actual_reps,
+              target_weight_kg,
+              actual_weight_kg,
+              rpe,
+              completed,
+              created_at
+            )
+          )
+        `, { count: 'exact' })
+        .eq('user_id', userId)
+        .order('logged_at', { ascending: false })
+        .order('id')
+        .range(page * pageSize, page * pageSize + pageSize - 1)
+      if (error) throw error
+      return { data: (data ?? []) as unknown as WorkoutLogWithExercises[], count: count ?? 0 }
+    },
+  })
+}
+
+// Separate, page-aware counterpart to useRecentMealLogs — see useWorkoutLogsHistory.
+function useMealLogsHistory(userId: string, page: number, pageSize: number, enabled: boolean) {
+  return useQuery<LogPage<MealLogWithFoods>>({
+    queryKey: ['user-meal-logs-history', userId, page, pageSize],
+    enabled,
+    queryFn: async () => {
+      const { data, count, error } = await supabase
+        .from('meal_logs')
+        .select(`
+          id,
+          user_id,
+          meal_name,
+          notes,
+          image_url,
+          logged_at,
+          created_at,
+          meal_log_foods (
+            id,
+            meal_log_id,
+            name,
+            amount,
+            unit,
+            amount_grams,
+            calories,
+            protein_g,
+            carbs_g,
+            fat_g
+          )
+        `, { count: 'exact' })
+        .eq('user_id', userId)
+        .order('logged_at', { ascending: false })
+        .order('id')
+        .range(page * pageSize, page * pageSize + pageSize - 1)
+      if (error) throw error
+      return { data: (data ?? []) as unknown as MealLogWithFoods[], count: count ?? 0 }
     },
   })
 }
@@ -522,7 +620,7 @@ function TargetFeedback({
   )
 }
 
-function WorkoutLogsSection({
+export function WorkoutLogsSection({
   logs,
   isLoading,
   error,
@@ -530,6 +628,7 @@ function WorkoutLogsSection({
   onAddFeedback,
   onDeleteFeedback,
   isFeedbackPending,
+  onViewAll,
 }: {
   logs: WorkoutLogWithExercises[]
   isLoading: boolean
@@ -538,10 +637,20 @@ function WorkoutLogsSection({
   onAddFeedback: (target: FeedbackTarget, body: string) => void
   onDeleteFeedback: (id: string) => void
   isFeedbackPending: boolean
+  onViewAll: () => void
 }) {
   return (
     <div>
-      <SectionTitle>Recent Workout Logs</SectionTitle>
+      <div className="flex items-center justify-between gap-2">
+        <SectionTitle>Recent Workout Logs</SectionTitle>
+        <button
+          type="button"
+          className="mb-2 cursor-pointer border-0 bg-transparent p-0 text-xs font-medium text-text-secondary hover:text-text-primary"
+          onClick={onViewAll}
+        >
+          View all
+        </button>
+      </div>
       {isLoading && <p className="text-sm text-[var(--text-disabled)]">Loading workout logs…</p>}
       {error && <p className="text-sm text-red-400">{error.message}</p>}
       {!isLoading && !error && logs.length === 0 && (
@@ -613,18 +722,29 @@ function WorkoutLogsSection({
   )
 }
 
-function MealLogsSection({
+export function MealLogsSection({
   logs,
   isLoading,
   error,
+  onViewAll,
 }: {
   logs: MealLogWithFoods[]
   isLoading: boolean
   error: Error | null
+  onViewAll: () => void
 }) {
   return (
     <div>
-      <SectionTitle>Recent Nutrition Logs</SectionTitle>
+      <div className="flex items-center justify-between gap-2">
+        <SectionTitle>Recent Nutrition Logs</SectionTitle>
+        <button
+          type="button"
+          className="mb-2 cursor-pointer border-0 bg-transparent p-0 text-xs font-medium text-text-secondary hover:text-text-primary"
+          onClick={onViewAll}
+        >
+          View all
+        </button>
+      </div>
       {isLoading && <p className="text-sm text-[var(--text-disabled)]">Loading nutrition logs…</p>}
       {error && <p className="text-sm text-red-400">{error.message}</p>}
       {!isLoading && !error && logs.length === 0 && (
@@ -673,6 +793,93 @@ function MealLogsSection({
   )
 }
 
+const HISTORY_PAGE_SIZE = 20
+
+export function WorkoutLogsHistorySlideOver({
+  userId,
+  open,
+  onClose,
+}: {
+  userId: string
+  open: boolean
+  onClose: () => void
+}) {
+  const [page, setPage] = useState(0)
+  const { data, isLoading } = useWorkoutLogsHistory(userId, page, HISTORY_PAGE_SIZE, open)
+  const logs = data?.data ?? []
+  const totalItems = data?.count ?? 0
+
+  const columns: DataColumn<WorkoutLogWithExercises>[] = [
+    { key: 'date', header: 'Date', render: log => formatDateTime(log.logged_at) },
+    { key: 'workout', header: 'Workout', className: 'text-text-primary', render: log => log.workout_name },
+    { key: 'duration', header: 'Duration', render: log => `${log.duration_minutes} min` },
+    { key: 'sets', header: 'Sets', render: log => `${workoutTotals(log).sets}` },
+    { key: 'volume', header: 'Volume', render: log => `${formatNumber(workoutTotals(log).volumeKg)} kg` },
+  ]
+
+  return (
+    <SlideOver open={open} onClose={onClose} title="All workout logs">
+      <DataTable<WorkoutLogWithExercises>
+        rows={logs}
+        getRowId={log => log.id}
+        columns={columns}
+        serverPagination
+        page={page}
+        pageSize={HISTORY_PAGE_SIZE}
+        totalItems={totalItems}
+        pageSizeOptions={[HISTORY_PAGE_SIZE]}
+        onPageChange={setPage}
+        onPageSizeChange={() => {}}
+        loading={isLoading}
+        empty={<EmptyState title="No workout logs yet" description="Logs will appear here once the athlete records a workout." />}
+      />
+    </SlideOver>
+  )
+}
+
+export function MealLogsHistorySlideOver({
+  userId,
+  open,
+  onClose,
+}: {
+  userId: string
+  open: boolean
+  onClose: () => void
+}) {
+  const [page, setPage] = useState(0)
+  const { data, isLoading } = useMealLogsHistory(userId, page, HISTORY_PAGE_SIZE, open)
+  const logs = data?.data ?? []
+  const totalItems = data?.count ?? 0
+
+  const columns: DataColumn<MealLogWithFoods>[] = [
+    { key: 'date', header: 'Date', render: log => formatDateTime(log.logged_at) },
+    { key: 'meal', header: 'Meal', className: 'text-text-primary', render: log => log.meal_name },
+    { key: 'calories', header: 'Calories', render: log => `${Math.round(mealTotals(log).calories)} kcal` },
+    { key: 'protein', header: 'Protein', render: log => `${formatNumber(mealTotals(log).protein)}g` },
+    { key: 'carbs', header: 'Carbs', render: log => `${formatNumber(mealTotals(log).carbs)}g` },
+    { key: 'fat', header: 'Fat', render: log => `${formatNumber(mealTotals(log).fat)}g` },
+  ]
+
+  return (
+    <SlideOver open={open} onClose={onClose} title="All nutrition logs">
+      <DataTable<MealLogWithFoods>
+        rows={logs}
+        getRowId={log => log.id}
+        columns={columns}
+        serverPagination
+        page={page}
+        pageSize={HISTORY_PAGE_SIZE}
+        totalItems={totalItems}
+        pageSizeOptions={[HISTORY_PAGE_SIZE]}
+        onPageChange={setPage}
+        onPageSizeChange={() => {}}
+        loading={isLoading}
+        empty={<EmptyState title="No nutrition logs yet" description="Logs will appear here once the athlete records a meal." />}
+      />
+    </SlideOver>
+  )
+}
+
 export default function UserDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -691,6 +898,8 @@ export default function UserDetail() {
   const workoutLogs = useRecentWorkoutLogs(id!)
   const mealLogs = useRecentMealLogs(id!)
   const { data: workoutFeedback = [] } = useWorkoutFeedback(id!)
+  const [showAllWorkoutLogs, setShowAllWorkoutLogs] = useState(false)
+  const [showAllMealLogs, setShowAllMealLogs] = useState(false)
 
   const manageAccount = useMutation({
     mutationFn: async (action: AccountAction) => {
@@ -877,6 +1086,7 @@ export default function UserDetail() {
           onAddFeedback={(target, body) => addWorkoutFeedback.mutate({ target, body })}
           onDeleteFeedback={feedbackId => deleteWorkoutFeedback.mutate(feedbackId)}
           isFeedbackPending={addWorkoutFeedback.isPending || deleteWorkoutFeedback.isPending}
+          onViewAll={() => setShowAllWorkoutLogs(true)}
         />
       </Card>
 
@@ -885,12 +1095,16 @@ export default function UserDetail() {
           logs={mealLogs.data ?? []}
           isLoading={mealLogs.isLoading}
           error={mealLogs.error}
+          onViewAll={() => setShowAllMealLogs(true)}
         />
       </Card>
 
       <Card>
         <CheckInsSection userId={id!} adminUserId={adminUser?.id} />
       </Card>
+
+      <WorkoutLogsHistorySlideOver userId={id!} open={showAllWorkoutLogs} onClose={() => setShowAllWorkoutLogs(false)} />
+      <MealLogsHistorySlideOver userId={id!} open={showAllMealLogs} onClose={() => setShowAllMealLogs(false)} />
     </EditorPage>
   )
 }

@@ -73,6 +73,7 @@ function usePickerExercises(search: string, categoryId: number | null, equipment
         .select('id, name_en, name_cs, category_id, image_url, image_url_2, difficulty, primary_muscles, equipment_names', { count: 'exact' })
         .eq('is_active', true)
         .order('name_en')
+        .order('id')
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
       if (search) query = query.textSearch('search_vector', search, { type: 'websearch', config: 'simple' })
       if (categoryId !== null) query = query.eq('category_id', categoryId)

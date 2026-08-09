@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import {
   checkInKeys,
@@ -16,6 +16,7 @@ export function useCheckIns(page = 0, pageSize = 12) {
     queryKey: checkInKeys.page(user?.id ?? '', page, pageSize),
     queryFn: () => fetchCheckIns(user!.id, page, pageSize),
     enabled: !!user,
+    placeholderData: keepPreviousData,
   })
 }
 

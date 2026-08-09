@@ -5,6 +5,12 @@ import { supabase } from '../lib/supabase'
 import { usePublicLocale } from '../i18n/PublicLocale'
 import { athleteHomePath } from '../lib/access'
 
+export const copy = {
+  en: { signingIn: 'Signing you in…' },
+  cs: { signingIn: 'Přihlašuji vás…' },
+  sk: { signingIn: 'Prihlasujem ťa…' },
+} as const
+
 export default function Callback() {
   const navigate = useNavigate()
   const { locale } = usePublicLocale()
@@ -43,7 +49,7 @@ export default function Callback() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background">
-      <p className="text-sm text-text-secondary">{locale === 'cs' ? 'Přihlašuji vás…' : 'Signing you in…'}</p>
+      <p className="text-sm text-text-secondary">{copy[locale].signingIn}</p>
     </div>
   )
 }

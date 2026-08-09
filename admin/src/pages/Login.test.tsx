@@ -2,7 +2,8 @@ import { beforeEach, expect, test, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import Login from './Login'
+import { PublicLocaleProvider } from '../i18n/PublicLocale'
+import Login, { copy } from './Login'
 
 const { mockSignInWithPassword, authState } = vi.hoisted(() => ({
   mockSignInWithPassword: vi.fn(),
@@ -75,4 +76,23 @@ test('routes an existing client session to nutrition', () => {
   authState.session = {} as never
   renderLogin()
   expect(screen.getByText('Nutrition page')).toBeInTheDocument()
+})
+
+test('renders the Slovak heading when the public locale is sk', () => {
+  window.localStorage.setItem('coach-foska-public-locale', 'sk')
+  render(
+    <PublicLocaleProvider>
+      <MemoryRouter initialEntries={['/login']}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </MemoryRouter>
+    </PublicLocaleProvider>,
+  )
+  expect(screen.getByRole('heading', { name: 'Prihlásenie do Coach Foska' })).toBeInTheDocument()
+  window.localStorage.clear()
+})
+
+test('sk and cs copy expose the same key set', () => {
+  expect(Object.keys(copy.sk).sort()).toEqual(Object.keys(copy.cs).sort())
 })

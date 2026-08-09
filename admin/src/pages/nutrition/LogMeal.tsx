@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   useActiveMealPlan,
   useFoodFavorites,
+  useFoodSearch,
   useMealLog,
   useRecentFoods,
   useRecipe,
@@ -40,7 +41,8 @@ import { analyzeMealPhoto, mergeAnalysis } from '../../nutrition/photoAnalysis'
 import { prepareMealPhoto } from '../../nutrition/imagePreparation'
 import { signedMealPhotoUrl, validateMealPhoto } from '../../lib/storage'
 import type { FoodFavoriteRow, FoodRow, MealType, RecipeRow } from '../../types/database'
-import { Button, Card, EmptyState, Input, Shimmer, useNotice } from '../../components/ui'
+import { Button, Card, ConfirmDialog, EmptyState, Input, Shimmer, useNotice } from '../../components/ui'
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 
 type MacroField = keyof Macros
 type LogStep = 'capture' | 'review'
@@ -108,6 +110,9 @@ export default function LogMeal() {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set([items[0].key]))
   const [recipeServings, setRecipeServings] = useState(1)
   const [savedMealName, setSavedMealName] = useState('')
+  const [foodSearchTerm, setFoodSearchTerm] = useState('')
+  const [debouncedFoodSearchTerm, setDebouncedFoodSearchTerm] = useState('')
+  const foodSearch = useFoodSearch(debouncedFoodSearchTerm)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false)
@@ -121,6 +126,12 @@ export default function LogMeal() {
   const captureHeadingRef = useRef<HTMLHeadingElement>(null)
   const reviewHeadingRef = useRef<HTMLHeadingElement>(null)
   const stepDidMount = useRef(false)
+  // Ratchets true the moment the athlete attaches/removes a photo, adds or edits
+  // an item, or removes one — deliberately NOT set by the prefill effect below,
+  // so opening an existing log/recipe/meal-plan draft doesn't itself count as
+  // unsaved work.
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const markDirty = () => setHasUnsavedChanges(true)
   const logMeal = useLogMeal()
   const updateMeal = useUpdateMealLog()
   const saveFavorite = useSaveFoodFavorite()
@@ -129,6 +140,26 @@ export default function LogMeal() {
   const deleteMealTemplate = useDeleteMealTemplate()
   const existingLog = isEdit ? (mealLogQuery.data ?? null) : null
   const favorites = favoritesQuery.data ?? []
+  // Deliberate exits, deferred into effects keyed on each mutation's own
+  // isSuccess rather than called inline right after an awaited mutateAsync.
+  // An effect cannot run until React has committed a render that reflects
+  // its dependency, so by the time navigate() fires here, LogMeal has
+  // already re-rendered with isDirty computed from the now-true isSuccess
+  // below — no manual "saved" ref or forced render needed for the guard to
+  // see it in time.
+  useEffect(() => {
+    if (updateMeal.isSuccess) navigate(`/nutrition/history/${logId}`)
+  }, [updateMeal.isSuccess, logId, navigate])
+  useEffect(() => {
+    if (logMeal.isSuccess) navigate('/nutrition')
+  }, [logMeal.isSuccess, navigate])
+  // Neither mutation needs an onError reset: once a mutation is neither
+  // pending nor successful (a failed attempt included), isDirty falls
+  // straight back to reflecting hasUnsavedChanges again.
+  const isDirty = hasUnsavedChanges
+    && !logMeal.isPending && !logMeal.isSuccess
+    && !updateMeal.isPending && !updateMeal.isSuccess
+  const { blocked, confirmLeave, cancelLeave } = useUnsavedChangesGuard(isDirty)
 
   function replaceItems(next: LogFoodDraft[]) {
     const safe = next.length ? next : [emptyIngredient()]
@@ -147,6 +178,7 @@ export default function LogMeal() {
       next.add(draft.key)
       return next
     })
+    markDirty()
   }
 
   function appendManualDraft() {
@@ -197,6 +229,11 @@ export default function LogMeal() {
     return () => URL.revokeObjectURL(preview)
   }, [isEdit, photoFile, removeExistingPhoto])
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedFoodSearchTerm(foodSearchTerm.trim()), 300)
+    return () => window.clearTimeout(timeout)
+  }, [foodSearchTerm])
+
   // Move focus to the incoming step's heading when the view swaps between capture and review,
   // so keyboard/screen-reader focus never falls to <body>. Skip the first render so prefills
   // (edit/recipe/meal plan) that open directly on review don't yank focus on mount.
@@ -211,11 +248,13 @@ export default function LogMeal() {
 
   function updateItem(index: number, update: (draft: LogFoodDraft) => LogFoodDraft) {
     setItems(current => current.map((item, itemIndex) => itemIndex === index ? update(item) : item))
+    markDirty()
   }
 
   function removeItem(index: number) {
     const removedKey = items[index]?.key
     if (!removedKey) return
+    markDirty()
     if (items.length === 1) {
       const replacement = emptyIngredient()
       setItems([replacement])
@@ -247,6 +286,7 @@ export default function LogMeal() {
       setPhotoError('')
       setRemoveExistingPhoto(false)
       setPhotoFile(prepared)
+      markDirty()
     } catch (error) {
       setPhotoError(error instanceof Error ? error.message : 'Fotografiu sa nepodarilo pripraviť.')
     } finally {
@@ -258,6 +298,7 @@ export default function LogMeal() {
     setPhotoFile(null)
     if (isEdit) setRemoveExistingPhoto(true)
     setPhotoPreview(null)
+    markDirty()
   }
 
   async function analyzePhoto() {
@@ -314,7 +355,7 @@ export default function LogMeal() {
     }
   }
 
-  async function save() {
+  function save() {
     const candidateItems = items.filter(item => !isUntouchedEmptyIngredient(item))
     if (candidateItems.some(item => !item.name.trim())) {
       setFormError('Doplň názov každej rozpracovanej položky alebo ju odstráň.')
@@ -334,38 +375,50 @@ export default function LogMeal() {
       return
     }
     setFormError('')
-    try {
-      if (isEdit) {
-        const result = await updateMeal.mutateAsync({
-          logId,
-          mealName: mealName.trim(),
-          mealType,
-          loggedAt,
-          foods,
-          notes: notes.trim() || undefined,
-          photoFile,
-          removePhoto: removeExistingPhoto,
-          existingImageUrl: existingLog?.image_url ?? null,
-        })
-        notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Zmeny boli uložené.', result.photoError ? 'error' : 'success')
-        navigate(`/nutrition/history/${logId}`)
-        return
-      }
-      const result = await logMeal.mutateAsync({
-        mealName: mealName.trim(), mealType, loggedAt, foods,
-        notes: notes.trim() || undefined, photoFile,
+    const onError = () => setFormError('Jedlo sa nepodarilo uložiť. Skontroluj pripojenie a skús to znova.')
+    if (isEdit) {
+      updateMeal.mutate({
+        logId,
+        mealName: mealName.trim(),
+        mealType,
+        loggedAt,
+        foods,
+        notes: notes.trim() || undefined,
+        photoFile,
+        removePhoto: removeExistingPhoto,
+        existingImageUrl: existingLog?.image_url ?? null,
+      }, {
+        onSuccess: result => notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Zmeny boli uložené.', result.photoError ? 'error' : 'success'),
+        onError,
       })
-      notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Jedlo bolo uložené.', result.photoError ? 'error' : 'success')
-      navigate('/nutrition')
-    } catch {
-      setFormError('Jedlo sa nepodarilo uložiť. Skontroluj pripojenie a skús to znova.')
+      return
     }
+    logMeal.mutate({
+      mealName: mealName.trim(), mealType, loggedAt, foods,
+      notes: notes.trim() || undefined, photoFile,
+    }, {
+      onSuccess: result => notify(result.photoError ? 'Jedlo sa uložilo, ale fotografiu sa nepodarilo pripojiť.' : 'Jedlo bolo uložené.', result.photoError ? 'error' : 'success'),
+      onError,
+    })
   }
 
   const totals = mealDraftTotals(items.filter(item => item.name.trim()))
   const hasIngredient = items.some(item => item.name.trim())
   const hasAiItems = items.some(item => item.source === 'ai')
   const isPrefilling = (isEdit && mealLogQuery.isLoading) || (recipeId && recipeQuery.isLoading) || (mealId && mealPlanQuery.isLoading)
+  const unsavedChangesDialog = (
+    <ConfirmDialog
+      open={blocked}
+      title="Zahodiť neuložené zmeny?"
+      description="Máš rozpracované zmeny, ktoré sa neuložili. Ak odídeš, prídeš o ne."
+      confirmLabel="Odísť"
+      cancelLabel="Zostať"
+      confirmVariant="danger"
+      onConfirm={confirmLeave}
+      onClose={cancelLeave}
+      locale="sk"
+    />
+  )
 
   if (isEdit && !mealLogQuery.isLoading && !existingLog) {
     return <EmptyState title="Záznam sa nenašiel" message="Toto jedlo už bolo pravdepodobne vymazané." action={<Button onClick={() => navigate('/nutrition/history')}>Späť do histórie</Button>} />
@@ -429,12 +482,22 @@ export default function LogMeal() {
             </div>
           </Card>
         )}
+        {unsavedChangesDialog}
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-28 sm:pb-8">
+    // pb only needs to cover the save bar's clearance beyond what AthleteAppShell's own
+    // <main> pb-20 (5rem) already reserves for the fixed athlete bottom nav — the two
+    // stack (this div renders inside that <main>), so counting the nav's ~3.5rem baseline
+    // here too would double it. The save bar sits at bottom-[calc(4rem+safe)] and is
+    // ~4.3rem tall (p-3 top/bottom + a 44px button + a 1px border), so its own top edge is
+    // at 4rem + 4.3rem ≈ 8.3rem above the viewport bottom; minus the shell's 5rem leaves
+    // ~3.3rem still owed here. 5rem keeps a rounding buffer, matching the pattern already
+    // used for the save bar's and the toast's own offsets. Cleared at md, where the nav
+    // (AthleteAppShell.tsx, md:hidden) and the save bar (below) both return to flow.
+    <div className="flex flex-col gap-6 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
       <div>
         {cameFromCapture && <button type="button" onClick={() => setStep('capture')} className="mb-3 inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-text-secondary hover:text-text-primary">← Späť na fotografiu</button>}
         <p className="flex items-center gap-2 ledger-label text-text-secondary">
@@ -449,22 +512,23 @@ export default function LogMeal() {
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)]">
           <div className="flex min-w-0 flex-col gap-5">
             <Card className="flex flex-col gap-5 p-5 sm:p-6">
-              <Input id="mealName" label="Názov jedla" placeholder="napr. Obed" value={mealName} onChange={event => setMealName(event.target.value)} />
+              <Input id="mealName" label="Názov jedla" placeholder="napr. Obed" value={mealName} onChange={event => { setMealName(event.target.value); markDirty() }} />
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-wider text-text-secondary">
                   Typ jedla
-                  <select value={mealType} onChange={event => setMealType(event.target.value as MealType)} className="h-10 rounded-xl border border-outline bg-surface px-3 text-sm normal-case tracking-normal text-text-primary outline-none focus:border-accent">
+                  <select value={mealType} onChange={event => { setMealType(event.target.value as MealType); markDirty() }} className="h-10 rounded-xl border border-outline bg-surface px-3 text-sm normal-case tracking-normal text-text-primary outline-none focus:border-accent">
                     {MEAL_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </label>
-                <Input label="Dátum" type="date" value={logDate} onChange={event => setLogDate(event.target.value)} />
-                <Input label="Čas" type="time" value={logTime} onChange={event => setLogTime(event.target.value)} />
+                <Input label="Dátum" type="date" value={logDate} onChange={event => { setLogDate(event.target.value); markDirty() }} />
+                <Input label="Čas" type="time" value={logTime} onChange={event => { setLogTime(event.target.value); markDirty() }} />
               </div>
               {recipeId && recipeQuery.data && (
                 <Input label="Počet zjedených porcií" type="number" inputMode="decimal" min={0.1} step={0.1} value={recipeServings} onChange={event => {
                   const servings = Number(event.target.value)
                   setRecipeServings(servings)
                   replaceItems(recipeIngredientsToDrafts(recipeQuery.data as RecipeRow, servings))
+                  markDirty()
                 }} />
               )}
               <div>
@@ -472,7 +536,7 @@ export default function LogMeal() {
                   <label htmlFor="mealNotes" className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Poznámka</label>
                   <span className="text-[11px] text-text-secondary">voliteľné</span>
                 </div>
-                <textarea id="mealNotes" value={notes} onChange={event => setNotes(event.target.value)} placeholder="Ako jedlo chutilo, úpravy porcie…" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />
+                <textarea id="mealNotes" value={notes} onChange={event => { setNotes(event.target.value); markDirty() }} placeholder="Ako jedlo chutilo, úpravy porcie…" className="min-h-20 w-full resize-y rounded-xl border border-outline bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent" />
               </div>
             </Card>
 
@@ -529,21 +593,63 @@ export default function LogMeal() {
             </section>
 
             {formError && <p role="alert" className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">{formError}</p>}
-            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-outline bg-background/95 p-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-              <Button className="w-full sm:ml-auto sm:w-auto" loading={logMeal.isPending || updateMeal.isPending} disabled={!mealName.trim() || !hasIngredient || processingPhoto || analyzing} onClick={save}><Camera size={17} aria-hidden="true" /> {isEdit ? 'Uložiť zmeny' : 'Uložiť jedlo'}</Button>
+            {/*
+              Sits fixed above the athlete bottom nav (AthleteAppShell.tsx), not at
+              bottom-0, so the fixed nav (z-30, also bottom-0) can no longer paint over
+              it and steal taps on the primary save action. The offset is the nav's own
+              rendered height: NavLink py-2 (0.5rem top + bottom) + a 20px icon + gap-1
+              (0.25rem) + a text-[10px] label (line-height 1.5 → 15px, from Tailwind's
+              preflight `html { line-height: 1.5 }`) + the nav's 1px border-t ≈ 56px
+              baseline (3.5rem), rounded up to 4rem for cross-browser buffer, plus
+              env(safe-area-inset-bottom) for the home-indicator inset the nav itself
+              also pads for. Breakpoint matches the nav's md:hidden (not the previous
+              sm:static) so the 640-767px band — where the old mismatch left the bar
+              fixed under an also-fixed nav — is covered too.
+            */}
+            <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t border-outline bg-background/95 p-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+              <Button className="min-h-11 w-full md:ml-auto md:w-auto" loading={logMeal.isPending || updateMeal.isPending} disabled={!mealName.trim() || !hasIngredient || processingPhoto || analyzing} onClick={save}><Camera size={17} aria-hidden="true" /> {isEdit ? 'Uložiť zmeny' : 'Uložiť jedlo'}</Button>
             </div>
           </div>
 
           <Card className="flex min-w-0 flex-col gap-5 p-5 sm:p-6 lg:sticky lg:top-0">
             <div><h2 className="font-bold text-text-primary">Rýchle pridanie</h2><p className="mt-1 text-xs text-text-secondary">Výber iba doplní návrh. Uloženie zostáva samostatný krok.</p></div>
+            <div>
+              <label htmlFor="foodSearchInput" className="mb-2 block text-xs font-bold uppercase tracking-wider text-text-secondary">Hľadať potravinu</label>
+              <input
+                id="foodSearchInput"
+                type="text"
+                value={foodSearchTerm}
+                onChange={event => setFoodSearchTerm(event.target.value)}
+                placeholder="Zadaj názov potraviny…"
+                className="min-h-11 w-full rounded-xl border border-outline bg-surface px-3 text-sm text-text-primary outline-none placeholder:text-text-secondary focus:border-accent"
+              />
+              {debouncedFoodSearchTerm.trim().length >= 2 && (
+                <div className="mt-2">
+                  {foodSearch.isLoading ? (
+                    <Shimmer className="h-12 w-full" />
+                  ) : foodSearch.isError ? (
+                    <p className="text-xs text-error">Potraviny sa nepodarilo načítať.</p>
+                  ) : (foodSearch.data ?? []).length === 0 ? (
+                    <p className="text-xs text-text-secondary">Žiadna potravina nezodpovedá hľadaniu.</p>
+                  ) : (
+                    <div className="divide-y divide-outline-subtle">
+                      {foodSearch.data!.map((food: FoodRow) => (
+                        <QuickAddButton key={food.id} label={food.name} detail={`${Math.round(food.calories)} kcal`} onClick={() => addDraft(draftFromFood(scaleFood(food, food.serving_size), 'manual'))} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             {favorites.length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Obľúbené</p><div className="divide-y divide-outline-subtle">{favorites.slice(0, 8).map(favorite => <QuickAddButton key={favorite.id} label={favorite.name} detail={`${Math.round(favorite.calories)} kcal`} onClick={() => addDraft(snapshotToDraft(favorite, 'favorite'))} />)}</div></div>}
             {(recentsQuery.data ?? []).length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Naposledy použité</p><div className="divide-y divide-outline-subtle">{recentsQuery.data!.slice(0, 8).map(recent => <QuickAddButton key={recent.key} label={recent.name} detail={`${Math.round(recent.calories)} kcal`} onClick={() => addDraft(draftFromFood(persistedFood(recent), 'recent'))} />)}</div></div>}
-            {(savedMealsQuery.data ?? []).length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Vlastné jedlá</p><div className="divide-y divide-outline-subtle">{savedMealsQuery.data!.map(saved => <div key={saved.id} className="flex items-center gap-1"><QuickAddButton label={saved.name} detail={`${saved.saved_meal_items.length} položiek`} onClick={() => { setMealName(saved.name); replaceItems(saved.saved_meal_items.map(item => snapshotToDraft(item, 'saved'))) }} /><button type="button" aria-label={`Vymazať uložené jedlo ${saved.name}`} onClick={() => void deleteSavedMeal(saved.id)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error"><Trash2 size={15} /></button></div>)}</div></div>}
+            {(savedMealsQuery.data ?? []).length > 0 && <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Vlastné jedlá</p><div className="divide-y divide-outline-subtle">{savedMealsQuery.data!.map(saved => <div key={saved.id} className="flex items-center gap-1"><QuickAddButton label={saved.name} detail={`${saved.saved_meal_items.length} položiek`} onClick={() => { setMealName(saved.name); replaceItems(saved.saved_meal_items.map(item => snapshotToDraft(item, 'saved'))); markDirty() }} /><button type="button" aria-label={`Vymazať uložené jedlo ${saved.name}`} onClick={() => void deleteSavedMeal(saved.id)} className="rounded-lg p-2 text-text-secondary hover:bg-surface-highest hover:text-error"><Trash2 size={15} /></button></div>)}</div></div>}
             {(seedFoodsQuery.data ?? []).length > 0 && <details><summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-text-secondary">Základné návrhy</summary><div className="mt-2 divide-y divide-outline-subtle">{seedFoodsQuery.data!.slice(0, 10).map((food: FoodRow) => <QuickAddButton key={food.id} label={food.name} detail={`${Math.round(food.calories)} kcal`} onClick={() => addDraft(draftFromFood(scaleFood(food, food.serving_size), 'manual'))} />)}</div></details>}
             <div className="border-t border-outline-subtle pt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-secondary">Uložiť aktuálnu kombináciu</p><div className="flex gap-2"><Input aria-label="Názov vlastného jedla" placeholder="napr. Moje raňajky" value={savedMealName} onChange={event => setSavedMealName(event.target.value)} /><Button variant="secondary" disabled={!savedMealName.trim() || !hasIngredient} loading={saveMealTemplate.isPending} onClick={saveCurrentMealTemplate}>Uložiť</Button></div></div>
           </Card>
         </div>
       )}
+      {unsavedChangesDialog}
     </div>
   )
 }

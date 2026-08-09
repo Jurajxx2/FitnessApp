@@ -1,11 +1,44 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ChevronDown, ChevronUp, CircleStop, Pause, Play, Plus, Save, TimerReset, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { addSet, discardWorkout, finishWorkout, getActiveWorkout, getLastExercisePerformances, getWorkout, removeSet, saveSet } from '../../activity/api'
 import type { ExerciseLogRow, LastExercisePerformance, SetLogRow, WorkoutExerciseRow, WorkoutLogRow } from '../../activity/types'
 import { useAuth } from '../../hooks/useAuth'
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
+import { ConfirmDialog } from '../../components/ui'
 import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
+
+// Shared between the column-header row and each set row so the two can never drift
+// out of sync: whichever columns a row renders, the header mirrors exactly, at
+// every breakpoint. Both row shapes now wrap to a 2-column mobile grid (Actions
+// cell spans both columns via col-span-2) and become a single-line fixed-track
+// grid from sm: up, where there's room for every column side by side.
+//
+// The trailing Actions track is 6.5rem (was 3rem) in both sm: fixed-track
+// templates: delete (min-w-11) + complete (min-w-11) + their gap-1 need
+// 44+4+44=92px, which a 48px (3rem) track can't hold — verified by rendering the
+// pre-fix markup, where the two buttons visibly overlapped the RPE input to their
+// left.
+//
+// Timed rows used to stay on a 4-column *fixed* mobile grid
+// (grid-cols-[2.5rem_1fr_1fr_6.5rem]) even below sm:, unlike the non-timed
+// 2-column wrap. That's what caused a follow-up regression: at a 375px viewport
+// the two 1fr tracks split ~131px fixed leftover ~65.5px each, and the duration
+// track's own flex-row content (a 44px min-w-11 stopwatch button + gap-1) ate 48px
+// of that, leaving ~17.5px for the duration input itself — less than its own
+// border+padding, i.e. an unusable sliver on the exact device this file is tuned
+// for. min-w-0 on the flex/input wasn't protecting anything there: it's what let
+// the track shrink out from under the button's hard 44px floor in the first place.
+// Switching timed's mobile template to grid-cols-2 (matching non-timed) fixes it:
+// with 1 gap instead of 3 fixed tracks eating the width, each of the 2 columns
+// gets ~145.5px, so the duration column has ~97.5px left after the button+gap,
+// comfortably above the ~17.5px it had before.
+function setRowGridClass(timed: boolean) {
+  return timed
+    ? 'grid-cols-2 sm:grid-cols-[2.5rem_minmax(0,1fr)_5rem_6.5rem]'
+    : 'grid-cols-2 sm:grid-cols-[2.5rem_1fr_1fr_5rem_6.5rem]'
+}
 
 interface SetDraft {
   reps: string
@@ -37,6 +70,22 @@ export default function WorkoutSession() {
   const [notes, setNotes] = useState('')
   const [restUntil, setRestUntil] = useState<number | null>(null)
   const [restRemaining, setRestRemaining] = useState(0)
+  const [discardOpen, setDiscardOpen] = useState(false)
+  // Which set rows currently hold a typed-but-not-check-marked value, keyed by
+  // set id and reported up by each SessionSetRow. Finish/discard are deliberate
+  // exits and must never be blocked by this, regardless of what's still dirty —
+  // isDirty below is gated on finishMutation/discardMutation's own isPending/
+  // isSuccess, not a manually-managed flag.
+  const [dirtySetIds, setDirtySetIds] = useState<Set<string>>(() => new Set())
+  const handleSetDirtyChange = useCallback((setId: string, dirty: boolean) => {
+    setDirtySetIds(current => {
+      if (dirty === current.has(setId)) return current
+      const next = new Set(current)
+      if (dirty) next.add(setId)
+      else next.delete(setId)
+      return next
+    })
+  }, [])
   const activeQuery = useQuery({
     queryKey: ['activity', 'active', userId],
     queryFn: () => getActiveWorkout(userId),
@@ -73,7 +122,7 @@ export default function WorkoutSession() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['activity', 'active', userId] })
   const finishMutation = useMutation({
     mutationFn: (log: WorkoutLogRow) => finishWorkout(log, notes.trim() || null),
-    onSuccess: async (_duration, log) => {
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ['activity', 'active', userId]
@@ -82,18 +131,37 @@ export default function WorkoutSession() {
           queryKey: ['activity', 'history', userId]
         })
       ])
-      navigate(`/activity/history/${log.id}`, { replace: true })
     }
   })
   const discardMutation = useMutation({
-    mutationFn: discardWorkout,
+    mutationFn: (logId: string) => discardWorkout(userId, logId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ['activity', 'active', userId]
       })
-      navigate('/activity', { replace: true })
     }
   })
+  // Deliberate exits, deferred into effects keyed on each mutation's own
+  // isSuccess rather than called inline from onSuccess. An effect cannot run
+  // until React has committed a render that reflects its dependency, so by
+  // the time navigate() fires here, WorkoutSession has already re-rendered
+  // with isDirty computed from the now-true isSuccess below — no manual ref,
+  // no forced render needed for the guard to see it in time.
+  useEffect(() => {
+    if (finishMutation.isSuccess && finishMutation.variables) {
+      navigate(`/activity/history/${finishMutation.variables.id}`, { replace: true })
+    }
+  }, [finishMutation.isSuccess, finishMutation.variables, navigate])
+  useEffect(() => {
+    if (discardMutation.isSuccess) navigate('/activity', { replace: true })
+  }, [discardMutation.isSuccess, navigate])
+  // Neither mutation needs an onError reset: once a mutation is neither
+  // pending nor successful (a failed attempt included), isDirty below falls
+  // straight back to reflecting dirtySetIds again.
+  const isDirty = !finishMutation.isPending && !finishMutation.isSuccess
+    && !discardMutation.isPending && !discardMutation.isSuccess
+    && dirtySetIds.size > 0
+  const { blocked, confirmLeave, cancelLeave } = useUnsavedChangesGuard(isDirty)
 
   if (activeQuery.isLoading)
     return (
@@ -164,6 +232,7 @@ export default function WorkoutSession() {
               onRest={seconds => {
                 if (seconds > 0) setRestUntil(Date.now() + seconds * 1000)
               }}
+              onSetDirtyChange={handleSetDirtyChange}
             />
           )
         })}
@@ -181,9 +250,7 @@ export default function WorkoutSession() {
       <div className="sticky bottom-3 z-20 flex flex-col gap-2 rounded-2xl border border-outline bg-background/95 p-3 shadow-xl backdrop-blur sm:flex-row sm:justify-end">
         <button
           type="button"
-          onClick={() => {
-            if (window.confirm('Zahodiť tento tréning? Uložené série zostanú v zahodenom tréningu, ale nebudú sa započítavať do pokroku.')) discardMutation.mutate(active.id)
-          }}
+          onClick={() => setDiscardOpen(true)}
           disabled={discardMutation.isPending || finishMutation.isPending}
           className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-error/40 bg-error/10 px-4 text-sm font-semibold text-error disabled:opacity-40"
         >
@@ -193,11 +260,36 @@ export default function WorkoutSession() {
           <CircleStop size={18} /> {finishMutation.isPending ? 'Dokončuje sa…' : 'Ukončiť tréning'}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={discardOpen}
+        title="Zahodiť tréning?"
+        description="Uložené série zostanú v zahodenom tréningu, ale nebudú sa započítavať do pokroku."
+        confirmLabel="Zahodiť"
+        cancelLabel="Pokračovať v tréningu"
+        confirmVariant="danger"
+        pending={discardMutation.isPending}
+        onClose={() => setDiscardOpen(false)}
+        onConfirm={() => discardMutation.mutate(active.id)}
+        locale="sk"
+      />
+
+      <ConfirmDialog
+        open={blocked}
+        title="Zahodiť neuložené zmeny?"
+        description="Máš rozpracované zmeny, ktoré sa neuložili. Ak odídeš, prídeš o ne."
+        confirmLabel="Odísť"
+        cancelLabel="Zostať"
+        confirmVariant="danger"
+        onConfirm={confirmLeave}
+        onClose={cancelLeave}
+        locale="sk"
+      />
     </ActivityPage>
   )
 }
 
-function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeconds, restSeconds, lastPerformance, onChanged, onRest }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; logType: WorkoutExerciseRow['log_type']; targetSeconds: number | null; restSeconds: number; lastPerformance: LastExercisePerformance | null; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void }) {
+function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeconds, restSeconds, lastPerformance, onChanged, onRest, onSetDirtyChange }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; logType: WorkoutExerciseRow['log_type']; targetSeconds: number | null; restSeconds: number; lastPerformance: LastExercisePerformance | null; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void; onSetDirtyChange: (setId: string, dirty: boolean) => void }) {
   const [open, setOpen] = useState(true)
   // Authoritative: a plan's log_type decides timed vs. reps. Only fall back to the
   // legacy set-shape heuristic (existing duration values) when there is no plan at all.
@@ -241,12 +333,11 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
       </button>
       {open && (
         <div className="border-t border-outline-subtle px-3 pb-4 sm:px-5">
-          <div className={`hidden gap-2 py-3 ledger-label text-text-secondary sm:grid ${timed ? 'grid-cols-[2.5rem_minmax(0,1fr)_5rem_3rem]' : 'grid-cols-[2.5rem_1fr_1fr_5rem_3rem]'}`}>
+          <div className={`grid gap-2 py-3 ledger-label text-text-secondary ${setRowGridClass(timed)}`}>
             <span>Séria</span>
             <span>{timed ? 'Čas (s)' : 'Opakovania'}</span>
             {!timed && <span>Váha (kg)</span>}
             <span>RPE</span>
-            <span></span>
           </div>
           <div className="space-y-2">
             {exercise.set_logs.map(set => (
@@ -263,6 +354,7 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
                   await onChanged()
                   if (completedNow) onRest(set.target_rest_seconds ?? restSeconds)
                 }}
+                onDirtyChange={onSetDirtyChange}
               />
             ))}
           </div>
@@ -280,7 +372,7 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
   )
 }
 
-function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, deleting, onDelete, onSaved }: { set: SetLogRow; timed: boolean; targetSeconds: number | null; suggestion: LastExercisePerformance | null; canDelete: boolean; deleting: boolean; onDelete: () => void; onSaved: (completedNow: boolean) => Promise<unknown> }) {
+function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, deleting, onDelete, onSaved, onDirtyChange }: { set: SetLogRow; timed: boolean; targetSeconds: number | null; suggestion: LastExercisePerformance | null; canDelete: boolean; deleting: boolean; onDelete: () => void; onSaved: (completedNow: boolean) => Promise<unknown>; onDirtyChange: (setId: string, dirty: boolean) => void }) {
   const [draft, setDraft] = useState(() => draftFromSet(set))
   const [stopwatch, setStopwatch] = useState<{ startedAt: number; baseline: number } | null>(null)
   const payload = useMemo(
@@ -296,6 +388,24 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
     mutationFn: (completed: boolean) => saveSet(set.id, { ...payload, completed }),
     onSuccess: (_data, completed) => onSaved(completed && !set.completed)
   })
+
+  // Dirty exactly when the draft (what's typed) differs from the row's last
+  // persisted values — i.e. typed but not yet check-marked. Once a save
+  // succeeds, `set` refetches to match the draft it was saved from, so this
+  // clears itself with no extra "just saved" bookkeeping.
+  const persisted = useMemo(() => draftFromSet(set), [set])
+  const isRowDirty = draft.reps !== persisted.reps
+    || draft.weight !== persisted.weight
+    || draft.duration !== persisted.duration
+    || draft.rpe !== persisted.rpe
+
+  useEffect(() => {
+    onDirtyChange(set.id, isRowDirty)
+  }, [set.id, isRowDirty, onDirtyChange])
+
+  // Report clean on unmount (e.g. the set is deleted, or its exercise card is
+  // collapsed) so a row that disappears can't keep the whole session blocked.
+  useEffect(() => () => onDirtyChange(set.id, false), [set.id, onDirtyChange])
 
   // Wall-clock anchored count-up: each tick (and the pause itself) recomputes the
   // elapsed seconds from Date.now(), so backgrounding the tab self-corrects instead
@@ -324,7 +434,7 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
   }
 
   return (
-    <div className={`grid grid-cols-[2.5rem_1fr_1fr_3rem] gap-2 rounded-xl border p-2 ${timed ? 'sm:grid-cols-[2.5rem_minmax(0,1fr)_5rem_3rem]' : 'sm:grid-cols-[2.5rem_1fr_1fr_5rem_3rem]'} ${set.completed ? 'border-success/50 bg-success/10' : 'border-outline-subtle bg-surface'}`}>
+    <div className={`grid gap-2 rounded-xl border p-2 ${setRowGridClass(timed)} ${set.completed ? 'border-success/50 bg-success/10' : 'border-outline-subtle bg-surface'}`}>
       <span className="flex items-center justify-center text-sm font-bold text-text-secondary">{set.sort_order}</span>
       {timed ? (
         <div className="flex min-w-0 items-center gap-1">
@@ -336,13 +446,13 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
             value={draft.duration}
             placeholder={suggestion?.actual_duration_seconds != null ? String(suggestion.actual_duration_seconds) : targetSeconds ? String(targetSeconds) : undefined}
             onChange={event => setDraft(value => ({ ...value, duration: event.target.value }))}
-            className="min-w-0 flex-1 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
           />
           <button
             type="button"
             aria-label={stopwatch ? `Zastaviť časovač série ${set.sort_order}` : `Spustiť časovač série ${set.sort_order}`}
             onClick={toggleStopwatch}
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-outline bg-surface-highest text-text-primary"
+            className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-outline bg-surface-highest text-text-primary"
           >
             {stopwatch ? <Pause size={15} /> : <Play size={15} />}
           </button>
@@ -356,22 +466,20 @@ function SessionSetRow({ set, timed, targetSeconds, suggestion, canDelete, delet
           value={draft.reps}
           placeholder={String(set.target_reps ?? suggestion?.actual_reps ?? '') || undefined}
           onChange={event => setDraft(value => ({ ...value, reps: event.target.value }))}
-          className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
+          className="min-h-11 min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent"
         />
       )}
-      {timed ? (
-        <input aria-label={`Séria ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} placeholder={suggestion?.rpe?.toString()} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
-      ) : (
-        <input aria-label={`Séria ${set.sort_order} váha v kilogramoch`} type="number" min="0" step="0.5" inputMode="decimal" value={draft.weight} placeholder={suggestion?.actual_weight_kg?.toString()} onChange={event => setDraft(value => ({ ...value, weight: event.target.value }))} className="min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
+      {!timed && (
+        <input aria-label={`Séria ${set.sort_order} váha v kilogramoch`} type="number" min="0" step="0.5" inputMode="decimal" value={draft.weight} placeholder={suggestion?.actual_weight_kg?.toString()} onChange={event => setDraft(value => ({ ...value, weight: event.target.value }))} className="min-h-11 min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
       )}
-      {!timed && <input aria-label={`Séria ${set.sort_order} RPE na počítači`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} placeholder={suggestion?.rpe?.toString()} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="hidden min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent sm:block" />}
-      <div className="flex items-center justify-end gap-1">
+      <input aria-label={`Séria ${set.sort_order} RPE`} type="number" min="1" max="10" inputMode="numeric" value={draft.rpe} placeholder={suggestion?.rpe?.toString()} onChange={event => setDraft(value => ({ ...value, rpe: event.target.value }))} className="min-h-11 min-w-0 rounded-lg border border-outline bg-background px-2 py-2 text-sm text-text-primary outline-none focus:border-accent" />
+      <div className="flex items-center justify-end gap-1 col-span-2 sm:col-span-1">
         {canDelete && !set.completed && (
-          <button type="button" aria-label={`Odstrániť sériu ${set.sort_order}`} onClick={onDelete} disabled={deleting} className="hidden cursor-pointer border-0 bg-transparent p-1 text-text-secondary hover:text-error sm:block">
+          <button type="button" aria-label={`Odstrániť sériu ${set.sort_order}`} onClick={onDelete} disabled={deleting} className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center border-0 bg-transparent text-text-secondary hover:text-error">
             <Trash2 size={15} />
           </button>
         )}
-        <button type="button" aria-label={set.completed ? `Označiť sériu ${set.sort_order} ako nedokončenú` : `Dokončiť sériu ${set.sort_order}`} onClick={() => saveMutation.mutate(!set.completed)} disabled={saveMutation.isPending} className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border ${set.completed ? 'border-success bg-success text-white' : 'border-outline bg-surface-highest text-text-primary'}`}>
+        <button type="button" aria-label={set.completed ? `Označiť sériu ${set.sort_order} ako nedokončenú` : `Dokončiť sériu ${set.sort_order}`} onClick={() => saveMutation.mutate(!set.completed)} disabled={saveMutation.isPending} className={`flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border ${set.completed ? 'border-success bg-success text-white' : 'border-outline bg-surface-highest text-text-primary'}`}>
           {saveMutation.isPending ? <Save size={15} /> : <Check size={17} />}
         </button>
       </div>

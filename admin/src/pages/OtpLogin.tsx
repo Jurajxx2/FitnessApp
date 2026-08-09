@@ -6,7 +6,7 @@ import { Button, Input } from '../components/ui'
 import { supabase } from '../lib/supabase'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
-const copy = {
+export const copy = {
   en: {
     back: 'Back to password login',
     title: 'Login with a one-time code',
@@ -22,6 +22,14 @@ const copy = {
     email: 'E-mailová adresa',
     submit: 'Poslat přihlašovací kód',
     genericError: 'Kód se nepodařilo odeslat. Zkuste to prosím znovu.',
+  },
+  sk: {
+    back: 'Späť na prihlásenie heslom',
+    title: 'Prihlásenie jednorazovým kódom',
+    intro: 'Zadaj e-mail prepojený s tvojím účtom Coach Foska. Pošleme ti šesťmiestny kód.',
+    email: 'E-mailová adresa',
+    submit: 'Odoslať prihlasovací kód',
+    genericError: 'Kód sa nepodarilo odoslať. Skús to, prosím, znova.',
   },
 } as const
 

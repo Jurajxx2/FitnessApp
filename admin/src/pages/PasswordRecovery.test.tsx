@@ -2,8 +2,8 @@ import { beforeEach, expect, test, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import ForgotPassword from './ForgotPassword'
-import ResetPassword from './ResetPassword'
+import ForgotPassword, { copy as forgotPasswordCopy } from './ForgotPassword'
+import ResetPassword, { copy as resetPasswordCopy } from './ResetPassword'
 
 const { mockResetPasswordForEmail, mockUpdateUser, authState } = vi.hoisted(() => ({
   mockResetPasswordForEmail: vi.fn(),
@@ -57,4 +57,12 @@ test('rejects mismatched passwords without calling Supabase', async () => {
 
   expect(screen.getByRole('alert')).toHaveTextContent(/do not match/i)
   expect(mockUpdateUser).not.toHaveBeenCalled()
+})
+
+test('ForgotPassword sk and cs copy expose the same key set', () => {
+  expect(Object.keys(forgotPasswordCopy.sk).sort()).toEqual(Object.keys(forgotPasswordCopy.cs).sort())
+})
+
+test('ResetPassword sk and cs copy expose the same key set', () => {
+  expect(Object.keys(resetPasswordCopy.sk).sort()).toEqual(Object.keys(resetPasswordCopy.cs).sort())
 })

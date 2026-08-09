@@ -38,11 +38,11 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <NoticeProvider>
-        <MemoryRouter initialEntries={['/admin/workouts/new']}>
+      <MemoryRouter initialEntries={['/admin/workouts/new']}>
+        <NoticeProvider>
           <WorkoutEditor />
-        </MemoryRouter>
-      </NoticeProvider>
+        </NoticeProvider>
+      </MemoryRouter>
     </QueryClientProvider>
   )
 }

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -99,7 +100,7 @@ export function AthleteAppShell() {
           </div>
         </div>
 
-        <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
+        <nav aria-label="Hlavná navigácia" className="flex flex-1 flex-col gap-1 px-3 py-5">
           <p className="mb-2 px-3 ledger-label text-text-secondary">Tvoj koučing</p>
           {visibleNav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
@@ -188,11 +189,21 @@ export function AthleteAppShell() {
 
         <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
           <div className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-            <AthletePageTransition />
+            {/*
+              A Slovak boundary for the athlete surface: React resolves a suspending lazy
+              route to the nearest Suspense above it, so this one catches athlete page
+              chunks before they'd otherwise fall through to RootLayout's English
+              "Loading workspace…" fallback. AthleteAppShell and AthleteRouteGuard are both
+              static imports (verified — neither is wrapped in lazy()), so nothing suspends
+              on the way here; the first thing that can suspend is the routed page itself.
+            */}
+            <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center text-sm text-text-secondary">Načítavam…</div>}>
+              <AthletePageTransition />
+            </Suspense>
           </div>
         </main>
 
-        <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-outline-subtle bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        <nav aria-label="Hlavná navigácia" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-outline-subtle bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
           {visibleNav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
