@@ -45,6 +45,21 @@ const { ACTIVE_LOG, WORKOUT_ROW, saveSet, getActiveWorkout, getWorkout, discardW
     rest_seconds: 60,
     tips: null,
     sort_order: 1,
+    exercise: {
+      id: 'ex-1',
+      name_en: 'Plank',
+      name_cs: 'Doska',
+      description_en: 'Keep a straight line from shoulders to heels.',
+      description_cs: 'Drž rovnú líniu od ramien po päty.',
+      image_url: 'https://example.com/plank.jpg',
+      image_url_2: null,
+      video_url: 'https://example.com/plank-video',
+      difficulty: 'beginner',
+      primary_muscles: ['core'],
+      secondary_muscles: ['shoulders'],
+      equipment_names: [],
+      exercise_categories: null,
+    },
   }
 
   // Bench Press's plan `log_type` is 'weight_reps', but its reps text ("30 sec hold")
@@ -243,6 +258,21 @@ describe('WorkoutSession touch target sizing', () => {
 
     const completeButton = screen.getByLabelText('Dokončiť sériu 1')
     expect(completeButton.parentElement?.className).toMatch(/\bcol-span-2\b/)
+  })
+})
+
+describe('WorkoutSession exercise guidance', () => {
+  it('opens exercise technique and media without navigating away from the active session', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Zobraziť detail cviku Plank' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Plank' })
+    expect(within(dialog).getByText('Technika cviku')).toBeInTheDocument()
+    expect(within(dialog).getByText('Drž rovnú líniu od ramien po päty.')).toBeInTheDocument()
+    expect(within(dialog).getByRole('link', { name: 'Pozrieť video ukážku' })).toHaveAttribute('href', 'https://example.com/plank-video')
+    expect(screen.getByLabelText('Séria 1 trvanie v sekundách')).toBeInTheDocument()
   })
 })
 

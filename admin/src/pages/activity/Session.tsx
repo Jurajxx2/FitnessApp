@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, ChevronDown, ChevronUp, CircleStop, Pause, Play, Plus, Save, TimerReset, Trash2, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, CircleStop, Info, Pause, Play, PlayCircle, Plus, Save, TimerReset, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { addSet, discardWorkout, finishWorkout, getActiveWorkout, getLastExercisePerformances, getWorkout, removeSet, saveSet } from '../../activity/api'
-import type { ExerciseLogRow, LastExercisePerformance, SetLogRow, WorkoutExerciseRow, WorkoutLogRow } from '../../activity/types'
+import type { ExerciseLogRow, ExerciseSummary, LastExercisePerformance, SetLogRow, WorkoutExerciseRow, WorkoutLogRow } from '../../activity/types'
 import { useAuth } from '../../hooks/useAuth'
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
-import { ConfirmDialog } from '../../components/ui'
-import { ActivityPage, ErrorBlock, LoadingBlock, PageIntro } from './shared'
+import { ConfirmDialog, SlideOver } from '../../components/ui'
+import { ActivityPage, ErrorBlock, ExerciseVisual, LoadingBlock, PageIntro } from './shared'
 
 // Shared between the column-header row and each set row so the two can never drift
 // out of sync: whichever columns a row renders, the header mirrors exactly, at
@@ -187,7 +187,9 @@ export default function WorkoutSession() {
   }
 
   const active = activeQuery.data
-  const targetByName = new Map((workoutQuery.data?.workout_exercises ?? []).map(exercise => [exercise.name, exercise]))
+  const workoutExercises = workoutQuery.data?.workout_exercises ?? []
+  const targetByName = new Map(workoutExercises.map(exercise => [exercise.name, exercise]))
+  const targetByExerciseId = new Map(workoutExercises.flatMap(exercise => exercise.exercise_id ? [[exercise.exercise_id, exercise] as const] : []))
   const setCount = active.exercise_logs.reduce((total, exercise) => total + exercise.set_logs.length, 0)
   const completeCount = active.exercise_logs.reduce((total, exercise) => total + exercise.set_logs.filter(set => set.completed).length, 0)
 
@@ -217,7 +219,8 @@ export default function WorkoutSession() {
 
       <div className="space-y-4">
         {active.exercise_logs.map((exercise, index) => {
-          const target = targetByName.get(exercise.exercise_name)
+          const target = (exercise.exercise_id ? targetByExerciseId.get(exercise.exercise_id) : null)
+            ?? targetByName.get(exercise.exercise_name)
           return (
             <ExerciseSessionCard
               key={exercise.id}
@@ -227,6 +230,8 @@ export default function WorkoutSession() {
               logType={target?.log_type ?? null}
               targetSeconds={target?.target_duration_seconds ?? null}
               restSeconds={target?.rest_seconds ?? exercise.set_logs[0]?.target_rest_seconds ?? 0}
+              exerciseDetail={target?.exercise ?? null}
+              tips={target?.tips ?? null}
               lastPerformance={exercise.exercise_id ? performanceQuery.data?.[exercise.exercise_id] ?? null : null}
               onChanged={refresh}
               onRest={seconds => {
@@ -289,8 +294,9 @@ export default function WorkoutSession() {
   )
 }
 
-function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeconds, restSeconds, lastPerformance, onChanged, onRest, onSetDirtyChange }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; logType: WorkoutExerciseRow['log_type']; targetSeconds: number | null; restSeconds: number; lastPerformance: LastExercisePerformance | null; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void; onSetDirtyChange: (setId: string, dirty: boolean) => void }) {
+function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeconds, restSeconds, exerciseDetail, tips, lastPerformance, onChanged, onRest, onSetDirtyChange }: { exercise: ExerciseLogRow; index: number; targetLabel: string | null; logType: WorkoutExerciseRow['log_type']; targetSeconds: number | null; restSeconds: number; exerciseDetail: ExerciseSummary | null; tips: string | null; lastPerformance: LastExercisePerformance | null; onChanged: () => Promise<unknown>; onRest: (seconds: number) => void; onSetDirtyChange: (setId: string, dirty: boolean) => void }) {
   const [open, setOpen] = useState(true)
+  const [detailOpen, setDetailOpen] = useState(false)
   // Authoritative: a plan's log_type decides timed vs. reps. Only fall back to the
   // legacy set-shape heuristic (existing duration values) when there is no plan at all.
   const timed = logType === 'time' || (logType == null && exercise.set_logs.some(set => set.actual_duration_seconds != null))
@@ -333,6 +339,16 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
       </button>
       {open && (
         <div className="border-t border-outline-subtle px-3 pb-4 sm:px-5">
+          <div className="flex justify-end pt-3">
+            <button
+              type="button"
+              onClick={() => setDetailOpen(true)}
+              aria-label={`Zobraziť detail cviku ${exercise.exercise_name}`}
+              className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-outline bg-surface px-3 text-sm font-semibold text-text-primary hover:bg-surface-highest"
+            >
+              <Info size={16} /> Ako cvičiť
+            </button>
+          </div>
           <div className={`grid gap-2 py-3 ledger-label text-text-secondary ${setRowGridClass(timed)}`}>
             <span>Séria</span>
             <span>{timed ? 'Čas (s)' : 'Opakovania'}</span>
@@ -368,6 +384,43 @@ function ExerciseSessionCard({ exercise, index, targetLabel, logType, targetSeco
           )}
         </div>
       )}
+      {detailOpen && <SlideOver open onClose={() => setDetailOpen(false)} title={exercise.exercise_name} locale="sk">
+        <ExerciseVisual exercise={exerciseDetail} name={exercise.exercise_name} className="aspect-[4/3] w-full rounded-2xl" />
+        {tips && (
+          <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-4">
+            <p className="ledger-label text-text-secondary">Pokyny trénera</p>
+            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-text-primary">{tips}</p>
+          </div>
+        )}
+        {(exerciseDetail?.description_cs || exerciseDetail?.description_en) && (
+          <div className="mt-5">
+            <h3 className="font-display text-lg font-bold text-text-primary">Technika cviku</h3>
+            <p className="mt-2 whitespace-pre-line text-sm leading-7 text-text-secondary">
+              {exerciseDetail.description_cs || exerciseDetail.description_en}
+            </p>
+          </div>
+        )}
+        {exerciseDetail && (
+          <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <dt className="ledger-label text-text-secondary">Vybavenie</dt>
+              <dd className="mt-1 text-text-primary">{exerciseDetail.equipment_names.join(', ') || 'Žiadne'}</dd>
+            </div>
+            <div>
+              <dt className="ledger-label text-text-secondary">Hlavné svaly</dt>
+              <dd className="mt-1 text-text-primary">{exerciseDetail.primary_muscles.join(', ') || 'Neuvedené'}</dd>
+            </div>
+          </dl>
+        )}
+        {!exerciseDetail && !tips && (
+          <p className="mt-5 text-sm leading-6 text-text-secondary">K tomuto cviku zatiaľ nie sú uložené technické pokyny ani ukážka.</p>
+        )}
+        {exerciseDetail?.video_url && (
+          <a href={exerciseDetail.video_url} target="_blank" rel="noreferrer" className="mt-6 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-text-accent">
+            <PlayCircle size={18} /> Pozrieť video ukážku
+          </a>
+        )}
+      </SlideOver>}
     </section>
   )
 }

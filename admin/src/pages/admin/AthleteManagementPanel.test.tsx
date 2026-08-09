@@ -197,6 +197,21 @@ describe('AthleteManagementPanel', () => {
     expect(upsertPreferences).not.toHaveBeenCalled()
   })
 
+  it('saves explicit target tolerances in the new versioned nutrition target', async () => {
+    renderPanel()
+
+    fireEvent.change(screen.getByLabelText('Protein tolerance (%)'), { target: { value: '12.5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(insertNutritionTargets).toHaveBeenCalledTimes(1))
+    expect(insertNutritionTargets).toHaveBeenCalledWith(expect.objectContaining({
+      calorie_tol_pct: 5,
+      protein_tol_pct: 12.5,
+      carbs_tol_pct: 5,
+      fat_tol_pct: 5,
+    }))
+  })
+
   it('never inserts a new nutrition_targets version when the macros section is untouched', async () => {
     renderPanel()
 
@@ -294,6 +309,15 @@ describe('AthleteManagementPanel', () => {
     fireEvent.change(screen.getByLabelText('Calories'), { target: { value: '2200' } })
     expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled()
     expect(screen.queryByText(/Calories must be greater than 0/)).not.toBeInTheDocument()
+  })
+
+  it('rejects a tolerance outside the database 0–100 percent constraint', () => {
+    renderPanel()
+
+    fireEvent.change(screen.getByLabelText('Carbs tolerance (%)'), { target: { value: '101' } })
+
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+    expect(screen.getByText(/every tolerance must be between 0% and 100%/)).toBeInTheDocument()
   })
 
   it('does not show the macros explanation when a different section is dirty', () => {

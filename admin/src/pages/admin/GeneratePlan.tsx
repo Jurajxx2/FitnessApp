@@ -83,6 +83,24 @@ function deltaChip(value: number, target: number, withinDayTolerance: boolean) {
   )
 }
 
+function failedMacroTolerances(totals: GeneratedPlan['days'][number]['totals'], target: GeneratorTarget): string[] {
+  const checks = [
+    { label: 'Calories', value: totals.calories, target: target.calories, tolerance: target.calorie_tol_pct, suffix: ' kcal' },
+    { label: 'Protein', value: totals.protein_g, target: target.protein_g, tolerance: target.protein_tol_pct, suffix: 'g' },
+    { label: 'Carbs', value: totals.carbs_g, target: target.carbs_g, tolerance: target.carbs_tol_pct, suffix: 'g' },
+    { label: 'Fat', value: totals.fat_g, target: target.fat_g, tolerance: target.fat_tol_pct, suffix: 'g' },
+  ]
+  return checks.flatMap(check => {
+    const within = check.target === 0
+      ? check.value === 0
+      : Math.abs(check.value - check.target) / Math.abs(check.target) <= check.tolerance / 100 + Number.EPSILON
+    if (within) return []
+    if (check.target === 0) return [`${check.label} ${Math.round(check.value)}${check.suffix} (target 0${check.suffix})`]
+    const delta = Math.round(((check.value - check.target) / check.target) * 100)
+    return [`${check.label} ${delta >= 0 ? '+' : ''}${delta}% (allowed ±${check.tolerance}%)`]
+  })
+}
+
 export default function GeneratePlan() {
   const { id: previewPlanId } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
@@ -519,8 +537,9 @@ export default function GeneratePlan() {
 
       {plan && (
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]">
-          {plan.days.map(day => (
-            <Card key={day.dayOfWeek} className="p-3">
+          {plan.days.map(day => {
+            const toleranceFailures = failedMacroTolerances(day.totals, target)
+            return <Card key={day.dayOfWeek} className="p-3">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-wider text-text-secondary">{DAY_SHORTS[day.dayOfWeek]}</p>
                 {deltaChip(day.totals.calories, target.calories, isWithinTargetTolerances(day.totals, target))}
@@ -545,8 +564,13 @@ export default function GeneratePlan() {
               <div className="mt-2 border-t border-outline-subtle pt-2 text-[11px] text-text-secondary">
                 {Math.round(day.totals.calories)} kcal · P {Math.round(day.totals.protein_g)}g · C {Math.round(day.totals.carbs_g)}g · F {Math.round(day.totals.fat_g)}g
               </div>
+              {toleranceFailures.length > 0 && (
+                <p className="mt-2 text-[11px] leading-4 text-error">
+                  Outside: {toleranceFailures.join(' · ')}
+                </p>
+              )}
             </Card>
-          ))}
+          })}
         </div>
       )}
 
