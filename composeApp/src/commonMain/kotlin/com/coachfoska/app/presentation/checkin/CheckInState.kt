@@ -18,7 +18,7 @@ data class CheckInForm(
 data class CheckInState(
     val isLoading: Boolean = false,
     val isSubmitting: Boolean = false,
-    val isUploadingPhoto: Boolean = false,
+    val selectedPhotoSlots: Set<String> = emptySet(),
     val form: CheckInForm = CheckInForm(),
     val history: List<CheckIn> = emptyList(),
     val submitted: Boolean = false,

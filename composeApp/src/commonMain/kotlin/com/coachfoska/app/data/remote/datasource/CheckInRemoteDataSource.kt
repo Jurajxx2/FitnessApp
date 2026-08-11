@@ -6,6 +6,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
+import io.ktor.http.ContentType
 import kotlin.time.Duration.Companion.hours
 
 class CheckInRemoteDataSource(private val supabase: SupabaseClient) {
@@ -45,8 +46,15 @@ class CheckInRemoteDataSource(private val supabase: SupabaseClient) {
     /** Uploads bytes to {userId}/checkin_{weekOf}_{slot}.jpg and returns the object PATH. */
     suspend fun uploadPhoto(userId: String, weekOf: String, slot: String, bytes: ByteArray): String {
         val path = "$userId/checkin_${weekOf}_$slot.jpg"
-        supabase.storage.from(BUCKET).upload(path, bytes) { upsert = true }
+        supabase.storage.from(BUCKET).upload(path, bytes) {
+            upsert = true
+            contentType = ContentType.Image.JPEG
+        }
         return path
+    }
+
+    suspend fun removePhotos(paths: List<String>) {
+        if (paths.isNotEmpty()) supabase.storage.from(BUCKET).delete(paths)
     }
 
     suspend fun signedPhotoUrl(path: String): String =
