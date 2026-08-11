@@ -11,9 +11,9 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { LocaleSwitcher } from '../components/LocaleSwitcher'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth, useAuthAssurance } from '../hooks/useAuth'
 import { usePublicLocale } from '../i18n/PublicLocale'
-import { athleteHomePath } from '../lib/access'
+import { postAuthDestination } from '../lib/authDestination'
 
 export const copy = {
   en: {
@@ -180,10 +180,14 @@ const reveal = {
 export default function Landing() {
   const { locale } = usePublicLocale()
   const t = copy[locale]
-  const { session, isAdmin, isLoading, profile } = useAuth()
-  const appPath = isAdmin ? '/admin' : athleteHomePath(profile)
+  const { session, isLoading, profile } = useAuth()
+  const assurance = useAuthAssurance()
+  const appPath = postAuthDestination(profile, {
+    currentLevel: assurance.currentLevel,
+    error: assurance.error,
+  })
 
-  if (isLoading) {
+  if (isLoading || assurance.isLoading) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-text-secondary">
         {t.loading}
