@@ -1,0 +1,4 @@
+project_id = "coach-foska"
+
+[functions.weekly-checkin-reminder]
+verify_jwt = false
