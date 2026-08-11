@@ -2,7 +2,8 @@ import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
 import type { CheckInRow } from '../types/database'
 
-const PHOTO_BUCKET = 'check-in-photos'
+const MAX_CHECK_IN_PHOTO_BYTES = 8 * 1024 * 1024
+const ALLOWED_CHECK_IN_PHOTO_TYPES = new Set(['image/jpeg', 'image/png'])
 
 export const checkInKeys = {
   all: (userId: string) => ['check-ins', userId] as const,
@@ -74,17 +75,31 @@ export async function fetchCheckInForWeek(userId: string, weekOf: string): Promi
 }
 
 export async function uploadCheckInPhoto(
-  userId: string,
   weekOf: string,
   slot: 'front' | 'side',
   file: File,
 ): Promise<string> {
-  const path = `${userId}/checkin_${weekOf}_${slot}.jpg`
-  const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, {
-    upsert: true,
-    contentType: file.type || 'image/jpeg',
+  if (file.size === 0 || file.size > MAX_CHECK_IN_PHOTO_BYTES) {
+    throw new Error('Check-in photo must be between 1 byte and 8 MB')
+  }
+  if (!ALLOWED_CHECK_IN_PHOTO_TYPES.has(file.type)) {
+    throw new Error('Check-in photo must be a JPEG or PNG image')
+  }
+
+  // The function validates the actual bytes, derives the owner from the JWT,
+  // strips metadata, and performs the service-role write after reserving quota.
+  const { data, error } = await supabase.functions.invoke('check-in-photo-upload', {
+    body: file,
+    headers: {
+      'x-check-in-week': weekOf,
+      'x-check-in-slot': slot,
+    },
   })
   if (error) throw error
+  const path = (data as { path?: unknown } | null)?.path
+  if (typeof path !== 'string' || path.length === 0) {
+    throw new Error('Check-in photo upload returned an invalid response')
+  }
   return path
 }
 

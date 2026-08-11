@@ -81,6 +81,8 @@ describe('App route table (createBrowserRouter migration)', () => {
       user: {} as any,
       profile: {} as any,
       isAdmin: true,
+      assuranceLevel: 'aal2',
+      nextAssuranceLevel: 'aal2',
       isLoading: false,
       refreshProfile: vi.fn(),
     })

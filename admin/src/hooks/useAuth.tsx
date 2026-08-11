@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import type { Session, User } from '@supabase/supabase-js'
+import type { AuthenticatorAssuranceLevels, Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
 import type { Profile } from '../types/database'
@@ -9,6 +9,8 @@ interface AuthState {
   user: User | null
   profile: Profile | null
   isAdmin: boolean
+  assuranceLevel?: AuthenticatorAssuranceLevels | null
+  nextAssuranceLevel?: AuthenticatorAssuranceLevels | null
   isLoading: boolean
 }
 
@@ -21,6 +23,8 @@ const initialState: AuthState = {
   user: null,
   profile: null,
   isAdmin: false,
+  assuranceLevel: null,
+  nextAssuranceLevel: null,
   isLoading: true,
 }
 
@@ -67,17 +71,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const profile = await fetchProfile(session.user.id)
+        const [profile, assurance] = await Promise.all([
+          fetchProfile(session.user.id),
+          supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+        ])
+        if (assurance.error) throw assurance.error
         if (!active || currentResolution !== resolutionId) return
 
         const isAdmin = profile?.is_admin ?? false
-        setState({ session, user: session.user, profile, isAdmin, isLoading: false })
+        setState({
+          session,
+          user: session.user,
+          profile,
+          isAdmin,
+          assuranceLevel: assurance.data.currentLevel,
+          nextAssuranceLevel: assurance.data.nextLevel,
+          isLoading: false,
+        })
         logger.info('Admin session resolved', { isAdmin })
       } catch (err) {
         if (!active || currentResolution !== resolutionId) return
         logger.error('AuthProvider: error in resolveSession', err)
         // Preserve the authenticated identity, but fail closed for admin access.
-        setState({ session, user: session.user, profile: null, isAdmin: false, isLoading: false })
+        setState({
+          session,
+          user: session.user,
+          profile: null,
+          isAdmin: false,
+          assuranceLevel: null,
+          nextAssuranceLevel: null,
+          isLoading: false,
+        })
       }
     }
 

@@ -31,10 +31,9 @@ export function useCurrentCheckIn() {
 }
 
 export function useUploadCheckInPhoto() {
-  const { user } = useAuth()
   return useMutation({
     mutationFn: ({ slot, file }: { slot: 'front' | 'side'; file: File }) =>
-      uploadCheckInPhoto(user!.id, currentWeekMondayIso(), slot, file),
+      uploadCheckInPhoto(currentWeekMondayIso(), slot, file),
   })
 }
 

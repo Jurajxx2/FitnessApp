@@ -9,7 +9,7 @@ import com.coachfoska.app.domain.usecase.checkin.GetCurrentWeekCheckInUseCase
 import com.coachfoska.app.domain.usecase.checkin.SubmitCheckInUseCase
 import com.coachfoska.app.domain.usecase.checkin.UploadCheckInPhotoUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

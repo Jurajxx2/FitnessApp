@@ -12,4 +12,4 @@ actual fun rememberVideoCaptureLauncher(onResult: (String?) -> Unit): () -> Unit
 actual fun rememberGalleryPickerLauncher(mode: MediaCaptureMode, onResult: (String?) -> Unit): () -> Unit = { onResult(null) }
 
 @Composable
-actual fun rememberUriBytesReader(): (String) -> ByteArray? = { null }
+actual fun rememberUriBytesReader(maxBytes: Int?): (String) -> ByteArray? = { null }

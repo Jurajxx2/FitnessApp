@@ -104,7 +104,7 @@ private fun CheckInFormContent(
     onIntent: (CheckInIntent) -> Unit,
 ) {
     val form = state.form
-    val readBytes = rememberUriBytesReader()
+    val readBytes = rememberUriBytesReader(maxBytes = 8 * 1024 * 1024)
     val pickFront = rememberGalleryPickerLauncher(MediaCaptureMode.PHOTO) { uri ->
         uri?.let { readBytes(it)?.let { bytes -> onIntent(CheckInIntent.PhotoPicked("front", bytes)) } }
     }

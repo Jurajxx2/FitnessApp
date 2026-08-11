@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from './hooks/useTheme'
 import { AuthProvider } from './hooks/useAuth'
 import { queryClient } from './lib/queryClient'
-import { AdminRouteGuard } from './components/RouteGuard'
+import { AdminRouteGuard, AdminSecurityRouteGuard } from './components/RouteGuard'
 import { AdminLayout } from './components/AdminLayout'
 import { AthleteRouteGuard } from './components/AthleteRouteGuard'
 import { AthleteAppShell } from './components/AthleteAppShell'
@@ -20,6 +20,8 @@ const OtpLogin = lazy(() => import('./pages/OtpLogin'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Callback = lazy(() => import('./pages/Callback'))
+const MfaChallenge = lazy(() => import('./pages/MfaChallenge'))
+const AdminSecurity = lazy(() => import('./pages/admin/Security'))
 const NotAdmin = lazy(() => import('./pages/NotAdmin'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -93,8 +95,12 @@ export const appRoutes = createRoutesFromElements(
     <Route path="/auth" element={<Navigate to="/login" replace />} />
     <Route path="/auth/verify" element={<Navigate to="/login/verify" replace />} />
     <Route path="/auth/callback" element={<Callback />} />
+    <Route path="/login/mfa" element={<MfaChallenge />} />
     <Route path="/verify" element={<Navigate to="/login/verify" replace />} />
     <Route path="/403" element={<NotAdmin />} />
+    <Route element={<AdminSecurityRouteGuard />}>
+      <Route path="/admin/security" element={<AdminSecurity />} />
+    </Route>
     <Route element={<AthleteRouteGuard />}>
       <Route element={<AthleteAppShell />}>
         <Route path="/nutrition" element={<NutritionHub />} />

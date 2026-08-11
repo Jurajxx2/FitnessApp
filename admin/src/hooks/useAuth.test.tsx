@@ -2,21 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useAuth, AuthProvider } from './useAuth'
 
-const { mockGetSession, mockSingle, mockFrom } = vi.hoisted(() => {
+const { mockGetSession, mockGetAssuranceLevel, mockSingle, mockFrom } = vi.hoisted(() => {
   const mockGetSession = vi.fn()
+  const mockGetAssuranceLevel = vi.fn()
   const mockSingle = vi.fn()
   const mockFrom = vi.fn(() => ({
     select: vi.fn(() => ({
       eq: vi.fn(() => ({ single: mockSingle })),
     })),
   }))
-  return { mockGetSession, mockSingle, mockFrom }
+  return { mockGetSession, mockGetAssuranceLevel, mockSingle, mockFrom }
 })
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: mockGetSession,
+      mfa: { getAuthenticatorAssuranceLevel: mockGetAssuranceLevel },
       onAuthStateChange: vi.fn().mockReturnValue({
         data: { subscription: { unsubscribe: vi.fn() } },
       }),
@@ -29,6 +31,7 @@ describe('useAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetSession.mockResolvedValue({ data: { session: null } })
+    mockGetAssuranceLevel.mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal1' }, error: null })
   })
 
   it('starts in loading state', async () => {
@@ -58,6 +61,7 @@ describe('useAuth', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.session).toBe(session)
     expect(result.current.isAdmin).toBe(true)
+    expect(result.current.assuranceLevel).toBe('aal1')
   })
 
   it('keeps the session but fails closed when the admin profile cannot be read', async () => {

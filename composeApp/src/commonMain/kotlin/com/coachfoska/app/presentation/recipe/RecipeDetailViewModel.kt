@@ -7,7 +7,7 @@ import com.coachfoska.app.domain.repository.MealRepository
 import com.coachfoska.app.domain.usecase.nutrition.GetFavoriteRecipeIdsUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.recipe.ScaleRecipeUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

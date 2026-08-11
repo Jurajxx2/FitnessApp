@@ -11,17 +11,44 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
 
 @Composable
-actual fun rememberUriBytesReader(): (String) -> ByteArray? {
+actual fun rememberUriBytesReader(maxBytes: Int?): (String) -> ByteArray? {
+    require(maxBytes == null || maxBytes > 0) { "maxBytes must be positive" }
     val context = LocalContext.current
     return { uriString ->
         runCatching {
             val uri = Uri.parse(uriString)
-            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            if (maxBytes != null) {
+                val declaredLength = context.contentResolver.openAssetFileDescriptor(uri, "r")
+                    ?.use { it.length }
+                if (declaredLength != null && declaredLength >= 0 && declaredLength > maxBytes) {
+                    return@runCatching null
+                }
+            }
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                if (maxBytes == null) input.readBytes() else input.readBytesUpTo(maxBytes)
+            }
         }.getOrNull()
     }
+}
+
+private fun InputStream.readBytesUpTo(maxBytes: Int): ByteArray? {
+    val output = ByteArrayOutputStream(minOf(maxBytes, DEFAULT_BUFFER_SIZE))
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    var total = 0
+    while (true) {
+        val count = read(buffer)
+        if (count < 0) break
+        if (count == 0) continue
+        if (total > maxBytes - count) return null
+        output.write(buffer, 0, count)
+        total += count
+    }
+    return output.toByteArray()
 }
 
 private fun createTempPhotoUri(context: Context): Uri {

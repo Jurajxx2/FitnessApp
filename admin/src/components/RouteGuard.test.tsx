@@ -103,7 +103,7 @@ describe('AdminRouteGuard', () => {
   })
 
   it('renders children when admin', () => {
-    mockUseAuth.mockReturnValue({ session: {} as any, user: {} as any, profile: {} as any, isAdmin: true, isLoading: false, refreshProfile: vi.fn() })
+    mockUseAuth.mockReturnValue({ session: {} as any, user: {} as any, profile: {} as any, isAdmin: true, assuranceLevel: 'aal2', nextAssuranceLevel: 'aal2', isLoading: false, refreshProfile: vi.fn() })
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
@@ -114,5 +114,55 @@ describe('AdminRouteGuard', () => {
       </MemoryRouter>
     )
     expect(screen.getByText('Admin content')).toBeInTheDocument()
+  })
+
+  it('sends an aal1 admin with a verified factor to the MFA challenge', () => {
+    mockUseAuth.mockReturnValue({
+      session: {} as any,
+      user: {} as any,
+      profile: {} as any,
+      isAdmin: true,
+      assuranceLevel: 'aal1',
+      nextAssuranceLevel: 'aal2',
+      isLoading: false,
+      refreshProfile: vi.fn(),
+    })
+    render(
+      <MemoryRouter initialEntries={['/admin/users?filter=active']}>
+        <Routes>
+          <Route path="/login/mfa" element={<div>MFA challenge</div>} />
+          <Route element={<AdminRouteGuard />}>
+            <Route path="/admin/users" element={<div>Admin content</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    )
+    expect(screen.getByText('MFA challenge')).toBeInTheDocument()
+    expect(screen.queryByText('Admin content')).not.toBeInTheDocument()
+  })
+
+  it('sends an aal1 admin without a verified factor to enrollment', () => {
+    mockUseAuth.mockReturnValue({
+      session: {} as any,
+      user: {} as any,
+      profile: {} as any,
+      isAdmin: true,
+      assuranceLevel: 'aal1',
+      nextAssuranceLevel: 'aal1',
+      isLoading: false,
+      refreshProfile: vi.fn(),
+    })
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <Routes>
+          <Route path="/admin/security" element={<div>MFA enrollment</div>} />
+          <Route element={<AdminRouteGuard />}>
+            <Route path="/admin" element={<div>Admin content</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    )
+    expect(screen.getByText('MFA enrollment')).toBeInTheDocument()
+    expect(screen.queryByText('Admin content')).not.toBeInTheDocument()
   })
 })

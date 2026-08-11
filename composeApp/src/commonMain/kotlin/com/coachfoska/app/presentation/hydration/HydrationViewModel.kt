@@ -11,7 +11,7 @@ import com.coachfoska.app.domain.usecase.hydration.DeleteWaterContainerUseCase
 import com.coachfoska.app.domain.usecase.hydration.GetWaterContainersUseCase
 import com.coachfoska.app.domain.usecase.hydration.ToggleFavoriteWaterContainerUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,7 +42,7 @@ class HydrationViewModel(
     }
 
     fun onIntent(intent: HydrationIntent) {
-        Napier.d("onIntent: $intent", tag = TAG)
+        Napier.d("Intent received: ${intent::class.simpleName}", tag = TAG)
         when (intent) {
             HydrationIntent.LoadData -> loadData()
             is HydrationIntent.LogWater -> logWater(intent.amountMl)
