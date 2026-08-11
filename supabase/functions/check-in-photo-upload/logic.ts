@@ -1,4 +1,4 @@
-export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 export const MAX_IMAGE_DIMENSION = 12_000;
 
 export type CheckInPhotoSlot = "front" | "side";

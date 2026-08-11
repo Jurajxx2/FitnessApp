@@ -78,7 +78,7 @@ serve(async (req) => {
 
   const declaredLength = Number(req.headers.get("content-length") ?? 0);
   if (Number.isFinite(declaredLength) && declaredLength > MAX_UPLOAD_BYTES) {
-    return error("PAYLOAD_TOO_LARGE", "Photo must be no larger than 8 MB", 413);
+    return error("PAYLOAD_TOO_LARGE", "Photo must be no larger than 5 MB", 413);
   }
   const slot = parseSlot(req.headers.get("x-check-in-slot"));
   const week = req.headers.get("x-check-in-week");
@@ -232,7 +232,7 @@ serve(async (req) => {
     if (caught instanceof PayloadTooLargeError) {
       return error(
         "PAYLOAD_TOO_LARGE",
-        "Photo must be no larger than 8 MB",
+        "Photo must be no larger than 5 MB",
         413,
       );
     }

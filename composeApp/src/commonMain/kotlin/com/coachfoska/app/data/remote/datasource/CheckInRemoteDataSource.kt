@@ -90,7 +90,7 @@ class CheckInRemoteDataSource(
                 400 -> "Photo must be a valid current-week JPEG"
                 401 -> "Please sign in again before uploading a photo"
                 403 -> "Check-in photo access is not available"
-                413 -> "Photo must be no larger than 8 MB"
+                413 -> "Photo must be no larger than 5 MB"
                 429 -> "Photo upload limit reached. Please try again later"
                 else -> "Photo upload failed (${response.status.value})"
             }
