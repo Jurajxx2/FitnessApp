@@ -1,7 +1,7 @@
 package com.coachfoska.app.data.remote.datasource
 
 import com.coachfoska.app.core.util.currentInstant
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.storage.storage
 
@@ -21,7 +21,7 @@ class ChatStorageDataSource(private val supabase: SupabaseClient) {
             upsert = true
         }
         val publicUrl = bucket.publicUrl(fileName)
-        Napier.d("Uploaded chat image: $publicUrl", tag = TAG)
+        Napier.d("Chat image uploaded", tag = TAG)
         publicUrl
     }
 

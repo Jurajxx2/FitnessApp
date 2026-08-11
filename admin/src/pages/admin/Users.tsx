@@ -7,6 +7,7 @@ import { Badge, Button, Chip, DataTable, EmptyState, PageHeader, SearchInput } f
 import type { DataColumn, ActionMenuItem } from '../../components/ui'
 import type { Profile } from '../../types/database'
 import { useAuth } from '../../hooks/useAuth'
+import { PROFILE_SELECT } from '../../profile/selects'
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
@@ -16,7 +17,7 @@ function useUsers(search: string, status: 'all' | 'active' | 'inactive' | 'block
     queryFn: async () => {
       let query = supabase
         .from('profiles')
-        .select('*', { count: 'exact' })
+        .select(PROFILE_SELECT, { count: 'exact' })
         .order('created_at', { ascending: false })
         .order('id')
         .range(page * pageSize, page * pageSize + pageSize - 1)

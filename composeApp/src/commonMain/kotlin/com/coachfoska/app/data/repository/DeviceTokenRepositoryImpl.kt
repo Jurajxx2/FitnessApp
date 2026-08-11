@@ -3,7 +3,7 @@ package com.coachfoska.app.data.repository
 import com.coachfoska.app.data.remote.datasource.DeviceTokenDataSource
 import com.coachfoska.app.domain.push.PushNotificationService
 import com.coachfoska.app.domain.repository.DeviceTokenRepository
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 
 private const val TAG = "DeviceTokenRepository"
 

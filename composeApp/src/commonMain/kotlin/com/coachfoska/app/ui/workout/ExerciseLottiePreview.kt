@@ -18,7 +18,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import org.koin.compose.koinInject
 
 /**
@@ -48,7 +48,7 @@ fun ExerciseLottiePreview(
                 body
             }
             result.exceptionOrNull()?.let { error ->
-                Napier.w("Unable to load exercise Lottie from $url: ${error.message}", error)
+                Napier.w("Unable to load exercise Lottie", error)
             }
             result.getOrNull()
         }
@@ -65,7 +65,7 @@ fun ExerciseLottiePreview(
     val composition = compositionResult.value
     LaunchedEffect(compositionResult.error) {
         compositionResult.error?.let { error ->
-            Napier.w("Unable to parse exercise Lottie: ${error.message}", error)
+            Napier.w("Unable to parse exercise Lottie", error)
         }
     }
 

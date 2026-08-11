@@ -8,7 +8,7 @@ import com.coachfoska.app.domain.usecase.exercise.GetExercisesUseCase
 import com.coachfoska.app.domain.usecase.exercise.GetExercisesUseCase.Companion.PAGE_SIZE
 import com.coachfoska.app.domain.usecase.exercise.GetFavoriteExerciseIdsUseCase
 import com.coachfoska.app.domain.usecase.exercise.ToggleFavoriteExerciseUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +40,7 @@ class ExerciseViewModel(
     }
 
     fun onIntent(intent: ExerciseIntent) {
-        Napier.d("onIntent: $intent", tag = TAG)
+        Napier.d("Intent received: ${intent::class.simpleName}", tag = TAG)
         when (intent) {
             is ExerciseIntent.SearchQueryChanged -> {
                 _state.update { it.copy(searchQuery = intent.query) }
@@ -161,7 +161,7 @@ class ExerciseViewModel(
                     }
                 }
                 .onFailure { e ->
-                    Napier.e("loadExerciseDetailByName($name) failed", e, tag = TAG)
+                    Napier.e("loadExerciseDetailByName failed", e, tag = TAG)
                     _state.update { it.copy(isLoadingDetail = false, error = e.message) }
                 }
         }

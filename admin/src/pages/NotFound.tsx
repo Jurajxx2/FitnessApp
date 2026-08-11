@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import { athleteHomePath } from '../lib/access'
+import { useAuth, useAuthAssurance } from '../hooks/useAuth'
+import { postAuthDestination } from '../lib/authDestination'
 
 export default function NotFound() {
-  const { session, profile, isAdmin } = useAuth()
-  const home = !session ? '/' : isAdmin ? '/admin' : athleteHomePath(profile)
+  const { session, profile } = useAuth()
+  const assurance = useAuthAssurance()
+  const home = !session ? '/' : postAuthDestination(profile, {
+    currentLevel: assurance.currentLevel,
+    error: assurance.error,
+  })
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-6 text-center">

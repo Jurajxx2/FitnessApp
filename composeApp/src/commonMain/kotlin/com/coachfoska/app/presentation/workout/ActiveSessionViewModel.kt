@@ -15,7 +15,7 @@ import com.coachfoska.app.domain.usecase.workout.GetPreviousExerciseLogsUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
 import com.coachfoska.app.core.util.currentInstant
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,7 +57,7 @@ class ActiveSessionViewModel(
     private var discardRequested = false
 
     fun onIntent(intent: ActiveSessionIntent) {
-        Napier.d("onIntent: $intent", tag = TAG)
+        Napier.d("Intent received: ${intent::class.simpleName}", tag = TAG)
         when (intent) {
             is ActiveSessionIntent.InitSession -> initSession(intent.workoutId, intent.resumeLogId)
             is ActiveSessionIntent.SwitchExercise -> switchExercise(intent.index)
@@ -981,7 +981,7 @@ class ActiveSessionViewModel(
             val exerciseId = exercise.exerciseId ?: return@map exercise
             val domainExercise = cache.getOrPut(exerciseId) {
                 getExerciseByIdUseCase(exerciseId)
-                    .onFailure { Napier.w("Failed to enrich exercise media for $exerciseId: ${it.message}", tag = TAG) }
+                    .onFailure { Napier.w("Failed to enrich exercise media", tag = TAG) }
                     .getOrNull()
             } ?: return@map exercise
             exercise.copy(

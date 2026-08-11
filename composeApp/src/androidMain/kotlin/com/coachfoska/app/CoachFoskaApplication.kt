@@ -14,10 +14,12 @@ import org.koin.core.logger.Level
 class CoachFoskaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        Napier.base(DebugAntilog())
+        if (AppLogger.isDebugBuild) {
+            Napier.base(DebugAntilog())
+        }
         AppLogger.appStarted(platform = "android")
         startKoin {
-            if (BuildKonfig.DEBUG) {
+            if (AppLogger.isDebugBuild) {
                 androidLogger(Level.DEBUG)
             }
             androidContext(this@CoachFoskaApplication)

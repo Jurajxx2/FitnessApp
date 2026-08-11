@@ -6,7 +6,7 @@ import com.coachfoska.app.core.debug.DebugCoachSubscriptionRepository
 import com.coachfoska.app.domain.usecase.auth.GetCurrentUserUseCase
 import com.coachfoska.app.domain.usecase.config.GetAppLinksUseCase
 import com.coachfoska.app.domain.usecase.debug.ResetOnboardingUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,7 +41,7 @@ class SettingsViewModel(
             }
             resetOnboardingUseCase(userId)
                 .onSuccess {
-                    Napier.d("onboarding_complete reset for $userId", tag = TAG)
+                    Napier.d("onboarding_complete reset", tag = TAG)
                     _state.update { it.copy(debugResetOnboardingLoading = false, debugResetOnboardingSuccess = true) }
                 }
                 .onFailure { e ->

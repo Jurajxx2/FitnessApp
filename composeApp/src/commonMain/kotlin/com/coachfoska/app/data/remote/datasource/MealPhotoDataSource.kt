@@ -3,7 +3,7 @@ package com.coachfoska.app.data.remote.datasource
 import com.coachfoska.app.BuildKonfig
 import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.data.remote.dto.MealPhotoAnalysisDto
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.storage.storage
@@ -54,7 +54,7 @@ class MealPhotoDataSource(
 
         val text = response.bodyAsText()
         if (!response.status.isSuccess()) {
-            Napier.e("analyze-meal-photo returned ${response.status}: $text", tag = TAG)
+            Napier.e("analyze-meal-photo failed with status ${response.status}", tag = TAG)
             throw IllegalStateException("Meal analysis failed (${response.status})")
         }
         return json.decodeFromString(MealPhotoAnalysisDto.serializer(), text)
@@ -64,7 +64,7 @@ class MealPhotoDataSource(
     suspend fun uploadMealPhoto(userId: String, imageBytes: ByteArray): String {
         val fileName = "$userId/meal_${currentInstant().toEpochMilliseconds()}.jpg"
         supabase.storage.from(BUCKET).upload(fileName, imageBytes) { upsert = true }
-        Napier.d("Uploaded meal photo: $fileName", tag = TAG)
+        Napier.d("Meal photo uploaded", tag = TAG)
         return fileName
     }
 

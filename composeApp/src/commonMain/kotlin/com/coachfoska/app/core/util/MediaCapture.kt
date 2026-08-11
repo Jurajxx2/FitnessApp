@@ -13,6 +13,10 @@ expect fun rememberVideoCaptureLauncher(onResult: (String?) -> Unit): () -> Unit
 @Composable
 expect fun rememberGalleryPickerLauncher(mode: MediaCaptureMode, onResult: (String?) -> Unit): () -> Unit
 
-/** Returns a function that reads a URI string into bytes, or null if unavailable. */
+/** Returns a URI reader. When [maxBytes] is set, it must stop before allocating beyond the cap. */
 @Composable
-expect fun rememberUriBytesReader(): (String) -> ByteArray?
+expect fun rememberUriBytesReader(maxBytes: Int? = null): (String) -> ByteArray?
+
+/** Reads and prepares a selected image as a bounded JPEG for check-in upload. */
+@Composable
+expect fun rememberCheckInPhotoReader(): (String) -> ByteArray?

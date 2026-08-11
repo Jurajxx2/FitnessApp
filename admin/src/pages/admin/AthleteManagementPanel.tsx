@@ -13,6 +13,7 @@ type WorkoutOption = Pick<Workout, 'id' | 'name'>
 
 interface AthleteManagementPanelProps {
   user: Profile
+  adminNotes: string
   mealPlans: PlanOption[]
   workoutPlans: WorkoutOption[]
   currentMealPlanId: string | null | undefined
@@ -47,7 +48,7 @@ function optionalNumber(value: string): number | null {
   return value.trim() === '' ? null : Number(value)
 }
 
-function profileDraft(user: Profile): ProfileDraft {
+function profileDraft(user: Profile, adminNotes: string): ProfileDraft {
   return {
     fullName: user.full_name ?? '',
     age: user.age == null ? '' : String(user.age),
@@ -57,7 +58,7 @@ function profileDraft(user: Profile): ProfileDraft {
     activityLevel: user.activity_level ?? '',
     onboardingComplete: user.onboarding_complete,
     accessMode: user.access_mode ?? 'both',
-    adminNotes: user.admin_notes ?? '',
+    adminNotes,
   }
 }
 
@@ -137,6 +138,7 @@ const ACCESS_OPTIONS: Array<{ value: AccessMode; label: string; description: str
 
 export function AthleteManagementPanel({
   user,
+  adminNotes,
   mealPlans,
   workoutPlans,
   currentMealPlanId,
@@ -146,8 +148,8 @@ export function AthleteManagementPanel({
   const queryClient = useQueryClient()
   const { notify } = useNotice()
   const targetQuery = useActiveNutritionTarget(user.id)
-  const [profile, setProfile] = useState<ProfileDraft>(() => profileDraft(user))
-  const [profileBaseline, setProfileBaseline] = useState<ProfileDraft>(() => profileDraft(user))
+  const [profile, setProfile] = useState<ProfileDraft>(() => profileDraft(user, adminNotes))
+  const [profileBaseline, setProfileBaseline] = useState<ProfileDraft>(() => profileDraft(user, adminNotes))
   const [macros, setMacros] = useState<MacroDraft>(() => macroDraft(null))
   const [macrosBaseline, setMacrosBaseline] = useState<MacroDraft>(() => macroDraft(null))
   const [mealPlanId, setMealPlanId] = useState('')
@@ -169,10 +171,10 @@ export function AthleteManagementPanel({
   // than a snapshot frozen at mount — a refetch (e.g. after a partial save)
   // moves the goalposts instead of leaving the other slices permanently dirty.
   useEffect(() => {
-    const seeded = profileDraft(user)
+    const seeded = profileDraft(user, adminNotes)
     setProfile(seeded)
     setProfileBaseline(seeded)
-  }, [user])
+  }, [user, adminNotes])
   useEffect(() => {
     const seeded = macroDraft(targetQuery.data)
     setMacros(seeded)
@@ -229,6 +231,7 @@ export function AthleteManagementPanel({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', user.id] })
+      queryClient.invalidateQueries({ queryKey: ['athlete-admin-note', user.id] })
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
   })

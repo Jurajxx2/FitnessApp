@@ -5,10 +5,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { PublicLocaleProvider } from '../i18n/PublicLocale'
 import Landing, { copy } from './Landing'
 
-const { mockUseAuth } = vi.hoisted(() => ({ mockUseAuth: vi.fn() }))
+const { mockUseAuth, mockUseAuthAssurance } = vi.hoisted(() => ({ mockUseAuth: vi.fn(), mockUseAuthAssurance: vi.fn() }))
 
 vi.mock('../hooks/useAuth', () => ({
   useAuth: mockUseAuth,
+  useAuthAssurance: mockUseAuthAssurance,
 }))
 
 beforeAll(() => {
@@ -26,6 +27,7 @@ afterAll(() => {
 beforeEach(() => {
   window.localStorage.clear()
   mockUseAuth.mockReturnValue({ session: null, isAdmin: false, isLoading: false, profile: null })
+  mockUseAuthAssurance.mockReturnValue({ currentLevel: null, nextLevel: null, error: null, isLoading: false, refreshAssuranceLevel: vi.fn() })
 })
 
 function renderLanding() {
@@ -79,6 +81,20 @@ test('an activity-only athlete session links straight to the activity home, not 
 
   const navigation = screen.getByRole('navigation', { name: 'Main navigation' })
   expect(within(navigation).getByRole('link', { name: 'Open app' })).toHaveAttribute('href', '/activity')
+})
+
+test('an aal1 admin session links to MFA instead of admin content', () => {
+  mockUseAuth.mockReturnValue({
+    session: { user: { id: 'admin-1' } },
+    isAdmin: true,
+    isLoading: false,
+    profile: { is_admin: true, is_blocked: false, access_mode: 'both' },
+  })
+  mockUseAuthAssurance.mockReturnValue({ currentLevel: 'aal1', nextLevel: 'aal2', error: null, isLoading: false, refreshAssuranceLevel: vi.fn() })
+  renderLanding()
+
+  const navigation = screen.getByRole('navigation', { name: 'Main navigation' })
+  expect(within(navigation).getByRole('link', { name: 'Open app' })).toHaveAttribute('href', '/admin/mfa')
 })
 
 test('sk and cs copy expose the same key set, including nested list lengths', () => {

@@ -35,7 +35,6 @@ const BASE_USER: Profile = {
   is_admin: false,
   is_blocked: false,
   access_mode: 'both',
-  admin_notes: '',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 }
@@ -89,6 +88,7 @@ type Props = ComponentProps<typeof AthleteManagementPanel>
 function baseProps(overrides: Partial<Props> = {}): Props {
   return {
     user: BASE_USER,
+    adminNotes: '',
     mealPlans: MEAL_PLANS,
     workoutPlans: WORKOUT_PLANS,
     currentMealPlanId: 'plan-1',
@@ -195,6 +195,23 @@ describe('AthleteManagementPanel', () => {
     expect(rpc).not.toHaveBeenCalledWith('admin_set_user_meal_plan', expect.anything())
     expect(rpc).not.toHaveBeenCalledWith('admin_set_user_workouts', expect.anything())
     expect(upsertPreferences).not.toHaveBeenCalled()
+  })
+
+  it('seeds and edits the separate coach note through the unchanged profile RPC', async () => {
+    renderPanel({ adminNotes: 'Existing private context' })
+
+    const notes = screen.getByPlaceholderText('Context only coaches can see…')
+    expect(notes).toHaveValue('Existing private context')
+    fireEvent.change(notes, { target: { value: 'Updated private context' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith(
+      'admin_update_athlete_profile',
+      expect.objectContaining({
+        p_user_id: 'user-1',
+        p_admin_notes: 'Updated private context',
+      }),
+    ))
   })
 
   it('saves explicit target tolerances in the new versioned nutrition target', async () => {

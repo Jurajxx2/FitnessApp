@@ -47,7 +47,6 @@ function profile(id: string, full_name: string | null = null): Profile {
     age: null, height_cm: null, weight_kg: null,
     goal: null, activity_level: null,
     onboarding_complete: true, is_admin: false, is_blocked: false, access_mode: 'both',
-    admin_notes: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
   }

@@ -36,7 +36,11 @@ class CheckInRepositoryImpl(
     }
 
     override suspend fun uploadPhoto(userId: String, weekOf: LocalDate, slot: String, bytes: ByteArray): Result<String> = runCatching {
-        dataSource.uploadPhoto(userId, weekOf.toString(), slot, bytes)
+        dataSource.uploadPhoto(weekOf.toString(), slot, bytes)
+    }
+
+    override suspend fun removePhotos(paths: List<String>): Result<Unit> = runCatching {
+        dataSource.removePhotos(paths)
     }
 
     override suspend fun signedPhotoUrl(path: String): Result<String> = runCatching {

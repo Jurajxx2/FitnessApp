@@ -8,7 +8,7 @@ import com.coachfoska.app.domain.usecase.auth.SignInWithAppleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithGoogleUseCase
 import com.coachfoska.app.domain.usecase.auth.SignInWithPasswordUseCase
 import com.coachfoska.app.domain.usecase.auth.VerifyOtpUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,7 +52,7 @@ class AuthViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             signInWithPasswordUseCase(_state.value.email, _state.value.password)
                 .onSuccess { user ->
-                    Napier.i("Email sign-in OK, userId=${user.id}", tag = TAG)
+                    Napier.i("Email sign-in succeeded", tag = TAG)
                     _state.update {
                         it.copy(
                             isLoading = false,
@@ -109,7 +109,7 @@ class AuthViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             verifyOtpUseCase(_state.value.email, _state.value.otp)
                 .onSuccess { user ->
-                    Napier.i("OTP verified, userId=${user.id}", tag = TAG)
+                    Napier.i("OTP verified", tag = TAG)
                     _state.update {
                         it.copy(
                             isLoading = false,
@@ -131,7 +131,7 @@ class AuthViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             signInWithGoogleUseCase()
                 .onSuccess { user ->
-                    Napier.i("Google sign-in OK, userId=${user.id}", tag = TAG)
+                    Napier.i("Google sign-in succeeded", tag = TAG)
                     _state.update {
                         it.copy(
                             isLoading = false,
@@ -153,7 +153,7 @@ class AuthViewModel(
             _state.update { it.copy(isLoading = true, error = null) }
             signInWithAppleUseCase()
                 .onSuccess { user ->
-                    Napier.i("Apple sign-in OK, userId=${user.id}", tag = TAG)
+                    Napier.i("Apple sign-in succeeded", tag = TAG)
                     _state.update {
                         it.copy(
                             isLoading = false,

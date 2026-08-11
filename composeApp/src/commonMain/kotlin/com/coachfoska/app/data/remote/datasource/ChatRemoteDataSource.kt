@@ -4,7 +4,7 @@ import com.coachfoska.app.core.util.currentInstant
 import com.coachfoska.app.data.remote.dto.ChatMessageDto
 import com.coachfoska.app.data.remote.dto.ChatMessageInsertDto
 import com.coachfoska.app.domain.model.ChatType
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
