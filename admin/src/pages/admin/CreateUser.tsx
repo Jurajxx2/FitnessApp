@@ -1,16 +1,13 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Mail, ShieldCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, EditorPage, FormSection, Input, useNotice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 
-interface CreateUserResponse {
-  user: {
-    id: string
-    email: string
-  }
-}
+type CreateUserResponse =
+  | { user: { id: string } }
+  | { status: 'pending'; error: string; requestId: string }
 
 export default function CreateUser({ onCreated }: { onCreated?: (userId: string) => void }) {
   const queryClient = useQueryClient()
@@ -20,6 +17,7 @@ export default function CreateUser({ onCreated }: { onCreated?: (userId: string)
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const requestIdRef = useRef<string | null>(null)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -27,14 +25,26 @@ export default function CreateUser({ onCreated }: { onCreated?: (userId: string)
     setIsSubmitting(true)
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke<CreateUserResponse>('admin-create-user', {
+      requestIdRef.current ??= crypto.randomUUID()
+      const { data, error: invokeError, response } = await supabase.functions.invoke<CreateUserResponse>('admin-create-user', {
         body: { fullName: fullName.trim(), email: email.trim() },
+        headers: { 'x-request-id': requestIdRef.current },
       })
-      if (invokeError) throw invokeError
-      if (!data?.user?.id) throw new Error('The user was not returned by the server')
+      if (invokeError) {
+        if (response && response.status >= 400 && response.status < 500 && response.status !== 408) {
+          requestIdRef.current = null
+        }
+        throw invokeError
+      }
+      if (data && 'status' in data && data.status === 'pending') {
+        setError('Invitation status is still being confirmed. Retry safely in a moment.')
+        return
+      }
+      if (!data || !('user' in data) || !data.user.id) throw new Error('The user was not returned by the server')
 
+      requestIdRef.current = null
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-      notify(`Invitation sent to ${data.user.email}.`, 'success')
+      notify(`Invitation sent to ${email.trim().toLowerCase()}.`, 'success')
       if (onCreated) onCreated(data.user.id)
       else navigate(`/admin/users/${data.user.id}`, { replace: true })
     } catch {
@@ -79,7 +89,10 @@ export default function CreateUser({ onCreated }: { onCreated?: (userId: string)
             id="new-athlete-name"
             label="Full name"
             value={fullName}
-            onChange={event => setFullName(event.target.value)}
+            onChange={event => {
+              requestIdRef.current = null
+              setFullName(event.target.value)
+            }}
             placeholder="Jane Doe"
             autoFocus
             required
@@ -91,7 +104,10 @@ export default function CreateUser({ onCreated }: { onCreated?: (userId: string)
             label="Email address"
             type="email"
             value={email}
-            onChange={event => setEmail(event.target.value)}
+            onChange={event => {
+              requestIdRef.current = null
+              setEmail(event.target.value)
+            }}
             placeholder="jane@example.com"
             required
             maxLength={254}

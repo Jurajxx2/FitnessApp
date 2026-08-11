@@ -10,8 +10,14 @@ import {
   useRecentWorkoutLogs,
   useRecentMealLogs,
   useAthleteAdminNote,
+  accountActionIntent,
+  clearAccountActionIntent,
+  isTerminalAccountActionError,
+  accountActionMatchesProfile,
+  reconcilePendingAccountAction,
 } from './UserDetail'
 import { supabase } from '../../lib/supabase'
+import type { Profile } from '../../types/database'
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(),
@@ -21,6 +27,76 @@ vi.mock('@tanstack/react-query', () => ({
 vi.mock('../../lib/supabase', () => ({ supabase: { from: vi.fn() } }))
 
 afterEach(() => cleanup())
+
+describe('account action idempotency', () => {
+  it('reuses an ambiguous retry id and rotates it for a new action, target, or resolved intent', () => {
+    const createRequestId = vi.fn()
+      .mockReturnValueOnce('request-1')
+      .mockReturnValueOnce('request-2')
+      .mockReturnValueOnce('request-3')
+      .mockReturnValueOnce('request-4')
+
+    const first = accountActionIntent(null, 'block', 'athlete-1', createRequestId)
+    const retry = accountActionIntent(first, 'block', 'athlete-1', createRequestId)
+    expect(retry.requestId).toBe('request-1')
+    expect(createRequestId).toHaveBeenCalledTimes(1)
+
+    // Closing an already-sent ambiguous dialog cannot cancel the server action;
+    // reopening the same action/target therefore retains the same request.
+    const afterCloseAndReopen = accountActionIntent(retry, 'block', 'athlete-1', createRequestId)
+    expect(afterCloseAndReopen.requestId).toBe('request-1')
+
+    const changedAction = accountActionIntent(retry, 'unblock', 'athlete-1', createRequestId)
+    expect(changedAction.requestId).toBe('request-2')
+
+    const changedTarget = accountActionIntent(changedAction, 'unblock', 'athlete-2', createRequestId)
+    expect(changedTarget.requestId).toBe('request-3')
+
+    // Confirmed resolution or explicitly abandoning the dialog clears the
+    // stored intent, so the same action and target become a new request.
+    const newIntent = accountActionIntent(null, 'unblock', 'athlete-2', createRequestId)
+    expect(newIntent.requestId).toBe('request-4')
+
+    expect(clearAccountActionIntent(newIntent, 'stale-request')).toBe(newIntent)
+    expect(clearAccountActionIntent(newIntent, 'request-4')).toBeNull()
+  })
+
+  it('clears known terminal responses but preserves ambiguous failures for retry', () => {
+    expect(isTerminalAccountActionError(new Response(null, { status: 409 }))).toBe(true)
+    expect(isTerminalAccountActionError(new Response(null, { status: 500 }))).toBe(false)
+    expect(isTerminalAccountActionError(new Response(null, { status: 408 }))).toBe(false)
+    expect(isTerminalAccountActionError()).toBe(false)
+  })
+
+  it('clears a pending request only when refreshed profile state verifies the result', () => {
+    const base = { is_admin: false, is_blocked: false } as Profile
+    expect(accountActionMatchesProfile('block', { ...base, is_blocked: true })).toBe(true)
+    expect(accountActionMatchesProfile('block', base)).toBe(false)
+    expect(accountActionMatchesProfile('unblock', base)).toBe(true)
+    expect(accountActionMatchesProfile('promote_admin', { ...base, is_admin: true })).toBe(true)
+    expect(accountActionMatchesProfile('promote_admin', { ...base, is_admin: true, is_blocked: true })).toBe(false)
+  })
+
+  it('retains pending intent when reconciliation fails or state is not verified', async () => {
+    const failed = {
+      invalidateQueries: vi.fn().mockRejectedValue(new Error('offline')),
+      getQueryData: vi.fn(),
+    }
+    await expect(reconcilePendingAccountAction(failed as any, 'block', 'athlete-1')).resolves.toBe(false)
+
+    const nonMatching = {
+      invalidateQueries: vi.fn().mockResolvedValue(undefined),
+      getQueryData: vi.fn().mockReturnValue({ is_admin: false, is_blocked: false }),
+    }
+    await expect(reconcilePendingAccountAction(nonMatching as any, 'block', 'athlete-1')).resolves.toBe(false)
+
+    const matching = {
+      invalidateQueries: vi.fn().mockResolvedValue(undefined),
+      getQueryData: vi.fn().mockReturnValue({ is_admin: false, is_blocked: true }),
+    }
+    await expect(reconcilePendingAccountAction(matching as any, 'block', 'athlete-1')).resolves.toBe(true)
+  })
+})
 
 // ─── "View all" trigger on the preview sections ─────────────────────────────
 

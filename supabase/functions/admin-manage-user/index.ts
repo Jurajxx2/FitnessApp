@@ -1,112 +1,290 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-import { parseAdminUserRequest, type AdminUserAction } from './logic.ts'
+import {
+  type AdminAuditEvent,
+  type AdminAuditRequestState,
+  type AdminAuditWriteResult,
+  type AdminAuthorizationResult,
+  type AdminSecurityEnvironment,
+  authorizationResponse,
+  authorizeAdminRequest,
+  createServiceOperations,
+  requestIdFromHeaders,
+} from "../_shared/admin-security.ts";
+import { type AdminUserAction, parseAdminUserRequest } from "./logic.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-request-id",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+export type ProfileAccountAction = Exclude<AdminUserAction, "delete">;
+export type ProfileActionResult =
+  | "updated"
+  | "target_not_found"
+  | "admin_target_denied"
+  | "target_changed"
+  | "invalid_action"
+  | "operation_failed";
+
+export interface AdminManageUserDependencies {
+  authorize(authorization: string | null): Promise<AdminAuthorizationResult>;
+  createPrivilegedOperations(): {
+    applyProfileAction(
+      userId: string,
+      action: ProfileAccountAction,
+    ): Promise<ProfileActionResult>;
+    recordAudit(event: AdminAuditEvent): Promise<AdminAuditWriteResult>;
+    readAuditRequest(input: {
+      actorUserId: string;
+      action: AdminUserAction;
+      requestId: string;
+    }): Promise<AdminAuditRequestState>;
+  };
+  requestId(headers: Headers): string;
 }
 
 function json(body: object, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
 function actionError(action: AdminUserAction): string {
   switch (action) {
-    case 'block': return 'Unable to disable the user'
-    case 'unblock': return 'Unable to activate the user'
-    case 'promote_admin': return 'Unable to grant admin access'
-    case 'delete': return 'Unable to delete the user'
+    case "block":
+      return "Unable to disable the user";
+    case "unblock":
+      return "Unable to activate the user";
+    case "promote_admin":
+      return "Unable to grant admin access";
+    case "delete":
+      return "Unable to delete the user";
   }
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
-
+async function persistAudit(
+  recordAudit: (
+    event: AdminAuditEvent,
+  ) => Promise<AdminAuditWriteResult>,
+  event: AdminAuditEvent,
+): Promise<AdminAuditWriteResult | "unavailable"> {
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
-      console.error('Supabase environment is not configured')
-      return json({ error: 'Service is not configured' }, 500)
-    }
-
-    const authorization = req.headers.get('Authorization')
-    if (!authorization) return json({ error: 'Authentication required' }, 401)
-
-    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authorization } },
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-    const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser()
-    if (callerError || !caller) return json({ error: 'Authentication required' }, 401)
-
-    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-    const { data: callerProfile, error: callerProfileError } = await adminClient
-      .from('profiles')
-      .select('is_admin, is_blocked')
-      .eq('id', caller.id)
-      .maybeSingle()
-    if (callerProfileError) {
-      console.error('Unable to resolve caller role', { callerId: caller.id, error: callerProfileError.message })
-      return json({ error: 'Unable to verify permissions' }, 500)
-    }
-    if (!callerProfile?.is_admin || callerProfile.is_blocked) return json({ error: 'Admin access required' }, 403)
-
-    let body: unknown
-    try {
-      body = await req.json()
-    } catch {
-      return json({ error: 'Request body must be valid JSON' }, 400)
-    }
-    const request = parseAdminUserRequest(body)
-    if (!request) return json({ error: 'Provide a valid action and user id' }, 400)
-    if (request.userId === caller.id) return json({ error: 'You cannot change your own account access' }, 409)
-
-    const { data: target, error: targetError } = await adminClient
-      .from('profiles')
-      .select('id, is_admin, is_blocked')
-      .eq('id', request.userId)
-      .maybeSingle()
-    if (targetError) {
-      console.error('Unable to resolve target user', { callerId: caller.id, targetId: request.userId, error: targetError.message })
-      return json({ error: actionError(request.action) }, 500)
-    }
-    if (!target) return json({ error: 'User not found' }, 404)
-    if (target.is_admin) return json({ error: 'Existing admin accounts cannot be changed here' }, 409)
-
-    if (request.action === 'delete') {
-      const { error } = await adminClient.auth.admin.deleteUser(request.userId)
-      if (error) {
-        console.error('Unable to delete user', { callerId: caller.id, targetId: request.userId, error: error.message })
-        return json({ error: actionError(request.action) }, 400)
-      }
-      return json({ action: request.action, userId: request.userId })
-    }
-
-    const patch = request.action === 'promote_admin'
-      ? { is_admin: true, is_blocked: false }
-      : { is_blocked: request.action === 'block' }
-    const { error: updateError } = await adminClient
-      .from('profiles')
-      .update(patch)
-      .eq('id', request.userId)
-    if (updateError) {
-      console.error('Unable to update user access', { callerId: caller.id, targetId: request.userId, action: request.action, error: updateError.message })
-      return json({ error: actionError(request.action) }, 400)
-    }
-
-    return json({ action: request.action, userId: request.userId })
-  } catch (error) {
-    console.error('admin-manage-user failed', { error: error instanceof Error ? error.message : 'Unknown error' })
-    return json({ error: 'Unable to manage the user' }, 500)
+    return await recordAudit(event);
+  } catch {
+    console.error("Unable to persist admin security audit", {
+      requestId: event.requestId,
+      action: event.action,
+      outcome: event.outcome,
+    });
+    return "unavailable";
   }
-})
+}
+
+export function createAdminManageUserHandler(
+  dependencies: AdminManageUserDependencies,
+) {
+  return async (req: Request): Promise<Response> => {
+    if (req.method === "OPTIONS") {
+      return new Response("ok", { headers: corsHeaders });
+    }
+    if (req.method !== "POST") {
+      return json({ error: "Method not allowed" }, 405);
+    }
+
+    const authorization = await dependencies.authorize(
+      req.headers.get("Authorization"),
+    );
+    if (!authorization.ok) {
+      const response = authorizationResponse(authorization);
+      return json(await response.json(), response.status);
+    }
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return json({ error: "Request body must be valid JSON" }, 400);
+    }
+    const parsed = parseAdminUserRequest(body);
+    if (!parsed) {
+      return json({ error: "Provide a valid action and user id" }, 400);
+    }
+
+    const requestId = dependencies.requestId(req.headers);
+    const operations = dependencies.createPrivilegedOperations();
+    const finish = async (
+      outcome: "success" | "failure",
+      status: number,
+      responseBody: Record<string, unknown>,
+      reason?: string,
+    ): Promise<Response> => {
+      const recorded = await persistAudit(
+        operations.recordAudit,
+        {
+          actorUserId: authorization.actorUserId,
+          targetUserId: parsed.userId,
+          action: parsed.action,
+          outcome,
+          requestId,
+          detail: reason ? { reason } : {},
+          response: { status, body: responseBody },
+        },
+      );
+      return recorded === "recorded"
+        ? json(responseBody, status)
+        : json({ error: "Unable to record the account action" }, 500);
+    };
+
+    const attemptAudit = await persistAudit(
+      operations.recordAudit,
+      {
+        actorUserId: authorization.actorUserId,
+        targetUserId: parsed.userId,
+        action: parsed.action,
+        outcome: "attempt",
+        requestId,
+        detail: { stage: "mutation_requested" },
+      },
+    );
+    if (attemptAudit === "unavailable") {
+      return json({ error: "Unable to record the account action" }, 500);
+    }
+    if (attemptAudit === "duplicate") {
+      let state: AdminAuditRequestState;
+      try {
+        state = await operations.readAuditRequest({
+          actorUserId: authorization.actorUserId,
+          action: parsed.action,
+          requestId,
+        });
+      } catch {
+        return json({ error: "Unable to reconcile the account action" }, 500);
+      }
+      if (state.attemptTargetUserId !== parsed.userId) {
+        return json(
+          { error: "Idempotency key belongs to another target" },
+          409,
+        );
+      }
+      return state.terminal
+        ? json(state.terminal.body, state.terminal.status)
+        : json({
+          status: "pending",
+          error: "This account action is still being reconciled",
+          requestId,
+        }, 202);
+    }
+
+    if (parsed.userId === authorization.actorUserId) {
+      return await finish(
+        "failure",
+        409,
+        { error: "You cannot change your own account access" },
+        "self_action_denied",
+      );
+    }
+
+    if (parsed.action === "delete") {
+      return await finish(
+        "failure",
+        409,
+        { error: "User deletion is temporarily unavailable" },
+        "deletion_requires_retryable_job",
+      );
+    }
+
+    let operationResult: ProfileActionResult;
+    try {
+      operationResult = await operations.applyProfileAction(
+        parsed.userId,
+        parsed.action,
+      );
+    } catch {
+      operationResult = "operation_failed";
+    }
+
+    if (operationResult === "target_not_found") {
+      return await finish(
+        "failure",
+        404,
+        { error: "User not found" },
+        "target_not_found",
+      );
+    }
+    if (
+      operationResult === "admin_target_denied" ||
+      operationResult === "target_changed"
+    ) {
+      return await finish(
+        "failure",
+        409,
+        { error: "Existing admin accounts cannot be changed here" },
+        "admin_target_denied",
+      );
+    }
+    if (operationResult !== "updated") {
+      return await finish(
+        "failure",
+        400,
+        { error: actionError(parsed.action) },
+        "account_operation_failed",
+      );
+    }
+
+    return await finish(
+      "success",
+      200,
+      { action: parsed.action, userId: parsed.userId },
+    );
+  };
+}
+
+function readEnvironment(): AdminSecurityEnvironment | null {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  return supabaseUrl && supabaseAnonKey && supabaseServiceRoleKey
+    ? { supabaseUrl, supabaseAnonKey, supabaseServiceRoleKey }
+    : null;
+}
+
+export function createProductionAdminManageUserHandler(): (
+  req: Request,
+) => Promise<Response> {
+  const environment = readEnvironment();
+  if (!environment) {
+    return () => {
+      console.error("Supabase environment is not configured");
+      return Promise.resolve(
+        json({ error: "Service is not configured" }, 500),
+      );
+    };
+  }
+
+  return createAdminManageUserHandler({
+    authorize: (authorization) =>
+      authorizeAdminRequest(environment, authorization),
+    requestId: requestIdFromHeaders,
+    createPrivilegedOperations: () => {
+      const operations = createServiceOperations(environment);
+      return {
+        recordAudit: operations.recordAudit,
+        readAuditRequest: operations.readAuditRequest,
+        async applyProfileAction(userId, action) {
+          const { data, error } = await operations.client().rpc(
+            "admin_apply_profile_account_action",
+            { p_user_id: userId, p_action: action },
+          );
+          if (error) return "operation_failed";
+          return typeof data === "string"
+            ? data as ProfileActionResult
+            : "operation_failed";
+        },
+      };
+    },
+  });
+}
+
+if (import.meta.main) Deno.serve(createProductionAdminManageUserHandler());
