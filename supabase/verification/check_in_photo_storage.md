@@ -1,9 +1,11 @@
 # Check-in photo Storage verification
 
-Do not run these probes until the Android/web clients are deployed and the iOS
-host has an Xcode project with camera/photo-library usage descriptions. Then
-apply `20260811173416_secure_check_in_photo_storage.sql` to staging only and use
-fresh tokens for two ordinary athlete accounts.
+Do not run these probes until the Android/web clients are deployed, legacy
+direct-upload compatibility has been explicitly accepted, and the iOS host has
+an Xcode project with camera/photo-library usage descriptions. First apply
+`supabase/rollouts/secure_check_in_photo_storage_after_client_adoption.sql` to
+staging. Promote it to a newly timestamped migration only after the staging
+probes pass, then use fresh tokens for two ordinary athlete accounts.
 
 Set the project values, the current **Europe/Prague Monday**, and a prepared
 JPEG that is at most 5 MiB:
