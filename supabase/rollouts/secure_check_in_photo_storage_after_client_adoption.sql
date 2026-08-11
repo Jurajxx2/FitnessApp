@@ -1,3 +1,6 @@
+-- MANUAL ROLLOUT ARTIFACT — do not move into migrations until proxy-client
+-- adoption has been verified and legacy direct-upload incompatibility accepted.
+--
 -- The reservation table/RPCs introduced by 20260811171225 remain intentionally
 -- dormant and service-role-only. This migration supersedes only the direct client
 -- upload policies restored by 20260811172227; it does not widen reservation access.
