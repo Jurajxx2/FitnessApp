@@ -11,8 +11,11 @@ import com.coachfoska.app.domain.usecase.checkin.GetCheckInHistoryUseCase
 import com.coachfoska.app.domain.usecase.checkin.GetCurrentWeekCheckInUseCase
 import com.coachfoska.app.domain.usecase.checkin.SubmitCheckInUseCase
 import com.coachfoska.app.domain.usecase.checkin.UploadCheckInPhotoUseCase
+import com.coachfoska.app.domain.usecase.checkin.RemoveCheckInPhotosUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.slot
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,6 +47,7 @@ class CheckInViewModelTest {
         getCheckInHistoryUseCase = GetCheckInHistoryUseCase(checkInRepo),
         getCurrentWeekCheckInUseCase = GetCurrentWeekCheckInUseCase(checkInRepo),
         uploadCheckInPhotoUseCase = UploadCheckInPhotoUseCase(checkInRepo),
+        removeCheckInPhotosUseCase = RemoveCheckInPhotosUseCase(checkInRepo),
         getUserProfileUseCase = GetUserProfileUseCase(userRepo),
         userId = "u1",
         prefillExisting = prefillExisting,
@@ -58,6 +62,7 @@ class CheckInViewModelTest {
         )
         coEvery { checkInRepo.getHistory("u1") } returns Result.success(emptyList())
         coEvery { checkInRepo.getForWeek(any(), any()) } returns Result.success(null)
+        coEvery { checkInRepo.removePhotos(any()) } returns Result.success(Unit)
     }
 
     @AfterTest
@@ -141,5 +146,76 @@ class CheckInViewModelTest {
         val vm = viewModel()
         vm.onIntent(CheckInIntent.Submit)
         assertTrue(vm.state.value.error != null)
+    }
+
+    @Test
+    fun `selecting a photo defers upload until submit`() = runTest {
+        val vm = viewModel(prefillExisting = false)
+
+        vm.onIntent(CheckInIntent.PhotoPicked("front", byteArrayOf(1, 2, 3)))
+
+        assertTrue("front" in vm.state.value.selectedPhotoSlots)
+        coVerify(exactly = 0) { checkInRepo.uploadPhoto(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `submit uploads selected photos before persisting their paths`() = runTest {
+        val submitted = slot<CheckIn>()
+        coEvery { checkInRepo.uploadPhoto("u1", any(), "front", any()) } answers {
+            Result.success("u1/checkin_${secondArg<kotlinx.datetime.LocalDate>()}_front.jpg")
+        }
+        coEvery { checkInRepo.submit(capture(submitted)) } answers {
+            Result.success(submitted.captured.copy(id = "ci1"))
+        }
+        val vm = viewModel(prefillExisting = false)
+        vm.onIntent(CheckInIntent.PhotoPicked("front", byteArrayOf(1, 2, 3)))
+
+        vm.onIntent(CheckInIntent.Submit)
+
+        assertTrue(vm.state.value.submitted)
+        assertTrue(submitted.captured.photoFrontPath?.endsWith("_front.jpg") == true)
+        coVerify(exactly = 0) { checkInRepo.removePhotos(any()) }
+    }
+
+    @Test
+    fun `a failed second upload removes only the new first object`() = runTest {
+        coEvery { checkInRepo.uploadPhoto("u1", any(), "front", any()) } answers {
+            Result.success("u1/checkin_${secondArg<kotlinx.datetime.LocalDate>()}_front.jpg")
+        }
+        coEvery { checkInRepo.uploadPhoto("u1", any(), "side", any()) } returns
+            Result.failure(RuntimeException("side failed"))
+        val vm = viewModel(prefillExisting = false)
+        vm.onIntent(CheckInIntent.PhotoPicked("front", byteArrayOf(1)))
+        vm.onIntent(CheckInIntent.PhotoPicked("side", byteArrayOf(2)))
+
+        vm.onIntent(CheckInIntent.Submit)
+
+        assertEquals("side failed", vm.state.value.error)
+        coVerify { checkInRepo.removePhotos(match { it.size == 1 && it.single().endsWith("_front.jpg") }) }
+        coVerify(exactly = 0) { checkInRepo.submit(any()) }
+    }
+
+    @Test
+    fun `failed edit save does not delete a pre-existing referenced object`() = runTest {
+        val existingPath = "u1/checkin_${com.coachfoska.app.core.util.currentCheckInWeekMonday()}_front.jpg"
+        coEvery { checkInRepo.getForWeek(any(), any()) } returns Result.success(
+            CheckIn(
+                id = "ci1",
+                userId = "u1",
+                weekOf = com.coachfoska.app.core.util.currentCheckInWeekMonday(),
+                photoFrontPath = existingPath,
+            )
+        )
+        coEvery { checkInRepo.uploadPhoto("u1", any(), "front", any()) } returns Result.success(existingPath)
+        coEvery { checkInRepo.submit(any()) } returns Result.failure(RuntimeException("save failed"))
+        val vm = viewModel()
+        vm.onIntent(CheckInIntent.PhotoPicked("front", byteArrayOf(9)))
+
+        vm.onIntent(CheckInIntent.Submit)
+
+        assertEquals("save failed", vm.state.value.error)
+        assertEquals(existingPath, vm.state.value.form.photoFrontPath)
+        assertTrue("front" in vm.state.value.selectedPhotoSlots)
+        coVerify(exactly = 0) { checkInRepo.removePhotos(any()) }
     }
 }

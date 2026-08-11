@@ -13,6 +13,7 @@ import io.ktor.client.plugins.logging.Logging
 object SupabaseClientProvider {
     @OptIn(SupabaseInternal::class)
     val client by lazy {
+        val (secureSessionManager, secureCodeVerifierCache) = createSecureSessionManagerPair()
         createSupabaseClient(
             supabaseUrl = BuildKonfig.SUPABASE_URL,
             supabaseKey = BuildKonfig.SUPABASE_ANON_KEY
@@ -26,6 +27,8 @@ object SupabaseClientProvider {
             }
             install(Auth) {
                 alwaysAutoRefresh = true
+                sessionManager = secureSessionManager
+                codeVerifierCache = secureCodeVerifierCache
             }
             install(Postgrest)
             install(Realtime)

@@ -245,6 +245,7 @@ describe('day tolerance chip', () => {
     renderPreview()
 
     expect(await screen.findByTitle(/outside target tolerances/i)).toBeInTheDocument()
+    expect(screen.getByText('Outside: Carbs +67% (allowed ±15%)')).toBeInTheDocument()
   })
 
   it('marks a fully in-tolerance day as within target', async () => {

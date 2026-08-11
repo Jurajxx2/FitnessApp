@@ -9,6 +9,7 @@ import {
   MealLogsHistorySlideOver,
   useRecentWorkoutLogs,
   useRecentMealLogs,
+  useAthleteAdminNote,
 } from './UserDetail'
 import { supabase } from '../../lib/supabase'
 
@@ -220,5 +221,58 @@ describe('preview queries are unchanged by the history feature', () => {
     await lastConfig.queryFn()
     expect(limitArg).toBe(5)
     expect(rangeCalled).toBe(false)
+  })
+})
+
+describe('coach note query', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  function queryConfig() {
+    useAthleteAdminNote('athlete-1')
+    const calls = vi.mocked(useQuery).mock.calls
+    return calls[calls.length - 1]![0] as { queryKey: unknown[]; queryFn: () => Promise<string> }
+  }
+
+  it('fetches only the separate athlete_admin_notes value', async () => {
+    const select = vi.fn()
+    const eq = vi.fn()
+    const maybeSingle = vi.fn().mockResolvedValue({ data: { notes: 'Private coach context' }, error: null })
+    const builder: any = {
+      select: (columns: string) => { select(columns); return builder },
+      eq: (column: string, value: string) => { eq(column, value); return builder },
+      maybeSingle,
+    }
+    vi.mocked(supabase.from).mockReturnValue(builder)
+
+    const config = queryConfig()
+
+    expect(config.queryKey).toEqual(['athlete-admin-note', 'athlete-1'])
+    await expect(config.queryFn()).resolves.toBe('Private coach context')
+    expect(supabase.from).toHaveBeenCalledWith('athlete_admin_notes')
+    expect(select).toHaveBeenCalledWith('notes')
+    expect(eq).toHaveBeenCalledWith('profile_id', 'athlete-1')
+  })
+
+  it('treats a missing coach-note row as an empty note', async () => {
+    const builder: any = {
+      select: () => builder,
+      eq: () => builder,
+      maybeSingle: () => Promise.resolve({ data: null, error: null }),
+    }
+    vi.mocked(supabase.from).mockReturnValue(builder)
+
+    await expect(queryConfig().queryFn()).resolves.toBe('')
+  })
+
+  it('propagates a coach-note read error instead of converting it to empty', async () => {
+    const readError = new Error('notes unavailable')
+    const builder: any = {
+      select: () => builder,
+      eq: () => builder,
+      maybeSingle: () => Promise.resolve({ data: null, error: readError }),
+    }
+    vi.mocked(supabase.from).mockReturnValue(builder)
+
+    await expect(queryConfig().queryFn()).rejects.toBe(readError)
   })
 })

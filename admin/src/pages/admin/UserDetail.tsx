@@ -10,6 +10,7 @@ import { BodyFocusMap } from '../../components/BodyFocusMap'
 import { MealPhoto } from '../../components/MealPhoto'
 import { CheckInsSection } from './CheckInsSection'
 import { AthleteManagementPanel } from './AthleteManagementPanel'
+import { PROFILE_SELECT } from '../../profile/selects'
 import type {
   ExerciseLog,
   MealLog,
@@ -148,9 +149,24 @@ function useUser(id: string) {
   return useQuery<Profile>({
     queryKey: ['user', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single()
+      const { data, error } = await supabase.from('profiles').select(PROFILE_SELECT).eq('id', id).single()
       if (error) throw error
       return data
+    },
+  })
+}
+
+export function useAthleteAdminNote(id: string) {
+  return useQuery<string>({
+    queryKey: ['athlete-admin-note', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('athlete_admin_notes')
+        .select('notes')
+        .eq('profile_id', id)
+        .maybeSingle()
+      if (error) throw error
+      return data?.notes ?? ''
     },
   })
 }
@@ -888,6 +904,7 @@ export default function UserDetail() {
   const { notify } = useNotice()
 
   const { data: user, isLoading, isError, error } = useUser(id!)
+  const adminNoteQuery = useAthleteAdminNote(id!)
   const { data: workoutPlans = [] } = useWorkoutPlans()
   const { data: mealPlans = [] } = useMealPlans()
   const { data: userMealPlanId } = useUserMealPlan(id!)
@@ -1069,13 +1086,28 @@ export default function UserDetail() {
         </>
       }
     >
-      <AthleteManagementPanel
-        user={user}
-        mealPlans={mealPlans}
-        workoutPlans={workoutPlans}
-        currentMealPlanId={userMealPlanId}
-        currentWorkoutIds={userWorkoutPlanIds}
-      />
+      {adminNoteQuery.isLoading ? (
+        <Shimmer className="h-96 w-full" />
+      ) : adminNoteQuery.isError ? (
+        <Card>
+          <p className="text-sm font-semibold text-error">Coach notes couldn’t be loaded.</p>
+          <p className="mt-1 text-xs text-text-secondary">
+            Profile editing is paused so an unavailable note cannot be overwritten as empty.
+          </p>
+          <Button className="mt-4" variant="ghost" onClick={() => { void adminNoteQuery.refetch() }}>
+            Retry coach notes
+          </Button>
+        </Card>
+      ) : (
+        <AthleteManagementPanel
+          user={user}
+          adminNotes={adminNoteQuery.data ?? ''}
+          mealPlans={mealPlans}
+          workoutPlans={workoutPlans}
+          currentMealPlanId={userMealPlanId}
+          currentWorkoutIds={userWorkoutPlanIds}
+        />
+      )}
 
       <Card>
         <WorkoutLogsSection

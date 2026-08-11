@@ -39,6 +39,7 @@ import com.coachfoska.app.domain.usecase.checkin.GetCurrentWeekCheckInUseCase
 import com.coachfoska.app.domain.usecase.checkin.ResolveCheckInPhotoUrlUseCase
 import com.coachfoska.app.domain.usecase.checkin.SubmitCheckInUseCase
 import com.coachfoska.app.domain.usecase.checkin.UploadCheckInPhotoUseCase
+import com.coachfoska.app.domain.usecase.checkin.RemoveCheckInPhotosUseCase
 import com.coachfoska.app.domain.usecase.auth.GetCurrentUserUseCase
 import com.coachfoska.app.domain.usecase.auth.ObserveSessionUseCase
 import com.coachfoska.app.domain.usecase.auth.SendOtpUseCase
@@ -173,7 +174,7 @@ val dataSourceModule = module {
     single { AuthRemoteDataSource(get(), get()) }
     single { UserRemoteDataSource(get()) }
     single { ActivityRemoteDataSource(get()) }
-    single { CheckInRemoteDataSource(get()) }
+    single { CheckInRemoteDataSource(get(), get()) }
     single { WorkoutRemoteDataSource(get()) }
     single { ExerciseSupabaseDataSource(get()) }
     single { MealRemoteDataSource(get()) }
@@ -235,6 +236,7 @@ val useCaseModule = module {
     factory { GetCheckInHistoryUseCase(get()) }
     factory { GetCurrentWeekCheckInUseCase(get()) }
     factory { UploadCheckInPhotoUseCase(get()) }
+    factory { RemoveCheckInPhotosUseCase(get()) }
     factory { ResolveCheckInPhotoUrlUseCase(get()) }
 
     // Nutrition
@@ -294,6 +296,7 @@ val viewModelModule = module {
             getCheckInHistoryUseCase = get(),
             getCurrentWeekCheckInUseCase = get(),
             uploadCheckInPhotoUseCase = get(),
+            removeCheckInPhotosUseCase = get(),
             getUserProfileUseCase = get(),
             userId = userId,
             prefillExisting = prefillExisting,

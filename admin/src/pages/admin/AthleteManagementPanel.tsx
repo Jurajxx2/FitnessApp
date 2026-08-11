@@ -13,6 +13,7 @@ type WorkoutOption = Pick<Workout, 'id' | 'name'>
 
 interface AthleteManagementPanelProps {
   user: Profile
+  adminNotes: string
   mealPlans: PlanOption[]
   workoutPlans: WorkoutOption[]
   currentMealPlanId: string | null | undefined
@@ -37,13 +38,17 @@ interface MacroDraft {
   carbsG: string
   fatG: string
   fiberGMin: string
+  calorieTolPct: string
+  proteinTolPct: string
+  carbsTolPct: string
+  fatTolPct: string
 }
 
 function optionalNumber(value: string): number | null {
   return value.trim() === '' ? null : Number(value)
 }
 
-function profileDraft(user: Profile): ProfileDraft {
+function profileDraft(user: Profile, adminNotes: string): ProfileDraft {
   return {
     fullName: user.full_name ?? '',
     age: user.age == null ? '' : String(user.age),
@@ -53,7 +58,7 @@ function profileDraft(user: Profile): ProfileDraft {
     activityLevel: user.activity_level ?? '',
     onboardingComplete: user.onboarding_complete,
     accessMode: user.access_mode ?? 'both',
-    adminNotes: user.admin_notes ?? '',
+    adminNotes,
   }
 }
 
@@ -64,7 +69,15 @@ function macroDraft(target: NutritionTarget | null | undefined): MacroDraft {
     carbsG: target ? String(Math.round(target.carbs_g)) : '',
     fatG: target ? String(Math.round(target.fat_g)) : '',
     fiberGMin: target?.fiber_g_min == null ? '' : String(Math.round(target.fiber_g_min)),
+    calorieTolPct: String(target?.calorie_tol_pct ?? 5),
+    proteinTolPct: String(target?.protein_tol_pct ?? 10),
+    carbsTolPct: String(target?.carbs_tol_pct ?? 15),
+    fatTolPct: String(target?.fat_tol_pct ?? 15),
   }
+}
+
+function requiredNumber(value: string): number {
+  return value.trim() === '' ? Number.NaN : Number(value)
 }
 
 function useActiveNutritionTarget(userId: string) {
@@ -125,6 +138,7 @@ const ACCESS_OPTIONS: Array<{ value: AccessMode; label: string; description: str
 
 export function AthleteManagementPanel({
   user,
+  adminNotes,
   mealPlans,
   workoutPlans,
   currentMealPlanId,
@@ -134,8 +148,8 @@ export function AthleteManagementPanel({
   const queryClient = useQueryClient()
   const { notify } = useNotice()
   const targetQuery = useActiveNutritionTarget(user.id)
-  const [profile, setProfile] = useState<ProfileDraft>(() => profileDraft(user))
-  const [profileBaseline, setProfileBaseline] = useState<ProfileDraft>(() => profileDraft(user))
+  const [profile, setProfile] = useState<ProfileDraft>(() => profileDraft(user, adminNotes))
+  const [profileBaseline, setProfileBaseline] = useState<ProfileDraft>(() => profileDraft(user, adminNotes))
   const [macros, setMacros] = useState<MacroDraft>(() => macroDraft(null))
   const [macrosBaseline, setMacrosBaseline] = useState<MacroDraft>(() => macroDraft(null))
   const [mealPlanId, setMealPlanId] = useState('')
@@ -157,10 +171,10 @@ export function AthleteManagementPanel({
   // than a snapshot frozen at mount — a refetch (e.g. after a partial save)
   // moves the goalposts instead of leaving the other slices permanently dirty.
   useEffect(() => {
-    const seeded = profileDraft(user)
+    const seeded = profileDraft(user, adminNotes)
     setProfile(seeded)
     setProfileBaseline(seeded)
-  }, [user])
+  }, [user, adminNotes])
   useEffect(() => {
     const seeded = macroDraft(targetQuery.data)
     setMacros(seeded)
@@ -184,13 +198,19 @@ export function AthleteManagementPanel({
     carbsG: Number(macros.carbsG),
     fatG: Number(macros.fatG),
     fiberGMin: optionalNumber(macros.fiberGMin),
+    calorieTolPct: requiredNumber(macros.calorieTolPct),
+    proteinTolPct: requiredNumber(macros.proteinTolPct),
+    carbsTolPct: requiredNumber(macros.carbsTolPct),
+    fatTolPct: requiredNumber(macros.fatTolPct),
   }), [macros])
+  const toleranceValues = [macroValues.calorieTolPct, macroValues.proteinTolPct, macroValues.carbsTolPct, macroValues.fatTolPct]
   const macrosValid = macroValues.calories > 0
     && macroValues.proteinG >= 0
     && macroValues.carbsG >= 0
     && macroValues.fatG >= 0
     && (macroValues.fiberGMin == null || macroValues.fiberGMin >= 0)
-  const macrosValidationError = 'Calories must be greater than 0, and protein, carbs, fat, and fiber must each be 0 or greater.'
+    && toleranceValues.every(value => Number.isFinite(value) && value >= 0 && value <= 100)
+  const macrosValidationError = 'Calories must be greater than 0; macros and fiber must be non-negative; every tolerance must be between 0% and 100%.'
   const currentMealPlanUnavailable = Boolean(currentMealPlanId && !mealPlans.some(plan => plan.id === currentMealPlanId))
 
   const saveProfile = useMutation({
@@ -211,6 +231,7 @@ export function AthleteManagementPanel({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', user.id] })
+      queryClient.invalidateQueries({ queryKey: ['athlete-admin-note', user.id] })
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
   })
@@ -226,6 +247,10 @@ export function AthleteManagementPanel({
         carbs_g: macroValues.carbsG,
         fat_g: macroValues.fatG,
         fiber_g_min: macroValues.fiberGMin,
+        calorie_tol_pct: macroValues.calorieTolPct,
+        protein_tol_pct: macroValues.proteinTolPct,
+        carbs_tol_pct: macroValues.carbsTolPct,
+        fat_tol_pct: macroValues.fatTolPct,
         is_locked: true,
       })
       if (error) throw error
@@ -282,6 +307,10 @@ export function AthleteManagementPanel({
       carbsG: String(Math.round(calculated.carbs_g)),
       fatG: String(Math.round(calculated.fat_g)),
       fiberGMin: macros.fiberGMin,
+      calorieTolPct: macros.calorieTolPct,
+      proteinTolPct: macros.proteinTolPct,
+      carbsTolPct: macros.carbsTolPct,
+      fatTolPct: macros.fatTolPct,
     })
   }
 
@@ -457,6 +486,16 @@ export function AthleteManagementPanel({
           <Input label="Carbs (g)" type="number" min="0" value={macros.carbsG} onChange={event => setMacros(current => ({ ...current, carbsG: event.target.value }))} />
           <Input label="Fat (g)" type="number" min="0" value={macros.fatG} onChange={event => setMacros(current => ({ ...current, fatG: event.target.value }))} />
           <Input label="Fiber min (g)" type="number" min="0" value={macros.fiberGMin} onChange={event => setMacros(current => ({ ...current, fiberGMin: event.target.value }))} />
+        </div>
+        <div className="mt-5 border-t border-outline-subtle pt-5">
+          <h3 className="text-sm font-bold text-text-primary">Generation tolerances</h3>
+          <p className="mt-1 text-xs leading-5 text-text-secondary">Allowed daily variance from each target. Wider tolerances make plans easier to publish, but reduce macro precision.</p>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-2">
+            <Input label="Calories tolerance (%)" type="number" min="0" max="100" step="0.5" value={macros.calorieTolPct} onChange={event => setMacros(current => ({ ...current, calorieTolPct: event.target.value }))} />
+            <Input label="Protein tolerance (%)" type="number" min="0" max="100" step="0.5" value={macros.proteinTolPct} onChange={event => setMacros(current => ({ ...current, proteinTolPct: event.target.value }))} />
+            <Input label="Carbs tolerance (%)" type="number" min="0" max="100" step="0.5" value={macros.carbsTolPct} onChange={event => setMacros(current => ({ ...current, carbsTolPct: event.target.value }))} />
+            <Input label="Fat tolerance (%)" type="number" min="0" max="100" step="0.5" value={macros.fatTolPct} onChange={event => setMacros(current => ({ ...current, fatTolPct: event.target.value }))} />
+          </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="ghost" onClick={calculateFromProfile}>Calculate from profile</Button>

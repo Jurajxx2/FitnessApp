@@ -1,22 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { useAuth, AuthProvider } from './useAuth'
+import { useAuth, useAuthAssurance, AuthProvider } from './useAuth'
+import { PROFILE_SELECT } from '../profile/selects'
 
-const { mockGetSession, mockSingle, mockFrom } = vi.hoisted(() => {
+const { mockGetSession, mockGetAal, mockSelect, mockSingle, mockFrom } = vi.hoisted(() => {
   const mockGetSession = vi.fn()
   const mockSingle = vi.fn()
-  const mockFrom = vi.fn(() => ({
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({ single: mockSingle })),
-    })),
+  const mockSelect = vi.fn(() => ({
+    eq: vi.fn(() => ({ single: mockSingle })),
   }))
-  return { mockGetSession, mockSingle, mockFrom }
+  const mockFrom = vi.fn(() => ({
+    select: mockSelect,
+  }))
+  return { mockGetSession, mockGetAal: vi.fn(), mockSelect, mockSingle, mockFrom }
 })
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: mockGetSession,
+      mfa: { getAuthenticatorAssuranceLevel: mockGetAal },
       onAuthStateChange: vi.fn().mockReturnValue({
         data: { subscription: { unsubscribe: vi.fn() } },
       }),
@@ -29,6 +32,7 @@ describe('useAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetSession.mockResolvedValue({ data: { session: null } })
+    mockGetAal.mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal1' }, error: null })
   })
 
   it('starts in loading state', async () => {
@@ -56,6 +60,8 @@ describe('useAuth', () => {
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
     await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(mockFrom).toHaveBeenCalledWith('profiles')
+    expect(mockSelect).toHaveBeenCalledWith(PROFILE_SELECT)
     expect(result.current.session).toBe(session)
     expect(result.current.isAdmin).toBe(true)
   })
@@ -70,5 +76,32 @@ describe('useAuth', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.session).toBe(session)
     expect(result.current.isAdmin).toBe(false)
+  })
+
+  it('publishes aal2 only after the authenticated session is resolved', async () => {
+    const session = { user: { id: 'admin-1' } }
+    mockGetSession.mockResolvedValue({ data: { session } })
+    mockSingle.mockResolvedValue({ data: { id: 'admin-1', is_admin: true }, error: null })
+    mockGetAal.mockResolvedValue({ data: { currentLevel: 'aal2', nextLevel: 'aal2' }, error: null })
+
+    const { result } = renderHook(() => ({ auth: useAuth(), assurance: useAuthAssurance() }), { wrapper: AuthProvider })
+
+    await waitFor(() => expect(result.current.auth.isLoading).toBe(false))
+    expect(result.current.assurance.currentLevel).toBe('aal2')
+    expect(result.current.assurance.error).toBeNull()
+  })
+
+  it('keeps the admin identity but exposes an assurance error for fail-closed routing', async () => {
+    const session = { user: { id: 'admin-1' } }
+    mockGetSession.mockResolvedValue({ data: { session } })
+    mockSingle.mockResolvedValue({ data: { id: 'admin-1', is_admin: true }, error: null })
+    mockGetAal.mockResolvedValue({ data: null, error: new Error('AAL unavailable') })
+
+    const { result } = renderHook(() => ({ auth: useAuth(), assurance: useAuthAssurance() }), { wrapper: AuthProvider })
+
+    await waitFor(() => expect(result.current.auth.isLoading).toBe(false))
+    expect(result.current.auth.isAdmin).toBe(true)
+    expect(result.current.assurance.currentLevel).toBeNull()
+    expect(result.current.assurance.error?.message).toBe('AAL unavailable')
   })
 })

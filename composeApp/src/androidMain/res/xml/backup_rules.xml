@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Android 11 and lower: do not restore auth state onto a device without its Keystore key. -->
+    <exclude domain="sharedpref" path="com.coachfoska.app_preferences.xml" />
+</full-backup-content>

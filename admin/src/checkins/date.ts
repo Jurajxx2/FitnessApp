@@ -1,11 +1,18 @@
-import { toLocalDateIso } from '../nutrition/date'
+export const CHECK_IN_TIME_ZONE = 'Europe/Prague'
 
-/** Monday of the current local calendar week, matching the mobile app. */
+/** Monday of the coach's Prague calendar week, matching KMP and Storage RLS. */
 export function currentWeekMondayIso(date = new Date()): string {
-  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  const daysSinceMonday = (monday.getDay() + 6) % 7
-  monday.setDate(monday.getDate() - daysSinceMonday)
-  return toLocalDateIso(monday)
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: CHECK_IN_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(part => part.type === type)?.value)
+  const pragueDate = new Date(Date.UTC(value('year'), value('month') - 1, value('day')))
+  const daysSinceMonday = (pragueDate.getUTCDay() + 6) % 7
+  pragueDate.setUTCDate(pragueDate.getUTCDate() - daysSinceMonday)
+  return pragueDate.toISOString().slice(0, 10)
 }
 
 export function formatCheckInWeek(weekOf: string): string {

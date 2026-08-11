@@ -1,6 +1,5 @@
 package com.coachfoska.app.core.logging
 
-import com.coachfoska.app.BuildKonfig
 import io.github.aakira.napier.Napier
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
@@ -22,10 +21,13 @@ object AppLogger {
     }
 
     val networkLogLevel: LogLevel
-        get() = if (BuildKonfig.DEBUG) LogLevel.BODY else LogLevel.HEADERS
+        get() = if (isDebugBuild) LogLevel.BODY else LogLevel.NONE
+
+    val isDebugBuild: Boolean
+        get() = platformIsDebugBuild
 
     fun appStarted(platform: String) {
-        info(tag = APP_TAG, message = "App started platform=$platform debug=${BuildKonfig.DEBUG}")
+        info(tag = APP_TAG, message = "App started platform=$platform")
     }
 
     fun screenViewed(route: String?) {
@@ -33,23 +35,47 @@ object AppLogger {
     }
 
     fun debug(tag: String, message: String) {
-        if (BuildKonfig.DEBUG) Napier.d(message, tag = tag)
+        d(message, tag = tag)
     }
 
     fun verbose(tag: String, message: String) {
-        if (BuildKonfig.DEBUG) Napier.v(message, tag = tag)
+        v(message, tag = tag)
     }
 
     fun info(tag: String, message: String) {
-        Napier.i(message, tag = tag)
+        i(message, tag = tag)
     }
 
     fun warn(tag: String, message: String, throwable: Throwable? = null) {
-        Napier.w(message, throwable, tag = tag)
+        w(message, throwable, tag = tag)
     }
 
     fun error(tag: String, message: String, throwable: Throwable? = null) {
-        Napier.e(message, throwable, tag = tag)
+        e(message, throwable, tag = tag)
+    }
+
+    fun d(message: String, throwable: Throwable? = null, tag: String = APP_TAG) {
+        if (isDebugBuild) Napier.d(sanitize(message), throwable, tag)
+    }
+
+    fun d(message: () -> String) {
+        if (isDebugBuild) Napier.d(sanitize(message()), tag = APP_TAG)
+    }
+
+    fun v(message: String, throwable: Throwable? = null, tag: String = APP_TAG) {
+        if (isDebugBuild) Napier.v(sanitize(message), throwable, tag)
+    }
+
+    fun i(message: String, throwable: Throwable? = null, tag: String = APP_TAG) {
+        if (isDebugBuild) Napier.i(sanitize(message), throwable, tag)
+    }
+
+    fun w(message: String, throwable: Throwable? = null, tag: String = APP_TAG) {
+        if (isDebugBuild) Napier.w(sanitize(message), throwable, tag)
+    }
+
+    fun e(message: String, throwable: Throwable? = null, tag: String = APP_TAG) {
+        if (isDebugBuild) Napier.e(sanitize(message), throwable, tag)
     }
 
     fun shouldRedactHeader(header: String): Boolean =

@@ -8,6 +8,7 @@ import { logger } from '../../lib/logger'
 import type { ChatMessage, Profile } from '../../types/database'
 import { SearchInput, useNotice } from '../../components/ui'
 import { ChatImage } from '../../chat/ChatImage'
+import { CHAT_PROFILE_SELECT } from '../../profile/selects'
 
 const CHAT_IMAGES_BUCKET = 'chat-images'
 
@@ -21,9 +22,11 @@ export interface ConversationSummary {
   unreadCount: number
 }
 
+type ChatProfile = Pick<Profile, 'id' | 'email' | 'full_name'>
+
 export function buildConversationList(
   messages: ChatMessage[],
-  profiles: Profile[]
+  profiles: ChatProfile[]
 ): ConversationSummary[] {
   const profileMap = new Map(profiles.map(p => [p.id, p]))
   const byUser = new Map<string, ChatMessage[]>()
@@ -78,13 +81,13 @@ function useChatMessages() {
 }
 
 function useChatProfiles(userIds: string[]) {
-  return useQuery<Profile[]>({
+  return useQuery<ChatProfile[]>({
     queryKey: ['admin-chat-profiles', [...userIds].sort().join(',')],
     enabled: userIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(CHAT_PROFILE_SELECT)
         .in('id', userIds)
       if (error) throw error
       return data ?? []

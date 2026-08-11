@@ -35,7 +35,6 @@ const BASE_USER: Profile = {
   is_admin: false,
   is_blocked: false,
   access_mode: 'both',
-  admin_notes: '',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 }
@@ -89,6 +88,7 @@ type Props = ComponentProps<typeof AthleteManagementPanel>
 function baseProps(overrides: Partial<Props> = {}): Props {
   return {
     user: BASE_USER,
+    adminNotes: '',
     mealPlans: MEAL_PLANS,
     workoutPlans: WORKOUT_PLANS,
     currentMealPlanId: 'plan-1',
@@ -197,6 +197,38 @@ describe('AthleteManagementPanel', () => {
     expect(upsertPreferences).not.toHaveBeenCalled()
   })
 
+  it('seeds and edits the separate coach note through the unchanged profile RPC', async () => {
+    renderPanel({ adminNotes: 'Existing private context' })
+
+    const notes = screen.getByPlaceholderText('Context only coaches can see…')
+    expect(notes).toHaveValue('Existing private context')
+    fireEvent.change(notes, { target: { value: 'Updated private context' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith(
+      'admin_update_athlete_profile',
+      expect.objectContaining({
+        p_user_id: 'user-1',
+        p_admin_notes: 'Updated private context',
+      }),
+    ))
+  })
+
+  it('saves explicit target tolerances in the new versioned nutrition target', async () => {
+    renderPanel()
+
+    fireEvent.change(screen.getByLabelText('Protein tolerance (%)'), { target: { value: '12.5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(insertNutritionTargets).toHaveBeenCalledTimes(1))
+    expect(insertNutritionTargets).toHaveBeenCalledWith(expect.objectContaining({
+      calorie_tol_pct: 5,
+      protein_tol_pct: 12.5,
+      carbs_tol_pct: 5,
+      fat_tol_pct: 5,
+    }))
+  })
+
   it('never inserts a new nutrition_targets version when the macros section is untouched', async () => {
     renderPanel()
 
@@ -294,6 +326,15 @@ describe('AthleteManagementPanel', () => {
     fireEvent.change(screen.getByLabelText('Calories'), { target: { value: '2200' } })
     expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled()
     expect(screen.queryByText(/Calories must be greater than 0/)).not.toBeInTheDocument()
+  })
+
+  it('rejects a tolerance outside the database 0–100 percent constraint', () => {
+    renderPanel()
+
+    fireEvent.change(screen.getByLabelText('Carbs tolerance (%)'), { target: { value: '101' } })
+
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+    expect(screen.getByText(/every tolerance must be between 0% and 100%/)).toBeInTheDocument()
   })
 
   it('does not show the macros explanation when a different section is dirty', () => {

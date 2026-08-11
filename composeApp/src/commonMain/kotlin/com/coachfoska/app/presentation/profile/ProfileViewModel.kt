@@ -8,7 +8,7 @@ import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.domain.usecase.profile.GetWeightHistoryUseCase
 import com.coachfoska.app.domain.usecase.profile.LogWeightUseCase
 import com.coachfoska.app.domain.usecase.profile.UpdateUserProfileUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,7 +40,7 @@ class ProfileViewModel(
     }
 
     fun onIntent(intent: ProfileIntent) {
-        Napier.d("onIntent: $intent", tag = TAG)
+        Napier.d("Intent received: ${intent::class.simpleName}", tag = TAG)
         when (intent) {
             ProfileIntent.LoadProfile -> loadProfile()
             ProfileIntent.LoadWeightHistory -> loadWeightHistory()
@@ -103,7 +103,7 @@ class ProfileViewModel(
         viewModelScope.launch {
             logWeightUseCase(userId, intent.weightKg, intent.date, intent.notes)
                 .onSuccess { entry ->
-                    Napier.i("Weight logged: ${intent.weightKg}kg", tag = TAG)
+                    Napier.i("Weight logged", tag = TAG)
                     _state.update { it.copy(weightHistory = listOf(entry) + it.weightHistory) }
                 }
                 .onFailure { e ->

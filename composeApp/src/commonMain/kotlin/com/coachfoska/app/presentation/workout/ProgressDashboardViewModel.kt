@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.model.TimePeriod
 import com.coachfoska.app.domain.usecase.workout.GetProgressDashboardUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutsPerWeekUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

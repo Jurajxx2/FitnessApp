@@ -4,17 +4,17 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import Verify, { copy } from './Verify'
 
-const { mockVerifyOtp, mockSingle, mockFrom } = vi.hoisted(() => {
+const { mockVerifyOtp, mockGetAal, mockSingle, mockFrom } = vi.hoisted(() => {
   const mockSingle = vi.fn()
   const mockEq = vi.fn(() => ({ single: mockSingle }))
   const mockSelect = vi.fn(() => ({ eq: mockEq }))
   const mockFrom = vi.fn(() => ({ select: mockSelect }))
-  return { mockVerifyOtp: vi.fn(), mockSingle, mockEq, mockSelect, mockFrom }
+  return { mockVerifyOtp: vi.fn(), mockGetAal: vi.fn(), mockSingle, mockEq, mockSelect, mockFrom }
 })
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
-    auth: { verifyOtp: mockVerifyOtp },
+    auth: { verifyOtp: mockVerifyOtp, mfa: { getAuthenticatorAssuranceLevel: mockGetAal } },
     from: mockFrom,
   },
 }))
@@ -27,6 +27,7 @@ function renderVerify(email = 'admin@example.com') {
         <Route path="/login/verify" element={<Verify />} />
         <Route path="/login/otp" element={<div>OTP login page</div>} />
         <Route path="/admin" element={<div>Admin dashboard</div>} />
+        <Route path="/admin/mfa" element={<div>Admin MFA</div>} />
         <Route path="/nutrition" element={<div>Trainee workspace</div>} />
       </Routes>
     </MemoryRouter>
@@ -44,6 +45,7 @@ describe('Verify', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sessionStorage.clear()
+    mockGetAal.mockResolvedValue({ data: { currentLevel: 'aal2', nextLevel: 'aal2' }, error: null })
   })
 
   it('redirects to the OTP email page when no email is stored', () => {
@@ -108,6 +110,18 @@ describe('Verify', () => {
     await waitFor(() =>
       expect(screen.getByText('Admin dashboard')).toBeInTheDocument()
     )
+  })
+
+  it('navigates an aal1 admin to MFA enrollment or challenge', async () => {
+    mockVerifyOtp.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    mockSingle.mockResolvedValue({ data: { is_admin: true, is_blocked: false, access_mode: 'both' }, error: null })
+    mockGetAal.mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal2' }, error: null })
+    renderVerify()
+
+    await enterCode()
+    await userEvent.click(screen.getByRole('button', { name: /verify code/i }))
+
+    await waitFor(() => expect(screen.getByText('Admin MFA')).toBeInTheDocument())
   })
 
   it('navigates to the trainee workspace when verified user is not an admin', async () => {

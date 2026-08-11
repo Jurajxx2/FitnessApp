@@ -4,9 +4,9 @@ import {
   checkInKeys,
   fetchCheckInForWeek,
   fetchCheckIns,
-  saveCheckIn,
-  uploadCheckInPhoto,
+  submitCheckIn,
   type CheckInDraft,
+  type CheckInPhotoFiles,
 } from './api'
 import { currentWeekMondayIso } from './date'
 
@@ -30,21 +30,20 @@ export function useCurrentCheckIn() {
   })
 }
 
-export function useUploadCheckInPhoto() {
-  const { user } = useAuth()
-  return useMutation({
-    mutationFn: ({ slot, file }: { slot: 'front' | 'side'; file: File }) =>
-      uploadCheckInPhoto(user!.id, currentWeekMondayIso(), slot, file),
-  })
-}
-
 export function useSaveCheckIn() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const weekOf = currentWeekMondayIso()
   return useMutation({
-    mutationFn: ({ draft, previousWeight }: { draft: CheckInDraft; previousWeight: number | null }) =>
-      saveCheckIn(user!.id, weekOf, draft, previousWeight),
+    mutationFn: ({
+      draft,
+      previousWeight,
+      photoFiles,
+    }: {
+      draft: CheckInDraft
+      previousWeight: number | null
+      photoFiles: CheckInPhotoFiles
+    }) => submitCheckIn(user!.id, weekOf, draft, previousWeight, photoFiles),
     onSuccess: saved => {
       queryClient.setQueryData(checkInKeys.week(user!.id, weekOf), saved)
       queryClient.invalidateQueries({ queryKey: checkInKeys.all(user!.id) })

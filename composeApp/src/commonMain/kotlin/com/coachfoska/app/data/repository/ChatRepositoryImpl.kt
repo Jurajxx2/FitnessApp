@@ -10,7 +10,7 @@ import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.MessageContent
 import com.coachfoska.app.domain.model.SenderType
 import com.coachfoska.app.domain.repository.ChatRepository
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -97,7 +97,7 @@ class ChatRepositoryImpl(
             runCatching {
                 withTimeout(SUBSCRIBE_GRACE_MS) { subscribed.await() }
             }.onFailure { e ->
-                Napier.w("Realtime subscription not ready; seeding chat history anyway: ${e.message}", tag = TAG)
+                Napier.w("Realtime subscription not ready; seeding chat history anyway", tag = TAG)
             }
 
             // Seed persisted history after Realtime is subscribed, or after a short grace period

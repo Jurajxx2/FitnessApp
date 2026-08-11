@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.coachfoska.app.domain.model.MuscleGroup
 import com.coachfoska.app.domain.model.OnboardingData
 import com.coachfoska.app.domain.usecase.onboarding.SaveOnboardingUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

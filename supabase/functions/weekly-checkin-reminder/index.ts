@@ -1,80 +1,154 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4"
-import { mondayOf, usersNeedingReminder } from "./reminder.ts"
+import { createSupabaseContext } from "npm:@supabase/server@1.4.1";
+import {
+  getGoogleAccessToken,
+  parseFirebaseServiceAccount,
+  sendFcmReminder,
+} from "./fcm.ts";
+import { mondayOf } from "./reminder.ts";
+import { runWeeklyCheckinReminder } from "./orchestrator.ts";
+import { type RpcClient, SupabaseReminderRepository } from "./repository.ts";
 
-serve(async (_req) => {
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    const fcmProjectId = Deno.env.get("FCM_PROJECT_ID")
-    const fcmServerKey = Deno.env.get("FCM_SERVER_KEY")
+interface ContextError {
+  status: number;
+  code: string;
+  message: string;
+}
 
-    const supabase = createClient(supabaseUrl, serviceKey)
-    const week = mondayOf(new Date())
+interface AuthenticatedContext {
+  supabaseAdmin: RpcClient;
+}
 
-    // All active trainees (non-admin, non-blocked).
-    const { data: trainees, error: tErr } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("is_admin", false)
-      .eq("is_blocked", false)
-    if (tErr) {
-      console.error("profiles query failed:", tErr)
-      return new Response("profiles_error", { status: 200 })
-    }
+interface ContextResult {
+  data: AuthenticatedContext | null;
+  error: ContextError | null;
+}
 
-    // Who already checked in this week.
-    const { data: done, error: cErr } = await supabase
-      .from("check_ins")
-      .select("user_id")
-      .eq("week_of", week)
-    if (cErr) {
-      console.error("check_ins query failed:", cErr)
-      return new Response("checkins_error", { status: 200 })
-    }
+type ContextFactory = (request: Request) => Promise<ContextResult>;
 
-    const checkedIn = new Set((done ?? []).map((r: { user_id: string }) => r.user_id))
-    const targetIds = usersNeedingReminder(trainees ?? [], checkedIn)
-    if (targetIds.length === 0) return new Response("nobody_to_remind", { status: 200 })
+export interface HandlerDependencies {
+  createContext?: ContextFactory;
+  getServiceAccountJson?: () => string | undefined;
+  fetch?: typeof fetch;
+  now?: () => Date;
+  randomUuid?: () => string;
+}
 
-    if (!fcmProjectId || !fcmServerKey) {
-      console.log(`FCM not configured — would remind ${targetIds.length} users`)
-      return new Response("fcm_not_configured", { status: 200 })
-    }
+async function officialContext(request: Request): Promise<ContextResult> {
+  const { data, error } = await createSupabaseContext(request, {
+    auth: "secret:automations",
+  });
+  return {
+    data: data
+      ? { supabaseAdmin: data.supabaseAdmin as unknown as RpcClient }
+      : null,
+    error: error
+      ? { status: error.status, code: error.code, message: error.message }
+      : null,
+  };
+}
 
-    const { data: tokens, error: dErr } = await supabase
-      .from("device_tokens")
-      .select("token")
-      .in("user_id", targetIds)
-    if (dErr) {
-      console.error("device_tokens query failed:", dErr)
-      return new Response("tokens_error", { status: 200 })
-    }
+function json(
+  status: number,
+  value: unknown,
+  headers: HeadersInit = {},
+): Response {
+  return Response.json(value, { status, headers });
+}
 
-    const sends = (tokens ?? []).map(({ token }: { token: string }) =>
-      fetch(`https://fcm.googleapis.com/v1/projects/${fcmProjectId}/messages:send`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${fcmServerKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: {
-            token,
-            notification: {
-              title: "Weekly check-in",
-              body: "How did your week go? Tap to complete your check-in.",
-            },
-            data: { screen: "check_in" },
-          },
-        }),
-      }),
-    )
-    const results = await Promise.allSettled(sends)
-    const failures = results.filter(
-      (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok),
-    ).length
-    if (failures > 0) console.error(`${failures}/${sends.length} FCM sends failed`)
-    return new Response("ok", { status: 200 })
-  } catch (err) {
-    console.error("weekly-checkin-reminder error:", err)
-    return new Response("error", { status: 500 })
+export function parseReminderRequest(
+  value: unknown,
+  now: Date,
+): { week: string } | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
   }
-})
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).some((key) => key !== "week_of")) return null;
+  const currentWeek = mondayOf(now);
+  if (record.week_of === undefined) return { week: currentWeek };
+  if (
+    typeof record.week_of !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(record.week_of)
+  ) return null;
+  const date = new Date(`${record.week_of}T00:00:00Z`);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== record.week_of
+  ) return null;
+  if (date.getUTCDay() !== 1 || record.week_of > currentWeek) return null;
+  return { week: record.week_of };
+}
+
+export function createWeeklyCheckinReminderHandler(
+  dependencies: HandlerDependencies = {},
+): (request: Request) => Promise<Response> {
+  const createContext = dependencies.createContext ?? officialContext;
+  const fetchImpl = dependencies.fetch ?? fetch;
+
+  return async (request: Request): Promise<Response> => {
+    if (request.method !== "POST") {
+      return json(405, { error: "method_not_allowed" }, { Allow: "POST" });
+    }
+
+    const { data: context, error: authError } = await createContext(request);
+    if (authError || !context) {
+      return json(authError?.status ?? 401, {
+        error: authError?.code ?? "INVALID_CREDENTIALS",
+        message: authError?.message ?? "Invalid credentials",
+      });
+    }
+
+    try {
+      const requestText = await request.text();
+      let requestBody: unknown = {};
+      if (requestText.trim()) {
+        try {
+          requestBody = JSON.parse(requestText);
+        } catch {
+          return json(400, { error: "invalid_request" });
+        }
+      }
+      const now = dependencies.now?.() ?? new Date();
+      const parsedRequest = parseReminderRequest(requestBody, now);
+      if (!parsedRequest) return json(400, { error: "invalid_request" });
+
+      const serviceAccount = parseFirebaseServiceAccount(
+        dependencies.getServiceAccountJson?.() ??
+          Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON"),
+      );
+      const accessToken = await getGoogleAccessToken(
+        serviceAccount,
+        fetchImpl,
+        now,
+      );
+      const repository = new SupabaseReminderRepository(context.supabaseAdmin);
+      const outcome = await runWeeklyCheckinReminder({
+        repository,
+        send: (token) =>
+          sendFcmReminder(
+            serviceAccount.project_id,
+            accessToken,
+            token,
+            fetchImpl,
+          ),
+        now: dependencies.now,
+        randomUuid: dependencies.randomUuid,
+        week: parsedRequest.week,
+      });
+      return json(
+        ["pending", "retryable"].includes(outcome.status) ? 202 : 200,
+        outcome,
+      );
+    } catch (error) {
+      console.error(
+        "weekly-checkin-reminder failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
+      return json(500, { error: "reminder_failed" });
+    }
+  };
+}
+
+if (import.meta.main) {
+  Deno.serve(createWeeklyCheckinReminderHandler());
+}

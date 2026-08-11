@@ -11,7 +11,7 @@ import com.coachfoska.app.domain.usecase.chat.ObserveChatMessagesUseCase
 import com.coachfoska.app.domain.usecase.chat.SendAiChatMessageUseCase
 import com.coachfoska.app.domain.usecase.chat.SendHumanChatMessageUseCase
 import com.coachfoska.app.domain.usecase.chat.UploadChatImageUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,7 +52,7 @@ class ChatViewModel(
     }
 
     fun onIntent(intent: ChatIntent) {
-        Napier.d("onIntent: $intent", tag = TAG)
+        Napier.d("Intent received: ${intent::class.simpleName}", tag = TAG)
         when (intent) {
             ChatIntent.LoadMessages -> {
                 observeJob?.cancel()

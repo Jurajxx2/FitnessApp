@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -37,7 +36,7 @@ import coachfoska.composeapp.generated.resources.*
 import com.coachfoska.app.core.util.MediaCaptureMode
 import com.coachfoska.designsystem.theme.DsTheme
 import com.coachfoska.app.core.util.rememberGalleryPickerLauncher
-import com.coachfoska.app.core.util.rememberUriBytesReader
+import com.coachfoska.app.core.util.rememberCheckInPhotoReader
 import com.coachfoska.app.presentation.checkin.CheckInIntent
 import com.coachfoska.app.presentation.checkin.CheckInState
 import com.coachfoska.app.presentation.checkin.CheckInViewModel
@@ -104,7 +103,7 @@ private fun CheckInFormContent(
     onIntent: (CheckInIntent) -> Unit,
 ) {
     val form = state.form
-    val readBytes = rememberUriBytesReader()
+    val readBytes = rememberCheckInPhotoReader()
     val pickFront = rememberGalleryPickerLauncher(MediaCaptureMode.PHOTO) { uri ->
         uri?.let { readBytes(it)?.let { bytes -> onIntent(CheckInIntent.PhotoPicked("front", bytes)) } }
     }
@@ -168,35 +167,18 @@ private fun CheckInFormContent(
                 ) {
                     PhotoSlot(
                         label = stringResource(Res.string.checkin_photo_front),
-                        isPicked = form.photoFrontPath != null,
+                        isPicked = "front" in state.selectedPhotoSlots || form.photoFrontPath != null,
                         modifier = Modifier.weight(1f),
                         onClick = { pickFront() },
-                        enabled = !state.isUploadingPhoto && !state.isSubmitting,
+                        enabled = !state.isSubmitting,
                     )
                     PhotoSlot(
                         label = stringResource(Res.string.checkin_photo_side),
-                        isPicked = form.photoSidePath != null,
+                        isPicked = "side" in state.selectedPhotoSlots || form.photoSidePath != null,
                         modifier = Modifier.weight(1f),
                         onClick = { pickSide() },
-                        enabled = !state.isUploadingPhoto && !state.isSubmitting,
+                        enabled = !state.isSubmitting,
                     )
-                }
-                if (state.isUploadingPhoto) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(DsTheme.spacing.sm),
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = DsTheme.colors.actionPrimary,
-                            strokeWidth = 2.dp,
-                        )
-                        Text(
-                            text = stringResource(Res.string.checkin_uploading_photo),
-                            style = DsTheme.type.labelMedium,
-                            color = DsTheme.colors.textSecondary,
-                        )
-                    }
                 }
             }
 
@@ -221,7 +203,7 @@ private fun CheckInFormContent(
             DsButton(
                 text = stringResource(Res.string.checkin_submit),
                 onClick = { onIntent(CheckInIntent.Submit) },
-                enabled = !state.isSubmitting && !state.isUploadingPhoto,
+                enabled = !state.isSubmitting,
                 isLoading = state.isSubmitting,
             )
 

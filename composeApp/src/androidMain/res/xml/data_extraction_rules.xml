@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Contains the legacy plaintext Supabase session and encrypted replacement payload. -->
+        <exclude domain="sharedpref" path="com.coachfoska.app_preferences.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="com.coachfoska.app_preferences.xml" />
+    </device-transfer>
+</data-extraction-rules>

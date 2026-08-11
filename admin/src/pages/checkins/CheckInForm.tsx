@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, History, ImagePlus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Chip, Input, Shimmer } from '../../components/ui'
-import { checkInToDraft, emptyCheckInDraft, type CheckInDraft } from '../../checkins/api'
-import { useCurrentCheckIn, useSaveCheckIn, useUploadCheckInPhoto } from '../../checkins/hooks'
+import { checkInToDraft, emptyCheckInDraft, type CheckInDraft, type CheckInPhotoFiles } from '../../checkins/api'
+import { CHECK_IN_SOURCE_TYPES } from '../../checkins/imagePreparation'
+import { useCurrentCheckIn, useSaveCheckIn } from '../../checkins/hooks'
 import { useAuth } from '../../hooks/useAuth'
 
 function RatingRow({ label, value, onChange }: { label: string; value: number | null; onChange: (value: number) => void }) {
@@ -39,7 +40,7 @@ function PhotoSlot({
       <input
         ref={input}
         type="file"
-        accept="image/*"
+        accept={CHECK_IN_SOURCE_TYPES.join(',')}
         className="hidden"
         onChange={event => {
           const file = event.target.files?.[0]
@@ -55,9 +56,9 @@ export default function CheckInForm() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const current = useCurrentCheckIn()
-  const upload = useUploadCheckInPhoto()
   const save = useSaveCheckIn()
   const [draft, setDraft] = useState<CheckInDraft>(() => emptyCheckInDraft())
+  const [photoFiles, setPhotoFiles] = useState<CheckInPhotoFiles>({})
   const [initialized, setInitialized] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
@@ -71,19 +72,14 @@ export default function CheckInForm() {
     setDraft(previous => ({ ...previous, [key]: value }))
   }
 
-  async function pickPhoto(slot: 'front' | 'side', file: File) {
-    try {
-      const path = await upload.mutateAsync({ slot, file })
-      update(slot === 'front' ? 'photoFrontPath' : 'photoSidePath', path)
-    } catch {
-      // The mutation error is rendered below and the existing photo remains intact.
-    }
+  function pickPhoto(slot: 'front' | 'side', file: File) {
+    setPhotoFiles(previous => ({ ...previous, [slot]: file }))
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     try {
-      await save.mutateAsync({ draft, previousWeight: current.data?.weight_kg ?? null })
+      await save.mutateAsync({ draft, previousWeight: current.data?.weight_kg ?? null, photoFiles })
       setSubmitted(true)
     } catch {
       // The mutation error is rendered below.
@@ -134,10 +130,12 @@ export default function CheckInForm() {
       <Card className="flex flex-col gap-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Fotky pokroku</h2>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <PhotoSlot label="spredu" selected={!!draft.photoFrontPath} disabled={upload.isPending || save.isPending} onPick={file => void pickPhoto('front', file)} />
-          <PhotoSlot label="zboku" selected={!!draft.photoSidePath} disabled={upload.isPending || save.isPending} onPick={file => void pickPhoto('side', file)} />
+          <PhotoSlot label="spredu" selected={!!photoFiles.front || !!draft.photoFrontPath} disabled={save.isPending} onPick={file => pickPhoto('front', file)} />
+          <PhotoSlot label="zboku" selected={!!photoFiles.side || !!draft.photoSidePath} disabled={save.isPending} onPick={file => pickPhoto('side', file)} />
         </div>
-        {upload.isPending && <p className="text-xs text-text-secondary">Nahrávam fotku…</p>}
+        {(photoFiles.front || photoFiles.side) && (
+          <p className="text-xs text-text-secondary">Fotky sa nahrajú až po odoslaní check-inu.</p>
+        )}
       </Card>
 
       <Card className="flex flex-col gap-3">
@@ -152,10 +150,10 @@ export default function CheckInForm() {
         />
       </Card>
 
-      {(current.error || upload.error || save.error) && (
+      {(current.error || save.error) && (
         <p role="alert" className="text-sm text-error lg:col-span-2">Check-in sa nepodarilo uložiť. Skús to znova.</p>
       )}
-      <Button type="submit" loading={save.isPending} disabled={upload.isPending} className="w-full lg:col-span-2 lg:ml-auto lg:w-auto">Odoslať check-in</Button>
+      <Button type="submit" loading={save.isPending} className="w-full lg:col-span-2 lg:ml-auto lg:w-auto">Odoslať check-in</Button>
     </form>
   )
 }
