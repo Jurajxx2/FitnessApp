@@ -10,6 +10,11 @@ import {
   requestIdFromHeaders,
 } from "../_shared/admin-security.ts";
 import { type AdminUserAction, parseAdminUserRequest } from "./logic.ts";
+import {
+  type DeletionServiceResult,
+  readUserDeletion,
+  startOrAdvanceUserDeletion,
+} from "./deletion-service.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,6 +45,11 @@ export interface AdminManageUserDependencies {
       action: AdminUserAction;
       requestId: string;
     }): Promise<AdminAuditRequestState>;
+    advanceDeletion(
+      userId: string,
+      actorUserId: string,
+    ): Promise<DeletionServiceResult>;
+    readDeletion(userId: string): Promise<DeletionServiceResult>;
   };
   requestId(headers: Headers): string;
 }
@@ -62,6 +72,13 @@ function actionError(action: AdminUserAction): string {
     case "delete":
       return "Unable to delete the user";
   }
+}
+
+function sanitizedDeletionErrorCode(value?: string): string | undefined {
+  if (!value) return undefined;
+  return /^[a-z][a-z0-9_]{0,63}$/.test(value)
+    ? value
+    : "deletion_operation_failed";
 }
 
 async function persistAudit(
@@ -111,6 +128,7 @@ export function createAdminManageUserHandler(
     if (!parsed) {
       return json({ error: "Provide a valid action and user id" }, 400);
     }
+    const targetUserId = parsed.userId;
 
     const requestId = dependencies.requestId(req.headers);
     const operations = dependencies.createPrivilegedOperations();
@@ -118,7 +136,12 @@ export function createAdminManageUserHandler(
       outcome: "success" | "failure",
       status: number,
       responseBody: Record<string, unknown>,
-      reason?: string,
+      options: {
+        reason?: string;
+        jobId?: string;
+        deletionStatus?: string;
+        errorCode?: string;
+      } = {},
     ): Promise<Response> => {
       const recorded = await persistAudit(
         operations.recordAudit,
@@ -128,13 +151,34 @@ export function createAdminManageUserHandler(
           action: parsed.action,
           outcome,
           requestId,
-          detail: reason ? { reason } : {},
+          ...(options.jobId ? { jobId: options.jobId } : {}),
+          detail: {
+            ...(options.reason ? { reason: options.reason } : {}),
+            ...(options.deletionStatus
+              ? { status: options.deletionStatus }
+              : {}),
+            ...(options.errorCode ? { error_code: options.errorCode } : {}),
+          },
           response: { status, body: responseBody },
         },
       );
-      return recorded === "recorded"
-        ? json(responseBody, status)
-        : json({ error: "Unable to record the account action" }, 500);
+      if (recorded === "recorded") return json(responseBody, status);
+      if (recorded === "duplicate") {
+        try {
+          const state = await operations.readAuditRequest({
+            actorUserId: authorization.actorUserId,
+            action: parsed.action,
+            requestId,
+          });
+          if (
+            state.attemptTargetUserId === parsed.userId &&
+            state.terminal?.targetUserId === parsed.userId
+          ) return json(state.terminal.body, state.terminal.status);
+        } catch {
+          // Fall through to the fail-closed audit response below.
+        }
+      }
+      return json({ error: "Unable to record the account action" }, 500);
     };
 
     const attemptAudit = await persistAudit(
@@ -145,6 +189,7 @@ export function createAdminManageUserHandler(
         action: parsed.action,
         outcome: "attempt",
         requestId,
+        ...(parsed.action === "delete" ? { jobId: parsed.userId } : {}),
         detail: { stage: "mutation_requested" },
       },
     );
@@ -168,13 +213,52 @@ export function createAdminManageUserHandler(
           409,
         );
       }
-      return state.terminal
-        ? json(state.terminal.body, state.terminal.status)
-        : json({
-          status: "pending",
-          error: "This account action is still being reconciled",
-          requestId,
-        }, 202);
+      if (state.terminal) {
+        if (state.terminal.targetUserId !== parsed.userId) {
+          return json(
+            { error: "Idempotency key belongs to another target" },
+            409,
+          );
+        }
+        return json(state.terminal.body, state.terminal.status);
+      }
+      if (parsed.action === "delete") {
+        if (parsed.userId === authorization.actorUserId) {
+          return await finish(
+            "failure",
+            409,
+            { error: "You cannot change your own account access" },
+            { reason: "self_action_denied", jobId: parsed.userId },
+          );
+        }
+        let deletion: DeletionServiceResult;
+        try {
+          deletion = await operations.readDeletion(parsed.userId);
+        } catch {
+          deletion = {
+            ok: false,
+            httpStatus: 500,
+            jobId: parsed.userId,
+            errorCode: "deletion_replay_failed",
+          };
+        }
+        if (
+          !deletion.ok && deletion.httpStatus === 202 &&
+          deletion.errorCode === "deletion_job_pending"
+        ) {
+          return json({
+            status: "pending",
+            error: "This account action is still being reconciled",
+            requestId,
+          }, 202);
+        }
+        return await finishDeletion(deletion);
+      }
+      return json({
+        status: "pending",
+        error: "This account action is still being reconciled",
+        requestId,
+      }, 202);
     }
 
     if (parsed.userId === authorization.actorUserId) {
@@ -182,17 +266,81 @@ export function createAdminManageUserHandler(
         "failure",
         409,
         { error: "You cannot change your own account access" },
-        "self_action_denied",
+        {
+          reason: "self_action_denied",
+          ...(parsed.action === "delete" ? { jobId: parsed.userId } : {}),
+        },
+      );
+    }
+
+    async function finishDeletion(
+      deletion: DeletionServiceResult,
+    ): Promise<Response> {
+      const jobId = deletion.deletion?.jobId ?? deletion.jobId ?? targetUserId;
+      if (!deletion.ok || !deletion.deletion) {
+        const status = deletion.httpStatus;
+        const errorCode = sanitizedDeletionErrorCode(deletion.errorCode) ??
+          (status === 404 ? "target_not_found" : "deletion_operation_failed");
+        const body = {
+          error: status === 404 ? "User not found" : actionError("delete"),
+        };
+        return await finish("failure", status, body, {
+          reason: status === 404
+            ? "target_not_found"
+            : "deletion_operation_failed",
+          jobId,
+          errorCode,
+        });
+      }
+      const errorCode = sanitizedDeletionErrorCode(
+        deletion.deletion.errorCode,
+      );
+      const { errorCode: _unsafeErrorCode, ...safeDeletion } =
+        deletion.deletion;
+      const deletionBody = {
+        ...safeDeletion,
+        ...(errorCode ? { errorCode } : {}),
+      };
+      const responseBody = {
+        action: "delete",
+        userId: targetUserId,
+        deletion: deletionBody,
+      };
+      const failed = deletion.deletion.status === "manual_review" ||
+        deletion.deletion.status === "retryable_error";
+      return await finish(
+        failed ? "failure" : "success",
+        deletion.httpStatus,
+        responseBody,
+        {
+          reason: failed
+            ? deletion.deletion.status === "manual_review"
+              ? "deletion_manual_review"
+              : "deletion_retryable_error"
+            : undefined,
+          jobId,
+          deletionStatus: deletion.deletion.status,
+          errorCode,
+        },
       );
     }
 
     if (parsed.action === "delete") {
-      return await finish(
-        "failure",
-        409,
-        { error: "User deletion is temporarily unavailable" },
-        "deletion_requires_retryable_job",
-      );
+      let deletion: DeletionServiceResult;
+      try {
+        deletion = await operations.advanceDeletion(
+          parsed.userId,
+          authorization.actorUserId,
+        );
+      } catch {
+        deletion = {
+          ok: false,
+          httpStatus: 500,
+          jobId: parsed.userId,
+          errorCode: "deletion_operation_failed",
+        };
+      }
+      return await finishDeletion(deletion);
     }
 
     let operationResult: ProfileActionResult;
@@ -210,7 +358,7 @@ export function createAdminManageUserHandler(
         "failure",
         404,
         { error: "User not found" },
-        "target_not_found",
+        { reason: "target_not_found" },
       );
     }
     if (
@@ -221,7 +369,7 @@ export function createAdminManageUserHandler(
         "failure",
         409,
         { error: "Existing admin accounts cannot be changed here" },
-        "admin_target_denied",
+        { reason: "admin_target_denied" },
       );
     }
     if (operationResult !== "updated") {
@@ -229,7 +377,7 @@ export function createAdminManageUserHandler(
         "failure",
         400,
         { error: actionError(parsed.action) },
-        "account_operation_failed",
+        { reason: "account_operation_failed" },
       );
     }
 
@@ -272,6 +420,13 @@ export function createProductionAdminManageUserHandler(): (
       return {
         recordAudit: operations.recordAudit,
         readAuditRequest: operations.readAuditRequest,
+        advanceDeletion: (userId, actorUserId) =>
+          startOrAdvanceUserDeletion(
+            operations.client(),
+            userId,
+            actorUserId,
+          ),
+        readDeletion: (userId) => readUserDeletion(operations.client(), userId),
         async applyProfileAction(userId, action) {
           const { data, error } = await operations.client().rpc(
             "admin_apply_profile_account_action",

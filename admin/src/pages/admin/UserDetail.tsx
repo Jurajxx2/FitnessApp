@@ -11,6 +11,15 @@ import { MealPhoto } from '../../components/MealPhoto'
 import { CheckInsSection } from './CheckInsSection'
 import { AthleteManagementPanel } from './AthleteManagementPanel'
 import { PROFILE_SELECT } from '../../profile/selects'
+import {
+  DeletionJobCard,
+  deletionIsComplete,
+  isDefinitiveDeletionError,
+  requestUserDeletion,
+  type DeletionResponse,
+  type UserDeletionJob,
+  UserDeletionRequestError,
+} from '../../userDeletion'
 import type {
   ExerciseLog,
   MealLog,
@@ -67,7 +76,7 @@ export function isTerminalAccountActionError(response?: Response): boolean {
 }
 
 type ManageUserResponse =
-  | { action: AccountAction; userId: string }
+  | { action: AccountAction; userId: string; deletion?: DeletionResponse['deletion'] }
   | { status: 'pending'; error: string; requestId: string }
 
 export function accountActionMatchesProfile(action: AccountAction, profile: Profile | undefined): boolean {
@@ -175,8 +184,8 @@ export function AccountAccessControls({
           <Button variant="ghost" className="w-full" onClick={() => setAction('promote_admin')}>
             Make user an admin
           </Button>
-          <Button variant="danger" className="w-full" disabled title="Deletion will be enabled with retryable storage cleanup.">
-            Delete user (temporarily unavailable)
+          <Button variant="danger" className="w-full" onClick={() => setAction('delete')}>
+            Delete user
           </Button>
         </div>
       </Card>
@@ -202,6 +211,21 @@ function useUser(id: string) {
       const { data, error } = await supabase.from('profiles').select(PROFILE_SELECT).eq('id', id).single()
       if (error) throw error
       return data
+    },
+  })
+}
+
+function useUserDeletionJob(id: string) {
+  return useQuery<UserDeletionJob | null>({
+    queryKey: ['user-deletion-job', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_deletion_jobs')
+        .select('id, target_user_id, requested_by, status, attempt_count, removed_object_count, last_error_code, last_error_message, updated_at')
+        .eq('target_user_id', id)
+        .maybeSingle()
+      if (error) throw error
+      return data as UserDeletionJob | null
     },
   })
 }
@@ -954,6 +978,7 @@ export default function UserDetail() {
   const { notify } = useNotice()
 
   const { data: user, isLoading, isError, error } = useUser(id!)
+  const deletionJob = useUserDeletionJob(id!)
   const adminNoteQuery = useAthleteAdminNote(id!)
   const { data: workoutPlans = [] } = useWorkoutPlans()
   const { data: mealPlans = [] } = useMealPlans()
@@ -973,6 +998,19 @@ export default function UserDetail() {
     mutationFn: async (action: AccountAction) => {
       const intent = accountActionIntent(accountActionIntentRef.current, action, id!)
       accountActionIntentRef.current = intent
+      if (action === 'delete') {
+        try {
+          const response = await requestUserDeletion(id!, intent.requestId)
+          accountActionIntentRef.current = clearAccountActionIntent(accountActionIntentRef.current, intent.requestId)
+          return response
+        } catch (error) {
+          const response = error instanceof UserDeletionRequestError ? error.response : undefined
+          if (isDefinitiveDeletionError(response)) {
+            accountActionIntentRef.current = clearAccountActionIntent(accountActionIntentRef.current, intent.requestId)
+          }
+          throw error
+        }
+      }
       const { data, error, response } = await supabase.functions.invoke<ManageUserResponse>('admin-manage-user', {
         body: { action, userId: id! },
         headers: { 'x-request-id': intent.requestId },
@@ -1001,11 +1039,27 @@ export default function UserDetail() {
       }
       accountActionIntentRef.current = clearAccountActionIntent(accountActionIntentRef.current, intent.requestId)
     },
-    onSuccess: async (_, action) => {
+    onSuccess: async (response, action) => {
       await qc.invalidateQueries({ queryKey: ['admin-users'] })
-      if (action === 'delete') navigate('/admin/users', { replace: true })
-      else await qc.invalidateQueries({ queryKey: ['user', id] })
-      notify(ACCOUNT_ACTION_COPY[action].success, 'success')
+      if (action === 'delete') {
+        await qc.invalidateQueries({ queryKey: ['user', id] })
+        await qc.invalidateQueries({ queryKey: ['user-deletion-job', id] })
+        await qc.invalidateQueries({ queryKey: ['user-deletion-jobs'] })
+        if (response && deletionIsComplete(response)) {
+          notify(ACCOUNT_ACTION_COPY[action].success, 'success')
+          navigate('/admin/users', { replace: true })
+        } else {
+          notify(
+            response && 'deletion' in response && response.deletion?.status === 'manual_review'
+              ? 'Deletion paused for manual review.'
+              : 'Deletion progress saved. Retry until it completes.',
+            response && 'deletion' in response && response.deletion?.status === 'manual_review' ? 'error' : 'success',
+          )
+        }
+      } else {
+        await qc.invalidateQueries({ queryKey: ['user', id] })
+        notify(ACCOUNT_ACTION_COPY[action].success, 'success')
+      }
     },
     onError: error => notify(`Couldn’t update this account: ${error.message}`, 'error'),
   })
@@ -1151,12 +1205,21 @@ export default function UserDetail() {
           )}
 
           {!isSelf && !user.is_admin && (
-            <AccountAccessControls
-              userName={userDisplayName}
-              isBlocked={user.is_blocked}
-              pending={manageAccount.isPending}
-              onConfirm={manageAccount.mutateAsync}
-            />
+            <>
+              {deletionJob.data && (
+                <DeletionJobCard
+                  job={deletionJob.data}
+                  pending={manageAccount.isPending}
+                  onRetry={() => manageAccount.mutateAsync('delete')}
+                />
+              )}
+              <AccountAccessControls
+                userName={userDisplayName}
+                isBlocked={user.is_blocked}
+                pending={manageAccount.isPending}
+                onConfirm={manageAccount.mutateAsync}
+              />
+            </>
           )}
         </>
       }

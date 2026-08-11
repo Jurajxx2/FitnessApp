@@ -10,6 +10,7 @@ import type {
   AdminAuditTerminal,
   AdminAuthorizationResult,
 } from "../_shared/admin-security.ts";
+import type { DeletionServiceResult } from "./deletion-service.ts";
 
 const actorUserId = "550e8400-e29b-41d4-a716-446655440000";
 const targetUserId = "18a6ae93-7e04-49ca-999b-8f41da3d6a0e";
@@ -34,6 +35,10 @@ function dependencies(
     terminal?: AdminAuditTerminal | null;
     lookupFails?: boolean;
     attemptTargetUserId?: string;
+    deletionResult?: DeletionServiceResult;
+    replayDeletionResult?: DeletionServiceResult;
+    deletionFails?: boolean;
+    replayDeletionFails?: boolean;
   } = {},
 ) {
   const audits: AdminAuditEvent[] = [];
@@ -43,12 +48,40 @@ function dependencies(
   const sequence: string[] = [];
   let privilegedCreations = 0;
   let auditWrites = 0;
+  let deletionAdvances = 0;
+  let deletionReads = 0;
+  const defaultDeletion: DeletionServiceResult = {
+    ok: true,
+    httpStatus: 202,
+    deletion: {
+      jobId: targetUserId,
+      status: "cleaning_storage",
+      completed: false,
+      retryable: true,
+    },
+  };
   const deps: AdminManageUserDependencies = {
     authorize: () => Promise.resolve(authorization),
     requestId: () => "request-manage-1",
     createPrivilegedOperations: () => {
       privilegedCreations += 1;
       return {
+        advanceDeletion: () => {
+          deletionAdvances += 1;
+          sequence.push("mutation:delete");
+          return options.deletionFails
+            ? Promise.reject(new Error("deletion failed"))
+            : Promise.resolve(options.deletionResult ?? defaultDeletion);
+        },
+        readDeletion: () => {
+          deletionReads += 1;
+          sequence.push("read:delete");
+          return options.replayDeletionFails
+            ? Promise.reject(new Error("deletion replay failed"))
+            : Promise.resolve(
+              options.replayDeletionResult ?? defaultDeletion,
+            );
+        },
         readAuditRequest: () =>
           options.lookupFails
             ? Promise.reject(new Error("audit lookup unavailable"))
@@ -81,6 +114,8 @@ function dependencies(
     audits,
     profileActions,
     sequence,
+    deletionAdvances: () => deletionAdvances,
+    deletionReads: () => deletionReads,
     privilegedCreations: () => privilegedCreations,
   };
 }
@@ -226,33 +261,182 @@ Deno.test("atomic profile RPC results cannot turn missing or concurrently protec
   }
 });
 
-Deno.test("delete is durably rejected until retryable deletion jobs replace direct Auth deletion", async () => {
+Deno.test("delete records its durable attempt before advancing and audits exact 202 progress", async () => {
   const state = dependencies({ ok: true, actorUserId });
   const response = await createAdminManageUserHandler(state.deps)(
     request(targetUserId, "delete"),
   );
 
-  assertEquals(response.status, 409);
+  assertEquals(response.status, 202);
+  assertEquals(await response.json(), {
+    action: "delete",
+    userId: targetUserId,
+    deletion: {
+      jobId: targetUserId,
+      status: "cleaning_storage",
+      completed: false,
+      retryable: true,
+    },
+  });
   assertEquals(state.profileActions, []);
+  assertEquals(state.deletionAdvances(), 1);
+  assertEquals(state.sequence, [
+    "audit:attempt",
+    "mutation:delete",
+    "audit:success",
+  ]);
   assertEquals(state.audits, [{
     actorUserId,
     targetUserId,
     action: "delete",
     outcome: "attempt",
     requestId: "request-manage-1",
+    jobId: targetUserId,
     detail: { stage: "mutation_requested" },
   }, {
     actorUserId,
     targetUserId,
     action: "delete",
-    outcome: "failure",
+    outcome: "success",
     requestId: "request-manage-1",
-    detail: { reason: "deletion_requires_retryable_job" },
+    jobId: targetUserId,
+    detail: { status: "cleaning_storage" },
     response: {
-      status: 409,
-      body: { error: "User deletion is temporarily unavailable" },
+      status: 202,
+      body: {
+        action: "delete",
+        userId: targetUserId,
+        deletion: {
+          jobId: targetUserId,
+          status: "cleaning_storage",
+          completed: false,
+          retryable: true,
+        },
+      },
     },
   }]);
+});
+
+Deno.test("completed deletion records and returns exact 200 success", async () => {
+  const completed: DeletionServiceResult = {
+    ok: true,
+    httpStatus: 200,
+    deletion: {
+      jobId: targetUserId,
+      status: "completed",
+      completed: true,
+      retryable: false,
+    },
+  };
+  const state = dependencies(
+    { ok: true, actorUserId },
+    { deletionResult: completed },
+  );
+
+  const response = await createAdminManageUserHandler(state.deps)(
+    request(targetUserId, "delete"),
+  );
+
+  assertEquals(response.status, 200);
+  assertEquals((await response.json()).deletion, completed.deletion);
+  assertEquals(state.audits[1]?.outcome, "success");
+  assertEquals(state.audits[1]?.response?.status, 200);
+  assertEquals(state.audits[1]?.jobId, targetUserId);
+});
+
+Deno.test("manual review and retryable deletion states are terminal audited failures", async () => {
+  for (
+    const testCase of [
+      {
+        status: "manual_review" as const,
+        errorCode: "off_prefix_storage_objects",
+        reason: "deletion_manual_review",
+      },
+      {
+        status: "manual_review" as const,
+        errorCode: "shared_direct_content",
+        reason: "deletion_manual_review",
+      },
+      {
+        status: "manual_review" as const,
+        errorCode: "shared_authored_content",
+        reason: "deletion_manual_review",
+      },
+      {
+        status: "retryable_error" as const,
+        errorCode: "storage_remove_failed",
+        reason: "deletion_retryable_error",
+      },
+    ]
+  ) {
+    const state = dependencies(
+      { ok: true, actorUserId },
+      {
+        deletionResult: {
+          ok: true,
+          httpStatus: 202,
+          deletion: {
+            jobId: targetUserId,
+            status: testCase.status,
+            completed: false,
+            retryable: testCase.status === "retryable_error",
+            errorCode: testCase.errorCode,
+          },
+        },
+      },
+    );
+
+    const response = await createAdminManageUserHandler(state.deps)(
+      request(targetUserId, "delete"),
+    );
+
+    assertEquals(response.status, 202, testCase.errorCode);
+    assertEquals(await response.json(), {
+      action: "delete",
+      userId: targetUserId,
+      deletion: {
+        jobId: targetUserId,
+        status: testCase.status,
+        completed: false,
+        retryable: testCase.status === "retryable_error",
+        errorCode: testCase.errorCode,
+      },
+    }, testCase.errorCode);
+    assertEquals(state.audits[1]?.outcome, "failure", testCase.errorCode);
+    assertEquals(state.audits[1]?.jobId, targetUserId, testCase.errorCode);
+    assertEquals(state.audits[1]?.detail, {
+      reason: testCase.reason,
+      status: testCase.status,
+      error_code: testCase.errorCode,
+    }, testCase.errorCode);
+  }
+});
+
+Deno.test("manual-review recheck failure retains the job id in a sanitized terminal audit", async () => {
+  const state = dependencies(
+    { ok: true, actorUserId },
+    {
+      deletionResult: {
+        ok: false,
+        httpStatus: 500,
+        jobId: targetUserId,
+        errorCode: "manual_review_recheck_failed",
+      },
+    },
+  );
+
+  const response = await createAdminManageUserHandler(state.deps)(
+    request(targetUserId, "delete"),
+  );
+
+  assertEquals(response.status, 500);
+  assertEquals(await response.json(), { error: "Unable to delete the user" });
+  assertEquals(state.audits[1]?.outcome, "failure");
+  assertEquals(state.audits[1]?.jobId, targetUserId);
+  assertEquals(state.audits[1]?.detail, {
+    reason: "deletion_operation_failed",
+    error_code: "manual_review_recheck_failed",
+  });
 });
 
 Deno.test("does not mutate when the durable attempt audit is unavailable", async () => {
@@ -285,6 +469,178 @@ Deno.test("attempt-only duplicate stays pending without repeating a profile muta
   });
   assertEquals(state.profileActions, []);
   assertEquals(state.audits, []);
+});
+
+Deno.test("attempt-only duplicate deletion reads durable progress without advancing", async () => {
+  const state = dependencies(
+    { ok: true, actorUserId },
+    { auditDuplicateAt: 1 },
+  );
+
+  const response = await createAdminManageUserHandler(state.deps)(
+    request(targetUserId, "delete"),
+  );
+
+  assertEquals(response.status, 202);
+  assertEquals(state.deletionReads(), 1);
+  assertEquals(state.deletionAdvances(), 0);
+  assertEquals(state.audits, [{
+    actorUserId,
+    targetUserId,
+    action: "delete",
+    outcome: "success",
+    requestId: "request-manage-1",
+    jobId: targetUserId,
+    detail: { status: "cleaning_storage" },
+    response: {
+      status: 202,
+      body: {
+        action: "delete",
+        userId: targetUserId,
+        deletion: {
+          jobId: targetUserId,
+          status: "cleaning_storage",
+          completed: false,
+          retryable: true,
+        },
+      },
+    },
+  }]);
+});
+
+Deno.test("attempt-only duplicate before job creation remains pending without a false terminal", async () => {
+  const state = dependencies(
+    { ok: true, actorUserId },
+    {
+      auditDuplicateAt: 1,
+      replayDeletionResult: {
+        ok: false,
+        httpStatus: 202,
+        jobId: targetUserId,
+        errorCode: "deletion_job_pending",
+      },
+    },
+  );
+
+  const response = await createAdminManageUserHandler(state.deps)(
+    request(targetUserId, "delete"),
+  );
+
+  assertEquals(response.status, 202);
+  assertEquals(await response.json(), {
+    status: "pending",
+    error: "This account action is still being reconciled",
+    requestId: "request-manage-1",
+  });
+  assertEquals(state.deletionReads(), 1);
+  assertEquals(state.deletionAdvances(), 0);
+  assertEquals(state.audits, []);
+});
+
+Deno.test("duplicate deletion target mismatch reads neither job nor worker", async () => {
+  const state = dependencies(
+    { ok: true, actorUserId },
+    { auditDuplicateAt: 1, attemptTargetUserId: actorUserId },
+  );
+
+  const response = await createAdminManageUserHandler(state.deps)(
+    request(targetUserId, "delete"),
+  );
+
+  assertEquals(response.status, 409);
+  assertEquals(state.deletionReads(), 0);
+  assertEquals(state.deletionAdvances(), 0);
+  assertEquals(state.audits, []);
+});
+
+Deno.test("duplicate deletion exactly replays its terminal response without reading or advancing", async () => {
+  const terminalBody = {
+    action: "delete",
+    userId: targetUserId,
+    deletion: {
+      jobId: targetUserId,
+      status: "manual_review",
+      completed: false,
+      retryable: false,
+      errorCode: "off_prefix_storage_objects",
+    },
+  };
+  const state = dependencies(
+    { ok: true, actorUserId },
+    {
+      auditDuplicateAt: 1,
+      terminal: {
+        targetUserId,
+        outcome: "failure",
+        status: 202,
+        body: terminalBody,
+      },
+    },
+  );
+
+  const response = await createAdminManageUserHandler(state.deps)(
+    request(targetUserId, "delete"),
+  );
+
+  assertEquals(response.status, 202);
+  assertEquals(await response.json(), terminalBody);
+  assertEquals(state.deletionReads(), 0);
+  assertEquals(state.deletionAdvances(), 0);
+  assertEquals(state.audits, []);
+});
+
+Deno.test("duplicate deletion read failure records a sanitized terminal failure", async () => {
+  const state = dependencies(
+    { ok: true, actorUserId },
+    { auditDuplicateAt: 1, replayDeletionFails: true },
+  );
+
+  const response = await createAdminManageUserHandler(state.deps)(
+    request(targetUserId, "delete"),
+  );
+
+  assertEquals(response.status, 500);
+  assertEquals(state.deletionReads(), 1);
+  assertEquals(state.deletionAdvances(), 0);
+  assertEquals(state.audits[0]?.outcome, "failure");
+  assertEquals(state.audits[0]?.jobId, targetUserId);
+  assertEquals(state.audits[0]?.detail, {
+    reason: "deletion_operation_failed",
+    error_code: "deletion_replay_failed",
+  });
+});
+
+Deno.test("terminal audit race reloads and exactly replays the winning deletion response", async () => {
+  const winningBody = {
+    action: "delete",
+    userId: targetUserId,
+    deletion: {
+      jobId: targetUserId,
+      status: "completed",
+      completed: true,
+      retryable: false,
+    },
+  };
+  const state = dependencies(
+    { ok: true, actorUserId },
+    {
+      auditDuplicateAt: 2,
+      terminal: {
+        targetUserId,
+        outcome: "success",
+        status: 200,
+        body: winningBody,
+      },
+    },
+  );
+
+  const response = await createAdminManageUserHandler(state.deps)(
+    request(targetUserId, "delete"),
+  );
+
+  assertEquals(response.status, 200);
+  assertEquals(await response.json(), winningBody);
+  assertEquals(state.deletionAdvances(), 1);
 });
 
 Deno.test("duplicate request replays its durable success without another mutation", async () => {
@@ -414,4 +770,24 @@ Deno.test("parsed self-action denial is audited as a sanitized failure", async (
       body: { error: "You cannot change your own account access" },
     },
   }]);
+});
+
+Deno.test("self-deletion denial carries the deterministic job id and never starts a job", async () => {
+  const state = dependencies({ ok: true, actorUserId });
+  const response = await createAdminManageUserHandler(state.deps)(
+    request(actorUserId, "delete"),
+  );
+
+  assertEquals(response.status, 409);
+  assertEquals(state.deletionAdvances(), 0);
+  assertEquals(
+    state.audits.map((event) => ({
+      outcome: event.outcome,
+      jobId: event.jobId,
+    })),
+    [
+      { outcome: "attempt", jobId: actorUserId },
+      { outcome: "failure", jobId: actorUserId },
+    ],
+  );
 });

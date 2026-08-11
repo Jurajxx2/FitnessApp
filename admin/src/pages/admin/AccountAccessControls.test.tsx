@@ -8,6 +8,7 @@ describe('AccountAccessControls', () => {
     { button: 'Disable account', dialog: 'Disable this account?', confirm: 'Disable account', action: 'block' },
     { button: 'Activate account', dialog: 'Activate this account?', confirm: 'Activate account', action: 'unblock', blocked: true },
     { button: 'Make user an admin', dialog: 'Grant admin access?', confirm: 'Make admin', action: 'promote_admin' },
+    { button: 'Delete user', dialog: 'Permanently delete this user?', confirm: 'Delete user', action: 'delete' },
   ]
 
   for (const testCase of cases) {
@@ -26,10 +27,4 @@ describe('AccountAccessControls', () => {
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     })
   }
-
-  it('keeps direct deletion unavailable until retryable storage cleanup is deployed', () => {
-    render(<AccountAccessControls userName="Jane Athlete" isBlocked={false} pending={false} onConfirm={vi.fn()} />)
-    expect(screen.getByRole('button', { name: /delete user/i })).toBeDisabled()
-  })
-
 })
