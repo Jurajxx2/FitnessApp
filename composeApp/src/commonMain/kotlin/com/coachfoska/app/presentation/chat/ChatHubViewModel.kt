@@ -7,7 +7,7 @@ import com.coachfoska.app.domain.model.ChatConversationSummary
 import com.coachfoska.app.domain.model.ChatType
 import com.coachfoska.app.domain.model.SenderType
 import com.coachfoska.app.domain.repository.ChatRepository
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

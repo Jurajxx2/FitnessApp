@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
 import type { CheckInRow } from '../types/database'
-import { prepareCheckInPhoto } from './imagePreparation'
+import { MAX_PREPARED_CHECK_IN_PHOTO_BYTES, prepareCheckInPhoto } from './imagePreparation'
 
 const PHOTO_BUCKET = 'check-in-photos'
 
@@ -78,18 +78,31 @@ export async function fetchCheckInForWeek(userId: string, weekOf: string): Promi
 }
 
 export async function uploadCheckInPhoto(
-  userId: string,
   weekOf: string,
   slot: CheckInPhotoSlot,
   file: File,
 ): Promise<string> {
-  if (file.type !== 'image/jpeg') throw new Error('Check-in photo upload requires a prepared JPEG.')
-  const path = `${userId}/checkin_${weekOf}_${slot}.jpg`
-  const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, {
-    upsert: true,
-    contentType: 'image/jpeg',
+  if (file.type !== 'image/jpeg') {
+    throw new Error('Check-in photo upload requires a prepared JPEG.')
+  }
+  if (file.size === 0 || file.size > MAX_PREPARED_CHECK_IN_PHOTO_BYTES) {
+    throw new Error('Prepared check-in photo must be between 1 byte and 5 MB.')
+  }
+
+  // The proxy derives the owner from the JWT, validates and sanitizes the bytes,
+  // reserves quota, and performs the only privileged Storage write.
+  const { data, error } = await supabase.functions.invoke('check-in-photo-upload', {
+    body: file,
+    headers: {
+      'x-check-in-week': weekOf,
+      'x-check-in-slot': slot,
+    },
   })
   if (error) throw error
+  const path = (data as { path?: unknown } | null)?.path
+  if (typeof path !== 'string' || path.length === 0) {
+    throw new Error('Check-in photo upload returned an invalid response')
+  }
   return path
 }
 
@@ -191,7 +204,7 @@ export async function submitCheckIn(
   const cleanupPaths: string[] = []
   try {
     for (const photo of prepared) {
-      const path = await dependencies.uploadPhoto(userId, weekOf, photo.slot, photo.file)
+      const path = await dependencies.uploadPhoto(weekOf, photo.slot, photo.file)
       const pathKey = photo.slot === 'front' ? 'photoFrontPath' : 'photoSidePath'
       if (draft[pathKey] !== path) cleanupPaths.push(path)
       nextDraft[pathKey] = path

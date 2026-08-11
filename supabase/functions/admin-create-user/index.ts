@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
+import { accessTokenFromAuthorization, assuranceLevelFromValidatedJwt, hasAdminMfaAccess } from '../admin-manage-user/authorization.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,28 +64,35 @@ serve(async (req) => {
     // Do not trust a decoded JWT alone. getUser() validates the caller with
     // Supabase Auth and also rejects an anon key passed as Authorization.
     const authorization = req.headers.get('Authorization')
-    if (!authorization) return json({ error: 'Authentication required' }, 401)
+    const accessToken = accessTokenFromAuthorization(authorization)
+    if (!accessToken) return json({ error: 'Authentication required' }, 401)
 
     const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authorization } },
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
       auth: { autoRefreshToken: false, persistSession: false },
     })
-    const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser()
+    const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser(accessToken)
     if (callerError || !caller) return json({ error: 'Authentication required' }, 401)
+    const assuranceLevel = assuranceLevelFromValidatedJwt(accessToken)
+    if (!assuranceLevel) return json({ error: 'Authentication required' }, 401)
 
     const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
     const { data: callerProfile, error: profileError } = await adminClient
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, is_blocked')
       .eq('id', caller.id)
       .maybeSingle()
     if (profileError) {
       console.error('Unable to resolve caller role', { callerId: caller.id, error: profileError.message })
       return json({ error: 'Unable to verify permissions' }, 500)
     }
-    if (!callerProfile?.is_admin) return json({ error: 'Admin access required' }, 403)
+    if (!hasAdminMfaAccess({
+      assuranceLevel,
+      isAdmin: callerProfile?.is_admin,
+      isBlocked: callerProfile?.is_blocked,
+    })) return json({ error: 'Admin MFA verification required' }, 403)
 
     let requestBody: unknown
     try {

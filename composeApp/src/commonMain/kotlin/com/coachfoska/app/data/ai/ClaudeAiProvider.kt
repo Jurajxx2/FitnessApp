@@ -4,7 +4,7 @@ import com.coachfoska.app.BuildKonfig
 import com.coachfoska.app.domain.model.ChatMessage
 import com.coachfoska.app.domain.model.MessageContent
 import com.coachfoska.app.domain.model.SenderType
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.ktor.client.HttpClient
@@ -58,10 +58,11 @@ class ClaudeAiProvider(
                 )
             } + ClaudeMessage(role = "user", content = userMessage)
 
-        val requestBody = AiProxyRequest(
-            system = systemPrompt,
-            messages = messages
-        )
+        // The interface keeps this parameter for provider portability. The hardened proxy owns its
+        // system prompt server-side and must never accept caller-controlled instructions.
+        @Suppress("UNUSED_VARIABLE")
+        val ignoredSystemPrompt = systemPrompt
+        val requestBody = AiProxyRequest(messages = messages)
 
         val bodyJson = json.encodeToString(AiProxyRequest.serializer(), requestBody)
 
@@ -75,7 +76,7 @@ class ClaudeAiProvider(
         }.execute { response ->
             if (!response.status.isSuccess()) {
                 val error = response.bodyAsText()
-                Napier.e("ai-proxy returned ${response.status}: $error", tag = TAG)
+                Napier.e("ai-proxy request failed with status ${response.status}", tag = TAG)
                 throw IllegalStateException("AI request failed (${response.status})")
             }
             val channel = response.bodyAsChannel()
@@ -92,7 +93,7 @@ class ClaudeAiProvider(
                         if (!text.isNullOrEmpty()) send(text)
                     }
                 } catch (e: Exception) {
-                    Napier.w("Skipping unparseable SSE chunk: $data", tag = TAG)
+                    Napier.w("Skipping unparseable SSE chunk", tag = TAG)
                 }
             }
         }
@@ -100,13 +101,12 @@ class ClaudeAiProvider(
 }
 
 @Serializable
-private data class AiProxyRequest(
-    val system: String,
+internal data class AiProxyRequest(
     val messages: List<ClaudeMessage>
 )
 
 @Serializable
-private data class ClaudeMessage(
+internal data class ClaudeMessage(
     val role: String,
     val content: String
 )

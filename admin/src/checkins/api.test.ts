@@ -3,11 +3,10 @@ import type { CheckInRow } from '../types/database'
 import {
   emptyCheckInDraft,
   submitCheckIn,
-  uploadCheckInPhoto,
   type CheckInSubmissionDependencies,
 } from './api'
 
-const storage = vi.hoisted(() => ({ from: vi.fn(), upload: vi.fn(), remove: vi.fn() }))
+const storage = vi.hoisted(() => ({ from: vi.fn(), remove: vi.fn() }))
 
 vi.mock('../lib/supabase', () => ({ supabase: { storage: { from: storage.from } } }))
 
@@ -20,8 +19,8 @@ function dependencies() {
     preparePhoto: vi.fn<CheckInSubmissionDependencies['preparePhoto']>(
       async (file: File) => file.name.startsWith('front') ? preparedFront : preparedSide,
     ),
-    uploadPhoto: vi.fn<CheckInSubmissionDependencies['uploadPhoto']>(async (userId, weekOf, slot) =>
-      `${userId}/checkin_${weekOf}_${slot}.jpg`),
+    uploadPhoto: vi.fn<CheckInSubmissionDependencies['uploadPhoto']>(async (weekOf, slot) =>
+      `user-1/checkin_${weekOf}_${slot}.jpg`),
     removePhotos: vi.fn<CheckInSubmissionDependencies['removePhotos']>(async () => undefined),
     save: vi.fn<CheckInSubmissionDependencies['save']>(async () => saved),
   } satisfies CheckInSubmissionDependencies
@@ -30,8 +29,7 @@ function dependencies() {
 describe('submitCheckIn', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    storage.from.mockReturnValue({ upload: storage.upload, remove: storage.remove })
-    storage.upload.mockResolvedValue({ error: null })
+    storage.from.mockReturnValue({ remove: storage.remove })
     storage.remove.mockResolvedValue({ error: null })
   })
 
@@ -42,9 +40,9 @@ describe('submitCheckIn', () => {
       order.push(`prepare:${file.name}`)
       return file.name.startsWith('front') ? preparedFront : preparedSide
     })
-    deps.uploadPhoto.mockImplementation(async (userId, weekOf, slot) => {
+    deps.uploadPhoto.mockImplementation(async (weekOf, slot) => {
       order.push(`upload:${slot}`)
-      return `${userId}/checkin_${weekOf}_${slot}.jpg`
+      return `user-1/checkin_${weekOf}_${slot}.jpg`
     })
     deps.save.mockImplementation(async (_userId, _weekOf, draft) => {
       order.push('save')
@@ -72,6 +70,8 @@ describe('submitCheckIn', () => {
       null,
     )
     expect(deps.removePhotos).not.toHaveBeenCalled()
+    expect(deps.uploadPhoto).toHaveBeenNthCalledWith(1, '2026-08-10', 'front', preparedFront)
+    expect(deps.uploadPhoto).toHaveBeenNthCalledWith(2, '2026-08-10', 'side', preparedSide)
   })
 
   it('uploads nothing when either selected image cannot be prepared', async () => {
@@ -151,38 +151,5 @@ describe('submitCheckIn', () => {
     )).rejects.toThrow('check-in save failed')
 
     expect(deps.removePhotos).not.toHaveBeenCalled()
-  })
-})
-
-describe('uploadCheckInPhoto', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    storage.from.mockReturnValue({ upload: storage.upload, remove: storage.remove })
-    storage.upload.mockResolvedValue({ error: null })
-  })
-
-  it('uploads a prepared JPEG with a fixed MIME type and deterministic path', async () => {
-    const file = new File(['jpeg'], 'prepared.jpg', { type: 'image/jpeg' })
-
-    await expect(uploadCheckInPhoto('user-1', '2026-08-10', 'side', file))
-      .resolves.toBe('user-1/checkin_2026-08-10_side.jpg')
-
-    expect(storage.from).toHaveBeenCalledWith('check-in-photos')
-    expect(storage.upload).toHaveBeenCalledWith(
-      'user-1/checkin_2026-08-10_side.jpg',
-      file,
-      { upsert: true, contentType: 'image/jpeg' },
-    )
-  })
-
-  it('rejects a non-JPEG before contacting Storage', async () => {
-    await expect(uploadCheckInPhoto(
-      'user-1',
-      '2026-08-10',
-      'front',
-      new File(['png'], 'photo.png', { type: 'image/png' }),
-    )).rejects.toThrow('requires a prepared JPEG')
-
-    expect(storage.from).not.toHaveBeenCalled()
   })
 })

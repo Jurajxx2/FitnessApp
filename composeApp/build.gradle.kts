@@ -139,6 +139,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
@@ -191,10 +192,6 @@ buildkonfig {
             STRING, "AI_COACH_SYSTEM_PROMPT",
             localProperties.getProperty("ai.coach.system.prompt")
                 ?: "You are a professional fitness and nutrition coach. Provide helpful, evidence-based advice on workouts, nutrition, and healthy habits. Be encouraging, concise, and personalized."
-        )
-        buildConfigField(
-            BOOLEAN, "DEBUG",
-            localProperties.getProperty("debug") ?: "false"
         )
         buildConfigField(
             STRING, "BRAND_ID",

@@ -75,7 +75,7 @@ import coachfoska.composeapp.generated.resources.settings_units_desc
 import coachfoska.composeapp.generated.resources.store_compliance_ready
 import coachfoska.composeapp.generated.resources.terms_of_service
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.coachfoska.app.BuildKonfig
+import com.coachfoska.app.core.logging.AppLogger
 import com.coachfoska.app.presentation.settings.SettingsViewModel
 import com.coachfoska.app.ui.legal.LegalDocumentIds
 import org.jetbrains.compose.resources.stringResource
@@ -290,7 +290,7 @@ fun SettingsScreen(
                         checked = debugCoachSubscribed,
                         onCheckedChange = onDebugCoachSubscribedChange
                     )
-                    if (BuildKonfig.DEBUG) {
+                    if (AppLogger.isDebugBuild) {
                         SettingsDivider()
                         DebugRow(
                             title = "Design System Gallery",

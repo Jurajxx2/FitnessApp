@@ -18,7 +18,7 @@ import com.coachfoska.app.domain.usecase.workout.GetWorkoutByIdUseCase
 import com.coachfoska.app.domain.usecase.workout.GetWorkoutHistoryUseCase
 import com.coachfoska.app.domain.usecase.workout.LogWorkoutUseCase
 import com.coachfoska.app.domain.usecase.workout.SaveUserWorkoutUseCase
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,7 +51,7 @@ class WorkoutViewModel(
     }
 
     fun onIntent(intent: WorkoutIntent) {
-        Napier.d("onIntent: $intent", tag = TAG)
+        Napier.d("Intent received: ${intent::class.simpleName}", tag = TAG)
         when (intent) {
             WorkoutIntent.LoadWorkouts -> loadWorkouts()
             WorkoutIntent.LoadAllWorkouts -> loadAllWorkouts()

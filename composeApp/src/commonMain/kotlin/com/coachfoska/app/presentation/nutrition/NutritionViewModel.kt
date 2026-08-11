@@ -18,7 +18,7 @@ import com.coachfoska.app.domain.usecase.nutrition.ResolveMealPhotoUrlUseCase
 import com.coachfoska.app.domain.usecase.nutrition.ToggleFavoriteRecipeUseCase
 import com.coachfoska.app.domain.usecase.profile.GetUserProfileUseCase
 import com.coachfoska.app.core.util.todayDate
-import io.github.aakira.napier.Napier
+import com.coachfoska.app.core.logging.AppLogger as Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,7 +61,7 @@ class NutritionViewModel(
     }
 
     fun onIntent(intent: NutritionIntent) {
-        Napier.d("onIntent: $intent", tag = TAG)
+        Napier.d("Intent received: ${intent::class.simpleName}", tag = TAG)
         when (intent) {
             NutritionIntent.LoadMealPlan -> loadMealPlan()
             NutritionIntent.LoadHistory -> loadHistory()
@@ -96,7 +96,7 @@ class NutritionViewModel(
                     _state.update { it.copy(isSearching = false, searchResults = results) }
                 }
                 .onFailure { e ->
-                    Napier.e("searchFoods($query) failed", e, tag = TAG)
+                    Napier.e("searchFoods failed", e, tag = TAG)
                     _state.update { it.copy(isSearching = false, error = e.message) }
                 }
         }
@@ -162,7 +162,7 @@ class NutritionViewModel(
                 .onSuccess { url -> _state.update { it.copy(selectedMealPhotoUrl = url) } }
                 .onFailure { e ->
                     // Best-effort: a resolution failure just means the photo doesn't render.
-                    Napier.e("resolveMealPhotoUrl($path) failed", e, tag = TAG)
+                    Napier.e("resolveMealPhotoUrl failed", e, tag = TAG)
                 }
         }
     }
@@ -172,7 +172,7 @@ class NutritionViewModel(
             _state.update { it.copy(isLogging = true, error = null) }
             logMealUseCase(userId, intent.mealName, intent.foods, intent.notes, intent.imageBytes)
                 .onSuccess {
-                    Napier.i("Meal logged: ${intent.mealName}", tag = TAG)
+                    Napier.i("Meal logged", tag = TAG)
                     _state.update { it.copy(isLogging = false, mealLoggedSuccess = true) }
                 }
                 .onFailure { e ->
@@ -327,7 +327,7 @@ class NutritionViewModel(
                     }
                 }
                 .onFailure { e ->
-                    Napier.e("lookupBarcode($barcode) failed", e, tag = TAG)
+                    Napier.e("lookupBarcode failed", e, tag = TAG)
                     _state.update { it.copy(isLookingUpBarcode = false, error = e.message) }
                 }
         }

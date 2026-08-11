@@ -178,11 +178,20 @@ actual fun rememberGalleryPickerLauncher(mode: MediaCaptureMode, onResult: (Stri
     )
 
 @Composable
-actual fun rememberUriBytesReader(): (String) -> ByteArray? = { token ->
-    preparedMedia.remove(token)
-        ?: NSURL.URLWithString(token)?.path?.let { path ->
-            NSFileManager.defaultManager.contentsAtPath(path)?.toByteArray()
+actual fun rememberUriBytesReader(maxBytes: Int?): (String) -> ByteArray? {
+    require(maxBytes == null || maxBytes > 0) { "maxBytes must be positive" }
+    return { token ->
+        val prepared = preparedMedia.remove(token)
+        if (prepared != null) {
+            prepared.takeIf { maxBytes == null || it.size <= maxBytes }
+        } else {
+            NSURL.URLWithString(token)?.path?.let { path ->
+                val data = NSFileManager.defaultManager.contentsAtPath(path)
+                    ?: return@let null
+                if (maxBytes != null && data.length.toLong() > maxBytes) null else data.toByteArray()
+            }
         }
+    }
 }
 
 @Composable

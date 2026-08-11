@@ -174,7 +174,7 @@ val dataSourceModule = module {
     single { AuthRemoteDataSource(get(), get()) }
     single { UserRemoteDataSource(get()) }
     single { ActivityRemoteDataSource(get()) }
-    single { CheckInRemoteDataSource(get()) }
+    single { CheckInRemoteDataSource(get(), get()) }
     single { WorkoutRemoteDataSource(get()) }
     single { ExerciseSupabaseDataSource(get()) }
     single { MealRemoteDataSource(get()) }

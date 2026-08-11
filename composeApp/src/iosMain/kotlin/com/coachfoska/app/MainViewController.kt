@@ -25,7 +25,9 @@ import org.koin.core.context.startKoin
  *   }
  */
 fun initKoin() {
-    Napier.base(DebugAntilog())
+    if (AppLogger.isDebugBuild) {
+        Napier.base(DebugAntilog())
+    }
     AppLogger.appStarted(platform = "ios")
     startKoin {
         modules(appModules + iosModule)
