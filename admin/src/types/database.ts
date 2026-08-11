@@ -20,7 +20,6 @@ export interface Profile {
   is_admin: boolean
   is_blocked: boolean
   access_mode: AccessMode
-  admin_notes: string | null
   created_at: string
   updated_at: string
 }

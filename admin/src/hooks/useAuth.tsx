@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
+import { PROFILE_SELECT } from '../profile/selects'
 import type { Profile } from '../types/database'
 
 interface AuthState {
@@ -32,7 +33,7 @@ const AuthContext = createContext<AuthContextValue>({
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PROFILE_SELECT)
     .eq('id', userId)
     .single()
 

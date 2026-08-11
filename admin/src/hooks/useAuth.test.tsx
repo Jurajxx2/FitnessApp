@@ -1,16 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useAuth, AuthProvider } from './useAuth'
+import { PROFILE_SELECT } from '../profile/selects'
 
-const { mockGetSession, mockSingle, mockFrom } = vi.hoisted(() => {
+const { mockGetSession, mockSelect, mockSingle, mockFrom } = vi.hoisted(() => {
   const mockGetSession = vi.fn()
   const mockSingle = vi.fn()
-  const mockFrom = vi.fn(() => ({
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({ single: mockSingle })),
-    })),
+  const mockSelect = vi.fn(() => ({
+    eq: vi.fn(() => ({ single: mockSingle })),
   }))
-  return { mockGetSession, mockSingle, mockFrom }
+  const mockFrom = vi.fn(() => ({
+    select: mockSelect,
+  }))
+  return { mockGetSession, mockSelect, mockSingle, mockFrom }
 })
 
 vi.mock('../lib/supabase', () => ({
@@ -56,6 +58,8 @@ describe('useAuth', () => {
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
     await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(mockFrom).toHaveBeenCalledWith('profiles')
+    expect(mockSelect).toHaveBeenCalledWith(PROFILE_SELECT)
     expect(result.current.session).toBe(session)
     expect(result.current.isAdmin).toBe(true)
   })
