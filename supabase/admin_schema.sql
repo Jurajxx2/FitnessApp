@@ -11,8 +11,10 @@
 -- ── Admin flag + extra profile columns ──────────────────────
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS is_admin    BOOLEAN NOT NULL DEFAULT FALSE,
-  ADD COLUMN IF NOT EXISTS is_blocked  BOOLEAN NOT NULL DEFAULT FALSE,
-  ADD COLUMN IF NOT EXISTS admin_notes TEXT;
+  ADD COLUMN IF NOT EXISTS is_blocked  BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Coach-only notes are stored in public.athlete_admin_notes by the versioned
+-- migrations; they must not be added to the ordinary profiles row.
 
 -- ── get_is_admin() helper ────────────────────────────────────────
 -- SECURITY DEFINER: runs as the function owner → bypasses RLS
