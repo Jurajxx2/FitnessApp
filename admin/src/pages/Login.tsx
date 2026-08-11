@@ -3,8 +3,8 @@ import { ArrowLeft, ArrowRight, KeyRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { Button, Input } from '../components/ui'
-import { useAuth } from '../hooks/useAuth'
-import { athleteHomePath } from '../lib/access'
+import { useAuth, useAuthAssurance } from '../hooks/useAuth'
+import { postAuthDestination } from '../lib/authDestination'
 import { supabase } from '../lib/supabase'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
@@ -71,13 +71,19 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
-  const { session, profile, isAdmin, isLoading: authLoading } = useAuth()
+  const { session, profile, isLoading: authLoading } = useAuth()
+  const assurance = useAuthAssurance()
   const { locale } = usePublicLocale()
   const t = copy[locale]
 
   useEffect(() => {
-    if (!authLoading && session) navigate(isAdmin ? '/admin' : athleteHomePath(profile), { replace: true })
-  }, [authLoading, isAdmin, navigate, profile, session])
+    if (!authLoading && !assurance.isLoading && session) {
+      navigate(postAuthDestination(profile, {
+        currentLevel: assurance.currentLevel,
+        error: assurance.error,
+      }), { replace: true })
+    }
+  }, [assurance.currentLevel, assurance.error, assurance.isLoading, authLoading, navigate, profile, session])
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -98,7 +104,7 @@ export default function Login() {
     }
   }
 
-  if (authLoading) {
+  if (authLoading || assurance.isLoading) {
     return <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-text-secondary">{t.loading}</div>
   }
 

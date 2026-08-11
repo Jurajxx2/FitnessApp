@@ -8,6 +8,7 @@ import {
   Moon,
   Quote,
   Salad,
+  ShieldCheck,
   Sun,
   Users,
   X,
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { to: '/admin/quotes',    label: 'Quotes',    icon: Quote, end: false },
   { to: '/admin/exercises', label: 'Exercises', icon: Library, end: false },
   { to: '/admin/chat',      label: 'Chat',      icon: MessageCircle, end: false },
+  { to: '/admin/mfa',       label: 'Security',  icon: ShieldCheck, end: true },
 ]
 
 interface SidebarProps {

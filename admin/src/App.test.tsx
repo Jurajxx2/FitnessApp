@@ -1,12 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
+import { beforeEach } from 'vitest'
 import { appRoutes } from './App'
 
 // This is a routing-table smoke test, not a page test: leaf pages and the
 // two chrome layouts are replaced with markers so a failure here can only
 // mean the route tree itself (paths, nesting, guards) was mis-assembled by
 // the createBrowserRouter migration — not that some unrelated page broke.
-vi.mock('./hooks/useAuth', () => ({ useAuth: vi.fn() }))
+vi.mock('./hooks/useAuth', () => ({ useAuth: vi.fn(), useAuthAssurance: vi.fn() }))
 vi.mock('./lib/supabase', () => ({
   supabase: { auth: { onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })) } },
 }))
@@ -15,6 +16,7 @@ vi.mock('./pages/Login', () => ({ default: () => <div>Login page marker</div> })
 vi.mock('./pages/nutrition/Hub', () => ({ default: () => <div>Nutrition hub marker</div> }))
 vi.mock('./pages/admin/Dashboard', () => ({ default: () => <div>Admin dashboard marker</div> }))
 vi.mock('./pages/NotFound', () => ({ default: () => <div>Not found marker</div> }))
+vi.mock('./pages/AdminMfa', () => ({ default: () => <div>Admin MFA marker</div> }))
 vi.mock('./components/AthleteAppShell', async () => {
   const { Outlet } = await import('react-router-dom')
   return { AthleteAppShell: () => <Outlet /> }
@@ -24,8 +26,19 @@ vi.mock('./components/AdminLayout', async () => {
   return { AdminLayout: () => <Outlet /> }
 })
 
-import { useAuth } from './hooks/useAuth'
+import { useAuth, useAuthAssurance } from './hooks/useAuth'
 const mockUseAuth = vi.mocked(useAuth)
+const mockUseAuthAssurance = vi.mocked(useAuthAssurance)
+
+beforeEach(() => {
+  mockUseAuthAssurance.mockReturnValue({
+    currentLevel: 'aal2',
+    nextLevel: 'aal2',
+    error: null,
+    isLoading: false,
+    refreshAssuranceLevel: vi.fn(),
+  })
+})
 
 function renderAt(path: string) {
   const router = createMemoryRouter(appRoutes, { initialEntries: [path] })
@@ -88,6 +101,29 @@ describe('App route table (createBrowserRouter migration)', () => {
     renderAt('/admin')
 
     expect(await screen.findByText('Admin dashboard marker')).toBeInTheDocument()
+  })
+
+  test('routes an aal1 admin to the MFA route outside the admin content guard', async () => {
+    mockUseAuth.mockReturnValue({
+      session: {} as any,
+      user: {} as any,
+      profile: { is_admin: true, is_blocked: false } as any,
+      isAdmin: true,
+      isLoading: false,
+      refreshProfile: vi.fn(),
+    })
+    mockUseAuthAssurance.mockReturnValue({
+      currentLevel: 'aal1',
+      nextLevel: 'aal2',
+      error: null,
+      isLoading: false,
+      refreshAssuranceLevel: vi.fn(),
+    })
+
+    renderAt('/admin')
+
+    expect(await screen.findByText('Admin MFA marker')).toBeInTheDocument()
+    expect(screen.queryByText('Admin dashboard marker')).not.toBeInTheDocument()
   })
 
   test('AdminRouteGuard denies an authenticated non-admin, redirecting to the athlete home', async () => {

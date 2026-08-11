@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
-import { athleteHomePath } from '../lib/access'
+import { postAuthDestination } from '../lib/authDestination'
 import { Button } from '../components/ui'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
@@ -115,7 +115,7 @@ export default function Verify() {
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('is_admin, access_mode')
+        .select('is_admin, is_blocked, access_mode')
         .eq('id', data.user.id)
         .single()
 
@@ -123,8 +123,13 @@ export default function Verify() {
         logger.error('Error fetching profile during verification', profileError)
       }
 
+      const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+
       sessionStorage.removeItem('otp-email')
-      navigate(profile?.is_admin ? '/admin' : athleteHomePath(profile), { replace: true })
+      navigate(postAuthDestination(profile, {
+        currentLevel: assuranceError ? null : assurance.currentLevel,
+        error: assuranceError,
+      }), { replace: true })
     } catch (err) {
       logger.error('Unexpected verification error', err)
       setError(err instanceof Error ? err.message : t.genericError)

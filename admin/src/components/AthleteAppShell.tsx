@@ -14,9 +14,10 @@ import {
   UtensilsCrossed,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth, useAuthAssurance } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import { canAccessActivity, canAccessNutrition } from '../lib/access'
+import { postAuthDestination } from '../lib/authDestination'
 import { AthletePageTransition } from './AthletePageTransition'
 import { countUnreadFromCoach, fetchMyMessages } from '../chat/athleteApi'
 
@@ -61,6 +62,7 @@ export function AthleteAppShell() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, profile, isAdmin } = useAuth()
+  const assurance = useAuthAssurance()
   const { theme, toggleTheme } = useTheme()
   const unreadQuery = useQuery({
     queryKey: ['athlete-chat-unread', user?.id ?? ''],
@@ -136,7 +138,7 @@ export function AthleteAppShell() {
           {isAdmin && (
             <button
               type="button"
-              onClick={() => navigate('/admin')}
+              onClick={() => navigate(postAuthDestination(profile, assurance))}
               className="mb-2 flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-xl border border-outline bg-surface px-3 text-left text-sm font-semibold text-text-primary transition-colors hover:bg-surface-elevated"
             >
               <ArrowRightLeft size={17} aria-hidden="true" /> Administrácia
@@ -181,7 +183,7 @@ export function AthleteAppShell() {
             </div>
           </div>
           {isAdmin && (
-            <button type="button" onClick={() => navigate('/admin')} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-xl border border-outline bg-surface px-3 text-xs font-semibold text-text-primary hover:bg-surface-elevated md:hidden">
+            <button type="button" onClick={() => navigate(postAuthDestination(profile, assurance))} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-xl border border-outline bg-surface px-3 text-xs font-semibold text-text-primary hover:bg-surface-elevated md:hidden">
               <ArrowRightLeft size={15} aria-hidden="true" /> Admin
             </button>
           )}
