@@ -4,6 +4,10 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
+import java.io.ByteArrayOutputStream
 
 @Composable
 actual fun rememberUriBytesReader(): (String) -> ByteArray? {
@@ -22,6 +27,67 @@ actual fun rememberUriBytesReader(): (String) -> ByteArray? {
             context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
         }.getOrNull()
     }
+}
+
+@Composable
+actual fun rememberCheckInPhotoReader(): (String) -> ByteArray? {
+    val context = LocalContext.current
+    return { uriString ->
+        runCatching { prepareCheckInPhoto(context, Uri.parse(uriString)) }.getOrNull()
+    }
+}
+
+private fun prepareCheckInPhoto(context: Context, uri: Uri): ByteArray {
+    var bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        val source = ImageDecoder.createSource(context.contentResolver, uri)
+        ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+            val dimensions = fitCheckInPhotoDimensions(info.size.width, info.size.height)
+            decoder.setTargetSize(dimensions.width, dimensions.height)
+            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+        }
+    } else {
+        decodeSampledBitmap(context, uri)
+    }
+
+    val initial = fitCheckInPhotoDimensions(bitmap.width, bitmap.height)
+    if (bitmap.width != initial.width || bitmap.height != initial.height) {
+        val scaled = Bitmap.createScaledBitmap(bitmap, initial.width, initial.height, true)
+        if (scaled !== bitmap) bitmap.recycle()
+        bitmap = scaled
+    }
+
+    try {
+        repeat(5) {
+            for (quality in intArrayOf(86, 76, 66, 56)) {
+                val output = ByteArrayOutputStream()
+                check(bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)) { "JPEG encoding failed" }
+                val bytes = output.toByteArray()
+                if (bytes.size <= MAX_CHECK_IN_PHOTO_BYTES) return bytes
+            }
+            val nextWidth = maxOf(1, (bitmap.width * 0.78).toInt())
+            val nextHeight = maxOf(1, (bitmap.height * 0.78).toInt())
+            val scaled = Bitmap.createScaledBitmap(bitmap, nextWidth, nextHeight, true)
+            if (scaled !== bitmap) bitmap.recycle()
+            bitmap = scaled
+        }
+        error("Unable to prepare image below 5 MiB")
+    } finally {
+        bitmap.recycle()
+    }
+}
+
+private fun decodeSampledBitmap(context: Context, uri: Uri): Bitmap {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        ?: error("Unable to open selected image")
+    check(bounds.outWidth > 0 && bounds.outHeight > 0) { "Unable to read selected image dimensions" }
+
+    val options = BitmapFactory.Options().apply {
+        inSampleSize = calculateCheckInDecodeSampleSize(bounds.outWidth, bounds.outHeight)
+    }
+    return context.contentResolver.openInputStream(uri)?.use {
+        BitmapFactory.decodeStream(it, null, options)
+    } ?: error("Unable to decode selected image")
 }
 
 private fun createTempPhotoUri(context: Context): Uri {

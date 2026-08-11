@@ -16,3 +16,7 @@ expect fun rememberGalleryPickerLauncher(mode: MediaCaptureMode, onResult: (Stri
 /** Returns a function that reads a URI string into bytes, or null if unavailable. */
 @Composable
 expect fun rememberUriBytesReader(): (String) -> ByteArray?
+
+/** Reads and prepares a selected image as a bounded JPEG for check-in Storage. */
+@Composable
+expect fun rememberCheckInPhotoReader(): (String) -> ByteArray?
