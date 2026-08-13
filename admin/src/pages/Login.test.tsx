@@ -5,13 +5,17 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { PublicLocaleProvider } from '../i18n/PublicLocale'
 import Login, { copy } from './Login'
 
-const { mockSignInWithPassword, authState, assuranceState } = vi.hoisted(() => ({
+const { mockSignInWithPassword, mockSignOut, mockRevokeSession, authState, assuranceState } = vi.hoisted(() => ({
   mockSignInWithPassword: vi.fn(),
+  mockSignOut: vi.fn(),
+  mockRevokeSession: vi.fn(),
   authState: { session: null as unknown, profile: null as any, isAdmin: false, isLoading: false },
   assuranceState: { currentLevel: 'aal2' as 'aal1' | 'aal2' | null, nextLevel: 'aal2' as 'aal1' | 'aal2' | null, error: null as Error | null, isLoading: false },
 }))
 
-vi.mock('../lib/supabase', () => ({ supabase: { auth: { signInWithPassword: mockSignInWithPassword } } }))
+vi.mock('../lib/supabase', () => ({
+  supabase: { auth: { signInWithPassword: mockSignInWithPassword, signOut: mockSignOut, admin: { signOut: mockRevokeSession } } },
+}))
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => ({ ...authState, user: null }),
   useAuthAssurance: () => ({ ...assuranceState, refreshAssuranceLevel: vi.fn() }),
@@ -19,6 +23,8 @@ vi.mock('../hooks/useAuth', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockSignOut.mockResolvedValue({ error: null })
+  mockRevokeSession.mockResolvedValue({ data: null, error: null })
   authState.session = null
   authState.profile = null
   authState.isAdmin = false
@@ -46,7 +52,7 @@ function renderLogin() {
 }
 
 test('uses normalized email and password as the primary unified login', async () => {
-  mockSignInWithPassword.mockResolvedValue({ error: null })
+  mockSignInWithPassword.mockResolvedValue({ data: {}, error: null })
   renderLogin()
 
   await userEvent.type(screen.getByLabelText('Email address'), ' ADMIN@Example.com ')
@@ -54,6 +60,76 @@ test('uses normalized email and password as the primary unified login', async ()
   await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
   await waitFor(() => expect(mockSignInWithPassword).toHaveBeenCalledWith({ email: 'admin@example.com', password: 'secret-password' }))
+})
+
+test('maps a compromised-password login response to friendly guidance', async () => {
+  mockSignInWithPassword.mockResolvedValue({
+    data: {},
+    error: {
+      code: 'weak_password',
+      name: 'AuthWeakPasswordError',
+      reasons: ['pwned'],
+      message: 'Password is known to be weak',
+    },
+  })
+  renderLogin()
+
+  await userEvent.type(screen.getByLabelText('Email address'), 'user@example.com')
+  await userEvent.type(screen.getByLabelText('Password'), 'compromised-password')
+  await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(/known data breach/i)
+  expect(screen.getByRole('alert')).not.toHaveTextContent(/known to be weak/i)
+})
+
+test('ends a session returned with a compromised-password warning', async () => {
+  mockSignInWithPassword.mockResolvedValue({
+    data: {
+      session: { access_token: 'compromised-session-token' },
+      weakPassword: { reasons: ['pwned'], message: 'Password is compromised' },
+    },
+    error: null,
+  })
+  renderLogin()
+
+  await userEvent.type(screen.getByLabelText('Email address'), 'user@example.com')
+  await userEvent.type(screen.getByLabelText('Password'), 'compromised-password')
+  await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+  await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ scope: 'local' }))
+  expect(mockRevokeSession).toHaveBeenCalledWith('compromised-session-token', 'global')
+  expect(screen.getByRole('alert')).toHaveTextContent(/known data breach/i)
+})
+
+test('never navigates a compromised session while local sign-out is slow or failing', async () => {
+  let rejectLocalSignOut: (error: Error) => void = () => {}
+  mockSignInWithPassword.mockImplementation(async () => {
+    authState.session = {} as never
+    authState.isAdmin = true
+    authState.profile = { is_admin: true, is_blocked: false, access_mode: 'both' }
+    return {
+      data: {
+        session: { access_token: 'compromised-session-token' },
+        weakPassword: { reasons: ['pwned'], message: 'Password is compromised' },
+      },
+      error: null,
+    }
+  })
+  mockSignOut.mockReturnValue(new Promise((_, reject) => { rejectLocalSignOut = reject }))
+  mockRevokeSession.mockRejectedValue(new Error('revocation unavailable'))
+  renderLogin()
+
+  await userEvent.type(screen.getByLabelText('Email address'), 'user@example.com')
+  await userEvent.type(screen.getByLabelText('Password'), 'compromised-password')
+  await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+  await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ scope: 'local' }))
+  expect(screen.queryByText('Dashboard page')).not.toBeInTheDocument()
+
+  rejectLocalSignOut(new Error('local storage unavailable'))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(/known data breach/i)
+  expect(screen.queryByText('Dashboard page')).not.toBeInTheDocument()
 })
 
 test('opens OTP email collection on a separate page', async () => {

@@ -5,6 +5,7 @@ import { AuthLayout } from '../components/AuthLayout'
 import { Button, Input } from '../components/ui'
 import { useAuth, useAuthAssurance } from '../hooks/useAuth'
 import { postAuthDestination } from '../lib/authDestination'
+import { friendlyAuthError, isCompromisedPasswordWarning } from '../lib/authErrors'
 import { supabase } from '../lib/supabase'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
@@ -26,6 +27,7 @@ export const copy = {
     privacy: 'Privacy',
     terms: 'Terms',
     genericError: 'We could not sign you in. Please try again.',
+    compromisedPassword: 'This password has appeared in a known data breach. Reset it to a new, unique password before continuing.',
   },
   cs: {
     loading: 'Načítám účet…',
@@ -44,6 +46,7 @@ export const copy = {
     privacy: 'Ochrana soukromí',
     terms: 'Podmínky',
     genericError: 'Přihlášení se nezdařilo. Zkuste to prosím znovu.',
+    compromisedPassword: 'Toto heslo se objevilo ve známém úniku dat. Než budete pokračovat, obnovte ho na nové a jedinečné heslo.',
   },
   sk: {
     loading: 'Načítavam účet…',
@@ -62,6 +65,7 @@ export const copy = {
     privacy: 'Ochrana súkromia',
     terms: 'Podmienky',
     genericError: 'Prihlásenie sa nepodarilo. Skús to, prosím, znova.',
+    compromisedPassword: 'Toto heslo sa objavilo v známom úniku dát. Pred pokračovaním ho obnov na nové a jedinečné heslo.',
   },
 } as const
 
@@ -70,6 +74,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [suppressSessionNavigation, setSuppressSessionNavigation] = useState(false)
   const navigate = useNavigate()
   const { session, profile, isLoading: authLoading } = useAuth()
   const assurance = useAuthAssurance()
@@ -77,28 +82,54 @@ export default function Login() {
   const t = copy[locale]
 
   useEffect(() => {
-    if (!authLoading && !assurance.isLoading && session) {
+    if (!loading && !suppressSessionNavigation && !authLoading && !assurance.isLoading && session) {
       navigate(postAuthDestination(profile, {
         currentLevel: assurance.currentLevel,
         error: assurance.error,
       }), { replace: true })
     }
-  }, [assurance.currentLevel, assurance.error, assurance.isLoading, authLoading, navigate, profile, session])
+  }, [assurance.currentLevel, assurance.error, assurance.isLoading, authLoading, loading, navigate, profile, session, suppressSessionNavigation])
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       })
-      if (signInError) setError(signInError.message)
+      if (signInError) {
+        setError(friendlyAuthError(signInError, t.compromisedPassword, t.genericError))
+      } else if (isCompromisedPasswordWarning(data.weakPassword)) {
+        // Supabase can return a valid session plus a weak-password warning for
+        // an existing account. Do not let that session navigate past this
+        // screen when the warning specifically identifies a leaked password.
+        setSuppressSessionNavigation(true)
+        try {
+          // Clear the browser session before any network request. auth-js emits
+          // SIGNED_IN before signInWithPassword resolves, so a global sign-out
+          // first would leave a navigation race while its request is pending.
+          await supabase.auth.signOut({ scope: 'local' })
+        } catch {
+          // Navigation stays suppressed even if local storage is unavailable.
+        }
+        if (data.session?.access_token) {
+          try {
+            await supabase.auth.admin.signOut(data.session.access_token, 'global')
+          } catch {
+            // The local session is already cleared and navigation remains
+            // suppressed even if refresh-token revocation is unavailable.
+          }
+        }
+        setError(t.compromisedPassword)
+      } else {
+        setSuppressSessionNavigation(false)
+      }
       // Successful navigation is driven by the resolved AuthProvider state so
       // both password and restored sessions use exactly the same role decision.
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.genericError)
+      setError(friendlyAuthError(err, t.compromisedPassword, t.genericError))
     } finally {
       setLoading(false)
     }

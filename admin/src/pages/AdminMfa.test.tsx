@@ -9,7 +9,6 @@ const {
   mockEnroll,
   mockChallenge,
   mockVerify,
-  mockUnenroll,
   mockRefreshAssurance,
   assuranceState,
 } = vi.hoisted(() => ({
@@ -17,7 +16,6 @@ const {
   mockEnroll: vi.fn(),
   mockChallenge: vi.fn(),
   mockVerify: vi.fn(),
-  mockUnenroll: vi.fn(),
   mockRefreshAssurance: vi.fn(),
   assuranceState: {
     currentLevel: 'aal1' as 'aal1' | 'aal2' | null,
@@ -39,7 +37,6 @@ vi.mock('../lib/supabase', () => ({
         enroll: mockEnroll,
         challenge: mockChallenge,
         verify: mockVerify,
-        unenroll: mockUnenroll,
       },
     },
   },
@@ -75,7 +72,6 @@ describe('AdminMfa', () => {
     mockRefreshAssurance.mockResolvedValue({ currentLevel: 'aal2', nextLevel: 'aal2', error: null, isLoading: false })
     mockChallenge.mockResolvedValue({ data: { id: 'challenge-1' }, error: null })
     mockVerify.mockResolvedValue({ data: {}, error: null })
-    mockUnenroll.mockResolvedValue({ data: {}, error: null })
   })
 
   it('enrolls a TOTP factor and verifies it through challenge and verify', async () => {
@@ -135,60 +131,18 @@ describe('AdminMfa', () => {
     expect(screen.queryByText('Admin dashboard')).not.toBeInTheDocument()
   })
 
-  it('never lets the browser remove verified factors, even when two are present', async () => {
+  it('offers no browser removal action for verified or incomplete factors', async () => {
     assuranceState.currentLevel = 'aal2'
     const backup = { ...verifiedFactor, id: 'factor-2', friendly_name: 'Backup tablet' }
-    mockListFactors.mockResolvedValue({ data: { all: [verifiedFactor, backup], totp: [verifiedFactor, backup] }, error: null })
+    const incomplete = { ...verifiedFactor, id: 'factor-3', friendly_name: 'Abandoned setup', status: 'unverified' }
+    mockListFactors.mockResolvedValue({ data: { all: [verifiedFactor, backup, incomplete], totp: [verifiedFactor, backup] }, error: null })
     renderPage()
 
-    expect(await screen.findByRole('button', { name: 'Remove Backup tablet' })).toBeDisabled()
-    expect(await screen.findByRole('button', { name: 'Remove Primary phone' })).toBeDisabled()
+    expect(await screen.findByText('Primary phone')).toBeInTheDocument()
+    expect(screen.getByText('Backup tablet')).toBeInTheDocument()
+    expect(screen.getByText('Abandoned setup')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Open the protected recovery instructions' })).toHaveAttribute('href', '/admin/mfa/recovery')
-    expect(mockUnenroll).not.toHaveBeenCalled()
-  })
-
-  it('allows the browser to remove only an incomplete enrollment factor', async () => {
-    const user = userEvent.setup()
-    const incomplete = { ...verifiedFactor, id: 'incomplete-factor', friendly_name: 'Abandoned setup', status: 'unverified' }
-    mockListFactors
-      .mockResolvedValueOnce({ data: { all: [incomplete], totp: [] }, error: null })
-      .mockResolvedValueOnce({ data: { all: [incomplete], totp: [] }, error: null })
-      .mockResolvedValue({ data: { all: [], totp: [] }, error: null })
-    renderPage()
-
-    await user.click(await screen.findByRole('button', { name: 'Remove Abandoned setup' }))
-    await waitFor(() => expect(mockUnenroll).toHaveBeenCalledWith({ factorId: 'incomplete-factor' }))
-    expect(mockRefreshAssurance).not.toHaveBeenCalled()
-  })
-
-  it('rechecks an incomplete factor and refuses removal if another tab verified it', async () => {
-    const user = userEvent.setup()
-    const incomplete = { ...verifiedFactor, id: 'factor-race', friendly_name: 'Other tab setup', status: 'unverified' }
-    const nowVerified = { ...incomplete, status: 'verified' }
-    mockListFactors
-      .mockResolvedValueOnce({ data: { all: [incomplete], totp: [] }, error: null })
-      .mockResolvedValueOnce({ data: { all: [nowVerified], totp: [nowVerified] }, error: null })
-    renderPage()
-
-    await user.click(await screen.findByRole('button', { name: 'Remove Other tab setup' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Verified authenticators can only be removed')
-    expect(mockUnenroll).not.toHaveBeenCalled()
-  })
-
-  it('refuses removal when the refreshed factor is no longer an incomplete TOTP enrollment', async () => {
-    const user = userEvent.setup()
-    const incomplete = { ...verifiedFactor, id: 'factor-changed', friendly_name: 'Changed setup', status: 'unverified' }
-    const changedType = { ...incomplete, factor_type: 'phone' }
-    mockListFactors
-      .mockResolvedValueOnce({ data: { all: [incomplete], totp: [] }, error: null })
-      .mockResolvedValueOnce({ data: { all: [changedType], totp: [] }, error: null })
-    renderPage()
-
-    await user.click(await screen.findByRole('button', { name: 'Remove Changed setup' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('protected operator recovery procedure')
-    expect(mockUnenroll).not.toHaveBeenCalled()
   })
 
   it('keeps every factor action unavailable until a failed list request is retried successfully', async () => {
@@ -217,5 +171,45 @@ describe('AdminMfa', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('AAL unavailable')
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(mockRefreshAssurance).toHaveBeenCalled()
+  })
+
+  it('turns a duplicate friendly-name enrollment into actionable device-name guidance', async () => {
+    const user = userEvent.setup()
+    // An abandoned setup cannot be removed in the browser, so retrying with the
+    // pre-filled default name is the realistic path into this GoTrue rejection.
+    const abandoned = { ...verifiedFactor, id: 'abandoned', friendly_name: 'Coach Foska authenticator', status: 'unverified' }
+    mockListFactors.mockResolvedValue({ data: { all: [abandoned], totp: [] }, error: null })
+    mockEnroll.mockResolvedValue({
+      data: null,
+      error: Object.assign(new Error('A factor with the friendly name "Coach Foska authenticator" for this user already exists'), {
+        code: 'mfa_factor_name_conflict',
+        status: 422,
+      }),
+    })
+    renderPage()
+
+    const deviceNameField = await screen.findByLabelText('Device name')
+    expect(deviceNameField).toHaveValue('Coach Foska authenticator')
+    await user.click(screen.getByRole('button', { name: /add authenticator/i }))
+
+    expect(await screen.findByText(/enter a different device name/i)).toBeInTheDocument()
+    expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument()
+    expect(deviceNameField).toHaveAttribute('aria-invalid', 'true')
+    await waitFor(() => expect(deviceNameField).toHaveFocus())
+
+    // Editing the name clears the guidance so the retry is not pre-blocked.
+    await user.type(deviceNameField, ' 2')
+    expect(screen.queryByText(/enter a different device name/i)).not.toBeInTheDocument()
+  })
+
+  it('still surfaces non-conflict enrollment failures verbatim', async () => {
+    const user = userEvent.setup()
+    mockEnroll.mockResolvedValue({ data: null, error: new Error('Enrollment service unavailable') })
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: /add authenticator/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enrollment service unavailable')
+    expect(screen.getByLabelText('Device name')).not.toHaveAttribute('aria-invalid')
   })
 })

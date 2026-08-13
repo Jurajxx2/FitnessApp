@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { KeyRound, Plus, ShieldCheck, Trash2 } from 'lucide-react'
+import { KeyRound, Plus, ShieldCheck } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { Button, Input } from '../components/ui'
@@ -20,8 +20,25 @@ interface TotpEnrollment {
   secret: string
 }
 
+const DEFAULT_DEVICE_NAME = 'Coach Foska authenticator'
+const DEVICE_NAME_FIELD_ID = 'mfa-device-name'
+
 function messageFrom(error: unknown): string {
   return error instanceof Error ? error.message : 'The security request failed. Please try again.'
+}
+
+/**
+ * GoTrue rejects an enrollment whose friendly_name already belongs to another
+ * factor on the account (mfa_factor_name_conflict, 422). Because a factor can
+ * no longer be removed in the browser, an admin who abandons a setup and then
+ * retries with the pre-filled default name would otherwise be dead-ended by
+ * raw GoTrue text that never mentions the Device name field.
+ */
+function isFriendlyNameConflict(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  const { code, status, message } = error as { code?: unknown; status?: unknown; message?: unknown }
+  if (code === 'mfa_factor_name_conflict') return true
+  return status === 422 && typeof message === 'string' && /friendly.?name|name.*(conflict|already)/i.test(message)
 }
 
 function qrCodeSource(value: string): string {
@@ -33,21 +50,22 @@ export default function AdminMfa() {
   const assurance = useAuthAssurance()
   const [factors, setFactors] = useState<MfaFactor[]>([])
   const [selectedFactorId, setSelectedFactorId] = useState('')
-  const [deviceName, setDeviceName] = useState('Coach Foska authenticator')
+  const [deviceName, setDeviceName] = useState(DEFAULT_DEVICE_NAME)
+  const [deviceNameError, setDeviceNameError] = useState('')
   const [code, setCode] = useState('')
   const [enrollment, setEnrollment] = useState<TotpEnrollment | null>(null)
   const [loadingFactors, setLoadingFactors] = useState(true)
   const [factorListError, setFactorListError] = useState('')
-  const [pendingAction, setPendingAction] = useState<'enroll' | 'verify' | string | null>(null)
+  const [pendingAction, setPendingAction] = useState<'enroll' | 'verify' | null>(null)
   const [error, setError] = useState('')
 
-  const verifiedFactors = useMemo(
-    () => factors.filter(factor => factor.factor_type === 'totp' && factor.status === 'verified'),
+  const totpFactors = useMemo(
+    () => factors.filter(factor => factor.factor_type === 'totp'),
     [factors],
   )
-  const unverifiedFactors = useMemo(
-    () => factors.filter(factor => factor.factor_type === 'totp' && factor.status === 'unverified'),
-    [factors],
+  const verifiedFactors = useMemo(
+    () => totpFactors.filter(factor => factor.status === 'verified'),
+    [totpFactors],
   )
 
   const loadFactors = useCallback(async () => {
@@ -79,17 +97,24 @@ export default function AdminMfa() {
   async function beginEnrollment() {
     setPendingAction('enroll')
     setError('')
+    setDeviceNameError('')
     try {
       const { data, error: enrollError } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
-        friendlyName: deviceName.trim() || 'Coach Foska authenticator',
+        friendlyName: deviceName.trim() || DEFAULT_DEVICE_NAME,
       })
       if (enrollError) throw enrollError
       setEnrollment({ id: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret })
       setCode('')
       await loadFactors()
     } catch (enrollError) {
-      setError(messageFrom(enrollError))
+      if (isFriendlyNameConflict(enrollError)) {
+        // Point at the field that has to change instead of the raw GoTrue text.
+        setDeviceNameError('An authenticator on this account already uses this name. Enter a different device name, then add the authenticator again.')
+        requestAnimationFrame(() => document.getElementById(DEVICE_NAME_FIELD_ID)?.focus())
+      } else {
+        setError(messageFrom(enrollError))
+      }
     } finally {
       setPendingAction(null)
     }
@@ -123,38 +148,6 @@ export default function AdminMfa() {
       navigate('/admin', { replace: true })
     } catch (verifyError) {
       setError(messageFrom(verifyError))
-    } finally {
-      setPendingAction(null)
-    }
-  }
-
-  async function removeFactor(factor: MfaFactor) {
-    if (factor.status === 'verified') {
-      setError('Verified authenticators can only be removed through the protected operator recovery procedure.')
-      return
-    }
-    setPendingAction(factor.id)
-    setError('')
-    try {
-      // Re-read immediately before mutation so another tab completing this
-      // enrollment cannot turn a stale incomplete row into browser-managed
-      // verified-factor deletion.
-      const { data: latestFactors, error: listError } = await supabase.auth.mfa.listFactors()
-      if (listError) {
-        setFactorListError(messageFrom(listError))
-        throw listError
-      }
-      const latestFactor = (latestFactors.all as MfaFactor[]).find(candidate => candidate.id === factor.id)
-      if (!latestFactor) throw new Error('This incomplete setup no longer exists. Refresh and try again.')
-      if (latestFactor.factor_type !== 'totp' || latestFactor.status !== 'unverified') {
-        throw new Error('Verified authenticators can only be removed through the protected operator recovery procedure.')
-      }
-      const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId: factor.id })
-      if (unenrollError) throw unenrollError
-      if (enrollment?.id === factor.id) setEnrollment(null)
-      await loadFactors()
-    } catch (unenrollError) {
-      setError(messageFrom(unenrollError))
     } finally {
       setPendingAction(null)
     }
@@ -257,44 +250,37 @@ export default function AdminMfa() {
       ) : (
         <section className="mt-6 rounded-2xl border border-outline-subtle bg-surface p-5">
           {!isAal2 && <p className="mb-4 text-sm leading-6 text-text-secondary">Connect an authenticator app before continuing to the admin workspace.</p>}
-          <Input label="Device name" value={deviceName} onChange={event => setDeviceName(event.target.value)} maxLength={64} />
+          <Input
+            id={DEVICE_NAME_FIELD_ID}
+            label="Device name"
+            value={deviceName}
+            onChange={event => {
+              setDeviceName(event.target.value)
+              if (deviceNameError) setDeviceNameError('')
+            }}
+            maxLength={64}
+            error={deviceNameError || undefined}
+          />
           <Button className="mt-4 w-full" loading={pendingAction === 'enroll'} onClick={() => void beginEnrollment()}>
             <Plus size={17} aria-hidden="true" /> Add authenticator
           </Button>
         </section>
       )}
 
-      {!loadingFactors && !factorListError && (isAal2 || unverifiedFactors.length > 0) && (
+      {!loadingFactors && !factorListError && totpFactors.length > 0 && (
         <section className="mt-6">
           <h2 className="font-display text-lg font-bold text-text-primary">Connected factors</h2>
           <div className="mt-3 flex flex-col gap-2">
-            {factors.filter(factor => factor.factor_type === 'totp').map(factor => {
-              const isVerified = factor.status === 'verified'
-              return (
-                <div key={factor.id} className="flex items-center justify-between gap-3 rounded-xl border border-outline-subtle bg-surface p-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-text-primary">{factor.friendly_name || 'Authenticator app'}</p>
-                    <p className="mt-0.5 text-xs text-text-secondary">{factor.status === 'verified' ? 'Verified' : 'Setup incomplete'}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    aria-label={`Remove ${factor.friendly_name || 'authenticator app'}`}
-                    disabled={isVerified}
-                    title={isVerified ? 'Verified authenticators require the protected operator recovery procedure.' : undefined}
-                    loading={pendingAction === factor.id}
-                    onClick={() => void removeFactor(factor)}
-                  >
-                    <Trash2 size={16} aria-hidden="true" /> Remove
-                  </Button>
+            {totpFactors.map(factor => (
+                <div key={factor.id} className="rounded-xl border border-outline-subtle bg-surface p-3">
+                  <p className="truncate text-sm font-semibold text-text-primary">{factor.friendly_name || 'Authenticator app'}</p>
+                  <p className="mt-0.5 text-xs text-text-secondary">{factor.status === 'verified' ? 'Verified' : 'Setup incomplete'}</p>
                 </div>
-              )
-            })}
+            ))}
           </div>
-          {verifiedFactors.length > 0 && (
-            <p className="mt-2 text-xs leading-5 text-text-secondary">
-              Verified authenticators cannot be removed in the browser. <Link to="/admin/mfa/recovery" className="font-semibold underline hover:text-text-primary">Open the protected recovery instructions</Link> if a device is lost or must be replaced.
-            </p>
-          )}
+          <p className="mt-2 text-xs leading-5 text-text-secondary">
+            Authenticator factors, including incomplete setups, cannot be removed in the browser. <Link to="/admin/mfa/recovery" className="font-semibold underline hover:text-text-primary">Open the protected recovery instructions</Link> if a device is lost, replaced, or an abandoned setup must be cleared.
+          </p>
         </section>
       )}
 
