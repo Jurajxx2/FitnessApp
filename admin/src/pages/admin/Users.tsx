@@ -1,13 +1,21 @@
 // admin/src/pages/admin/Users.tsx
-import { useDeferredValue, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useDeferredValue, useRef, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { Badge, Button, Chip, DataTable, EmptyState, PageHeader, SearchInput } from '../../components/ui'
+import { Badge, Button, Chip, DataTable, EmptyState, PageHeader, SearchInput, useNotice } from '../../components/ui'
 import type { DataColumn, ActionMenuItem } from '../../components/ui'
 import type { Profile } from '../../types/database'
 import { useAuth } from '../../hooks/useAuth'
 import { PROFILE_SELECT } from '../../profile/selects'
+import {
+  DeletionJobCard,
+  DeletionRequestIdStore,
+  isDefinitiveDeletionError,
+  requestUserDeletion,
+  type UserDeletionJob,
+  UserDeletionRequestError,
+} from '../../userDeletion'
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
@@ -38,6 +46,21 @@ function deriveStatus(p: Profile): 'active' | 'inactive' | 'blocked' {
   return 'active'
 }
 
+function useDeletionJobs() {
+  return useQuery<UserDeletionJob[]>({
+    queryKey: ['user-deletion-jobs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_deletion_jobs')
+        .select('id, target_user_id, requested_by, status, attempt_count, removed_object_count, last_error_code, last_error_message, updated_at')
+        .neq('status', 'completed')
+        .order('updated_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as UserDeletionJob[]
+    },
+  })
+}
+
 const GOAL_LABELS: Record<string, string> = {
   build_muscle: 'Build muscle',
   lose_weight: 'Lose weight',
@@ -60,6 +83,32 @@ export default function Users() {
   const { data: { data: users = [], count: totalCount = 0 } = {}, isLoading, isError } = useUsers(deferredSearch, statusFilter, page, pageSize)
   const navigate = useNavigate()
   const { user: currentUser } = useAuth()
+  const queryClient = useQueryClient()
+  const { notify } = useNotice()
+  const deletionJobs = useDeletionJobs()
+  const deletionRequestIds = useRef(new DeletionRequestIdStore())
+  const retryDeletion = useMutation({
+    mutationFn: async (targetUserId: string) => {
+      const requestId = deletionRequestIds.current.idFor(targetUserId)
+      try {
+        const response = await requestUserDeletion(targetUserId, requestId)
+        deletionRequestIds.current.complete(targetUserId)
+        return response
+      } catch (error) {
+        const response = error instanceof UserDeletionRequestError ? error.response : undefined
+        if (isDefinitiveDeletionError(response)) deletionRequestIds.current.complete(targetUserId)
+        throw error
+      }
+    },
+    onSuccess: async response => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['user-deletion-jobs'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+      ])
+      notify(response.deletion.completed ? 'User deletion completed.' : 'User deletion progress saved.', 'success')
+    },
+    onError: error => notify(`Couldn’t retry user deletion: ${error.message}`, 'error'),
+  })
 
   function openUser(userId: string) {
     navigate(`/admin/users/${userId}`)
@@ -112,6 +161,22 @@ export default function Users() {
         description={`${totalCount} matching users`}
         actions={<Button onClick={() => navigate('/admin/users/new')}>Create athlete</Button>}
       />
+
+      {(deletionJobs.data?.length ?? 0) > 0 && (
+        <section className="mb-6" aria-labelledby="deletion-jobs-heading">
+          <h2 id="deletion-jobs-heading" className="mb-3 text-sm font-bold text-text-primary">Deletion jobs requiring attention</h2>
+          <div className="grid gap-3 lg:grid-cols-2">
+            {deletionJobs.data!.map(job => (
+              <DeletionJobCard
+                key={job.id}
+                job={job}
+                pending={retryDeletion.isPending && retryDeletion.variables === job.target_user_id}
+                onRetry={targetUserId => retryDeletion.mutateAsync(targetUserId)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput

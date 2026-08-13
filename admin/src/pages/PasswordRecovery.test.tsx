@@ -59,6 +59,25 @@ test('rejects mismatched passwords without calling Supabase', async () => {
   expect(mockUpdateUser).not.toHaveBeenCalled()
 })
 
+test('maps a compromised reset password to friendly guidance', async () => {
+  mockUpdateUser.mockResolvedValue({
+    error: {
+      code: 'weak_password',
+      name: 'AuthWeakPasswordError',
+      reasons: ['pwned'],
+      message: 'Password is known to be weak',
+    },
+  })
+  render(<MemoryRouter><ResetPassword /></MemoryRouter>)
+
+  await userEvent.type(screen.getByLabelText('New password'), 'compromised-password')
+  await userEvent.type(screen.getByLabelText('Confirm new password'), 'compromised-password')
+  await userEvent.click(screen.getByRole('button', { name: /save new password/i }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(/known data breach/i)
+  expect(screen.getByRole('alert')).not.toHaveTextContent(/known to be weak/i)
+})
+
 test('ForgotPassword sk and cs copy expose the same key set', () => {
   expect(Object.keys(forgotPasswordCopy.sk).sort()).toEqual(Object.keys(forgotPasswordCopy.cs).sort())
 })

@@ -1,6 +1,6 @@
 # Admin MFA factor-loss recovery
 
-Use this only when an admin has lost every usable authenticator. The browser flow cannot bypass MFA and Supabase does not issue recovery codes. This procedure uses the Auth Admin API from an authorized operator shell; it does not require access to the Supabase dashboard.
+Use this when an admin has lost a usable authenticator or an abandoned incomplete enrollment must be removed. The browser flow cannot delete any factor or bypass MFA, and Supabase does not issue recovery codes. This procedure uses the Auth Admin API from an authorized operator shell; it does not require access to the Supabase dashboard.
 
 ## Preconditions
 
@@ -26,7 +26,7 @@ The silent prompt keeps the key out of shell history and terminal output. An app
 
 Confirm the canonical Supabase Auth email, exact Auth user UUID, admin flag, factor ID, status, and device name with the verified admin. The script deliberately does not use the mutable public profile email as identity evidence.
 
-## Remove only the lost factor
+## Remove only the confirmed factor
 
 The script requires a second exact-user confirmation and refuses factors that are not attached to that user:
 
@@ -35,7 +35,7 @@ export MFA_RECOVERY_CONFIRMED_USER_ID='AUTH_USER_UUID'
 node scripts/admin-mfa-recovery.mjs delete 'AUTH_USER_UUID' 'FACTOR_UUID'
 ```
 
-Deleting a verified factor through the Supabase Auth Admin API signs the user out of active sessions. Remove only the factor confirmed as lost. If another verified factor remains, the admin can use it. If none remains, the next sign-in routes the admin to `/admin/mfa` to enroll a replacement before admin content is available.
+Deleting a verified factor through the Supabase Auth Admin API signs the user out of active sessions. Remove only the exact factor confirmed as lost or abandoned; incomplete factors use this same operator-only path because browser deletion has a verification race. If another verified factor remains, the admin can use it. If none remains, the next sign-in routes the admin to `/admin/mfa` to enroll a replacement before admin content is available.
 
 ## Close out
 

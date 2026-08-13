@@ -1,7 +1,7 @@
 // admin/src/pages/admin/UserDetail.tsx
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { Badge, Button, Card, ConfirmDialog, DataTable, EditorPage, EmptyState, Shimmer, SlideOver, useNotice } from '../../components/ui'
@@ -11,6 +11,15 @@ import { MealPhoto } from '../../components/MealPhoto'
 import { CheckInsSection } from './CheckInsSection'
 import { AthleteManagementPanel } from './AthleteManagementPanel'
 import { PROFILE_SELECT } from '../../profile/selects'
+import {
+  DeletionJobCard,
+  deletionIsComplete,
+  isDefinitiveDeletionError,
+  requestUserDeletion,
+  type DeletionResponse,
+  type UserDeletionJob,
+  UserDeletionRequestError,
+} from '../../userDeletion'
 import type {
   ExerciseLog,
   MealLog,
@@ -39,9 +48,59 @@ type FeedbackTarget =
 
 export type AccountAction = 'block' | 'unblock' | 'promote_admin' | 'delete'
 
-interface ManageUserResponse {
+interface AccountActionIntent {
   action: AccountAction
-  userId: string
+  targetUserId: string
+  requestId: string
+}
+
+export function accountActionIntent(
+  current: AccountActionIntent | null,
+  action: AccountAction,
+  targetUserId: string,
+  createRequestId = () => crypto.randomUUID(),
+): AccountActionIntent {
+  if (current?.action === action && current.targetUserId === targetUserId) return current
+  return { action, targetUserId, requestId: createRequestId() }
+}
+
+export function clearAccountActionIntent(
+  current: AccountActionIntent | null,
+  resolvedRequestId: string,
+): AccountActionIntent | null {
+  return current?.requestId === resolvedRequestId ? null : current
+}
+
+export function isTerminalAccountActionError(response?: Response): boolean {
+  return response !== undefined && response.status >= 400 && response.status < 500 && response.status !== 408
+}
+
+type ManageUserResponse =
+  | { action: AccountAction; userId: string; deletion?: DeletionResponse['deletion'] }
+  | { status: 'pending'; error: string; requestId: string }
+
+export function accountActionMatchesProfile(action: AccountAction, profile: Profile | undefined): boolean {
+  if (!profile) return false
+  if (action === 'block') return profile.is_blocked
+  if (action === 'unblock') return !profile.is_blocked
+  if (action === 'promote_admin') return profile.is_admin && !profile.is_blocked
+  return false
+}
+
+export async function reconcilePendingAccountAction(
+  queryClient: Pick<QueryClient, 'invalidateQueries' | 'getQueryData'>,
+  action: AccountAction,
+  targetUserId: string,
+): Promise<boolean> {
+  try {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+      queryClient.invalidateQueries({ queryKey: ['user', targetUserId] }),
+    ])
+  } catch {
+    return false
+  }
+  return accountActionMatchesProfile(action, queryClient.getQueryData<Profile>(['user', targetUserId]))
 }
 
 const ACCOUNT_ACTION_COPY: Record<AccountAction, {
@@ -152,6 +211,21 @@ function useUser(id: string) {
       const { data, error } = await supabase.from('profiles').select(PROFILE_SELECT).eq('id', id).single()
       if (error) throw error
       return data
+    },
+  })
+}
+
+function useUserDeletionJob(id: string) {
+  return useQuery<UserDeletionJob | null>({
+    queryKey: ['user-deletion-job', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_deletion_jobs')
+        .select('id, target_user_id, requested_by, status, attempt_count, removed_object_count, last_error_code, last_error_message, updated_at')
+        .eq('target_user_id', id)
+        .maybeSingle()
+      if (error) throw error
+      return data as UserDeletionJob | null
     },
   })
 }
@@ -904,6 +978,7 @@ export default function UserDetail() {
   const { notify } = useNotice()
 
   const { data: user, isLoading, isError, error } = useUser(id!)
+  const deletionJob = useUserDeletionJob(id!)
   const adminNoteQuery = useAthleteAdminNote(id!)
   const { data: workoutPlans = [] } = useWorkoutPlans()
   const { data: mealPlans = [] } = useMealPlans()
@@ -917,20 +992,74 @@ export default function UserDetail() {
   const { data: workoutFeedback = [] } = useWorkoutFeedback(id!)
   const [showAllWorkoutLogs, setShowAllWorkoutLogs] = useState(false)
   const [showAllMealLogs, setShowAllMealLogs] = useState(false)
+  const accountActionIntentRef = useRef<AccountActionIntent | null>(null)
 
   const manageAccount = useMutation({
     mutationFn: async (action: AccountAction) => {
-      const { data, error } = await supabase.functions.invoke<ManageUserResponse>('admin-manage-user', {
+      const intent = accountActionIntent(accountActionIntentRef.current, action, id!)
+      accountActionIntentRef.current = intent
+      if (action === 'delete') {
+        try {
+          const response = await requestUserDeletion(id!, intent.requestId)
+          accountActionIntentRef.current = clearAccountActionIntent(accountActionIntentRef.current, intent.requestId)
+          return response
+        } catch (error) {
+          const response = error instanceof UserDeletionRequestError ? error.response : undefined
+          if (isDefinitiveDeletionError(response)) {
+            accountActionIntentRef.current = clearAccountActionIntent(accountActionIntentRef.current, intent.requestId)
+          }
+          throw error
+        }
+      }
+      const { data, error, response } = await supabase.functions.invoke<ManageUserResponse>('admin-manage-user', {
         body: { action, userId: id! },
+        headers: { 'x-request-id': intent.requestId },
       })
-      if (error) throw error
-      if (data?.action !== action || data.userId !== id) throw new Error('The server returned an unexpected response')
+      if (error) {
+        if (isTerminalAccountActionError(response)) {
+          accountActionIntentRef.current = clearAccountActionIntent(accountActionIntentRef.current, intent.requestId)
+          if (response?.status === 409) {
+            await Promise.all([
+              qc.invalidateQueries({ queryKey: ['admin-users'] }),
+              qc.invalidateQueries({ queryKey: ['user', id] }),
+            ]).catch(() => {})
+          }
+        }
+        throw error
+      }
+      if (data && 'status' in data && data.status === 'pending') {
+        if (await reconcilePendingAccountAction(qc, action, id!)) {
+          accountActionIntentRef.current = clearAccountActionIntent(accountActionIntentRef.current, intent.requestId)
+          return
+        }
+        throw new Error('This account action is still being confirmed. Retry safely in a moment.')
+      }
+      if (!data || !('action' in data) || data.action !== action || data.userId !== id) {
+        throw new Error('The server returned an unexpected response')
+      }
+      accountActionIntentRef.current = clearAccountActionIntent(accountActionIntentRef.current, intent.requestId)
     },
-    onSuccess: async (_, action) => {
+    onSuccess: async (response, action) => {
       await qc.invalidateQueries({ queryKey: ['admin-users'] })
-      if (action === 'delete') navigate('/admin/users', { replace: true })
-      else await qc.invalidateQueries({ queryKey: ['user', id] })
-      notify(ACCOUNT_ACTION_COPY[action].success, 'success')
+      if (action === 'delete') {
+        await qc.invalidateQueries({ queryKey: ['user', id] })
+        await qc.invalidateQueries({ queryKey: ['user-deletion-job', id] })
+        await qc.invalidateQueries({ queryKey: ['user-deletion-jobs'] })
+        if (response && deletionIsComplete(response)) {
+          notify(ACCOUNT_ACTION_COPY[action].success, 'success')
+          navigate('/admin/users', { replace: true })
+        } else {
+          notify(
+            response && 'deletion' in response && response.deletion?.status === 'manual_review'
+              ? 'Deletion paused for manual review.'
+              : 'Deletion progress saved. Retry until it completes.',
+            response && 'deletion' in response && response.deletion?.status === 'manual_review' ? 'error' : 'success',
+          )
+        }
+      } else {
+        await qc.invalidateQueries({ queryKey: ['user', id] })
+        notify(ACCOUNT_ACTION_COPY[action].success, 'success')
+      }
     },
     onError: error => notify(`Couldn’t update this account: ${error.message}`, 'error'),
   })
@@ -1076,12 +1205,21 @@ export default function UserDetail() {
           )}
 
           {!isSelf && !user.is_admin && (
-            <AccountAccessControls
-              userName={userDisplayName}
-              isBlocked={user.is_blocked}
-              pending={manageAccount.isPending}
-              onConfirm={manageAccount.mutateAsync}
-            />
+            <>
+              {deletionJob.data && (
+                <DeletionJobCard
+                  job={deletionJob.data}
+                  pending={manageAccount.isPending}
+                  onRetry={() => manageAccount.mutateAsync('delete')}
+                />
+              )}
+              <AccountAccessControls
+                userName={userDisplayName}
+                isBlocked={user.is_blocked}
+                pending={manageAccount.isPending}
+                onConfirm={manageAccount.mutateAsync}
+              />
+            </>
           )}
         </>
       }

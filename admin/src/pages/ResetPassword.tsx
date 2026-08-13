@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { Button, Input } from '../components/ui'
 import { useAuth } from '../hooks/useAuth'
+import { friendlyAuthError } from '../lib/authErrors'
 import { supabase } from '../lib/supabase'
 import { usePublicLocale } from '../i18n/PublicLocale'
 
@@ -25,6 +26,7 @@ export const copy = {
     tooShort: 'Use at least 8 characters for your new password.',
     mismatch: 'The passwords do not match.',
     genericError: 'We could not update your password. Please try again.',
+    compromisedPassword: 'This password has appeared in a known data breach. Choose a new, unique password.',
   },
   cs: {
     loading: 'Kontroluji odkaz pro obnovení…',
@@ -43,6 +45,7 @@ export const copy = {
     tooShort: 'Nové heslo musí mít alespoň 8 znaků.',
     mismatch: 'Hesla se neshodují.',
     genericError: 'Heslo se nepodařilo změnit. Zkuste to prosím znovu.',
+    compromisedPassword: 'Toto heslo se objevilo ve známém úniku dat. Zvolte nové a jedinečné heslo.',
   },
   sk: {
     loading: 'Kontrolujem odkaz na obnovenie…',
@@ -61,6 +64,7 @@ export const copy = {
     tooShort: 'Nové heslo musí mať aspoň 8 znakov.',
     mismatch: 'Heslá sa nezhodujú.',
     genericError: 'Heslo sa nepodarilo zmeniť. Skús to, prosím, znova.',
+    compromisedPassword: 'Toto heslo sa objavilo v známom úniku dát. Zvoľ nové a jedinečné heslo.',
   },
 } as const
 
@@ -91,12 +95,12 @@ export default function ResetPassword() {
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password })
       if (updateError) {
-        setError(updateError.message)
+        setError(friendlyAuthError(updateError, t.compromisedPassword, t.genericError))
         return
       }
       setUpdated(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.genericError)
+      setError(friendlyAuthError(err, t.compromisedPassword, t.genericError))
     } finally {
       setLoading(false)
     }
